@@ -1,0 +1,7 @@
+John Doe
+Software Engineer
+Experience:
+- Company A (2020-2022)
+- Company B (2022-2024)
+Skills: Python, Java, React
+Education: B.Sc. Computer Science

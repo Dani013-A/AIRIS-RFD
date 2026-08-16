@@ -1,0 +1,33 @@
+# Ignore environment files
+.env
+.env.*
+!.env.example
+
+# Ignore Node.js
+node_modules/
+dist/
+build/
+.expo/
+*.log
+
+# Ignore Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.Python
+*.egg-info/
+
+# Ignore Keys & Credentials
+*.keystore
+google-services.json
+airis-development-firebase-adminsdk-*.json
+
+# OS files
+.DS_Store
+Thumbs.db

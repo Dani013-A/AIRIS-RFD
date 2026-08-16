@@ -1,0 +1,114 @@
+[
+  {
+    "id": "intro-1",
+    "category": "introductory",
+    "competency": "communication",
+    "tags": ["general", "all roles"],
+    "text": "Tell me about yourself and your journey into this field."
+  },
+  {
+    "id": "intro-2",
+    "category": "introductory",
+    "competency": "motivation",
+    "tags": ["general", "all roles"],
+    "text": "Why are you interested in this specific role, and how does it align with your long-term career goals?"
+  },
+  {
+    "id": "behav-1",
+    "category": "behavioral",
+    "competency": "problem solving",
+    "tags": ["general", "all roles"],
+    "text": "Tell me about a time you encountered an unexpected problem in a project. How did you handle it?"
+  },
+  {
+    "id": "behav-2",
+    "category": "behavioral",
+    "competency": "teamwork",
+    "tags": ["general", "all roles"],
+    "text": "Describe a situation where you had a disagreement with a team member. How did you resolve it?"
+  },
+  {
+    "id": "behav-3",
+    "category": "behavioral",
+    "competency": "time management",
+    "tags": ["general", "all roles"],
+    "text": "Tell me about a time you had to juggle multiple tight deadlines. How did you prioritize your tasks?"
+  },
+  {
+    "id": "tech-se-1",
+    "category": "technical",
+    "competency": "software architecture",
+    "tags": ["software developer", "software engineer", "full stack"],
+    "text": "How do you decide between a microservices architecture versus a monolithic architecture for a new web application?"
+  },
+  {
+    "id": "tech-se-2",
+    "category": "technical",
+    "competency": "version control",
+    "tags": ["software developer", "software engineer", "git"],
+    "text": "Explain your typical Git workflow when working on a new feature in a team setting."
+  },
+  {
+    "id": "tech-se-3",
+    "category": "technical",
+    "competency": "api design",
+    "tags": ["software developer", "backend engineer"],
+    "text": "What are the core principles of RESTful API design, and how do you handle versioning?"
+  },
+  {
+    "id": "tech-da-1",
+    "category": "technical",
+    "competency": "database management",
+    "tags": ["data analyst", "sql", "database"],
+    "text": "Explain the difference between an INNER JOIN and a LEFT JOIN, and describe a specific scenario where you would use each."
+  },
+  {
+    "id": "tech-da-2",
+    "category": "technical",
+    "competency": "data cleaning",
+    "tags": ["data analyst", "data scientist", "python"],
+    "text": "Walk me through your process for identifying and handling missing or corrupt data in a large dataset."
+  },
+  {
+    "id": "tech-da-3",
+    "category": "technical",
+    "competency": "data visualization",
+    "tags": ["data analyst", "power bi", "tableau"],
+    "text": "When building a dashboard for executive stakeholders, how do you decide which metrics to highlight?"
+  },
+  {
+    "id": "tech-ce-1",
+    "category": "technical",
+    "competency": "civil engineering",
+    "tags": ["civil engineer", "structural engineer"],
+    "text": "Describe the process you follow for analyzing the load-bearing capacity of a structural beam."
+  },
+  {
+    "id": "tech-ce-2",
+    "category": "technical",
+    "competency": "project management",
+    "tags": ["civil engineer", "construction management"],
+    "text": "How do you ensure compliance with local building codes and safety regulations during a construction project?"
+  },
+  {
+    "id": "sit-1",
+    "category": "situational",
+    "competency": "adaptability",
+    "tags": ["general", "all roles"],
+    "text": "You are halfway through a project and the client completely changes the requirements. What is your immediate response?"
+  },
+  {
+    "id": "sit-2",
+    "category": "situational",
+    "competency": "communication",
+    "tags": ["general", "all roles"],
+    "text": "You need to explain a highly complex technical issue to a non-technical stakeholder. How do you approach this?"
+  },
+  {
+    "id": "close-1",
+    "category": "closing",
+    "competency": "professionalism",
+    "tags": ["general", "all roles"],
+    "text": "That concludes the technical portion of our interview. Do you have any questions for me about the role or the company?"
+  }
+]
