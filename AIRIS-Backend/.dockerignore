@@ -1,0 +1,28 @@
+# Environments and Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Git
+.git
+
+# Node (just in case)
+node_modules/
+
+# OS and Logs
+.DS_Store
+*.log
