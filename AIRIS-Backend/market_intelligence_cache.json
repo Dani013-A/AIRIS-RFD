@@ -1,0 +1,17 @@
+{
+  "skills": {
+    "sql": { "demandScore": 95, "relevance": "high", "evidenceCount": 5420 },
+    "python": { "demandScore": 98, "relevance": "high", "evidenceCount": 8100 },
+    "excel": { "demandScore": 90, "relevance": "high", "evidenceCount": 6000 },
+    "power bi": { "demandScore": 88, "relevance": "high", "evidenceCount": 3200 },
+    "tableau": { "demandScore": 85, "relevance": "high", "evidenceCount": 2900 },
+    "autocad": { "demandScore": 85, "relevance": "high", "evidenceCount": 2100 },
+    "structural analysis": { "demandScore": 82, "relevance": "high", "evidenceCount": 1800 },
+    "civil3d": { "demandScore": 75, "relevance": "moderate", "evidenceCount": 900 },
+    "project management": { "demandScore": 95, "relevance": "high", "evidenceCount": 12000 },
+    "reporting": { "demandScore": 88, "relevance": "high", "evidenceCount": 8000 },
+    "data cleaning": { "demandScore": 85, "relevance": "high", "evidenceCount": 3500 },
+    "data visualization": { "demandScore": 90, "relevance": "high", "evidenceCount": 4200 },
+    "statistical analysis": { "demandScore": 80, "relevance": "high", "evidenceCount": 2500 }
+  }
+}

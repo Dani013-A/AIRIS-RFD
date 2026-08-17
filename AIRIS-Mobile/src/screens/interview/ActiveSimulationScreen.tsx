@@ -97,10 +97,19 @@ export default function ActiveSimulationScreen() {
 
     setLoading(true);
     try {
+      const parsedResumeDict: Record<string, string> = {};
+      if (Array.isArray(activeAnalysis.parsedSections)) {
+        for (const sec of activeAnalysis.parsedSections) {
+          parsedResumeDict[sec.name] = sec.content;
+        }
+      } else {
+        Object.assign(parsedResumeDict, activeAnalysis.parsedSections || {});
+      }
+
       const response = await submitInterviewAnswer({
         targetRole: session.targetRole,
         program: session.program,
-        parsedResume: activeAnalysis.parsedSections || {},
+        parsedResume: parsedResumeDict,
         history: session.history,
         currentQuestion: session.currentQuestion,
         currentAnswer: answer.trim(),

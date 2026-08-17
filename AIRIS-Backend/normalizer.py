@@ -2,10 +2,10 @@ import os
 import json
 from typing import Dict, Any, List, Optional
 from ai_service import generate_text_with_fallback
-from sbert_matcher import get_sbert_model, calculate_cosine_similarity, CAREER_PROFILES
+from sbert_matcher import get_sbert_model, calculate_cosine_similarity, CAREER_CONCEPTS
 
 # Standard predefined entities lists for local lookup
-STANDARD_JOBS = list(CAREER_PROFILES.keys())
+STANDARD_JOBS = list(CAREER_CONCEPTS.keys())
 
 STANDARD_SKILLS = [
     "python", "javascript", "typescript", "react.js", "node.js", "sql", "tableau", "power bi",
@@ -98,9 +98,9 @@ def run_semantic_sbert_match(val: str, type_name: str) -> Optional[str]:
     best_job = None
     max_sim = 0.0
     
-    for job, profile in CAREER_PROFILES.items():
+    for job, profile in CAREER_CONCEPTS.items():
         # Compare against SBERT profile representation
-        profile_emb = model.encode(profile)
+        profile_emb = model.encode(", ".join(profile))
         sim = calculate_cosine_similarity(input_emb, profile_emb)
         if sim > max_sim:
             max_sim = sim
@@ -108,7 +108,7 @@ def run_semantic_sbert_match(val: str, type_name: str) -> Optional[str]:
             
     # Clear semantic cutoff threshold
     if max_sim >= 0.82:
-        for key in CAREER_PROFILES.keys():
+        for key in CAREER_CONCEPTS.keys():
             if key.lower() == best_job.lower():
                 return key
     return None

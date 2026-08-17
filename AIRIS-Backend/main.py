@@ -55,8 +55,9 @@ async def analyze_resume(request: Request):
 
         raw_text = str(body.get("rawText") or body.get("raw_text") or "")
         parsed_sections = body.get("parsedSections") or body.get("parsed_sections") or {}
-        if not isinstance(parsed_sections, dict):
-            parsed_sections = {"Content": str(parsed_sections)}
+        if not parsed_sections or not isinstance(parsed_sections, dict) or len(parsed_sections) < 2:
+            from resume_parser import parse_resume
+            parsed_sections = parse_resume(raw_text)
 
         target_pos = str(body.get("targetPosition") or body.get("target_position") or "Software Engineer")
 
@@ -65,20 +66,16 @@ async def analyze_resume(request: Request):
         
         # 1. Run semantic similarity scoring with SBERT
         sbert_results = evaluate_semantic_alignment(
-            skills_text=skills_text,
-            experience_text=experience_text,
+            parsed_sections=parsed_sections,
             target_position=target_pos
         )
         
-        local_analysis = body.get("localAnalysis")
-
         # 2. Get explainable feedback from Gemini AI validator using the authoritative frontend deterministic scores
         enhanced_result = validate_and_enhance_analysis(
             raw_text=raw_text,
             parsed_sections=parsed_sections,
             target_position=target_pos,
-            sbert_results=sbert_results,
-            local_analysis=local_analysis
+            sbert_results=sbert_results
         )
         
         # Validate resume content using parsed sections
@@ -140,9 +137,8 @@ async def upload_resume(
         analysis_id = str(uuid.uuid4())
 
         sbert_results = evaluate_semantic_alignment(
-            skills_text=str(parsed_sections.get("Skills", "")),
-            experience_text=str(parsed_sections.get("WorkExperience", "") or parsed_sections.get("Experience", "")),
-            target_position=selected_position,
+            parsed_sections=parsed_sections,
+            target_position=selected_position
         )
 
         enhanced_result = validate_and_enhance_analysis(

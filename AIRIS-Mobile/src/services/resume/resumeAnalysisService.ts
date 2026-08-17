@@ -7,7 +7,26 @@ import { analyzeResume, parseResumeSections, type ResumeAnalysisResult } from ".
  * from Metro scriptURL, Expo manifest, Android emulator, iOS simulator, and production endpoints.
  */
 export function getBackendBaseUrls(): string[] {
-  return [process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000"];
+  const urls: string[] = [];
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    urls.push(process.env.EXPO_PUBLIC_API_URL);
+  }
+  
+  // Expo LAN IP (Useful for physical devices on same WiFi)
+  const hostUri = Constants.expoConfig?.hostUri || (Constants.manifest as any)?.hostUri;
+  if (hostUri) {
+    const lanIp = hostUri.split(':')[0];
+    urls.push(`http://${lanIp}:8000`);
+  }
+
+  // Fallbacks
+  if (Platform.OS === 'android') {
+    urls.push("http://10.0.2.2:8000"); // Emulator
+  } else {
+    urls.push("http://localhost:8000"); // iOS Simulator / Web
+  }
+  
+  return [...new Set(urls)];
 }
 
 export interface UploadProgressEvent {
@@ -167,8 +186,7 @@ export async function calculateAtsCompatibility(
         body: JSON.stringify({
           rawText,
           parsedSections: parsedSectionsDict,
-          targetPosition,
-          localAnalysis: localAnalysis
+          targetPosition
         }),
       });
 
@@ -193,9 +211,11 @@ export async function calculateAtsCompatibility(
   }
 
   // Fallback to local deterministic parser if backend is offline/unreachable
-  console.log("Falling back to local deterministic on-device parser.");
+  console.log("BACKEND UNREACHABLE! Falling back to local deterministic on-device parser. YOU ARE TESTING THE LOCAL FALLBACK, NOT THE BACKEND.");
   try {
-    return analyzeResume(rawText, targetPosition);
+    const localResult = analyzeResume(rawText, targetPosition);
+    (localResult as any).isLocalFallback = true;
+    return localResult;
   } catch (error) {
     throw new Error(
       `Analysis calculation failed: ${error instanceof Error ? error.message : String(error)}`

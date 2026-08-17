@@ -15,6 +15,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -25,7 +26,7 @@ import { useAuthStore } from "../../store/authStore";
 import { useOnboardingStore } from "../../store/onboardingStore";
 import { fuzzyMatchRole } from "../../utils/fuzzyMatcher";
 
-const BACKEND_ENDPOINT = `${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000'}/normalize`;
+const BACKEND_ENDPOINT = `${process.env.EXPO_PUBLIC_API_URL || (Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000')}/normalize`;
 
 export default function JobSelectionScreen() {
   const router = useRouter();

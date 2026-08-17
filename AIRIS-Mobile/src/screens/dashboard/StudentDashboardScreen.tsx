@@ -1,17 +1,45 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ScrollView, Text, TouchableOpacity, View, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore } from "../../store/authStore";
 import { useResumeStore } from "../../store/resumeStore";
 import { PrimaryButton } from "../../components/ui";
+import { fetchLatestInterviewSession } from "../../services/firebase/interviewService";
+import { InterviewSession } from "../../store/interviewStore";
 
 export default function StudentDashboardScreen() {
   const router = useRouter();
   const currentUser = useAuthStore((state) => state.currentUser);
   const activeResume = useResumeStore((state) => state.activeResume);
   const activeAnalysis = useResumeStore((state) => state.activeAnalysis);
+
+  const [latestInterview, setLatestInterview] = useState<InterviewSession | null>(null);
+  const [isLoadingInterview, setIsLoadingInterview] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadInterview() {
+      if (!currentUser?.uid) return;
+      try {
+        const interview = await fetchLatestInterviewSession(currentUser.uid);
+        if (isMounted) {
+          setLatestInterview(interview);
+        }
+      } catch (error) {
+        console.error("Failed to load latest interview:", error);
+      } finally {
+        if (isMounted) {
+          setIsLoadingInterview(false);
+        }
+      }
+    }
+    loadInterview();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.uid]);
 
   const userName = currentUser?.fullName || "Student";
   const userProgram = currentUser?.degreeProgram || "BS Computer Science";
@@ -20,9 +48,8 @@ export default function StudentDashboardScreen() {
   const hasResume = currentUser?.hasUploadedResume === true && !!activeResume && !!activeAnalysis;
   const resumeScore = hasResume ? activeAnalysis?.atsScore?.overallScore || 0 : 0;
 
-  // Set the initial interview score to 0 since the simulator is still in development.
-  const interviewScore = 0;
-  const hasInterview = false;
+  const hasInterview = !!latestInterview && !!latestInterview.finalReport;
+  const interviewScore = hasInterview ? latestInterview.finalReport?.overallPerformance || 0 : 0;
 
   // Calculate the overall readiness score, combining interview scores (60% weight) and resume scores (40% weight).
   const employabilityScore = Math.round((interviewScore * 0.60) + (resumeScore * 0.40));
@@ -71,7 +98,12 @@ export default function StudentDashboardScreen() {
             Employability Preparedness
           </Text>
 
-          {!hasInterview ? (
+          {isLoadingInterview ? (
+            <View className="items-center my-6">
+              <ActivityIndicator size="large" color="#F4A47A" />
+              <Text className="mt-3 text-sm font-bold text-[#4F6B82]">Calculating score...</Text>
+            </View>
+          ) : !hasInterview ? (
             <>
               <View className="items-center my-6">
                 <View className="h-24 w-24 items-center justify-center rounded-full bg-[#EAF2F7]">
@@ -80,10 +112,10 @@ export default function StudentDashboardScreen() {
               </View>
 
               <Text className="text-base font-bold text-center text-[#1F3A5F]">
-                Nothing for now...
+                Incomplete Data
               </Text>
               <Text className="mt-1.5 text-sm text-center text-[#4F6B82] px-6 leading-5">
-                Start an interview to kick off your career preparation!
+                Complete an interview simulation to unlock your full employability score!
               </Text>
             </>
           ) : (
@@ -159,22 +191,48 @@ export default function StudentDashboardScreen() {
         <View className="mt-8 mb-4">
           <Text className="text-lg font-extrabold text-[#1F3A5F] mb-1">Recent Activity</Text>
           
-          <View className="mt-3 rounded-2xl bg-white p-5 border border-[#BFD6EA] flex-row items-center justify-between" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-            <View className="flex-row items-center flex-1 pr-4">
-               <View className="h-10 w-10 bg-[#F4F8FB] rounded-full items-center justify-center mr-4">
-                 <Ionicons name="time" size={20} color="#4F6B82" />
-               </View>
-               <Text className="text-sm font-medium text-[#4F6B82] leading-5 flex-1">
-                 {hasResume ? `Analyzed resume "${activeResume?.originalFileName}"` : "No recent activity recorded."}
-               </Text>
+          {!hasResume && !hasInterview ? (
+            <View className="mt-3 rounded-2xl bg-white p-5 border border-[#BFD6EA] flex-row items-center justify-between" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
+              <View className="flex-row items-center flex-1 pr-4">
+                 <View className="h-10 w-10 bg-[#F4F8FB] rounded-full items-center justify-center mr-4">
+                   <Ionicons name="time" size={20} color="#4F6B82" />
+                 </View>
+                 <Text className="text-sm font-medium text-[#4F6B82] leading-5 flex-1">
+                   No recent activity recorded.
+                 </Text>
+              </View>
             </View>
-            
-            {hasResume && (
-              <TouchableOpacity onPress={() => router.push("/(student)/(tabs)/resume" as any)} className="bg-[#FEF5F1] px-4 py-2 rounded-full border border-[#FDEEE6]">
-                <Text className="text-xs font-bold text-[#CA5D25]">View</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          ) : (
+            <>
+              {hasInterview && (
+                <View className="mt-3 rounded-2xl bg-white p-5 border border-[#BFD6EA] flex-row items-center justify-between" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
+                  <View className="flex-row items-center flex-1 pr-4">
+                     <View className="h-10 w-10 bg-[#FEF5F1] rounded-full items-center justify-center mr-4">
+                       <Ionicons name="mic" size={20} color="#CA5D25" />
+                     </View>
+                     <Text className="text-sm font-medium text-[#4F6B82] leading-5 flex-1">
+                       Completed {latestInterview.targetRole} interview simulation
+                     </Text>
+                  </View>
+                </View>
+              )}
+              {hasResume && (
+                <View className="mt-3 rounded-2xl bg-white p-5 border border-[#BFD6EA] flex-row items-center justify-between" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
+                  <View className="flex-row items-center flex-1 pr-4">
+                     <View className="h-10 w-10 bg-[#F4F8FB] rounded-full items-center justify-center mr-4">
+                       <Ionicons name="document-text" size={20} color="#4F6B82" />
+                     </View>
+                     <Text className="text-sm font-medium text-[#4F6B82] leading-5 flex-1">
+                       Analyzed resume "{activeResume?.originalFileName}"
+                     </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => router.push("/(student)/(tabs)/resume" as any)} className="bg-[#FEF5F1] px-4 py-2 rounded-full border border-[#FDEEE6]">
+                    <Text className="text-xs font-bold text-[#CA5D25]">View</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
+          )}
         </View>
 
       </ScrollView>

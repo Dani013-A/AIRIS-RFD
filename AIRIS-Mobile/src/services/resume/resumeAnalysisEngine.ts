@@ -69,13 +69,23 @@ export type ATSCompatibilityLevel =
   | "GettingThere"
   | "NeedsImprovement";
 
-export interface ATSScoreBreakdown {
-  skillsMatchScore: number;
-  experienceScore: number;
-  educationRelevanceScore: number;
-  certificationsScore: number;
-  atsCompatibilityScore: number;
-  resumeQualityScore: number;
+export interface ScoreComponent {
+  rawScore: number;
+  weight: number;
+  weightedScore: number;
+}
+
+export interface ResumeScoreBreakdown {
+  skills: ScoreComponent;
+  education: ScoreComponent;
+  certifications: ScoreComponent;
+}
+
+export interface RoleRelevanceBreakdown {
+  skillsMatch: ScoreComponent;
+  experienceMatch: ScoreComponent;
+  educationMatch: ScoreComponent;
+  certificationsMatch: ScoreComponent;
 }
 
 export type ATSScoreCategory =
@@ -87,18 +97,29 @@ export type ATSScoreCategory =
 
 export interface ATSScoreAdjustment {
   ruleId: string;
-  category: ATSScoreCategory;
+  category: string;
   points: number;
   maximumPoints: number;
   passed: boolean;
   reason: string;
+  matchedChunk?: string | null;
 }
 
 export interface ATSScore {
   overallScore: number;
   level: ATSCompatibilityLevel;
-  breakdown: ATSScoreBreakdown;
-  adjustments: ATSScoreAdjustment[];
+  resumeScore?: {
+    total: number;
+    breakdown: ResumeScoreBreakdown;
+  };
+  roleRelevance?: {
+    total: number;
+    breakdown: RoleRelevanceBreakdown;
+    adjustments: ATSScoreAdjustment[];
+  };
+  // Fallback properties for older cached reports
+  breakdown?: any;
+  adjustments?: ATSScoreAdjustment[];
 }
 
 export interface ResumeSuggestion {

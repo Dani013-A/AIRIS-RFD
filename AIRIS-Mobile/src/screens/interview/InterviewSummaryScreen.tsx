@@ -6,6 +6,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useInterviewStore } from "../../store/interviewStore";
 import { generateInterviewReport } from "../../services/api/interviewApi";
 import { PrimaryButton } from "../../components/ui";
+import { useAuthStore } from "../../store/authStore";
+import { saveInterviewSession } from "../../services/firebase/interviewService";
 
 export default function InterviewSummaryScreen() {
   const router = useRouter();
@@ -34,6 +36,16 @@ export default function InterviewSummaryScreen() {
         evaluations: session.evaluations,
       });
       setFinalReport(response);
+      
+      // Save to Firestore so it persists across reloads and for the dashboard
+      const currentUser = useAuthStore.getState().currentUser;
+      if (currentUser) {
+        // use the updated session state directly from Zustand to ensure finalReport is included
+        const updatedSession = useInterviewStore.getState().session;
+        if (updatedSession) {
+          await saveInterviewSession(currentUser.uid, updatedSession);
+        }
+      }
     } catch (err) {
       console.error(err);
       Alert.alert("Error", "Failed to generate interview report.");

@@ -1,7 +1,7 @@
 import json
 import uuid
 from typing import Dict, Any, List
-from ai_service import generate_text_with_fallback
+from ai_service import generate_text_with_fallback, evaluate_intrinsic_resume_strength
 
 def is_resume_valid(parsed_sections: Dict[str, str]) -> bool:
     """Enhanced heuristic to determine if a document appears to be a resume.
@@ -30,7 +30,6 @@ def is_resume_valid(parsed_sections: Dict[str, str]) -> bool:
     return has_contact or matched_keywords >= 2 or len(combined_text.split()) >= 100
 
 
-
 def validate_and_enhance_analysis(
     raw_text: str,
     parsed_sections: Dict[str, str],
@@ -38,92 +37,186 @@ def validate_and_enhance_analysis(
     sbert_results: Dict[str, Any],
     local_analysis: Dict[str, Any] = None
 ) -> Dict[str, Any]:
-    """Validate parsed resume sections and enrich the response with AI-generated suggestions 
-    based ONLY on authoritative frontend deterministic evaluation rules.
     """
-    # Extract SBERT scores
-    skills_score = sbert_results.get("skillsMatchScore", 0)
-    experience_score = sbert_results.get("experienceScore", 0)
-
-    # If the frontend provided its accurate deterministic analysis, we use it as the absolute ground truth.
-    if local_analysis and "atsScore" in local_analysis:
-        default_response = local_analysis
-        
-        # Inject the semantic scores into the frontend's deterministic breakdown
-        breakdown = default_response["atsScore"].get("breakdown", {})
-        breakdown["skillsMatchScore"] = skills_score
-        breakdown["experienceScore"] = experience_score
-        
-        ats_compat = breakdown.get("atsCompatibilityScore", 0)
-        quality = breakdown.get("resumeQualityScore", 0)
-        
-        # Final authoritative weighting: ATS Format (30%), Quality/Content (20%), Skills Match (30%), Experience Match (20%)
-        overall_score = int(
-            (ats_compat * 0.30) +
-            (quality * 0.20) +
-            (skills_score * 0.30) +
-            (experience_score * 0.20)
-        )
-        
-        if overall_score >= 85: level = "ExcellentMatch"
-        elif overall_score >= 70: level = "StrongFoundation"
-        elif overall_score >= 50: level = "GettingThere"
-        else: level = "NeedsImprovement"
-        
-        default_response["atsScore"]["overallScore"] = overall_score
-        default_response["atsScore"]["level"] = level
-        default_response["atsScore"]["breakdown"] = breakdown
-        
-        # Collect strictly evidence-based failed rules from the deterministic engine
-        failed_rules = [
-            adj.get("reason", "") for adj in default_response["atsScore"].get("adjustments", []) 
-            if not adj.get("passed", True)
-        ]
-        missing_sections = [
-            sec.get("name", "") for sec in default_response.get("missingSections", [])
-        ]
-        
-        evidence_context = f"""
-        FAILED DETECTED RULES: {', '.join(failed_rules) if failed_rules else 'None'}
-        MISSING REQUIRED SECTIONS: {', '.join(missing_sections) if missing_sections else 'None'}
-        SBERT SKILLS MATCH SCORE: {skills_score}/100
-        SBERT EXPERIENCE MATCH SCORE: {experience_score}/100
-        """
-    else:
-        # Fallback if frontend analysis is missing (should not happen in normal flow)
-        overall_score = int((skills_score * 0.50) + (experience_score * 0.50))
-        level = "GettingThere"
-        evidence_context = f"SBERT SKILLS: {skills_score}/100, EXPERIENCE: {experience_score}/100."
-        default_response = {
-            "atsScore": {
-                "overallScore": overall_score,
-                "level": level,
-                "breakdown": {
-                    "skillsMatchScore": skills_score,
-                    "experienceScore": experience_score,
-                    "atsCompatibilityScore": 50,
-                    "resumeQualityScore": 50,
+    Validates parsed resume sections and enrich the response with AI-generated suggestions 
+    based ONLY on the semantic evidence object from SBERT matching.
+    The backend is now the absolute source of truth.
+    """
+    overall_match = sbert_results.get("overallMatchScore", 0)
+    evidence = sbert_results.get("evidence", [])
+    
+    # 1. Fetch SBERT Normalized Component Scores (This is ROLE RELEVANCE)
+    skills_raw = sbert_results.get("skillsMatchScore", 0)
+    exp_raw = sbert_results.get("experienceScore", 0)
+    edu_raw = sbert_results.get("educationScore", 0)
+    cert_raw = sbert_results.get("certificationsScore", 0)
+    
+    # Calculate Role Relevance Weights based on official manuscript formula
+    role_skills = skills_raw * 0.40
+    role_exp = exp_raw * 0.30
+    role_edu = edu_raw * 0.20
+    role_cert = cert_raw * 0.10
+    
+    role_relevance_score = round(role_skills + role_exp + role_edu + role_cert)
+    
+    # 2. Evaluate Intrinsic Resume Strength (This is RESUME SCORE)
+    intrinsic_eval = evaluate_intrinsic_resume_strength(raw_text)
+    intrinsic_skills_raw = intrinsic_eval.get("skills", 50)
+    intrinsic_edu_raw = intrinsic_eval.get("education", 50)
+    intrinsic_cert_raw = intrinsic_eval.get("certifications", 0)
+    
+    intrinsic_skills = intrinsic_skills_raw * 0.50
+    intrinsic_edu = intrinsic_edu_raw * 0.25
+    intrinsic_cert = intrinsic_cert_raw * 0.25
+    
+    resume_score = round(intrinsic_skills + intrinsic_edu + intrinsic_cert)
+    
+    # 3. Final Blended OVERALL RESUME SCORE
+    final_score = round((resume_score * 0.5) + (role_relevance_score * 0.5))
+    
+    # 4. Determine Overall Level
+    if final_score >= 85: level = "ExcellentMatch"
+    elif final_score >= 70: level = "StrongFoundation"
+    elif final_score >= 50: level = "GettingThere"
+    else: level = "NeedsImprovement"
+    
+    # Check what sections actually exist for the frontend response
+    detected_names = []
+    from resume_parser import SECTION_ALIASES
+    for key, content in parsed_sections.items():
+        if len(content.strip()) > 5:
+            detected_names.append(key)
+    detected_sections_list = [{"name": key, "isPresent": True} for key in detected_names]
+    
+    # Determine missing required sections
+    required_sections = ["ContactInformation", "Education", "Skills", "WorkExperience"]
+    missing_sections = []
+    for req in required_sections:
+        if req not in detected_names:
+            missing_sections.append({
+                "name": req,
+                "requirement": "required",
+                "importance": "high",
+                "reason": f"Missing core section: {req}"
+            })
+            
+    ats_score = {
+        "overallScore": final_score,
+        "level": level,
+        "resumeScore": {
+            "total": resume_score,
+            "breakdown": {
+                "skills": {
+                    "rawScore": intrinsic_skills_raw,
+                    "weight": 0.50,
+                    "weightedScore": round(intrinsic_skills, 1)
                 },
+                "education": {
+                    "rawScore": intrinsic_edu_raw,
+                    "weight": 0.25,
+                    "weightedScore": round(intrinsic_edu, 1)
+                },
+                "certifications": {
+                    "rawScore": intrinsic_cert_raw,
+                    "weight": 0.25,
+                    "weightedScore": round(intrinsic_cert, 1)
+                }
+            }
+        },
+        "roleRelevance": {
+            "total": role_relevance_score,
+            "breakdown": {
+                "skillsMatch": {
+                    "rawScore": skills_raw,
+                    "weight": 0.40,
+                    "weightedScore": round(role_skills, 1)
+                },
+                "experienceMatch": {
+                    "rawScore": exp_raw,
+                    "weight": 0.30,
+                    "weightedScore": round(role_exp, 1)
+                },
+                "educationMatch": {
+                    "rawScore": edu_raw,
+                    "weight": 0.20,
+                    "weightedScore": round(role_edu, 1)
+                },
+                "certificationsMatch": {
+                    "rawScore": cert_raw,
+                    "weight": 0.10,
+                    "weightedScore": round(role_cert, 1)
+                }
             },
-            "suggestions": [],
-            "recommendations": [],
+            "adjustments": []
         }
+    }
+    
+    # Populate adjustments for Role Relevance Diagnostic
+    for ev in evidence:
+        if ev["status"] == "STRONG_MATCH":
+            ats_score["roleRelevance"]["adjustments"].append({
+                "ruleId": f"match_{ev['concept'].replace(' ', '_')}",
+                "category": "skillsMatch",
+                "points": 10,
+                "maximumPoints": 10,
+                "passed": True,
+                "reason": f"Strong evidence for {ev['concept']} found in {ev['matchedSection']}.",
+                "matchedChunk": ev.get("matchedChunk")
+            })
+        elif ev["status"] == "PARTIAL_MATCH":
+            ats_score["roleRelevance"]["adjustments"].append({
+                "ruleId": f"match_{ev['concept'].replace(' ', '_')}",
+                "category": "skillsMatch",
+                "points": 5,
+                "maximumPoints": 10,
+                "passed": False,
+                "reason": f"Partial evidence for {ev['concept']}. Strengthen this area.",
+                "matchedChunk": ev.get("matchedChunk")
+            })
+        else:
+            ats_score["roleRelevance"]["adjustments"].append({
+                "ruleId": f"match_{ev['concept'].replace(' ', '_')}",
+                "category": "skillsMatch",
+                "points": 0,
+                "maximumPoints": 10,
+                "passed": False,
+                "reason": f"No evidence found for {ev['concept']}.",
+                "matchedChunk": None
+            })
+            
 
-    # Prompt Gemini (or fallback) for highly specific, evidence-based suggestions
+
+    default_response = {
+        "atsScore": ats_score,
+        "detectedSections": detected_sections_list,
+        "missingSections": missing_sections,
+        "suggestions": [],
+        "recommendations": []
+    }
+    
+    # 2. Prompt Gemini for suggestions based STRICTLY on evidence
+    missing_concepts = [e["concept"] for e in evidence if e["status"] == "NO_RELEVANT_EVIDENCE"]
+    partial_concepts = [e for e in evidence if e["status"] == "PARTIAL_MATCH"]
+    
+    evidence_context = f"""
+    TARGET ROLE: {target_position}
+    MISSING CONCEPTS (0 evidence): {', '.join(missing_concepts) if missing_concepts else 'None'}
+    PARTIAL CONCEPTS:
+    """
+    for p in partial_concepts:
+        evidence_context += f"- {p['concept']} (Found in {p['matchedSection']}: '{p['matchedChunk']}')\n"
+        
     prompt = f"""
     You are an expert recruiter evaluating a resume for the target role "{target_position}".
-    You must base your suggestions STRICTLY on the following concrete evidence. Do not invent missing skills or missing sections.
+    You must base your suggestions STRICTLY on the following concrete evidence from our semantic engine. 
     
     EVIDENCE METRICS:
     {evidence_context}
     
-    RESUME TEXT EXTRACT:
-    {raw_text[:2000]}...
-    
     Task:
-    Provide 1 or 2 specific, semantic critiques of the resume bullets in the extract. 
-    Focus on impact, clarity, and relevance to a {target_position}. 
-    Quote a specific weak bullet from the text, explain why it's weak, and provide a better rewritten example.
+    Provide 1 or 2 specific, semantic critiques. 
+    If there are PARTIAL CONCEPTS, quote the weak chunk and rewrite it to be stronger and more impactful for the target role.
+    If there are MISSING CONCEPTS, recommend how they might incorporate them if they have that experience.
     
     Return a concise JSON payload with exactly this structure:
     {{
@@ -132,8 +225,8 @@ def validate_and_enhance_analysis(
            "priority": "high",
            "type": "content",
            "title": "Short title (e.g. Strengthen Impact)",
-           "description": "What is wrong, why it matters. Quote the weak bullet.",
-           "example": "Provide the rewritten, stronger bullet.",
+           "description": "What is wrong, why it matters. Quote the weak chunk if applicable.",
+           "example": "Provide the rewritten, stronger chunk or actionable advice.",
            "reason": "AI Semantic Review"
         }}
       ]
@@ -150,12 +243,7 @@ def validate_and_enhance_analysis(
                 response_text = "\n".join(lines[1:-1]).strip()
         parsed_json = json.loads(response_text)
         
-        # Append AI semantic suggestions to the deterministic ones, rather than destroying them
         ai_suggestions = parsed_json.get("suggestions", [])
-        if "suggestions" not in default_response:
-            default_response["suggestions"] = []
-            
-        # Limit AI to 2 suggestions to prevent overwhelming the user
         default_response["suggestions"].extend(ai_suggestions[:2])
         
         return default_response

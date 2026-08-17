@@ -203,18 +203,19 @@ def generate_final_report(target_role: str, program: str, parsed_resume: dict, h
     TASK:
     Generate a final, structured interview report.
     Do NOT be overly encouraging. Be strictly professional, objective, and realistic. 
-    Calculate an overall performance score based on the evaluations.
     Identify overall strengths, areas to improve, the absolute weakest answer, and actionable feedback.
+    
+    Instead of calculating a single performance score, you MUST evaluate the following three core metrics on a 0-100 scale:
+    1. semanticCorrectness: How factually and technically accurate were their answers against industry standards?
+    2. aiHolisticEvaluation: How well did they structure their thoughts, use the STAR method, and maintain professionalism?
+    3. communicationClarity: Based strictly on the textual transcript, rate their fluency, response length, and lack of filler words.
     
     OUTPUT FORMAT (Strict JSON):
     {{
-        "overallPerformance": 75,
-        "categoryBreakdown": {{
-            "Communication": 80,
-            "Relevance": 70,
-            "TechnicalAccuracy": 75,
-            "Specificity": 65,
-            "ProblemSolving": 78
+        "metrics": {{
+            "semanticCorrectness": 75,
+            "aiHolisticEvaluation": 80,
+            "communicationClarity": 70
         }},
         "strengths": [
             "Handled the technical Python question well.",
@@ -237,5 +238,47 @@ def generate_final_report(target_role: str, program: str, parsed_resume: dict, h
     }}
     """
     
-    raw_response = generate_text_with_fallback(prompt)
-    return _extract_json(raw_response)
+    try:
+        raw_response = generate_text_with_fallback(prompt)
+        parsed_report = _extract_json(raw_response)
+        
+        # Calculate official Interview Score formula
+        metrics = parsed_report.get("metrics", {})
+        sem_correct = float(metrics.get("semanticCorrectness", 0))
+        ai_holistic = float(metrics.get("aiHolisticEvaluation", 0))
+        comm_clarity = float(metrics.get("communicationClarity", 0))
+        
+        # Interview Score = (Semantic Correctness × 0.40) + (AI Holistic Evaluation × 0.40) + (Communication Clarity × 0.20)
+        overall_score = round((sem_correct * 0.40) + (ai_holistic * 0.40) + (comm_clarity * 0.20))
+        
+        parsed_report["overallPerformance"] = overall_score
+        
+        # Retain category breakdown for backwards compatibility in frontend if needed
+        parsed_report["categoryBreakdown"] = {
+            "SemanticCorrectness": sem_correct,
+            "AIHolisticEvaluation": ai_holistic,
+            "CommunicationClarity": comm_clarity
+        }
+        
+        return parsed_report
+        
+    except Exception as e:
+        print("Failed to generate final report:", e)
+        # Safe fallback
+        return {
+            "overallPerformance": 0,
+            "categoryBreakdown": {
+                "SemanticCorrectness": 0,
+                "AIHolisticEvaluation": 0,
+                "CommunicationClarity": 0
+            },
+            "strengths": [],
+            "areasToImprove": ["Analysis failed. Please try again."],
+            "weakestAnswer": {
+                "question": "N/A",
+                "whyItWasWeak": "N/A",
+                "howToImprove": "N/A",
+                "betterResponseStructure": "N/A"
+            },
+            "recommendedPractice": []
+        }

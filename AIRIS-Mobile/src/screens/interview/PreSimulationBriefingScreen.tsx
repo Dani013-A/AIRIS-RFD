@@ -32,11 +32,21 @@ export default function PreSimulationBriefingScreen() {
     setLoading(true);
     setError(null);
     try {
+      // Convert the parsedSections array into a dictionary map for the backend
+      const parsedResumeDict: Record<string, string> = {};
+      if (Array.isArray(activeAnalysis.parsedSections)) {
+        for (const sec of activeAnalysis.parsedSections) {
+          parsedResumeDict[sec.name] = sec.content;
+        }
+      } else {
+        Object.assign(parsedResumeDict, activeAnalysis.parsedSections || {});
+      }
+
       // 1. Hit the backend to generate the first question
       const response = await startInterviewSimulation({
         targetRole: currentUser.targetPosition || "Unknown Role",
         program: currentUser.degreeProgram || "Unknown Program",
-        parsedResume: activeAnalysis.parsedSections || {},
+        parsedResume: parsedResumeDict,
       });
 
       // 2. Initialize the Zustand session

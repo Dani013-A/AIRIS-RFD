@@ -1,74 +1,87 @@
 import re
 from typing import Dict, List
 
-# Enhanced resume parser to extract sections from plain-text resumes.
-# Handles explicit headings and "Keyword: value" patterns, plus contact heuristics.
+SECTION_ALIASES = {
+    "ContactInformation": ["contact", "contact information", "contact details", "personal information", "personal details", "contactinfo"],
+    "ProfessionalSummary": ["summary", "professional summary", "career summary", "profile", "professional profile", "objective", "about me", "about"],
+    "WorkExperience": ["experience", "work experience", "professional experience", "employment", "employment history", "work history", "history"],
+    "Internships": ["internship", "internships", "internship experience", "on the job training", "ojt", "practicum"],
+    "Education": ["education", "educational background", "academic background", "academic history"],
+    "RelevantCoursework": ["relevant coursework", "coursework", "relevant courses", "academic coursework", "subjects"],
+    "Skills": ["skills", "technical skills", "core skills", "competencies", "core competencies", "technical competencies", "areas of expertise"],
+    "Projects": ["projects", "academic projects", "personal projects", "project experience", "relevant projects", "technical projects", "selected projects", "capstone", "undergraduate thesis", "thesis"],
+    "Certifications": ["certifications", "certificates", "licenses and certifications", "credentials", "professional certifications", "certifications & trainings", "trainings and certifications"],
+    "OrganizationsAndLeadership": ["organizations", "leadership", "organizations & leadership", "extracurricular activities", "student organizations", "affiliations"],
+    "Achievements": ["achievements", "awards", "honors", "accomplishments", "honors & awards", "honors and awards"],
+    "Languages": ["languages", "language proficiency", "language skills"],
+    "Trainings": ["trainings", "training", "seminars", "workshops", "professional development", "trainings & seminars", "seminars & workshops", "seminars and workshops"]
+}
 
-HEADING_MAP: List[tuple[re.Pattern, str]] = [
-    (re.compile(r"^contact\s*information$", re.IGNORECASE), "ContactInformation"),
-    (re.compile(r"^professional\s*summary$", re.IGNORECASE), "ProfessionalSummary"),
-    (re.compile(r"^summary$", re.IGNORECASE), "ProfessionalSummary"),
-    (re.compile(r"^education$", re.IGNORECASE), "Education"),
-    (re.compile(r"^skills?$", re.IGNORECASE), "Skills"),
-    (re.compile(r"^work\s*experience$", re.IGNORECASE), "WorkExperience"),
-    (re.compile(r"^experience$", re.IGNORECASE), "WorkExperience"),
-    (re.compile(r"^projects?$", re.IGNORECASE), "Projects"),
-    (re.compile(r"^certifications?$", re.IGNORECASE), "Certifications"),
-]
+def _normalize_heading(text: str) -> str:
+    return re.sub(r'[^a-z0-9]', '', text.lower())
 
-KEYWORD_MAP: List[tuple[re.Pattern, str]] = [
-    (re.compile(r"^contact[:\s]", re.IGNORECASE), "ContactInformation"),
-    (re.compile(r"^email[:\s]", re.IGNORECASE), "ContactInformation"),
-    (re.compile(r"^phone[:\s]", re.IGNORECASE), "ContactInformation"),
-    (re.compile(r"^education[:\s]", re.IGNORECASE), "Education"),
-    (re.compile(r"^skills?[:\s]", re.IGNORECASE), "Skills"),
-    (re.compile(r"^experience[:\s]", re.IGNORECASE), "WorkExperience"),
-    (re.compile(r"^projects?[:\s]", re.IGNORECASE), "Projects"),
-    (re.compile(r"^certifications?[:\s]", re.IGNORECASE), "Certifications"),
-]
+NORMALIZED_ALIASES = {}
+for section, aliases in SECTION_ALIASES.items():
+    for alias in aliases:
+        NORMALIZED_ALIASES[_normalize_heading(alias)] = section
 
-EMAIL_REGEX = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}")
-PHONE_REGEX = re.compile(r"\\b(?:\\+?\\d{1,3}[\\s-]?)?(?:\\(\\d{3}\\)|\\d{3})[\\s-]?\d{3}[\\s-]?\d{4}\\b")
-
-def _detect_section_heading(line: str) -> str | None:
+def _is_probable_heading(line: str) -> bool:
     stripped = line.strip()
-    for pattern, name in HEADING_MAP:
-        if pattern.fullmatch(stripped):
-            return name
-    return None
+    if not stripped or len(stripped) > 50:
+        return False
+    # If all caps and mostly alphabetical
+    if stripped.isupper() and re.match(r'^[A-Z\s\&\-\/\(\)]+$', stripped):
+        return True
+    return False
 
-def _detect_keyword_section(line: str) -> str | None:
-    for pattern, name in KEYWORD_MAP:
-        if pattern.match(line):
-            return name
+def _detect_section_heading(line: str) -> str:
+    stripped = line.strip()
+    norm = _normalize_heading(stripped)
+    if norm in NORMALIZED_ALIASES:
+        return NORMALIZED_ALIASES[norm]
+    
+    # Check if a known alias is completely contained within the string if it's a heading
+    if _is_probable_heading(stripped):
+        for alias_norm, section in NORMALIZED_ALIASES.items():
+            if len(alias_norm) > 4 and alias_norm in norm:
+                return section
+        # If it looks like a heading but doesn't match known aliases, map it to a custom section
+        return "Custom_" + re.sub(r'[^a-zA-Z0-9]', '', stripped)
     return None
-
-def _is_contact_line(line: str) -> bool:
-    return bool(EMAIL_REGEX.search(line) or PHONE_REGEX.search(line))
 
 def parse_resume(text: str) -> Dict[str, str]:
     if not text:
         return {}
     sections: Dict[str, List[str]] = {}
-    current_key: str | None = None
-    for raw_line in text.splitlines():
-        heading = _detect_section_heading(raw_line)
+    current_key = None
+    
+    lines = text.splitlines()
+    for i, raw_line in enumerate(lines):
+        line = raw_line.strip()
+        if not line:
+            continue
+            
+        # Check for contact info heuristics for the first 15 lines
+        if i < 15 and (re.search(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}', line) or 
+                       re.search(r'\b(?:\+?\d{1,3}[\s-]?)?(?:\(\d{3}\)|\d{3})[\s-]?\d{3}[\s-]?\d{4}\b', line) or
+                       'github.com' in line.lower() or 'linkedin.com' in line.lower()):
+            current_key = "ContactInformation"
+            sections.setdefault(current_key, []).append(line)
+            continue
+            
+        heading = _detect_section_heading(line)
+        # Ignore custom all-caps headings in the first 5 lines (usually name/title)
+        if heading and heading.startswith("Custom_") and i < 5:
+            heading = None
+            
         if heading:
             current_key = heading
             sections.setdefault(current_key, [])
             continue
-        keyword = _detect_keyword_section(raw_line)
-        if keyword:
-            _, _, remainder = raw_line.partition(":")
-            current_key = keyword
-            sections.setdefault(current_key, []).append(remainder.strip())
-            continue
-        if current_key is None and _is_contact_line(raw_line):
-            current_key = "ContactInformation"
-            sections.setdefault(current_key, []).append(raw_line.strip())
-            continue
+            
         if current_key is None:
             current_key = "Content"
-            sections.setdefault(current_key, [])
-        sections[current_key].append(raw_line.rstrip())
-    return {k: "\n".join(v).strip() for k, v in sections.items() if v}
+                
+        sections.setdefault(current_key, []).append(line)
+        
+    return {k: "\n".join(v) for k, v in sections.items() if v}

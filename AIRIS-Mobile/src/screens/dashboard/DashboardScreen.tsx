@@ -20,6 +20,9 @@ export default function DashboardScreen() {
   const [showAllSuggestions, setShowAllSuggestions] = useState(false);
   const [expandedBreakdown, setExpandedBreakdown] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState<"certification" | "seminar" | "course">("certification");
+  const [showScoreMath, setShowScoreMath] = useState(false);
+  const [showAtsMatchDetails, setShowAtsMatchDetails] = useState(false);
+  const [showAtsCompatDetails, setShowAtsCompatDetails] = useState(false);
 
   const isProcessing =
     processingStatus === "extracting" ||
@@ -139,9 +142,6 @@ export default function DashboardScreen() {
 
   const overallScore = activeAnalysis.atsScore.overallScore;
   const levelKey = activeAnalysis.atsScore.level;
-  
-  const atsCompatibility = activeAnalysis.atsScore.breakdown.atsCompatibilityScore ?? 0;
-  const resumeQuality = activeAnalysis.atsScore.breakdown.resumeQualityScore ?? 0;
 
   let scoreInterpretation = "Good foundation. A few targeted improvements will make it even stronger.";
   if (overallScore >= 85) scoreInterpretation = "Outstanding! Your resume is highly effective and clearly highlights your strengths.";
@@ -155,7 +155,7 @@ export default function DashboardScreen() {
   });
   const topSuggestions = sortedSuggestions.slice(0, 3);
 
-  const adjustments = activeAnalysis.atsScore.adjustments || [];
+  const adjustments = activeAnalysis.atsScore.roleRelevance?.adjustments || activeAnalysis.atsScore.adjustments || [];
   const categoriesToGroup = [
     { key: "atsCompatibility", label: "ATS Compatibility" },
     { key: "skillsMatch", label: "Skills Match" },
@@ -163,6 +163,13 @@ export default function DashboardScreen() {
     { key: "educationRelevance", label: "Education Relevance" },
     { key: "certifications", label: "Certifications" },
   ];
+
+  const semanticAdjustments = adjustments.filter(adj => adj.category === "skillsMatch");
+  const strongMatches = semanticAdjustments.filter(adj => adj.points === 10);
+  const partialMatches = semanticAdjustments.filter(adj => adj.points === 5);
+  const missingMatches = semanticAdjustments.filter(adj => adj.points === 0);
+  const getConcept = (ruleId: string) => ruleId.replace("match_", "").replace(/_/g, " ");
+
 
   const detectedSections = activeAnalysis.detectedSections || [];
   const allRecommendations = getAiRecommendationsForResume(
@@ -203,48 +210,259 @@ export default function DashboardScreen() {
                  {levelKey === "ExcellentMatch" ? "Excellent Match" : levelKey === "StrongFoundation" ? "Strong Foundation" : levelKey === "GettingThere" ? "Getting There" : "Needs Improvement"}
                </Text>
             </View>
+            <TouchableOpacity onPress={() => setShowScoreMath(!showScoreMath)} className="mt-3 bg-[#F4F8FB] px-4 py-2 rounded-full border border-[#EAF2F7] flex-row items-center" style={{ alignSelf: 'center' }}>
+              <Text className="text-[10px] font-bold text-[#4F6B82] mr-2 text-center flex-shrink" style={{ flexShrink: 1 }}>Score = Resume Score 50% + Role Relevance 50%</Text>
+              <Ionicons name={showScoreMath ? "chevron-up" : "chevron-down"} size={14} color="#8B95A5" />
+            </TouchableOpacity>
+
+            {showScoreMath && (
+              <View className="bg-white rounded-2xl border border-[#BFD6EA] mt-4 w-[90%] overflow-hidden" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
+                <View className="p-4 bg-[#F4F8FB] border-b border-[#EAF2F7]">
+                  <Text className="text-[10px] font-bold text-[#1F3A5F] uppercase tracking-widest text-center">How is this calculated?</Text>
+                </View>
+                <View className="p-5 gap-3">
+                  {/* New Architecture Display */}
+                  {activeAnalysis.atsScore.resumeScore && activeAnalysis.atsScore.roleRelevance ? (
+                    <>
+                      <View className="flex-row justify-between items-center">
+                        <Text className="text-xs font-bold text-[#4F6B82]">Resume Score</Text>
+                        <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.resumeScore.total}/100 × 50% = <Text className="font-bold text-[#1F3A5F] text-xs">{Number.isInteger(activeAnalysis.atsScore.resumeScore.total * 0.5) ? (activeAnalysis.atsScore.resumeScore.total * 0.5) : (activeAnalysis.atsScore.resumeScore.total * 0.5).toFixed(1)}</Text></Text>
+                      </View>
+                      <View className="flex-row justify-between items-center">
+                        <Text className="text-xs font-bold text-[#4F6B82]">Role Relevance</Text>
+                        <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.total}/100 × 50% = <Text className="font-bold text-[#1F3A5F] text-xs">{Number.isInteger(activeAnalysis.atsScore.roleRelevance.total * 0.5) ? (activeAnalysis.atsScore.roleRelevance.total * 0.5) : (activeAnalysis.atsScore.roleRelevance.total * 0.5).toFixed(1)}</Text></Text>
+                      </View>
+                    </>
+                  ) : (
+                    /* Legacy Architecture Display Fallback */
+                    <>
+                      <Text className="text-xs text-[#CA5D25] italic text-center mb-2">Displaying legacy analysis data</Text>
+                      <View className="flex-row justify-between items-center">
+                        <Text className="text-xs font-bold text-[#4F6B82]">Role Match</Text>
+                        <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.breakdown?.semanticRoleMatch?.rawScore ?? 0}/100</Text>
+                      </View>
+                      <View className="flex-row justify-between items-center">
+                        <Text className="text-xs font-bold text-[#4F6B82]">Resume Quality</Text>
+                        <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.breakdown?.resumeQuality?.rawScore ?? 0}/100</Text>
+                      </View>
+                    </>
+                  )}
+                  
+                  <View className="h-[1px] bg-[#EAF2F7] my-2" />
+                  <View className="flex-row justify-between items-center bg-[#F4F8FB] -mx-5 -mb-5 p-5">
+                    <Text className="text-xs font-black text-[#1F3A5F] uppercase tracking-widest">Overall Resume Score</Text>
+                    <Text className="text-lg font-black text-[#1F3A5F]">≈ {overallScore}</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
             <Text className="text-sm text-center font-medium text-[#4F6B82] mt-4 px-6 leading-5">{scoreInterpretation}</Text>
+          </View>
+
+          {/* Resume Score Intrinsic Card */}
+          <View className="bg-white rounded-2xl border border-[#BFD6EA] mx-6 mb-4 overflow-hidden" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
+            <TouchableOpacity onPress={() => setShowAtsCompatDetails(!showAtsCompatDetails)} className="flex-row items-center justify-between p-5">
+              <View>
+                <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-widest mb-1">Intrinsic Value</Text>
+                <View className="flex-row items-baseline">
+                  <Text className="text-3xl font-black text-[#1F3A5F]">{activeAnalysis.atsScore.resumeScore?.total ?? 0}</Text>
+                  <Text className="text-lg font-bold text-[#8B95A5]">/100</Text>
+                </View>
+                <Text className="text-xs font-bold text-[#1F3A5F] mt-1">Resume Score</Text>
+              </View>
+              <Ionicons name={showAtsCompatDetails ? "chevron-up" : "chevron-down"} size={20} color="#8B95A5" />
+            </TouchableOpacity>
+            
+            {showAtsCompatDetails && activeAnalysis.atsScore.resumeScore && (
+              <View className="px-5 pb-5 pt-2 border-t border-[#EAF2F7]">
+                <Text className="text-sm font-bold text-[#1F3A5F] mb-1">Resume Strength Breakdown</Text>
+                <Text className="text-xs text-[#4F6B82] mb-5 flex-wrap" style={{ flexShrink: 1 }}>
+                  This measures the strength of your resume's evidence entirely independent of your target role.
+                </Text>
+
+                <View className="flex-row justify-between items-center mb-3">
+                  <Text className="text-xs font-bold text-[#4F6B82]">Skills Value</Text>
+                  <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.resumeScore.breakdown.skills.rawScore}/100 × 50% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.resumeScore.breakdown.skills.weightedScore}</Text></Text>
+                </View>
+                <View className="flex-row justify-between items-center mb-3">
+                  <Text className="text-xs font-bold text-[#4F6B82]">Education Value</Text>
+                  <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.resumeScore.breakdown.education.rawScore}/100 × 25% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.resumeScore.breakdown.education.weightedScore}</Text></Text>
+                </View>
+                <View className="flex-row justify-between items-center mb-1">
+                  <Text className="text-xs font-bold text-[#4F6B82]">Certification Value</Text>
+                  <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.resumeScore.breakdown.certifications.rawScore}/100 × 25% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.resumeScore.breakdown.certifications.weightedScore}</Text></Text>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* Role Relevance Diagnostic */}
+          <View className="bg-white rounded-2xl border border-[#BFD6EA] mx-6 mb-4 overflow-hidden" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
+            <TouchableOpacity onPress={() => setShowAtsMatchDetails(!showAtsMatchDetails)} className="flex-row items-center justify-between p-5">
+              <View>
+                <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-widest mb-1">Target Match</Text>
+                <View className="flex-row items-baseline">
+                  <Text className="text-3xl font-black text-[#1F3A5F]">{activeAnalysis.atsScore.roleRelevance?.total ?? 0}</Text>
+                  <Text className="text-lg font-bold text-[#8B95A5]">/100</Text>
+                </View>
+                <Text className="text-xs font-bold text-[#1F3A5F] mt-1">Role Relevance</Text>
+              </View>
+              <Ionicons name={showAtsMatchDetails ? "chevron-up" : "chevron-down"} size={20} color="#8B95A5" />
+            </TouchableOpacity>
+            
+            {showAtsMatchDetails && (
+              <View className="px-5 pb-5 pt-2 border-t border-[#EAF2F7]">
+                
+                {/* Math Breakdown */}
+                {activeAnalysis.atsScore.roleRelevance && (
+                  <View className="mb-5 pb-4 border-b border-[#EAF2F7]">
+                    <Text className="text-sm font-bold text-[#1F3A5F] mb-1">Semantic Match Breakdown</Text>
+                    <Text className="text-xs text-[#4F6B82] mb-4 flex-wrap" style={{ flexShrink: 1 }}>
+                      This calculates how much of your resume directly aligns with {currentUser?.targetPosition || 'your target role'}.
+                    </Text>
+                    <View className="flex-row justify-between items-center mb-3">
+                      <Text className="text-xs font-bold text-[#4F6B82]">Skills Match</Text>
+                      <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.breakdown.skillsMatch.rawScore}/100 × 40% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.roleRelevance.breakdown.skillsMatch.weightedScore}</Text></Text>
+                    </View>
+                    <View className="flex-row justify-between items-center mb-3">
+                      <Text className="text-xs font-bold text-[#4F6B82]">Experience Match</Text>
+                      <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.breakdown.experienceMatch.rawScore}/100 × 30% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.roleRelevance.breakdown.experienceMatch.weightedScore}</Text></Text>
+                    </View>
+                    <View className="flex-row justify-between items-center mb-3">
+                      <Text className="text-xs font-bold text-[#4F6B82]">Education Match</Text>
+                      <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.breakdown.educationMatch.rawScore}/100 × 20% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.roleRelevance.breakdown.educationMatch.weightedScore}</Text></Text>
+                    </View>
+                    <View className="flex-row justify-between items-center">
+                      <Text className="text-xs font-bold text-[#4F6B82]">Certifications Match</Text>
+                      <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.breakdown.certificationsMatch.rawScore}/100 × 10% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.roleRelevance.breakdown.certificationsMatch.weightedScore}</Text></Text>
+                    </View>
+                  </View>
+                )}
+
+                <Text className="text-sm font-bold text-[#1F3A5F] mb-1">Role Competency Analysis</Text>
+                <Text className="text-xs text-[#4F6B82] mb-5 flex-wrap" style={{ flexShrink: 1 }}>
+                  Here is the actual evidence we detected in your resume for {currentUser?.targetPosition || 'your target role'}.
+                </Text>
+                
+                {strongMatches.length > 0 && (
+                  <View className="mb-4">
+                    <View className="flex-row items-center mb-2">
+                      <Ionicons name="checkmark-circle" size={14} color="#1E5D53" />
+                      <Text className="ml-1.5 text-[10px] font-bold text-[#1E5D53] uppercase tracking-widest">Strong Matches</Text>
+                    </View>
+                    <View className="gap-3 pl-1">
+                      {strongMatches.map((adj, i) => (
+                        <View key={i} className="flex-row items-start">
+                          <Ionicons name="checkmark-circle" size={12} color="#1E5D53" style={{ marginRight: 6, marginTop: 1 }} />
+                          <View className="flex-1">
+                            <Text className="text-xs font-bold text-[#1F3A5F]">{getConcept(adj.ruleId)}</Text>
+                            {adj.matchedChunk && (
+                              <Text className="text-[11px] text-[#4F6B82] mt-0.5 italic">"{adj.matchedChunk}"</Text>
+                            )}
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+                
+                {partialMatches.length > 0 && (
+                  <View className="mb-4">
+                    <View className="flex-row items-center mb-2">
+                      <Ionicons name="warning" size={14} color="#CA5D25" />
+                      <Text className="ml-1.5 text-[10px] font-bold text-[#CA5D25] uppercase tracking-widest">Partial Matches</Text>
+                    </View>
+                    <View className="gap-3 pl-1">
+                      {partialMatches.map((adj, i) => (
+                        <View key={i} className="flex-row items-start">
+                          <Ionicons name="warning" size={12} color="#CA5D25" style={{ marginRight: 6, marginTop: 1 }} />
+                          <View className="flex-1">
+                            <Text className="text-xs font-bold text-[#1F3A5F]">{getConcept(adj.ruleId)}</Text>
+                            {adj.matchedChunk && (
+                              <Text className="text-[11px] text-[#4F6B82] mt-0.5 italic">"{adj.matchedChunk}"</Text>
+                            )}
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+                
+                {missingMatches.length > 0 && (
+                  <View>
+                    <View className="flex-row items-center mb-2">
+                      <Ionicons name="close-circle" size={14} color="#D32F2F" />
+                      <Text className="ml-1.5 text-[10px] font-bold text-[#D32F2F] uppercase tracking-widest">Missing / Weak Areas</Text>
+                    </View>
+                    <View className="gap-2 pl-1">
+                      {missingMatches.map((adj, i) => (
+                        <View key={i} className="flex-row items-start">
+                          <Ionicons name="close-circle" size={12} color="#D32F2F" style={{ marginRight: 6, marginTop: 1 }} />
+                          <Text className="text-xs font-semibold text-[#1F3A5F] flex-1 flex-wrap">{getConcept(adj.ruleId)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+                
+                {strongMatches.length === 0 && partialMatches.length === 0 && missingMatches.length === 0 && (
+                  <Text className="text-xs text-[#8B95A5] italic mt-2">No specific competency matches were detected for this analysis.</Text>
+                )}
+              </View>
+            )}
           </View>
 
           {/* Solid 50% width separator */}
           <View className="items-center mb-6">
             <View className="w-1/2 h-[2px] bg-[#8B95A5]/30 rounded-full" />
           </View>
-
-          <View className="flex-row justify-center items-center gap-10">
-            <View className="items-center flex-1">
-              <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-widest mb-1">ATS Match</Text>
-              <Text className="text-3xl font-bold text-[#1F3A5F]">{atsCompatibility}</Text>
-            </View>
-            {/* Highly visible vertical separator */}
-            <View className="w-[2px] h-12 bg-[#8B95A5]/40 rounded-full" />
-            <View className="items-center flex-1">
-              <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-widest mb-1">Quality</Text>
-              <Text className="text-3xl font-bold text-[#1F3A5F]">{resumeQuality}</Text>
-            </View>
-          </View>
         </View>
 
         {/* DETECTED SECTIONS */}
-        <View className="px-6 mt-6 mb-4">
+        <View className="px-6 mt-8">
           <Text className="text-lg font-extrabold text-[#1F3A5F] mb-3">Detected Sections</Text>
           <View className="flex-row flex-wrap gap-2">
-            {detectedSections.filter(s => s.isPresent).map((section, idx) => (
-              <View key={`pres-${idx}`} className="flex-row items-center bg-white px-3 py-1.5 rounded-full border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1, elevation: 1 }}>
-                <Ionicons name="checkmark-circle" size={14} color="#79D5C8" />
-                <Text className="ml-1.5 text-xs font-bold text-[#1F3A5F]">
-                  {section.name.replace(/([A-Z])/g, " $1").trim()}
-                </Text>
-              </View>
-            ))}
-            {detectedSections.filter(s => !s.isPresent).map((section, idx) => (
-              <View key={`miss-${idx}`} className="flex-row items-center bg-transparent px-3 py-1.5 rounded-full border border-[#BFD6EA] opacity-60">
-                <Ionicons name="ellipse-outline" size={14} color="#8B95A5" />
-                <Text className="ml-1.5 text-xs font-semibold text-[#4F6B82]">
-                  {section.name.replace(/([A-Z])/g, " $1").trim()}
-                </Text>
-              </View>
-            ))}
+            {(() => {
+              const ALL_SECTIONS: string[] = [
+                "ContactInformation", "ProfessionalSummary", "Education", "Skills", 
+                "WorkExperience", "Projects", "Internships", "RelevantCoursework", 
+                "Certifications", "OrganizationsAndLeadership", "Achievements", 
+                "Languages", "Trainings"
+              ];
+              
+              const detectedNames = new Set(detectedSections.filter(s => s.isPresent).map(s => s.name));
+              
+              // Add any custom detected sections
+              detectedSections.filter(s => s.isPresent).forEach(s => {
+                if (!ALL_SECTIONS.includes(s.name) && (s.name as string) !== 'Content') {
+                  ALL_SECTIONS.push(s.name);
+                }
+              });
+
+              return ALL_SECTIONS.map((sectionName, idx) => {
+                const isPresent = detectedNames.has(sectionName as any);
+                if (isPresent) {
+                  return (
+                    <View key={`sec-${idx}`} className="flex-row items-center bg-white px-3 py-1.5 rounded-full border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1, elevation: 1 }}>
+                      <Ionicons name="checkmark-circle" size={14} color="#79D5C8" />
+                      <Text className="ml-1.5 text-xs font-bold text-[#1F3A5F]">
+                        {sectionName.replace(/([A-Z])/g, " $1").trim()}
+                      </Text>
+                    </View>
+                  );
+                } else {
+                  return (
+                    <View key={`sec-${idx}`} className="flex-row items-center bg-transparent px-3 py-1.5 rounded-full border border-[#BFD6EA] opacity-60">
+                      <Ionicons name="ellipse-outline" size={14} color="#8B95A5" />
+                      <Text className="ml-1.5 text-xs font-semibold text-[#4F6B82]">
+                        {sectionName.replace(/([A-Z])/g, " $1").trim()}
+                      </Text>
+                    </View>
+                  );
+                }
+              });
+            })()}
           </View>
         </View>
 

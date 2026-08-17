@@ -125,8 +125,8 @@ export const useResumeStore = create<ResumeState>((set) => ({
         normalized,
         resume.resumeId,
         analysisResult.atsScore.overallScore,
-        analysisResult.atsScore.breakdown.atsCompatibilityScore,
-        analysisResult.atsScore.breakdown.resumeQualityScore
+        analysisResult.atsScore.breakdown?.atsCompatibilityScore ?? 0,
+        analysisResult.atsScore.breakdown?.resumeQualityScore ?? 0
       );
 
       // Step 6: Keep the current app session up to date with the latest resume details.

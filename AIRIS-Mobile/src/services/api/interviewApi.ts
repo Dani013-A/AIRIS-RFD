@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 
-// Get backend URL from env, or use the Mac's physical LAN IP for Expo Go on a real device
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.6:8000';
+// Get backend URL from env, with smart fallbacks for local development
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || (Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000');
 
 export interface InterviewStartRequest {
   targetRole: string;
@@ -35,7 +35,11 @@ export const startInterviewSimulation = async (data: InterviewStartRequest) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`[API Error] POST /interview/start returned ${response.status}: ${errText}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     return await response.json();
   } catch (error: any) {
     console.error('Failed to start interview:', error.message);
@@ -50,7 +54,11 @@ export const submitInterviewAnswer = async (data: InterviewAnswerRequest) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`[API Error] POST /interview/answer returned ${response.status}: ${errText}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     return await response.json();
   } catch (error: any) {
     console.error('Failed to submit interview answer:', error.message);
@@ -65,7 +73,11 @@ export const generateInterviewReport = async (data: InterviewReportRequest) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`[API Error] POST /interview/report returned ${response.status}: ${errText}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     return await response.json();
   } catch (error: any) {
     console.error('Failed to generate interview report:', error.message);
@@ -90,7 +102,11 @@ export const transcribeAudio = async (uri: string, mimeType: string) => {
       },
     });
 
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`[API Error] POST /interview/transcribe returned ${response.status}: ${errText}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     const data = await response.json();
     return data.transcription;
   } catch (error: any) {
