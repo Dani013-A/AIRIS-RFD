@@ -12,26 +12,22 @@ export interface InterviewSession {
   startedAt: number;
   completedAt?: number;
   totalQuestions: number;
-  
-  // Progress
+
   currentQuestion: string;
   currentQuestionType: string;
   currentBenchmarkAnswer?: string;
   questionsAsked: number; // to track 1 of N
 
-  // History for Backend
   history: Array<{ question: string; answer: string; questionType?: string; benchmarkAnswer?: string; isInteraction?: boolean }>;
   evaluations: Array<any>;
-  
-  // Final
+
   finalReport?: any;
 }
 
 interface InterviewStore {
   status: InterviewStatus;
   session: InterviewSession | null;
-  
-  // Actions
+
   initializeSession: (data: Partial<InterviewSession> & { firstQuestion: string; firstQuestionType: string; firstQuestionBenchmark?: string }) => void;
   submitAnswer: (answer: string, evaluation: any, nextQuestion?: string, nextQuestionType?: string, nextBenchmark?: string, isComplete?: boolean, isInteractionEvent?: boolean) => void;
   setFinalReport: (report: any) => void;

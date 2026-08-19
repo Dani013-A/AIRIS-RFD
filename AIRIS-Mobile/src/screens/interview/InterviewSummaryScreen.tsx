@@ -21,7 +21,7 @@ export default function InterviewSummaryScreen() {
 
   const generateReport = async () => {
     if (!session) return;
-    
+
     // If we already have it, don't generate again
     if (session.finalReport) {
       setLoading(false);
@@ -37,7 +37,7 @@ export default function InterviewSummaryScreen() {
         evaluations: session.evaluations,
       });
       setFinalReport(response);
-      
+
       // Save to Firestore so it persists across reloads and for the dashboard
       const currentUser = useAuthStore.getState().currentUser;
       if (currentUser) {
@@ -91,7 +91,7 @@ export default function InterviewSummaryScreen() {
       </View>
 
       <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        
+
         {/* OVERALL SCORE */}
         <View className="bg-white rounded-3xl p-6 items-center mb-6 border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
           <Text className="text-xs font-bold text-[#4F6B82] uppercase tracking-wider mb-4">Overall Performance</Text>
@@ -140,10 +140,10 @@ export default function InterviewSummaryScreen() {
             <View className="bg-[#FEF5F1] rounded-2xl p-5 border border-[#FDEEE6]">
                <Text className="text-xs font-bold text-[#CA5D25] mb-1 uppercase">The Question</Text>
                <Text className="text-sm font-bold text-[#1F3A5F] mb-4">"{report.weakestAnswer.question}"</Text>
-               
+
                <Text className="text-xs font-bold text-[#CA5D25] mb-1 uppercase">Why it was weak</Text>
                <Text className="text-sm font-medium text-[#4F6B82] leading-5 mb-4">{report.weakestAnswer.whyItWasWeak}</Text>
-               
+
                <Text className="text-xs font-bold text-[#1E5D53] mb-1 uppercase">How to improve</Text>
                <Text className="text-sm font-medium text-[#1E5D53] leading-5 bg-[#F1FAF8] p-3 rounded-xl border border-[#D7F1ED]">
                  {report.weakestAnswer.howToImprove}
@@ -155,10 +155,10 @@ export default function InterviewSummaryScreen() {
       </ScrollView>
 
       <View className="p-6 bg-white border-t border-[#EAF2F7]">
-        <PrimaryButton 
-          title="Return to Dashboard" 
-          variant="orange" 
-          onPress={handleReturnToDashboard} 
+        <PrimaryButton
+          title="Return to Dashboard"
+          variant="orange"
+          onPress={handleReturnToDashboard}
         />
       </View>
     </SafeAreaView>

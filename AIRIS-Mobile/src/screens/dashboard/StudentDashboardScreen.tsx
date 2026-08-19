@@ -22,9 +22,9 @@ export default function StudentDashboardScreen() {
     async function loadData() {
       if (!currentUser?.uid) return;
       try {
-        const data = await fetchUserActivities(currentUser.uid);
+        const fetchedActivities = await fetchUserActivities(currentUser.uid);
         if (isMounted) {
-          setActivities(data);
+          setActivities(fetchedActivities);
         }
       } catch (error) {
         console.error("Failed to load activities:", error);
@@ -53,7 +53,7 @@ export default function StudentDashboardScreen() {
   const resumeScore = hasResume ? resumeActivities[0].score : 0;
   const interviewScore = hasInterview ? interviewActivities[0].score : 0;
 
-  // Calculate the overall readiness score, combining interview scores (60% weight) and resume scores (40% weight).
+  // Calculate readiness score (60% interview, 40% resume).
   const employabilityScore = Math.round((interviewScore * 0.60) + (resumeScore * 0.40));
 
   const getGreeting = () => {
@@ -69,7 +69,7 @@ export default function StudentDashboardScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#F4F8FB] px-6" edges={["top", "left", "right"]}>
-      
+
       {/* HERO / GREETING */}
       <View className="flex-row items-center justify-between py-6">
         <View className="flex-1 pr-3">
@@ -93,7 +93,7 @@ export default function StudentDashboardScreen() {
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        
+
         {/* EMPLOYABILITY SCORE CARD */}
         <View className="rounded-3xl bg-white p-6 border border-[#BFD6EA] mt-2 items-center" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
           <Text className="text-lg font-extrabold text-[#1F3A5F] self-start mb-2">
@@ -144,7 +144,7 @@ export default function StudentDashboardScreen() {
             </View>
             <Text className="text-xs font-medium text-[#4F6B82] mt-2 leading-4">40% Weight</Text>
           </View>
-          
+
           <View className="flex-1 rounded-2xl bg-white p-5 border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
             <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-wider mb-2">Interview Score</Text>
             <View className="flex-row items-baseline">
@@ -157,7 +157,7 @@ export default function StudentDashboardScreen() {
 
         {/* IMMERSIVE VR CARD */}
         <View className="rounded-3xl bg-white p-6 border border-[#BFD6EA] mt-6 relative overflow-hidden" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-          
+
           <View className="absolute -bottom-6 -right-6 opacity-[0.03] pointer-events-none">
             <Ionicons name="cube" size={140} color="#1F3A5F" />
           </View>
@@ -167,11 +167,11 @@ export default function StudentDashboardScreen() {
               Immersive VR
             </Text>
           </View>
-          
+
           <Text className="text-2xl font-extrabold text-[#1F3A5F] pr-4">
             Practice in a Realistic 3D Interview Environment
           </Text>
-          
+
           <Text className="mt-3 text-sm leading-5 text-[#4F6B82] pr-4 font-medium mb-6">
             Step into a virtual interview room and practice answering questions. Build confidence and improve your communication skills.
           </Text>
@@ -179,24 +179,23 @@ export default function StudentDashboardScreen() {
           <PrimaryButton
              title="Start Experience"
              variant="orange"
-             icon="play"
              onPress={() => router.push("/(student)/(tabs)/interview" as any)}
           />
         </View>
 
         {/* TOP RECOMMENDATION CARD */}
         <View className="rounded-3xl bg-white p-6 border border-[#BFD6EA] mt-6 relative overflow-hidden" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-          
+
           <View className="bg-[#FEF5F1] border border-[#F4A47A] px-3 py-1 rounded-full self-start mb-4">
             <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-wider">
               Top Recommendation
             </Text>
           </View>
-          
+
           <Text className="text-2xl font-extrabold text-[#1F3A5F] pr-4">
             Professional Communication
           </Text>
-          
+
           <Text className="mt-3 text-sm leading-5 text-[#4F6B82] pr-4 font-medium mb-6">
             Fundamental certification recommended for {targetJob}s from {userProgram.replace("Bachelor of Science in ", "")}.
           </Text>
@@ -213,7 +212,7 @@ export default function StudentDashboardScreen() {
         {/* RECENT ACTIVITY */}
         <View className="mt-8 mb-4">
           <Text className="text-lg font-extrabold text-[#1F3A5F] mb-1">Recent Activity</Text>
-          
+
           {!hasResume && !hasInterview ? (
             <View className="mt-3 rounded-2xl bg-white p-5 border border-[#BFD6EA] flex-row items-center justify-between" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
               <View className="flex-row items-center flex-1 pr-4">

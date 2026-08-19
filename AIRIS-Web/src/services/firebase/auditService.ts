@@ -35,13 +35,13 @@ export async function fetchAuditLogs(maxLogs = 50): Promise<AuditLogEntry[]> {
 
   const logs: AuditLogEntry[] = [];
   snapshot.forEach((docSnap) => {
-    const data = docSnap.data();
+    const logData = docSnap.data();
     logs.push({
       id: docSnap.id,
-      action: data.action,
-      details: data.details,
-      performedBy: data.performedBy,
-      timestamp: data.timestamp ? data.timestamp.toDate().toISOString() : new Date().toISOString(),
+      action: logData.action,
+      details: logData.details,
+      performedBy: logData.performedBy,
+      timestamp: logData.timestamp ? logData.timestamp.toDate().toISOString() : new Date().toISOString(),
     } as AuditLogEntry);
   });
 

@@ -36,6 +36,7 @@ export async function fetchStudentsList(): Promise<StudentListItem[]> {
       resumeStatus = "success";
       try {
         // 1. Fetch the resume document first to get latestAnalysisId
+      // 1. Fetch parsed resume document first
         const resumeRef = doc(
           db,
           USERS_COLLECTION,
@@ -47,7 +48,7 @@ export async function fetchStudentsList(): Promise<StudentListItem[]> {
         if (resumeSnap.exists()) {
           const resumeData = resumeSnap.data();
           const latestAnalysisId = resumeData.latestAnalysisId;
-          
+
           if (latestAnalysisId) {
             // 2. Fetch the analysis document using the actual latestAnalysisId
             const analysisRef = doc(
@@ -114,7 +115,6 @@ export async function fetchStudentDetails(
 
   if (userData.hasUploadedResume && userData.activeResumeId) {
     try {
-      // 1. Fetch parsed resume document first
       const resumeRef = doc(
         db,
         USERS_COLLECTION,
@@ -125,7 +125,7 @@ export async function fetchStudentDetails(
       const resumeSnap = await getDoc(resumeRef);
       if (resumeSnap.exists()) {
         resume = resumeSnap.data();
-        
+
         // 2. Fetch analysis document using latestAnalysisId from resume document
         const latestAnalysisId = resume?.latestAnalysisId;
         if (latestAnalysisId) {

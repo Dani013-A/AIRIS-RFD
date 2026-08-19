@@ -110,9 +110,6 @@ function getRoleProfile(targetPosition) {
     }
     return ROLE_PROFILES.find(function (p) { return p.role === "default"; });
 }
-// ---------------------------------------------------------
-// Helper Functions
-// ---------------------------------------------------------
 function normalizeHeading(text) {
     return text.toLowerCase().replace(/[:\-\–\—]/g, "").replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, " ").trim();
 }
@@ -132,9 +129,6 @@ function hasQuantifiableAchievements(text) {
     var regex = /\b(?:increased|reduced|improved|grew|saved|managed|led|analyzed|served)\b[\s\S]{0,40}(\d+%|\$\d+|\d+x|\d+\+? (?:users|records|transactions|hours|clients))/i;
     return regex.test(text);
 }
-// ---------------------------------------------------------
-// Core Engines
-// ---------------------------------------------------------
 function parseResumeSections(resumeText) {
     var lines = resumeText.split("\n");
     var parsedSections = [];
@@ -146,7 +140,6 @@ function parseResumeSections(resumeText) {
         var line = lines[i].trim();
         if (!line)
             continue;
-        // Standard Heading Detection
         if (headingRegex.test(line) && line.length <= 50) {
             var sectionName = findSectionNameFromHeading(line);
             if (sectionName) {
@@ -163,7 +156,7 @@ function parseResumeSections(resumeText) {
                 continue;
             }
         }
-        // First lines might be Contact Info
+        // Check first lines for contact info.
         if (i < 10 && !currentSection && (line.includes("@") || line.match(/\d{10,11}/))) {
             if (!currentSection) {
                 currentSection = "ContactInformation";
@@ -236,7 +229,6 @@ function analyzeResume(resumeText, targetPosition) {
     var roleProfile = getRoleProfile(targetPosition);
     var suggestions = [];
     var adjustments = [];
-    // Scoring Engines
     var atsScoreVal = 100; // Base, deduct for issues
     var contentScoreVal = 0; // Build up from 0
     var relevanceScoreVal = 0; // Build up from 0

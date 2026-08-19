@@ -36,7 +36,7 @@ const db = getFirestore();
 async function dumpDoc() {
   console.log("Locating student profiles...");
   const usersSnap = await db.collection("users").where("role", "==", "student").get();
-  
+
   if (usersSnap.empty) {
     console.log("No student profiles found.");
     process.exit(0);
@@ -53,19 +53,19 @@ async function dumpDoc() {
       .doc(studentDoc.id)
       .collection("resumes")
       .doc(studentData.activeResumeId);
-    
+
     const resumeSnap = await resumeRef.get();
     if (resumeSnap.exists) {
       const resumeData = resumeSnap.data();
       console.log(`Resume Doc exists! Latest Analysis ID: ${resumeData.latestAnalysisId}`);
-      
+
       if (resumeData.latestAnalysisId) {
         const analysisRef = db
           .collection("users")
           .doc(studentDoc.id)
           .collection("resumeAnalyses")
           .doc(resumeData.latestAnalysisId);
-        
+
         const analysisSnap = await analysisRef.get();
         if (analysisSnap.exists) {
           console.log("\n--- Analysis Document Data ---");

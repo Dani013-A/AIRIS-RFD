@@ -36,7 +36,7 @@ export default function DashboardScreen() {
       const order = ["extracting", "validating", "parsing", "analyzing", "saving"];
       return order.indexOf(processingStatus) > order.indexOf(stage);
     };
-    
+
     const isStageActive = (stage: string) => processingStatus === stage;
 
     const renderStage = (key: string, label: string) => (
@@ -62,7 +62,7 @@ export default function DashboardScreen() {
             AIRIS is reviewing your resume structure, skills, experience, and target-role alignment.
             This may take a little while. Please keep the app open while we finish.
           </Text>
-          
+
           <View className="w-full bg-white p-6 rounded-3xl shadow-sm border border-[#BFD6EA]">
             {renderStage("extracting", "Reading resume content")}
             {renderStage("validating", "Checking document structure")}
@@ -170,14 +170,13 @@ export default function DashboardScreen() {
   const missingMatches = semanticAdjustments.filter(adj => adj.points === 0);
   const getConcept = (ruleId: string) => ruleId.replace("match_", "").replace(/_/g, " ");
 
-
   const detectedSections = activeAnalysis.detectedSections || [];
   const allRecommendations = getAiRecommendationsForResume(
     activeAnalysis,
     currentUser?.degreeProgram || "",
     currentUser?.targetPosition || "",
   );
-  
+
   const filteredRecommendations = allRecommendations.filter((r) => {
     if (activeTab === "certification") {
       return r.type === "certification" || r.type === "documentation" || r.type === "learning-path";
@@ -188,7 +187,7 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView className="flex-1 bg-[#F4F8FB]" edges={["top", "left", "right"]}>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-        
+
         {/* HEADER SECTION - LIGHT BLUE */}
         <View className="px-6 pt-6 pb-8 bg-[#CFE0EC] rounded-b-[40px] shadow-sm mb-4 border-b border-[#BFD6EA]">
           <View className="flex-row items-center justify-between mb-8">
@@ -247,7 +246,7 @@ export default function DashboardScreen() {
                       </View>
                     </>
                   )}
-                  
+
                   <View className="h-[1px] bg-[#EAF2F7] my-2" />
                   <View className="flex-row justify-between items-center bg-[#F4F8FB] -mx-5 -mb-5 p-5">
                     <Text className="text-xs font-black text-[#1F3A5F] uppercase tracking-widest">Overall Resume Score</Text>
@@ -273,7 +272,7 @@ export default function DashboardScreen() {
               </View>
               <Ionicons name={showAtsCompatDetails ? "chevron-up" : "chevron-down"} size={20} color="#8B95A5" />
             </TouchableOpacity>
-            
+
             {showAtsCompatDetails && activeAnalysis.atsScore.resumeScore && (
               <View className="px-5 pb-5 pt-2 border-t border-[#EAF2F7]">
                 <Text className="text-sm font-bold text-[#1F3A5F] mb-1">Resume Strength Breakdown</Text>
@@ -310,10 +309,10 @@ export default function DashboardScreen() {
               </View>
               <Ionicons name={showAtsMatchDetails ? "chevron-up" : "chevron-down"} size={20} color="#8B95A5" />
             </TouchableOpacity>
-            
+
             {showAtsMatchDetails && (
               <View className="px-5 pb-5 pt-2 border-t border-[#EAF2F7]">
-                
+
                 {/* Math Breakdown */}
                 {activeAnalysis.atsScore.roleRelevance && (
                   <View className="mb-5 pb-4 border-b border-[#EAF2F7]">
@@ -344,7 +343,7 @@ export default function DashboardScreen() {
                 <Text className="text-xs text-[#4F6B82] mb-5 flex-wrap" style={{ flexShrink: 1 }}>
                   Here is the actual evidence we detected in your resume for {currentUser?.targetPosition || 'your target role'}.
                 </Text>
-                
+
                 {strongMatches.length > 0 && (
                   <View className="mb-4">
                     <View className="flex-row items-center mb-2">
@@ -366,7 +365,7 @@ export default function DashboardScreen() {
                     </View>
                   </View>
                 )}
-                
+
                 {partialMatches.length > 0 && (
                   <View className="mb-4">
                     <View className="flex-row items-center mb-2">
@@ -388,7 +387,7 @@ export default function DashboardScreen() {
                     </View>
                   </View>
                 )}
-                
+
                 {missingMatches.length > 0 && (
                   <View>
                     <View className="flex-row items-center mb-2">
@@ -405,7 +404,7 @@ export default function DashboardScreen() {
                     </View>
                   </View>
                 )}
-                
+
                 {strongMatches.length === 0 && partialMatches.length === 0 && missingMatches.length === 0 && (
                   <Text className="text-xs text-[#8B95A5] italic mt-2">No specific competency matches were detected for this analysis.</Text>
                 )}
@@ -425,14 +424,14 @@ export default function DashboardScreen() {
           <View className="flex-row flex-wrap gap-2">
             {(() => {
               const ALL_SECTIONS: string[] = [
-                "ContactInformation", "ProfessionalSummary", "Education", "Skills", 
-                "WorkExperience", "Projects", "Internships", "RelevantCoursework", 
-                "Certifications", "OrganizationsAndLeadership", "Achievements", 
+                "ContactInformation", "ProfessionalSummary", "Education", "Skills",
+                "WorkExperience", "Projects", "Internships", "RelevantCoursework",
+                "Certifications", "OrganizationsAndLeadership", "Achievements",
                 "Languages", "Trainings"
               ];
-              
+
               const detectedNames = new Set(detectedSections.filter(s => s.isPresent).map(s => s.name));
-              
+
               // Add any custom detected sections
               detectedSections.filter(s => s.isPresent).forEach(s => {
                 if (!ALL_SECTIONS.includes(s.name) && (s.name as string) !== 'Content') {
@@ -486,11 +485,11 @@ export default function DashboardScreen() {
                   </View>
                   <Text className="text-base font-bold text-[#1F3A5F] flex-1">{suggestion.title}</Text>
                 </View>
-                
+
                 <Text className="text-sm leading-5 text-justify text-[#4F6B82] mb-3">
                   {suggestion.description || suggestion.message}
                 </Text>
-                
+
                 {suggestion.example && (
                   <View className="bg-[#FEF5F1] p-4 rounded-xl border border-[#FDEEE6]">
                     <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-widest mb-1.5">Suggested Rewrite</Text>
@@ -521,7 +520,7 @@ export default function DashboardScreen() {
 
               return (
                 <View key={groupIdx} className="border-b border-[#EAF2F7] last:border-b-0">
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={() => toggleBreakdown(cat.key)}
                     className={`flex-row items-center justify-between p-5 ${isExpanded ? 'bg-[#F4F8FB]' : 'bg-white'}`}
                   >
@@ -533,10 +532,10 @@ export default function DashboardScreen() {
                     <View className="px-4 pb-4 bg-[#F4F8FB]">
                       {groupAdjustments.map((adjustment, idx) => (
                         <View key={idx} className={`flex-row items-start p-3 mb-2 rounded-xl border ${adjustment.passed ? "bg-[#D7F1ED]/20 border-[#79D5C8]/30" : "bg-[#FDEEE6]/20 border-[#F4A47A]/30"}`}>
-                          <Ionicons 
-                            name={adjustment.passed ? "checkmark-circle" : "alert-circle"} 
-                            size={18} 
-                            color={adjustment.passed ? "#1E5D53" : "#CA5D25"} 
+                          <Ionicons
+                            name={adjustment.passed ? "checkmark-circle" : "alert-circle"}
+                            size={18}
+                            color={adjustment.passed ? "#1E5D53" : "#CA5D25"}
                             style={{ marginTop: 1 }}
                           />
                           <View className="ml-3 flex-1">
@@ -557,7 +556,7 @@ export default function DashboardScreen() {
         {/* GROWTH PATHS */}
         <View className="px-6 mt-10">
           <Text className="text-lg font-extrabold text-[#1F3A5F] mb-4">Recommended Growth Paths</Text>
-          
+
           <View className="flex-row bg-[#EAF2F7] p-1.5 rounded-xl mb-5 border border-[#BFD6EA]">
             <TouchableOpacity onPress={() => setActiveTab("certification")} className={`flex-1 py-2.5 rounded-lg items-center ${activeTab === "certification" ? "bg-white border border-[#BFD6EA]" : ""}`} style={activeTab === "certification" ? { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1, elevation: 1 } : {}}>
               <Text className={`text-xs font-bold ${activeTab === "certification" ? "text-[#1F3A5F]" : "text-[#4F6B82]"}`}>Certifications</Text>
@@ -579,11 +578,11 @@ export default function DashboardScreen() {
                     <Text className="text-[10px] font-bold text-[#1F3A5F] capitalize">{item.type}</Text>
                   </View>
                 </View>
-                
+
                 <Text className="text-lg font-bold text-[#1F3A5F] mb-2 leading-6">{item.title}</Text>
-                
+
                 <Text className="text-sm leading-5 text-[#4F6B82] mb-4">{item.description}</Text>
-                
+
                 {item.gapRationale && (
                   <View className="mb-4 bg-[#F4F8FB] p-3 rounded-xl border border-[#EAF2F7]">
                     <View className="flex-row items-center mb-1.5">
@@ -595,7 +594,7 @@ export default function DashboardScreen() {
                     </Text>
                   </View>
                 )}
-                
+
                 <View className="flex-row gap-3 mt-1">
                   <TouchableOpacity
                     onPress={() => handleOpenOfficialLink(item.url)}
@@ -613,7 +612,7 @@ export default function DashboardScreen() {
                 </View>
               </View>
             ))}
-            
+
             {filteredRecommendations.length === 0 && (
               <View className="items-center py-12 bg-[#F4F8FB] rounded-2xl border border-dashed border-[#BFD6EA]">
                 <Ionicons name="document-text-outline" size={32} color="#BFD6EA" className="mb-2" />
@@ -645,11 +644,11 @@ export default function DashboardScreen() {
                       </View>
                       <Text className="text-base font-bold text-[#1F3A5F] flex-1">{suggestion.title}</Text>
                     </View>
-                    
+
                     <Text className="text-sm leading-5 text-justify text-[#4F6B82] mb-3">
                       {suggestion.description || suggestion.message}
                     </Text>
-                    
+
                     {suggestion.example && (
                       <View className="bg-[#FEF5F1] p-4 rounded-xl border border-[#FDEEE6]">
                         <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-widest mb-1.5">Suggested Rewrite</Text>

@@ -15,8 +15,7 @@ export default function ActiveSimulationScreen() {
   const router = useRouter();
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
-  
-  // Voice State
+
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -26,7 +25,6 @@ export default function ActiveSimulationScreen() {
   const activeAnalysis = useResumeStore((state) => state.activeAnalysis);
   const { session, submitAnswer } = useInterviewStore();
 
-  // TTS Logic
   const handleSpeak = () => {
     if (!session) return;
     if (isSpeaking) {
@@ -41,7 +39,6 @@ export default function ActiveSimulationScreen() {
     }
   };
 
-  // STT Logic
   const startRecording = async () => {
     try {
       const permission = await Audio.requestPermissionsAsync();
@@ -119,7 +116,6 @@ export default function ActiveSimulationScreen() {
 
       if (isSpeaking) Speech.stop();
 
-      // Update local state with the evaluation and next question
       submitAnswer(
         answer.trim(),
         response.evaluation,
@@ -155,15 +151,15 @@ export default function ActiveSimulationScreen() {
     return (
       <SafeAreaView className="flex-1 bg-[#F4F8FB] items-center justify-center">
         <Text className="text-[#1F3A5F]">Session lost. Please restart.</Text>
-        <PrimaryButton title="Go Back" variant="outline" onPress={() => router.replace("/(student)/(tabs)/interview" as any)} />
+        <PrimaryButton title="Go Back" onPress={() => router.replace("/(student)/(tabs)/interview" as any)} />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView className="flex-1 bg-[#F4F8FB]" edges={["top", "bottom"]}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"} 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
         <View className="flex-row items-center justify-between px-6 py-4 border-b border-[#EAF2F7] bg-white z-10" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
@@ -178,7 +174,7 @@ export default function ActiveSimulationScreen() {
         </View>
 
         <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false}>
-          
+
           <View className="flex-row items-start mb-6">
             <View className="h-10 w-10 bg-[#1F3A5F] rounded-full items-center justify-center mr-4 mt-1 border-2 border-white shadow-sm">
               <Ionicons name="person" size={20} color="white" />
@@ -211,7 +207,7 @@ export default function ActiveSimulationScreen() {
               />
             </View>
             <View className="flex-row items-center justify-between mt-3 px-2">
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={toggleRecording}
                 className={`flex-row items-center px-4 py-2 rounded-full border ${isRecording ? "bg-[#FEF5F1] border-[#F4A47A]" : "bg-white border-[#BFD6EA]"}`}
                 style={{ shadowColor: isRecording ? "#CA5D25" : "#000", shadowOffset: { width: 0, height: 0 }, shadowOpacity: isRecording ? 0.3 : 0.05, shadowRadius: isRecording ? 6 : 2, elevation: 2 }}
@@ -225,7 +221,7 @@ export default function ActiveSimulationScreen() {
                   {isTranscribing ? "Transcribing..." : isRecording ? "Stop Recording" : "Dictate Answer"}
                 </Text>
               </TouchableOpacity>
-              
+
               <Text className="text-xs text-[#8B95A5] font-medium text-right">
                 Be as specific as possible.
               </Text>
@@ -241,11 +237,10 @@ export default function ActiveSimulationScreen() {
               <Text className="ml-3 font-bold text-[#4F6B82]">Analyzing response...</Text>
             </View>
           ) : (
-            <PrimaryButton 
-              title={session.questionsAsked >= session.totalQuestions ? "Submit & Finish" : "Submit Answer"} 
-              variant="orange" 
-              icon="send"
-              onPress={handleSubmit} 
+            <PrimaryButton
+              title={session.questionsAsked >= session.totalQuestions ? "Submit & Finish" : "Submit Answer"}
+              variant="orange"
+              onPress={handleSubmit}
             />
           )}
         </View>

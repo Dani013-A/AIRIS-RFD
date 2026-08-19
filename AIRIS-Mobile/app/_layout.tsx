@@ -16,7 +16,7 @@ try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   GoogleSignin = require("@react-native-google-signin/google-signin").GoogleSignin;
 } catch {
-  // This keeps the app from crashing when running in simulator environments that do not support Google Sign-In.
+  // Prevent crash in simulator without Google Sign-In.
 }
 
 const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
@@ -53,7 +53,7 @@ export default function RootLayout() {
     return unsubscribe;
   }, [initializeAuth]);
 
-  // Automatically copy the student's college, program, and job preferences into our temporary setup helper.
+  // Copy profile into setup helper.
   useEffect(() => {
     if (currentUser) {
       const onboarding = useOnboardingStore.getState();
@@ -69,7 +69,7 @@ export default function RootLayout() {
     }
   }, [currentUser]);
 
-  // Double-check if the student's account is still active and valid whenever they re-open the app.
+  // Re-verify account on app focus.
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       if (nextAppState === "active" && useAuthStore.getState().currentUser) {
@@ -96,7 +96,7 @@ export default function RootLayout() {
       return;
     }
 
-    // Log out immediately if the student's profile information appears corrupt or missing.
+    // Logout on corrupt profile.
     if (!currentUser.uid || !currentUser.email) {
       useAuthStore.getState().logout().then(() => {
         router.replace("/(auth)/login");
@@ -104,17 +104,17 @@ export default function RootLayout() {
       return;
     }
 
-    // Periodically verify the login session remains active while the student is browsing pages.
+    // Verify login periodically.
     if (!inAuthGroup) {
       const now = Date.now();
-      // Avoid checking too frequently (only once every 10 seconds) to ensure the app runs smoothly.
+      // Rate limit checks to 10s.
       if (now - lastSessionValidationTime > 10000) {
         lastSessionValidationTime = now;
         useAuthStore.getState().checkSessionValidity();
       }
     }
 
-    // Make sure we have actual text saved for their college, program, and target job before letting them proceed.
+    // Ensure profile is complete before proceeding.
     const hasMissingSetupFields = !currentUser.college || !currentUser.degreeProgram || !currentUser.targetPosition;
     const setupIncomplete = currentUser.hasCompletedInitialSetup !== true || hasMissingSetupFields;
 
@@ -143,7 +143,7 @@ export default function RootLayout() {
       return;
     }
 
-    // Once onboarding is completed, keep the user on the dashboard and prevent them from visiting login/signup screens.
+    // Redirect to dashboard if onboarded.
     if (inAuthGroup) {
       router.replace("/(student)/(tabs)/dashboard" as any);
     }

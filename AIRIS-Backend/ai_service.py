@@ -1,12 +1,13 @@
 import os
 import time
 import requests
+import json
+import re
+import concurrent.futures
 from dotenv import load_dotenv
-# Load environment variables from .env in this directory
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
-# Use legacy google.generativeai package for Gemini (compatible with current environment)
-import google.generativeai as genai
 
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
+import google.generativeai as genai
 
 import concurrent.futures
 
@@ -22,14 +23,12 @@ def call_gemini(prompt: str) -> str:
         response = model.generate_content(prompt)
         return response.text.strip()
 
-    # Do not use 'with' block, which calls executor.shutdown(wait=True) and blocks the main thread
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     future = executor.submit(_do_call)
     try:
         return future.result(timeout=30.0)
     except concurrent.futures.TimeoutError:
         raise TimeoutError("Gemini API timed out after 30 seconds")
-
 
 def call_groq(prompt: str) -> str:
     api_key = os.getenv("GROQ_API_KEY")
@@ -99,7 +98,6 @@ def generate_text_with_fallback(prompt: str) -> str:
         raise RuntimeError("No AI API keys set. Using local SBERT baseline.")
 
     providers = []
-    # Prioritize: Groq -> Mistral -> Gemini -> OpenRouter
     if has_groq:
         providers.append(("Groq", call_groq))
     if has_mistral:
@@ -108,7 +106,7 @@ def generate_text_with_fallback(prompt: str) -> str:
         providers.append(("Gemini", call_gemini))
     if has_openrouter:
         providers.append(("OpenRouter", call_openrouter))
-    
+
     errors = []
     for name, func in providers:
         try:
@@ -124,9 +122,9 @@ def generate_text_with_fallback(prompt: str) -> str:
             err_msg = f"{name} error after {elapsed:.2f}s: {str(e)}"
             print(err_msg)
             errors.append(err_msg)
-            
+
     raise RuntimeError(f"All AI API providers failed: {'; '.join(errors)}")
-            
+
 import json
 import re
 
@@ -138,7 +136,6 @@ def _extract_json(text: str) -> dict | list:
             return json.loads(match.group(1))
         return json.loads(text)
     except Exception:
-        # If extraction fails completely, return empty list to fallback safely
         return []
 
 def validate_evidence_batch(evidence_batch: list) -> list:
@@ -149,22 +146,22 @@ def validate_evidence_batch(evidence_batch: list) -> list:
     """
     if not evidence_batch:
         return []
-        
+
     prompt = f"""
     You are an expert technical recruiter performing a strict audit of candidate resumes.
     SBERT found semantic overlap between the target concept and the candidate's text chunk, but SBERT is often easily fooled by loosely related terms (e.g. AutoCAD != Data Visualization, Project Management != SQL).
-    
+
     TASK: Validating Candidate Evidence
     For each item in the batch below, strictly evaluate if the candidate's text chunk provides DIRECT, MEANINGFUL evidence that they possess the specific target competency.
-    
+
     RULES:
     1. STRONG_MATCH: The text contains explicit, direct evidence of the exact skill or a highly equivalent direct synonym in the same domain.
     2. PARTIAL_MATCH: The text demonstrates some genuinely transferable aspect or tangential experience, but does NOT directly demonstrate the core competency.
     3. NO_RELEVANT_EVIDENCE: The text is from a different domain entirely, or the semantic overlap is purely coincidental. (e.g., Engineering analysis ≠ Statistical analysis. Technical reports ≠ Data visualization). Do not infer skills that are not supported.
-    
+
     BATCH TO EVALUATE:
     {json.dumps(evidence_batch, indent=2)}
-    
+
     OUTPUT FORMAT:
     Respond STRICTLY with a JSON array in the exact same order, containing your classifications. Do not output anything outside the JSON.
     [
@@ -175,18 +172,52 @@ def validate_evidence_batch(evidence_batch: list) -> list:
       }}
     ]
     """
-    
+
     try:
-        # Generate text using the fallback system, ensuring we get a response from any available provider
         raw_response = generate_text_with_fallback(prompt)
-        parsed = _extract_json(raw_response)
-        
-        if isinstance(parsed, list):
-            return parsed
+        extracted_json = _extract_json(raw_response)
+
+        if isinstance(extracted_json, list):
+            return extracted_json
         return []
     except Exception as e:
         print(f"Evidence validation failed: {e}")
         return []
+
+_cached_snapshot = None
+_cached_time = 0
+CACHE_TTL = 3600  # 1 hour
+
+def invalidate_market_cache():
+    global _cached_snapshot, _cached_time
+    _cached_snapshot = None
+    _cached_time = 0
+
+def get_job_market_intelligence() -> str:
+    global _cached_snapshot, _cached_time
+    current_time = time.time()
+
+    if _cached_snapshot and (current_time - _cached_time < CACHE_TTL):
+        return json.dumps(_cached_snapshot)
+
+    try:
+        from market_intelligence import get_firestore_client
+        db = get_firestore_client()
+        docs = db.collection("market_intelligence").where("active", "==", True).limit(1).get()
+        if docs:
+            _cached_snapshot = docs[0].to_dict()
+            _cached_time = current_time
+            return json.dumps(_cached_snapshot)
+    except Exception as e:
+        print(f"Failed to load market intelligence from Firestore: {e}")
+
+    try:
+        cache_path = os.path.join(os.path.dirname(__file__), "market_intelligence_cache.json")
+        with open(cache_path, "r") as f:
+            return f.read()
+    except Exception as e:
+        print(f"Failed to load local market intelligence fallback: {e}")
+        return "{}"
 
 def evaluate_intrinsic_resume_strength(parsed_text: str) -> dict:
     """
@@ -195,43 +226,37 @@ def evaluate_intrinsic_resume_strength(parsed_text: str) -> dict:
     """
     if not parsed_text:
         return {"skills": 0, "education": 0, "certifications": 0}
-        
-    cache_data = "{}"
-    try:
-        cache_path = os.path.join(os.path.dirname(__file__), "market_intelligence_cache.json")
-        with open(cache_path, "r") as f:
-            cache_data = f.read()
-    except Exception as e:
-        print(f"Failed to load market intelligence cache: {e}")
-        
+
+    cache_data = get_job_market_intelligence()
+
     prompt = f"""
     You are an expert technical recruiter and labor market analyst evaluating the INTRINSIC VALUE of a candidate's resume.
-    
+
     TASK:
     Evaluate the raw strength of the resume across three dimensions on a 0-100 scale.
     Do NOT evaluate how well they match a specific target role.
     Evaluate how STRONG and VALUABLE the resume is based on its own merits and actual evidence.
-    
+
     1. Skills Value (0-100)
     - Evaluate explicit skill presence, demonstrated use, projects/work supporting the skill, and proficiency evidence.
     - Below is the current Job Market Intelligence Cache. Identify which skills the candidate possesses and use the cached `demandScore` to inform how valuable their skillset is in the current job market.
     - Highly demanded skills strongly support a high score.
     - A skill explicitly listed but never demonstrated should receive less strength than a proven skill.
-    
+
     JOB MARKET INTELLIGENCE CACHE:
     {cache_data}
-    
+
     2. Education Value (0-100)
     - Evaluate degree/program, field of study, relevance, and coursework/achievements.
     - Do NOT create a large score bonus simply because a university is prestigious.
-    
+
     3. Certification Value (0-100)
     - Evaluate certification relevance, recognized issuer, technical value, and recency.
     - If there are zero certifications, the score is 0.
-    
+
     RESUME TEXT:
     {parsed_text}
-    
+
     OUTPUT FORMAT:
     Respond STRICTLY with a JSON object. Do not output anything outside the JSON.
     {{
@@ -241,18 +266,18 @@ def evaluate_intrinsic_resume_strength(parsed_text: str) -> dict:
       "reasoning": "<brief sentence justifying the scores based on evidence and market intelligence>"
     }}
     """
-    
+
     try:
         raw_response = generate_text_with_fallback(prompt)
-        parsed = _extract_json(raw_response)
-        
-        if isinstance(parsed, dict) and "skills" in parsed:
+        extracted_json = _extract_json(raw_response)
+
+        if isinstance(extracted_json, dict) and "skills" in extracted_json:
             return {
-                "skills": int(parsed.get("skills", 0)),
-                "education": int(parsed.get("education", 0)),
-                "certifications": int(parsed.get("certifications", 0))
+                "skills": int(extracted_json.get("skills", 0)),
+                "education": int(extracted_json.get("education", 0)),
+                "certifications": int(extracted_json.get("certifications", 0))
             }
-        return {"skills": 50, "education": 50, "certifications": 0}
+        return {"skills": 0, "education": 0, "certifications": 0}
     except Exception as e:
         print(f"Intrinsic evaluation failed: {e}")
-        return {"skills": 50, "education": 50, "certifications": 0}
+        return {"skills": 0, "education": 0, "certifications": 0}

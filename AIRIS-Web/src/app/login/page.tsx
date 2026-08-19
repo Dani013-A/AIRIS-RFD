@@ -66,7 +66,7 @@ export default function LoginPage() {
       {/* Right panel: curved light-blue console */}
       <div className="w-full md:w-2/5 lg:w-1/3 h-full flex flex-col justify-center px-8 md:px-12 bg-sidebar-bg md:rounded-l-[48px] shadow-2xl relative z-10">
         <div className="w-full max-w-sm mx-auto space-y-8">
-          
+
           {/* Owl mascot header */}
           <div className="flex flex-col items-center">
             <OwlMascot size={80} />
@@ -80,7 +80,7 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            
+
             {/* Email input */}
             <div className="figma-input-container">
               <Mail className="text-brand-slate mr-3 shrink-0" size={18} />

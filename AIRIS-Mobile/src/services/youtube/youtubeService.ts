@@ -47,9 +47,9 @@ export async function searchYouTubeVideos(
     return [];
   }
 
-  const data = await response.json();
+  const jsonResponse = await response.json();
 
-  const results: YouTubeVideoResult[] = (data.items ?? [])
+  const results: YouTubeVideoResult[] = (jsonResponse.items ?? [])
     .filter((item: any) => item?.id?.videoId)
     .map((item: any) => {
       const videoId: string = item.id.videoId;

@@ -29,7 +29,7 @@ export default function InterviewPlaceholderScreen() {
           <Text className="mt-4 text-sm font-medium leading-6 text-center text-[#4F6B82] px-2">
             Practice mock interviews inside a realistic virtual office simulator and get instant AI metrics feedback on your performance.
           </Text>
-          
+
           <View className="mt-8 bg-[#EAF2F7] px-4 py-2 rounded-full border border-[#BFD6EA]">
              <Text className="text-xs font-bold text-[#1F3A5F] uppercase tracking-wider">In Development</Text>
           </View>

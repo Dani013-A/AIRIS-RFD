@@ -37,7 +37,7 @@ export default function CollegeSelectionScreen() {
       setErrorText("Please select or enter a college name.");
       return;
     }
-    
+
     setErrorText(null);
     setSaving(true);
     try {

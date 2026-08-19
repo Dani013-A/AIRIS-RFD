@@ -39,7 +39,6 @@ export function mapAuthError(error: unknown): string {
   const message = typeof candidate.message === "string" ? candidate.message : String(error);
   const code = typeof candidate.code === "string" ? candidate.code : "";
 
-  // Find the Firebase error code or search the text of the message.
   const testString = `${code} ${message}`.toLowerCase();
 
   if (testString.includes("only verified tip email accounts")) {
@@ -77,7 +76,6 @@ export function mapAuthError(error: unknown): string {
     return "An account conflict was detected. A profile already exists for this email address. Please contact the AIRIS administrator.";
   }
 
-  // Default message for other Firebase database issues.
   if (error instanceof Error) {
     const msg = error.message;
     if (

@@ -41,7 +41,7 @@ export default function AuditPage() {
               {logs.map((log) => (
                 <div key={log.id} className="relative pl-8 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="absolute left-1.5 top-1.5 h-3.5 w-3.5 rounded-full bg-brand-slate border-2 border-white shadow-xs" />
-                  
+
                   <div className="space-y-1 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-[9px] font-black px-2 py-0.5 rounded bg-brand-primary/5 text-brand-primary uppercase tracking-wide">

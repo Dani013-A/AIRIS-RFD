@@ -1,4 +1,3 @@
-// Helper Service: Validates user-entered custom job paths
 const COMMON_PROFESSIONAL_SUFFIXES = [
   "developer", "engineer", "designer", "programmer", "analyst",
   "consultant", "architect", "manager", "specialist", "officer",
@@ -46,7 +45,7 @@ export const validateCareerRole = async (
 
   const words = cleanRole.split(/[\s-]+/);
   const hasSuffix = words.some(word => COMMON_PROFESSIONAL_SUFFIXES.includes(word));
-  
+
   if (!hasSuffix && words.length < 2) {
     return {
       isValid: false,
@@ -56,7 +55,6 @@ export const validateCareerRole = async (
 
   const lowerProg = degreeProgram.toLowerCase();
 
-  // Validate computing tracks
   if (lowerProg.includes("computer") || lowerProg.includes("information technology") || lowerProg.includes("data science") || lowerProg.includes("multimedia")) {
     const techKeywords = [
       "software", "web", "app", "mobile", "frontend", "backend", "fullstack", "full-stack", "qa",
@@ -70,8 +68,7 @@ export const validateCareerRole = async (
         reason: `This position is unrelated to your computing field (${degreeProgram}).`
       };
     }
-  } 
-  // Validate engineering tracks
+  }
   else if (lowerProg.includes("civil") || lowerProg.includes("mechanical") || lowerProg.includes("electrical") || lowerProg.includes("electronics") || lowerProg.includes("chemical") || lowerProg.includes("industrial") || lowerProg.includes("architecture")) {
     const engKeywords = [
       "structural", "civil", "hvac", "mechanical", "electrical", "electronics", "power", "chemical",
@@ -85,8 +82,7 @@ export const validateCareerRole = async (
         reason: `This role does not align with your engineering/architecture field (${degreeProgram}).`
       };
     }
-  } 
-  // Validate business tracks
+  }
   else if (lowerProg.includes("accountancy") || lowerProg.includes("accounting") || lowerProg.includes("business") || lowerProg.includes("marketing") || lowerProg.includes("human resource") || lowerProg.includes("logistics") || lowerProg.includes("finance")) {
     const bizKeywords = [
       "accounting", "accountant", "auditor", "bookkeeper", "tax", "audit", "financial", "finance",

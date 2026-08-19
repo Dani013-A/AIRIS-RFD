@@ -17,8 +17,8 @@ export function PageHeader({ title, subtitle, showBackButton = true, rightElemen
     <View className="flex-row items-center justify-between mb-8 px-6 pt-6 pb-2">
       <View className="flex-row items-center flex-1">
         {showBackButton && (
-          <TouchableOpacity 
-            onPress={() => router.back()} 
+          <TouchableOpacity
+            onPress={() => router.back()}
             className="w-10 h-10 items-center justify-center rounded-full bg-white border border-[#BFD6EA] mr-4 shadow-sm"
             style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1, elevation: 1 }}
           >

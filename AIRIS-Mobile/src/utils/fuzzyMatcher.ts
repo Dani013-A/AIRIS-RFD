@@ -228,6 +228,8 @@ export function fuzzyMatchRole(input: string): string {
   let highestSimilarity = 0;
 
   // Step 1: Check if the text matches any standard job title exactly.
+  // Step 2: Check if what the user typed is a part of a longer job title we have on record.
+  // Step 3: Compare the letter combinations of both words to check for matching pairs.
   for (const role of STANDARD_ROLES) {
     const normalizedRole = role
       .trim()
@@ -238,7 +240,6 @@ export function fuzzyMatchRole(input: string): string {
     }
   }
 
-  // Step 2: Check if what the user typed is a part of a longer job title we have on record.
   for (const role of STANDARD_ROLES) {
     const normalizedRole = role
       .trim()
@@ -258,7 +259,6 @@ export function fuzzyMatchRole(input: string): string {
     return bestMatch;
   }
 
-  // Step 3: Compare the letter combinations of both words to check for matching pairs.
   for (const role of STANDARD_ROLES) {
     const normalizedRole = role
       .trim()

@@ -13,6 +13,8 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 from sbert_matcher import evaluate_semantic_alignment
 from ai_validator import validate_and_enhance_analysis
 from normalizer import normalize_career_input
+from fastapi import Header, Depends
+from firebase_admin import auth
 
 app = FastAPI(
     title="AIRIS SBERT Resume Evaluator",
@@ -45,31 +47,58 @@ class NormalizationRequest(BaseModel):
 def read_root():
     return {"status": "running", "service": "AIRIS SBERT Evaluator API"}
 
+def verify_admin_token(authorization: str = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid token")
+    token = authorization.split("Bearer ")[1]
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token.get("uid")
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    admin_uids = [u.strip() for u in os.getenv("ADMIN_UIDS", "").split(",") if u.strip()]
+    if not admin_uids or uid not in admin_uids:
+        raise HTTPException(status_code=403, detail="Forbidden: Insufficient privileges")
+    return uid
+
+@app.post("/admin/refresh-trends")
+def trigger_refresh_trends(admin_uid: str = Depends(verify_admin_token)):
+    from market_intelligence import refresh_job_market_snapshot
+    from ai_service import invalidate_market_cache
+    try:
+        result = refresh_job_market_snapshot()
+        # Invalidate memory cache so next request fetches the new snapshot instantly
+        invalidate_market_cache()
+        return result
+    except Exception as e:
+        print(f"[Admin] Refresh failed: {e}")
+        raise HTTPException(status_code=500, detail="Refresh operation failed. See backend logs.")
+
 @app.post("/analyze")
 async def analyze_resume(request: Request):
     try:
         try:
-            body = await request.json()
+            analysis_payload = await request.json()
         except Exception:
-            body = {}
+            analysis_payload = {}
 
-        raw_text = str(body.get("rawText") or body.get("raw_text") or "")
-        parsed_sections = body.get("parsedSections") or body.get("parsed_sections") or {}
+        raw_text = str(analysis_payload.get("rawText") or analysis_payload.get("raw_text") or "")
+        parsed_sections = analysis_payload.get("parsedSections") or analysis_payload.get("parsed_sections") or {}
         if not parsed_sections or not isinstance(parsed_sections, dict) or len(parsed_sections) < 2:
             from resume_parser import parse_resume
             parsed_sections = parse_resume(raw_text)
 
-        target_pos = str(body.get("targetPosition") or body.get("target_position") or "Software Engineer")
+        target_pos = str(analysis_payload.get("targetPosition") or analysis_payload.get("target_position") or "Software Engineer")
 
         skills_text = str(parsed_sections.get("Skills", ""))
         experience_text = str(parsed_sections.get("WorkExperience", "") or parsed_sections.get("Experience", ""))
-        
         # 1. Run semantic similarity scoring with SBERT
         sbert_results = evaluate_semantic_alignment(
             parsed_sections=parsed_sections,
             target_position=target_pos
         )
-        
+
         # 2. Get explainable feedback from Gemini AI validator using the authoritative frontend deterministic scores
         enhanced_result = validate_and_enhance_analysis(
             raw_text=raw_text,
@@ -77,7 +106,7 @@ async def analyze_resume(request: Request):
             target_position=target_pos,
             sbert_results=sbert_results
         )
-        
+
         # Validate resume content using parsed sections
         if not is_resume_valid(parsed_sections):
             return {
@@ -101,12 +130,12 @@ async def analyze_resume(request: Request):
             "analyzedAt": enhanced_result.get("analyzedAt", ""),
             "analysisVersion": "1.1.0-sbert",
         }
-        
+
         return response
 
     except Exception as e:
         print("Analysis error:", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred during analysis.")
 
 @app.post("/upload")
 async def upload_resume(
@@ -163,7 +192,7 @@ async def upload_resume(
         }
     except Exception as e:
         print("Upload analysis error:", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred during upload analysis.")
 @app.post("/normalize")
 def normalize_input(req: NormalizationRequest):
     """
@@ -171,8 +200,8 @@ def normalize_input(req: NormalizationRequest):
     Intelligently normalizes any career-related input string.
     """
     try:
-        res = normalize_career_input(req.input, req.type)
-        return res
+        normalization_result = normalize_career_input(req.input, req.type)
+        return normalization_result
     except Exception as e:
         print("Normalization error:", e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -240,18 +269,18 @@ def evaluate_interview_answer(req: InterviewAnswerRequest):
 async def transcribe_interview_audio(audio: UploadFile = File(...)):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] [INTERVIEW] Received audio for transcription. MIME: {audio.content_type}")
-    
+
     # Enforce 5MB limit
     MAX_SIZE = 5 * 1024 * 1024
     file_bytes = bytearray()
     chunk_size = 1024 * 1024 # 1MB chunks
-    
+
     try:
         while chunk := await audio.read(chunk_size):
             file_bytes.extend(chunk)
             if len(file_bytes) > MAX_SIZE:
                 raise HTTPException(status_code=413, detail="File too large. Maximum size is 5MB.")
-                
+
         from transcriber import transcribe_audio
         # Default fallback mime type if not provided
         mime = audio.content_type if audio.content_type else "audio/m4a"

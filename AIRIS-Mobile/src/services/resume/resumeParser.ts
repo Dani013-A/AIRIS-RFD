@@ -2,7 +2,6 @@ import type { StructuredResumeData } from "../../types/resume.types";
 import { parseResumeSections } from "./resumeAnalysisEngine";
 import { normalizeResumeText, validateResumeText } from "./resumeNormalizer";
 
-
 /**
  * Reads the cleaned resume text and organizes it into sections like education, experience, and skills.
  */
@@ -32,7 +31,7 @@ export function parseAndBuildStructuredData(rawText: string): StructuredResumeDa
   if (contactInfo) {
     const emailMatch = contactInfo.content.match(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i);
     const phoneMatch = contactInfo.content.match(/(?:\+?63|0)?9\d{9}\b|(?:\+?63|0)?\d{2,3}[-\s]?\d{3}[-\s]?\d{4}\b/);
-    
+
     if (emailMatch) email = emailMatch[0];
     if (phoneMatch) phone = phoneMatch[0];
 

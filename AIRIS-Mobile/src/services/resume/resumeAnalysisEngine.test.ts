@@ -25,19 +25,19 @@ describe("Resume Analysis Engine - Deterministic Tests", () => {
     const resume = `
       John Doe
       john@email.com
-      
+
       Professional Summary
       Experienced software developer.
-      
+
       Skills
       JavaScript, Python, Docker, React, Algorithms, Data Structures, System Design, Git
-      
+
       Work Experience
       Google - Software Developer
       - Developed a dashboard using React and Python that increased user engagement by 20%.
       - Designed system architecture and optimized algorithms for data processing.
       - Used Git and Docker for version control and deployment.
-      
+
       Education
       MIT - BS Computer Science
     `;
@@ -50,17 +50,17 @@ describe("Resume Analysis Engine - Deterministic Tests", () => {
     const resume = `
       John Doe
       john@email.com
-      
+
       Professional Summary
       Experienced software developer.
-      
+
       Skills
       JavaScript, Node, React
-      
+
       Work Experience
       Google - Software Developer
       - Built a frontend in React that increased speed by 50%.
-      
+
       Education
       MIT - BS Computer Science
     `;
@@ -73,12 +73,12 @@ describe("Resume Analysis Engine - Deterministic Tests", () => {
     const resume = `
       John Doe
       john@email.com
-      
+
       Work Experience
       Software Developer
       - Developed a dashboard using React.
       - Fixed bugs in the backend.
-      
+
       Education
       MIT
     `;
@@ -91,17 +91,17 @@ describe("Resume Analysis Engine - Deterministic Tests", () => {
     const resume = `
       John Doe
       john@email.com
-      
+
       Work Experience
       Software Developer
       - Developed a dashboard using React that reduced reporting time by 20%.
-      
+
       Education
       MIT
     `;
     const result = analyzeResume(resume, TARGET_SW_DEV);
     // Should have experience points bumped up by quantifiable rule
-    const rule = result.atsScore.adjustments.find((a) => a.ruleId === "content_quantified");
+    const rule = result.atsScore.adjustments?.find((a) => a.ruleId === "content_quantified");
     expect(rule).toBeDefined();
     expect(rule?.passed).toBe(true);
   });
@@ -110,10 +110,10 @@ describe("Resume Analysis Engine - Deterministic Tests", () => {
     const resume = `
       John Doe
       john@email.com
-      
+
       Skills
       JavaScript, Python
-      
+
       Work Experience
       Developer
     `;

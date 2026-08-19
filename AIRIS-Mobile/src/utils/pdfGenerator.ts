@@ -3,8 +3,7 @@
  */
 export function generatePdfFromMarkdown(title: string, markdown: string): string {
   const lines = markdown.split("\n");
-  
-  // Set up a standard letter-sized page layout (width 612, height 792).
+
   let streamContent = "BT\n";
   streamContent += "/F2 16 Tf\n";
   streamContent += "72 740 Td\n";
@@ -21,34 +20,30 @@ export function generatePdfFromMarkdown(title: string, markdown: string): string
       // Stop drawing text before it spills off the bottom of the page.
       break;
     }
-    
+
     const trimmed = line.trim();
     if (!trimmed) {
-      // Add a blank line space.
       streamContent += `0 -12 Td\n`;
       y -= 12;
       continue;
     }
 
     if (trimmed.startsWith("## ")) {
-      // Set up a bold subheader for sections.
       const text = trimmed.substring(3);
       streamContent += "ET\nBT\n/F2 11 Tf\n";
       streamContent += `72 ${y - 18} Td\n`;
       streamContent += `(${escapePdfString(text)}) Tj\n`;
       streamContent += "ET\n";
-      
-      // Draw a clean dividing line below section titles to separate topics.
+
       streamContent += "0.4 w\n";
       streamContent += "0.6 G\n";
       streamContent += `72 ${y - 22} m\n`;
       streamContent += `540 ${y - 22} l\n`;
       streamContent += "S\n";
-      
+
       streamContent += "BT\n/F1 10 Tf\n0 0 Td\n";
       y -= 26;
     } else if (trimmed.startsWith("# ")) {
-      // Set up a main heading for the document.
       const text = trimmed.substring(2);
       streamContent += "ET\nBT\n/F2 13 Tf\n";
       streamContent += `72 ${y - 20} Td\n`;
@@ -56,7 +51,6 @@ export function generatePdfFromMarkdown(title: string, markdown: string): string
       streamContent += "ET\nBT\n/F1 10 Tf\n0 0 Td\n";
       y -= 20;
     } else {
-      // Add regular text or list items.
       streamContent += "ET\nBT\n/F1 9.5 Tf\n";
       streamContent += `72 ${y - 11} Td\n`;
       streamContent += `(${escapePdfString(trimmed)}) Tj\n`;
@@ -67,51 +61,44 @@ export function generatePdfFromMarkdown(title: string, markdown: string): string
   streamContent += "ET\n";
 
   const objects: string[] = [];
-  
-  // Tells the PDF reader what kind of document this is.
+
   objects.push("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
-  
-  // A list tracking all the pages inside this document.
+
   objects.push("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
-  
-  // Configures a single page using standard dimensions.
+
   objects.push("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>\nendobj\n");
-  
-  // Use a standard font for regular text.
+
   objects.push("4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman >>\nendobj\n");
-  
-  // Use a bold font for titles.
+
   objects.push("5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold >>\nendobj\n");
-  
-  // Save the actual page content (text and lines).
+
   const streamLength = streamContent.length;
   objects.push(`6 0 obj\n<< /Length ${streamLength} >>\nstream\n${streamContent}endstream\nendobj\n`);
 
-  // Assemble the PDF elements and track their positions so the file opens correctly.
   let pdf = "%PDF-1.4\n";
   const offsets: number[] = [];
-  
+
   for (let i = 0; i < objects.length; i++) {
     offsets.push(pdf.length);
     pdf += objects[i];
   }
-  
+
   const xrefOffset = pdf.length;
   pdf += "xref\n";
   pdf += `0 ${objects.length + 1}\n`;
   pdf += "0000000000 65535 f \n";
-  
+
   for (let i = 0; i < offsets.length; i++) {
     const offsetStr = String(offsets[i]).padStart(10, "0");
     pdf += `${offsetStr} 00000 n \n`;
   }
-  
+
   pdf += "trailer\n";
   pdf += `<< /Size ${objects.length + 1} /Root 1 0 R >>\n`;
   pdf += "startxref\n";
   pdf += `${xrefOffset}\n`;
   pdf += "%%EOF\n";
-  
+
   return pdf;
 }
 

@@ -38,16 +38,16 @@ function cleanUndefined(obj: any): any {
  */
 export async function saveInterviewSession(userId: string, session: InterviewSession): Promise<void> {
   const interviewsColRef = collection(db, USERS_COLLECTION, userId, INTERVIEWS_SUBCOLLECTION);
-  
+
   // Use the session ID from Zustand, or create a new document reference
   const docRef = doc(interviewsColRef, session.sessionId);
-  
+
   // Exclude raw heavy objects if necessary, but keep history and evaluations
   const sanitizedSession = cleanUndefined({
     ...session,
     createdAt: serverTimestamp(),
   });
-  
+
   await setDoc(docRef, sanitizedSession, { merge: true });
 }
 
@@ -56,14 +56,14 @@ export async function saveInterviewSession(userId: string, session: InterviewSes
  */
 export async function fetchLatestInterviewSession(userId: string): Promise<InterviewSession | null> {
   const interviewsColRef = collection(db, USERS_COLLECTION, userId, INTERVIEWS_SUBCOLLECTION);
-  
+
   // Query by completedAt descending to get the most recent completed interview
   const q = query(interviewsColRef, orderBy("completedAt", "desc"), limit(1));
   const querySnapshot = await getDocs(q);
-  
+
   if (querySnapshot.empty) {
     return null;
   }
-  
+
   return querySnapshot.docs[0].data() as InterviewSession;
 }

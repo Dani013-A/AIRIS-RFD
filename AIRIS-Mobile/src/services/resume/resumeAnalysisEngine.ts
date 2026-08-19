@@ -246,10 +246,6 @@ function getRoleProfile(targetPosition: string): RoleProfile {
   return ROLE_PROFILES.find(p => p.role === "default")!;
 }
 
-// ---------------------------------------------------------
-// Helper Functions
-// ---------------------------------------------------------
-
 function normalizeHeading(text: string): string {
   return text.toLowerCase().replace(/[:\-\–\—]/g, "").replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, " ").trim();
 }
@@ -271,28 +267,23 @@ function hasQuantifiableAchievements(text: string): boolean {
   return regex.test(text);
 }
 
-// ---------------------------------------------------------
-// Core Engines
-// ---------------------------------------------------------
-
 export function parseResumeSections(resumeText: string): ParsedResumeSection[] {
   const lines = resumeText.split("\n");
   const parsedSections: ParsedResumeSection[] = [];
-  
+
   let currentSection: ResumeSectionName | null = null;
   let currentHeading = "";
   let currentContent: string[] = [];
-  
+
   const headingRegex = /^[A-Z][A-Z\s\&\-\/]{2,40}$|^[A-Z][a-zA-Z\s\&\-\/]{2,40}:?\s*$/;
-  
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
-    
-    // Standard Heading Detection
+
     if (headingRegex.test(line) && line.length <= 50) {
       const sectionName = findSectionNameFromHeading(line);
-      
+
       if (sectionName) {
         if (currentSection) {
           parsedSections.push({
@@ -307,18 +298,18 @@ export function parseResumeSections(resumeText: string): ParsedResumeSection[] {
         continue;
       }
     }
-    
-    // First lines might be Contact Info
+
+    // Check first lines for contact info.
     if (i < 10 && !currentSection && (line.includes("@") || line.match(/\d{10,11}/))) {
         if (!currentSection) {
             currentSection = "ContactInformation";
             currentHeading = "Contact Information";
         }
     }
-    
+
     currentContent.push(line);
   }
-  
+
   if (currentSection) {
     parsedSections.push({
       name: currentSection,
@@ -326,7 +317,7 @@ export function parseResumeSections(resumeText: string): ParsedResumeSection[] {
       content: currentContent.join("\n").trim(),
     });
   }
-  
+
   // If no sections parsed cleanly, flag parsing uncertain
   if (parsedSections.length < 3) {
       parsedSections.push({
@@ -336,7 +327,7 @@ export function parseResumeSections(resumeText: string): ParsedResumeSection[] {
           isUncertain: true
       });
   }
-  
+
   return parsedSections;
 }
 
@@ -380,19 +371,18 @@ export function analyzeResume(resumeText: string, targetPosition: string): Resum
   const normalizedText = normalizeResumeText(resumeText);
   const parsedSections = parseResumeSections(normalizedText);
   const detectedSections = detectResumeSections(parsedSections);
-  
+
   // Evidence verification constraint (Requirement 10)
   const missingSections = findMissingSections(detectedSections);
-  
+
   const roleProfile = getRoleProfile(targetPosition);
   const suggestions: ResumeSuggestion[] = [];
   const adjustments: ATSScoreAdjustment[] = [];
-  
-  // Scoring Engines
+
   let atsScoreVal = 100; // Base, deduct for issues
   let contentScoreVal = 0; // Build up from 0
   let relevanceScoreVal = 0; // Build up from 0
-  
+
   // --- ATS SCORE CALCULATION (Requirement 11) ---
   const isParsable = parsedSections.length >= 3;
   if (!isParsable) {
@@ -401,7 +391,7 @@ export function analyzeResume(resumeText: string, targetPosition: string): Resum
   } else {
       adjustments.push({ ruleId: "ats_parsable", category: "atsCompatibility", points: 40, maximumPoints: 40, passed: true, reason: "Text is highly machine-readable." });
   }
-  
+
   const hasContact = detectedSections.find(s => s.name === "ContactInformation")?.isPresent;
   if (!hasContact) {
       atsScoreVal -= 20;
@@ -409,7 +399,7 @@ export function analyzeResume(resumeText: string, targetPosition: string): Resum
   } else {
       adjustments.push({ ruleId: "ats_has_contact", category: "atsCompatibility", points: 20, maximumPoints: 20, passed: true, reason: "Standard contact information block found." });
   }
-  
+
   // --- CONTENT SCORE CALCULATION (Requirement 4, 8) ---
   const experienceText = parsedSections.filter(s => s.name === "WorkExperience" || s.name === "Projects").map(s => s.content).join(" ");
   if (experienceText.length > 50) {
@@ -434,41 +424,41 @@ export function analyzeResume(resumeText: string, targetPosition: string): Resum
   } else {
       adjustments.push({ ruleId: "content_no_exp", category: "experience", points: 0, maximumPoints: 100, passed: false, reason: "No significant experience or projects found." });
   }
-  
+
   // --- RELEVANCE SCORE CALCULATION (Requirement 6, 7) ---
   const allText = parsedSections.map(s => s.content).join(" ").toLowerCase();
   const skillsText = parsedSections.find(s => s.name === "Skills")?.content.toLowerCase() || "";
-  
+
   let matches = 0;
   const toolsToMatch = [...roleProfile.coreSkills, ...roleProfile.commonTools];
-  
+
   toolsToMatch.forEach(tool => {
       const isDemonstrated = experienceText.toLowerCase().includes(tool);
       const isMentioned = skillsText.includes(tool);
-      
+
       if (isDemonstrated) {
           matches += 2; // Demonstrated is worth more
       } else if (isMentioned) {
           matches += 1;
       }
   });
-  
+
   const relevanceRatio = toolsToMatch.length > 0 ? Math.min(100, (matches / (toolsToMatch.length * 1.5)) * 100) : 50;
   relevanceScoreVal = relevanceRatio;
-  
+
   if (relevanceRatio >= 70) {
       adjustments.push({ ruleId: "rel_high", category: "skillsMatch", points: relevanceRatio, maximumPoints: 100, passed: true, reason: `Strong alignment with ${roleProfile.role} profile.` });
   } else {
       adjustments.push({ ruleId: "rel_low", category: "skillsMatch", points: relevanceRatio, maximumPoints: 100, passed: false, reason: `Missing core skills for ${roleProfile.role}.` });
   }
-  
+
   // --- OVERALL MATHEMATICAL TRACEABILITY (Requirement 12) ---
   const atsWeight = 0.30;
   const contentWeight = 0.40;
   const relevanceWeight = 0.30;
-  
+
   const overall = Math.round((Math.max(0, atsScoreVal) * atsWeight) + (contentScoreVal * contentWeight) + (relevanceScoreVal * relevanceWeight));
-  
+
   let level: ATSCompatibilityLevel = "NeedsImprovement";
   if (overall >= 85) level = "ExcellentMatch";
   else if (overall >= 70) level = "StrongFoundation";

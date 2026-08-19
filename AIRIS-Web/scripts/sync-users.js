@@ -1,6 +1,6 @@
 /**
  * AIRIS Database Orphans Cleanup Script
- * 
+ *
  * This script connects to your Firebase project using a Service Account Key,
  * lists all active users in Firebase Authentication, and prunes (deletes)
  * any orphaned Firestore user profiles that do not exist in Auth.
@@ -63,7 +63,7 @@ const auth = getAuth();
 async function syncAndCleanOrphans() {
   console.log("Fetching active users from Firebase Authentication...");
   const authUsers = new Set();
-  
+
   try {
     let nextPageToken;
     do {
@@ -78,7 +78,7 @@ async function syncAndCleanOrphans() {
 
     console.log("Fetching all student profiles from Firestore 'users' collection...");
     const usersSnap = await db.collection("users").where("role", "==", "student").get();
-    
+
     console.log(`Found ${usersSnap.size} student profile documents in Firestore.`);
     let deletedCount = 0;
 
@@ -86,10 +86,9 @@ async function syncAndCleanOrphans() {
       const uid = doc.id;
       const data = doc.data();
 
-      // If the Firestore document UID does not exist in Auth, it's an orphan!
       if (!authUsers.has(uid)) {
         console.log(`Pruning orphan profile: ${data.fullName || "Unnamed"} (${data.email}) - UID: ${uid}`);
-        
+
         // 1. Delete nested resumes and analyses subcollections
         const resumesSnap = await doc.ref.collection("resumes").get();
         for (const rDoc of resumesSnap.docs) {

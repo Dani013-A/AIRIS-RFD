@@ -35,7 +35,6 @@ export async function enhanceSuggestions(
 
     return suggestions;
   } catch (err) {
-    // If the server fails, fall back to our local recommendations so the app keeps working.
     console.warn("AI enhancement suggestion failed, falling back to deterministic suggestions:", err);
     return suggestions;
   }

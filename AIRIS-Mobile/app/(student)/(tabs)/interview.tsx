@@ -14,9 +14,9 @@ export default function ExperienceSelectionScreen() {
       <View className="py-6 flex-row items-center">
         <Text className="text-3xl font-extrabold text-[#1F3A5F]">Interview Prep</Text>
       </View>
-      
+
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        
+
         <Text className="text-sm font-bold text-[#1F3A5F] mb-4 uppercase tracking-wider">
           Experience Selection
         </Text>

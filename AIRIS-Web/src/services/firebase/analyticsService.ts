@@ -20,14 +20,13 @@ export async function fetchDashboardAnalytics(): Promise<{
   let totalActiveUsers = 0;
   let consistentImprovementCount = 0;
 
-  // Process students metadata
   studentSnapshot.forEach((docSnap) => {
-    const data = docSnap.data();
+    const userData = docSnap.data();
     // Exclude disabled accounts if wanted, or count all active
-    if (!data.isDisabled) {
+    if (!userData.isDisabled) {
       totalActiveUsers++;
     }
-    if (data.resumeVersionCounter && data.resumeVersionCounter > 1) {
+    if (userData.resumeVersionCounter && userData.resumeVersionCounter > 1) {
       consistentImprovementCount++;
     }
   });
@@ -52,8 +51,8 @@ export async function fetchDashboardAnalytics(): Promise<{
 
     // Count top performers with resume score >= 80
     analysesSnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      const score = data.result?.overallScore || 0;
+      const analysisData = docSnap.data();
+      const score = analysisData.result?.overallScore || 0;
       if (score >= 80) {
         topPerformersCount++;
       }
@@ -66,16 +65,16 @@ export async function fetchDashboardAnalytics(): Promise<{
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const currentMonthIndex = new Date().getMonth();
   const last6Months: { month: string; index: number; count: number }[] = [];
-  
+
   for (let i = 5; i >= 0; i--) {
     const mIndex = (currentMonthIndex - i + 12) % 12;
     last6Months.push({ month: months[mIndex], index: mIndex, count: 0 });
   }
 
   studentSnapshot.forEach((docSnap) => {
-    const data = docSnap.data();
-    if (data.createdAt) {
-      const date = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+    const userData = docSnap.data();
+    if (userData.createdAt) {
+      const date = userData.createdAt.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
       const studentMonth = date.getMonth();
       const match = last6Months.find((m) => m.index === studentMonth);
       if (match) {
@@ -109,8 +108,8 @@ export async function fetchDashboardAnalytics(): Promise<{
     lastSyncTime: new Date().toLocaleTimeString(),
   };
 
-  const averageResumesPerStudent = totalActiveUsers > 0 
-    ? parseFloat((totalResumesParsed / totalActiveUsers).toFixed(1)) 
+  const averageResumesPerStudent = totalActiveUsers > 0
+    ? parseFloat((totalResumesParsed / totalActiveUsers).toFixed(1))
     : 0;
 
   const insights: PerformanceInsight = {

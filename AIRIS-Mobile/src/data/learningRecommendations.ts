@@ -75,7 +75,7 @@ export function getLearningRecommendations(program: string, job: string): Learni
       }
     );
   }
-  
+
   // 2. UI/UX & Design
   else if (normJob.includes("ui") || normJob.includes("ux") || normJob.includes("design") || normJob.includes("product") || normJob.includes("artist") || normJob.includes("animator")) {
     baseRecommendations.push(
@@ -102,7 +102,7 @@ export function getLearningRecommendations(program: string, job: string): Learni
       }
     );
   }
-  
+
   // 3. Data Analytics & Science
   else if (normJob.includes("data") || normJob.includes("analytic") || normJob.includes("machine") || normJob.includes("ai")) {
     baseRecommendations.push(
@@ -129,7 +129,7 @@ export function getLearningRecommendations(program: string, job: string): Learni
       }
     );
   }
-  
+
   // 4. General Software Engineering / Web / QA
   else {
     baseRecommendations.push(
@@ -1018,15 +1018,15 @@ export function getAiRecommendationsForResume(
 ): LearningRecommendation[] {
   const matchedJob = fuzzyMatchRole(job);
   const baseRecommendations = getLearningRecommendations(program, matchedJob);
-  
+
   if (!activeAnalysis) {
     return baseRecommendations;
   }
 
   // Combine raw text of all detected sections on the resume for cross-verification
   let joinedResumeText = "";
-  const parsedSections = Array.isArray(activeAnalysis.parsedSections) 
-    ? activeAnalysis.parsedSections 
+  const parsedSections = Array.isArray(activeAnalysis.parsedSections)
+    ? activeAnalysis.parsedSections
     : [];
   joinedResumeText = parsedSections.map(s => s.content || "").join(" ").toLowerCase();
 
@@ -1065,7 +1065,7 @@ export function getAiRecommendationsForResume(
   const isMissingCertifications = detectedSections.some(
     (sec) => sec.name === "Certifications" && !sec.isPresent
   );
-  
+
   const isMissingProjects = detectedSections.some(
     (sec) => sec.name === "Projects" && !sec.isPresent
   );
@@ -1073,7 +1073,7 @@ export function getAiRecommendationsForResume(
   const parsedBaseRecommendations = baseRecommendations
     .map((rec) => {
       const titleLower = rec.title.toLowerCase();
-      
+
       let hasIt = false;
       if (titleLower.includes("aws")) {
         hasIt = joinedResumeText.includes("aws");
@@ -1115,4 +1115,3 @@ export function getAiRecommendationsForResume(
   // Combine gaps first, then filter by category type downstream in tab screens
   return [...gapsDetected, ...parsedBaseRecommendations];
 }
-

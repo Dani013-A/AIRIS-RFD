@@ -40,7 +40,7 @@ export default function PreSimulationBriefingScreen() {
     setLoading(true);
     setError(null);
     try {
-      // Convert the parsedSections array into a dictionary map for the backend
+      // Map sections to dictionary for backend.
       const parsedResumeDict: Record<string, string> = {};
       if (Array.isArray(activeAnalysis.parsedSections)) {
         for (const sec of activeAnalysis.parsedSections) {
@@ -71,7 +71,7 @@ export default function PreSimulationBriefingScreen() {
         firstQuestionBenchmark: response.benchmarkAnswer,
         totalQuestions: 5, // We can adjust this later
       });
-      
+
     } catch (err) {
       console.error(err);
       setError("Failed to initialize interview session. The AI provider might be down.");
@@ -86,7 +86,7 @@ export default function PreSimulationBriefingScreen() {
         <Ionicons name="alert-circle" size={48} color="#e53e3e" />
         <Text className="text-[#1F3A5F] font-bold text-lg mt-4 text-center">Initialization Error</Text>
         <Text className="text-[#4F6B82] text-sm text-center mt-2 font-medium mb-6">{error}</Text>
-        <PrimaryButton title="Go Back" variant="outline" onPress={() => router.back()} />
+        <PrimaryButton title="Go Back" onPress={() => router.back()} />
         <TouchableOpacity onPress={startSetup} className="mt-4">
           <Text className="text-[#CA5D25] font-bold">Try Again</Text>
         </TouchableOpacity>
@@ -144,11 +144,10 @@ export default function PreSimulationBriefingScreen() {
       </View>
 
       <View className="pb-6">
-        <PrimaryButton 
-          title="Enter Simulation" 
-          variant="orange" 
-          icon="play"
-          onPress={() => router.push("/(student)/interview-session/active" as any)} 
+        <PrimaryButton
+          title="Enter Simulation"
+          variant="orange"
+          onPress={() => router.push("/(student)/interview-session/active" as any)}
         />
       </View>
     </SafeAreaView>

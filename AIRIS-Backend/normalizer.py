@@ -71,17 +71,17 @@ def check_fuzzy_spelling(val: str, standard_list: List[str]) -> Optional[str]:
     cleaned = clean_text_formatting(val)
     if len(cleaned) < 4:
         return None
-        
+
     best_match = None
     min_dist = 999
-    
+
     for item in standard_list:
         item_lower = item.lower()
         dist = LevenshteinDistance(cleaned, item_lower)
         if dist < min_dist:
             min_dist = dist
             best_match = item
-            
+
     if min_dist <= 2:
         return best_match
     return None
@@ -90,14 +90,14 @@ def run_semantic_sbert_match(val: str, type_name: str) -> Optional[str]:
     """Stage 4: Semantic match utilizing SBERT embeddings."""
     if type_name != "job":
         return None
-        
+
     model = get_sbert_model()
     cleaned = clean_text_formatting(val)
     input_emb = model.encode(cleaned)
-    
+
     best_job = None
     max_sim = 0.0
-    
+
     for job, profile in CAREER_CONCEPTS.items():
         # Compare against SBERT profile representation
         profile_emb = model.encode(", ".join(profile))
@@ -105,7 +105,7 @@ def run_semantic_sbert_match(val: str, type_name: str) -> Optional[str]:
         if sim > max_sim:
             max_sim = sim
             best_job = job
-            
+
     # Clear semantic cutoff threshold
     if max_sim >= 0.82:
         for key in CAREER_CONCEPTS.keys():
@@ -118,13 +118,13 @@ def run_ai_interpretation(val: str, type_name: str, standard_list: List[str]) ->
     prompt = f"""
     You are an expert career ontology engine. We need to normalize a user input value representing a '{type_name}'.
     User entered value: "{val}"
-    
+
     Here is our list of accepted standard '{type_name}' options:
     {json.dumps(standard_list, indent=2)}
 
     Task:
     Determine if this represents a clear synonym, typo, or alias of one of the standard options, OR if it represents a distinct custom value, OR if it is completely ambiguous.
-    
+
     Generate a JSON response conforming EXACTLY to the following keys:
     {{
       "normalizedValue": "string (the matched standard option or a proper title-cased custom option, or null if completely ambiguous)",
@@ -138,15 +138,16 @@ def run_ai_interpretation(val: str, type_name: str, standard_list: List[str]) ->
     - Return ONLY valid JSON, do not include markdown blocks like ```json.
     - If the input is completely ambiguous or nonsense (e.g., "AI thing", "asd"), confidence should be < 0.4 and normalizedValue should be null.
     """
-    
+
     try:
-        res = generate_text_with_fallback(prompt)
-        if res.startswith("```"):
-            lines = res.split("\n")
+        raw_response = generate_text_with_fallback(prompt)
+        extracted_text = raw_response
+        if raw_response.startswith("```"):
+            lines = raw_response.split("\n")
             if lines[0].startswith("```json") or lines[0].startswith("```"):
-                res = "\n".join(lines[1:-1]).strip()
-        parsed = json.loads(res)
-        return parsed
+                extracted_text = "\n".join(lines[1:-1]).strip()
+        parsed_json = json.loads(extracted_text)
+        return parsed_json
     except Exception as e:
         print("AI Normalization fallback failed:", e)
         return {
@@ -170,9 +171,9 @@ def normalize_career_input(input_val: str, type_name: str) -> Dict[str, Any]:
         "certification": STANDARD_CERTIFICATIONS,
         "program": STANDARD_PROGRAMS
     }
-    
+
     std_list = standard_lists.get(type_name, [])
-    
+
     # 1. Exact match check
     exact = check_exact_match(input_val, std_list)
     if exact:
@@ -182,7 +183,7 @@ def normalize_career_input(input_val: str, type_name: str) -> Dict[str, Any]:
             "confidence": 1.0,
             "suggestions": []
         }
-        
+
     # 2. Fuzzy spelling check
     fuzzy = check_fuzzy_spelling(input_val, std_list)
     if fuzzy:
@@ -192,7 +193,7 @@ def normalize_career_input(input_val: str, type_name: str) -> Dict[str, Any]:
             "confidence": 0.95,
             "suggestions": []
         }
-        
+
     # 3. SBERT semantic check (for jobs)
     semantic = run_semantic_sbert_match(input_val, type_name)
     if semantic:
@@ -202,20 +203,20 @@ def normalize_career_input(input_val: str, type_name: str) -> Dict[str, Any]:
             "confidence": 0.85,
             "suggestions": []
         }
-        
-    ai_res = run_ai_interpretation(input_val, type_name, std_list)
-    
-    conf = ai_res.get("confidence", 0.0)
-    norm_val = ai_res.get("normalizedValue")
-    
+
+    interpretation_result = run_ai_interpretation(input_val, type_name, std_list)
+
+    conf = interpretation_result.get("confidence", 0.0)
+    norm_val = interpretation_result.get("normalizedValue")
+
     if conf < 0.5:
         norm_val = None
-        
+
     return {
         "originalInput": input_val,
         "normalizedValue": norm_val,
         "confidence": conf,
-        "jobFamily": ai_res.get("jobFamily"),
-        "industry": ai_res.get("industry"),
-        "suggestions": ai_res.get("suggestions", [])
+        "jobFamily": interpretation_result.get("jobFamily"),
+        "industry": interpretation_result.get("industry"),
+        "suggestions": interpretation_result.get("suggestions", [])
     }

@@ -29,7 +29,6 @@ def _is_probable_heading(line: str) -> bool:
     stripped = line.strip()
     if not stripped or len(stripped) > 50:
         return False
-    # If all caps and mostly alphabetical
     if stripped.isupper() and re.match(r'^[A-Z\s\&\-\/\(\)]+$', stripped):
         return True
     return False
@@ -39,13 +38,11 @@ def _detect_section_heading(line: str) -> str:
     norm = _normalize_heading(stripped)
     if norm in NORMALIZED_ALIASES:
         return NORMALIZED_ALIASES[norm]
-    
-    # Check if a known alias is completely contained within the string if it's a heading
+
     if _is_probable_heading(stripped):
         for alias_norm, section in NORMALIZED_ALIASES.items():
             if len(alias_norm) > 4 and alias_norm in norm:
                 return section
-        # If it looks like a heading but doesn't match known aliases, map it to a custom section
         return "Custom_" + re.sub(r'[^a-zA-Z0-9]', '', stripped)
     return None
 
@@ -54,34 +51,32 @@ def parse_resume(text: str) -> Dict[str, str]:
         return {}
     sections: Dict[str, List[str]] = {}
     current_key = None
-    
+
     lines = text.splitlines()
     for i, raw_line in enumerate(lines):
         line = raw_line.strip()
         if not line:
             continue
-            
-        # Check for contact info heuristics for the first 15 lines
-        if i < 15 and (re.search(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}', line) or 
+
+        if i < 15 and (re.search(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}', line) or
                        re.search(r'\b(?:\+?\d{1,3}[\s-]?)?(?:\(\d{3}\)|\d{3})[\s-]?\d{3}[\s-]?\d{4}\b', line) or
                        'github.com' in line.lower() or 'linkedin.com' in line.lower()):
             current_key = "ContactInformation"
             sections.setdefault(current_key, []).append(line)
             continue
-            
+
         heading = _detect_section_heading(line)
-        # Ignore custom all-caps headings in the first 5 lines (usually name/title)
         if heading and heading.startswith("Custom_") and i < 5:
             heading = None
-            
+
         if heading:
             current_key = heading
             sections.setdefault(current_key, [])
             continue
-            
+
         if current_key is None:
             current_key = "Content"
-                
+
         sections.setdefault(current_key, []).append(line)
-        
+
     return {k: "\n".join(v) for k, v in sections.items() if v}

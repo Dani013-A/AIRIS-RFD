@@ -19,7 +19,6 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
     except Exception as e:
         print("PyMuPDF PDF extraction failed:", e)
 
-    # Fallback: regex search for printable text strings in raw stream
     try:
         raw = file_bytes.decode("latin-1", errors="ignore")
         cleaned = re.sub(r"[^\x20-\x7E\n\r\t]", " ", raw)
@@ -40,7 +39,6 @@ def extract_text_from_docx(file_bytes: bytes) -> str:
     except Exception as e:
         print("DOCX extraction failed:", e)
 
-    # Fallback for binary .doc or raw text
     try:
         raw = file_bytes.decode("latin-1", errors="ignore")
         cleaned = re.sub(r"[^\x20-\x7E\n\r\t]", " ", raw)
@@ -78,10 +76,8 @@ def extract_text(file_bytes: bytes, filename: str) -> str:
         return extract_text_from_rtf(file_bytes)
     if ext in ("txt", "md", "text", "json", "csv"):
         return extract_text_from_txt(file_bytes)
-    
-    # Generic fallback extractor for all other file types
+
     try:
         return file_bytes.decode("utf-8")
     except Exception:
         return file_bytes.decode("latin-1", errors="ignore")
-

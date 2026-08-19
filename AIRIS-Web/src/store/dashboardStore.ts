@@ -21,11 +21,11 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   loadDashboardData: async () => {
     set({ loading: true, error: null });
     try {
-      const data = await fetchDashboardAnalytics();
+      const analyticsPayload = await fetchDashboardAnalytics();
       set({
-        metrics: data.metrics,
-        health: data.health,
-        insights: data.insights,
+        metrics: analyticsPayload.metrics,
+        health: analyticsPayload.health,
+        insights: analyticsPayload.insights,
         loading: false,
       });
     } catch (err: any) {

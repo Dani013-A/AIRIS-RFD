@@ -6,7 +6,7 @@ export const getBaseUrl = (): string => {
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   }
-  
+
   // Expo LAN IP (Useful for physical devices on same WiFi)
   const hostUri = Constants.expoConfig?.hostUri || (Constants.manifest as any)?.hostUri;
   if (hostUri) {
@@ -42,13 +42,13 @@ export interface InterviewReportRequest {
   evaluations: Array<any>;
 }
 
-export const startInterviewSimulation = async (data: InterviewStartRequest) => {
+export const startInterviewSimulation = async (payload: InterviewStartRequest) => {
   try {
     const BASE_URL = getBaseUrl();
     const response = await fetch(`${BASE_URL}/interview/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
     if (!response.ok) {
       const errText = await response.text();
@@ -62,13 +62,13 @@ export const startInterviewSimulation = async (data: InterviewStartRequest) => {
   }
 };
 
-export const submitInterviewAnswer = async (data: InterviewAnswerRequest) => {
+export const submitInterviewAnswer = async (payload: InterviewAnswerRequest) => {
   try {
     const BASE_URL = getBaseUrl();
     const response = await fetch(`${BASE_URL}/interview/answer`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
     if (!response.ok) {
       const errText = await response.text();
@@ -82,13 +82,13 @@ export const submitInterviewAnswer = async (data: InterviewAnswerRequest) => {
   }
 };
 
-export const generateInterviewReport = async (data: InterviewReportRequest) => {
+export const generateInterviewReport = async (payload: InterviewReportRequest) => {
   try {
     const BASE_URL = getBaseUrl();
     const response = await fetch(`${BASE_URL}/interview/report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
     if (!response.ok) {
       const errText = await response.text();

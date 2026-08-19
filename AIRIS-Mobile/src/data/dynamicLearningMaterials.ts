@@ -176,7 +176,6 @@ export const DYNAMIC_LEARNING_LIBRARY: LearningMaterial[] = [
     department: "ARTS",
   },
 
-
   {
     title: "Harvard Office of Career Services Resume & Cover Letter Guide",
     description:
@@ -274,7 +273,6 @@ export const DYNAMIC_LEARNING_LIBRARY: LearningMaterial[] = [
     department: "ARTS",
   },
 
-
   {
     title: "Speak Like a Manager: Verbs 2 – Professional Vocabulary",
     description:
@@ -338,9 +336,6 @@ export const DYNAMIC_LEARNING_LIBRARY: LearningMaterial[] = [
     department: "EDU",
   },
 
-  // ==========================================
-  // CURATED LEARNING MATERIALS
-  // ==========================================
   {
     title: "AWS Certified Cloud Practitioner Full Course (CLF-C02)",
     description:

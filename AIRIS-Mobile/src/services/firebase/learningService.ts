@@ -74,10 +74,10 @@ export const seedLearningMaterialsIfEmpty = async (): Promise<void> => {
       needsReseed = true;
     } else {
       snapshot.forEach((doc) => {
-        const data = doc.data() as any;
+        const docData = doc.data() as Partial<LearningMaterial>;
         if (
-          data.category === "Curated Learning Modules" ||
-          !validUrls.has(data.url)
+          docData.category === "Curated Learning Materials" ||
+          (docData.url && !validUrls.has(docData.url))
         ) {
           needsReseed = true;
         }
@@ -110,7 +110,7 @@ export const fetchLearningMaterials = async (
 ): Promise<LearningMaterial[]> => {
   const dept = degreeProgram ? getDepartmentFromProgram(degreeProgram) : "GEN";
 
-  // Check YouTube first to display the most relevant video tutorials.
+  // Fetch YouTube tutorials first.
   let youtubeItems: LearningMaterial[] = [];
   if (category) {
     try {
@@ -124,11 +124,10 @@ export const fetchLearningMaterials = async (
         )
       );
     } catch {
-      // If YouTube is offline or fails, skip directly to static database resources.
+      // Fallback to static resources if YouTube fails.
     }
   }
 
-  // Retrieve reading documents (like PDFs and worksheets) from our database.
   await seedLearningMaterialsIfEmpty();
   const materialsCol = collection(db, MATERIALS_COLLECTION);
   const q = category
@@ -139,23 +138,23 @@ export const fetchLearningMaterials = async (
   const staticItems: LearningMaterial[] = [];
 
   snapshot.forEach((doc) => {
-    const data = doc.data() as any;
-    if (data.type === "video") return; // Ignore static video placeholders here, since live videos are fetched from YouTube.
-    const itemDept: string = data.department || "GEN";
+    const docData = doc.data() as Partial<LearningMaterial>;
+    if (docData.type === "video") return; // Ignore static video placeholders here, since live videos are fetched from YouTube.
+    const itemDept: string = docData.department || "GEN";
     if (dept === "GEN" || itemDept === "GEN" || itemDept === dept) {
-      staticItems.push({ id: doc.id, ...data } as LearningMaterial);
+      staticItems.push({ id: doc.id, ...docData } as LearningMaterial);
     }
   });
 
-  // If YouTube fails to return any videos, load our offline backup video list.
+  // Fallback to offline video list.
   if (youtubeItems.length === 0) {
     const fallbackVideos: LearningMaterial[] = [];
     snapshot.forEach((doc) => {
-      const data = doc.data() as any;
-      if (data.type !== "video") return;
-      const itemDept: string = data.department || "GEN";
+      const docData = doc.data() as Partial<LearningMaterial>;
+      if (docData.type !== "video") return;
+      const itemDept: string = docData.department || "GEN";
       if (dept === "GEN" || itemDept === "GEN" || itemDept === dept) {
-        fallbackVideos.push({ id: doc.id, ...data } as LearningMaterial);
+        fallbackVideos.push({ id: doc.id, ...docData } as LearningMaterial);
       }
     });
     return [...fallbackVideos, ...staticItems];
@@ -175,7 +174,6 @@ export const searchLearningMaterials = async (
   const dept = degreeProgram ? getDepartmentFromProgram(degreeProgram) : "GEN";
   const normalizedKeyword = keyword.trim().toLowerCase();
 
-  // Search YouTube for live videos matching the keyword typed by the student.
   let youtubeItems: LearningMaterial[] = [];
   try {
     const deptContext: Record<string, string> = {
@@ -200,7 +198,6 @@ export const searchLearningMaterials = async (
 
   }
 
-  // Search our local list of reading guides and cheat sheets for matches.
   await seedLearningMaterialsIfEmpty();
   const allStatic = await fetchLearningMaterials(category, degreeProgram);
   const matchedStatic = allStatic.filter(

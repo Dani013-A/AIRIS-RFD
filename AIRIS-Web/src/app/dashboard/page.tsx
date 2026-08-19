@@ -126,7 +126,7 @@ export default function DashboardPage() {
 
         {/* Growth overview and aggregate insights in split view */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
+
           {/* Growth Overview area chart */}
           <div className="lg:col-span-2 figma-card p-6 bg-white flex flex-col justify-between min-h-[360px]">
             <div>
@@ -136,7 +136,7 @@ export default function DashboardPage() {
 
             {/* Custom dynamic SVG Area Chart */}
             <div className="flex-1 w-full flex items-end justify-between gap-4 mt-6 h-48 relative">
-              
+
               {/* Y Axis markings */}
               <div className="absolute left-0 top-0 bottom-6 w-8 flex flex-col justify-between text-[9px] font-bold text-brand-slate/60 text-right pr-2 select-none">
                 <span>{maxVal}</span>
@@ -155,7 +155,7 @@ export default function DashboardPage() {
                       <stop offset="100%" stopColor="#79D5C8" stopOpacity="0.0" />
                     </linearGradient>
                   </defs>
-                  
+
                   {/* Grid Lines */}
                   <line x1="0" y1="37.5" x2="500" y2="37.5" stroke="#F1F5F9" strokeWidth="1" strokeDasharray="3" />
                   <line x1="0" y1="75" x2="500" y2="75" stroke="#F1F5F9" strokeWidth="1" strokeDasharray="3" />
@@ -168,7 +168,7 @@ export default function DashboardPage() {
                       fill="url(#areaGrad)"
                     />
                   )}
-                  
+
                   {/* Curve Line */}
                   {strokePath && (
                     <path
@@ -199,7 +199,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="space-y-4 flex-1 flex flex-col justify-between">
-              
+
               {/* Insight Item 1 */}
               <div className="flex gap-3.5 items-start p-3 bg-blue-50/50 rounded-2xl border border-blue-100/50">
                 <div className="h-8 w-8 bg-blue-100 rounded-xl flex items-center justify-center shrink-0 text-blue-600">
@@ -246,9 +246,9 @@ export default function DashboardPage() {
         {/* System Health stats bar */}
         <div className="figma-card p-6 bg-white w-full max-w-md">
           <h3 className="text-xs font-extrabold text-[#1E3E6B] uppercase tracking-wider mb-4">System Health</h3>
-          
+
           <div className="space-y-4">
-            
+
             {/* Health metric 1 */}
             <div className="space-y-1">
               <div className="flex justify-between text-[10px] font-extrabold text-brand-slate uppercase">

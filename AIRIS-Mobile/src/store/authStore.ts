@@ -43,7 +43,7 @@ try {
   GoogleSignin = googleModule.GoogleSignin;
   statusCodes = googleModule.statusCodes;
 } catch {
-  // Keep the app running if we are in a testing or simulation environment that does not support Google services.
+  // Handle simulation environments.
 }
 
 interface AuthState {
@@ -179,6 +179,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       try {
         await signOut(auth);
         try {
+      // Verify Google Play Services support.
           if (GoogleSignin) {
             await GoogleSignin.signOut();
           }
@@ -200,7 +201,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     };
 
     try {
-      // Step 1: Verify the student's device supports Google Play Services.
       if (GoogleSignin) {
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       } else {
@@ -209,7 +209,6 @@ export const useAuthStore = create<AuthState>((set) => ({
         );
       }
 
-      // Step 2: Open the screen to select a Google account.
       const userInfo = await GoogleSignin.signIn();
       if (userInfo.type !== "success") {
         return;
@@ -220,10 +219,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         throw new Error("Failed to obtain Google ID Token.");
       }
 
-      // Step 3: Generate the security key using the chosen Google account.
       const credential = GoogleAuthProvider.credential(idToken);
 
-      // Step 4: Authenticate the user into our database systems.
       const userCredential = await signInWithCredential(auth, credential);
       firebaseSessionCreated = true;
       const firebaseUser = userCredential.user;
@@ -234,7 +231,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       const emailLower = firebaseUser.email.trim().toLowerCase();
 
-      // Step 5: Ensure the email belongs to the official school domain and is fully verified.
+      // Validate school domain email.
       if (!firebaseUser.emailVerified || !emailLower.endsWith("@tip.edu.ph")) {
         const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser;
         if (isNewUser) {
@@ -252,12 +249,10 @@ export const useAuthStore = create<AuthState>((set) => ({
         throw err;
       }
 
-      // Step 6: Determine if this is a first-time sign-up or an existing student logging back in.
       const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser;
       const existingProfile = await getUserById(firebaseUser.uid);
 
       if (isNewUser) {
-        // Handle situations where the account email is already registered.
         if (existingProfile) {
           await clearAuthSessionSafely();
           const err = new Error("An account conflict was detected. A profile already exists for this email address. Please contact the AIRIS administrator.");
@@ -265,7 +260,6 @@ export const useAuthStore = create<AuthState>((set) => ({
           throw err;
         }
 
-        // Set up a new student profile in the database safely.
         const newProfile: AppUser = {
           uid: firebaseUser.uid,
           email: emailLower,
@@ -299,8 +293,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           error: null,
         });
       } else {
-        // Handle student accounts that are already registered.
-        // Prompt if the auth account exists but is missing its profile records.
+        // Prompt if profile is missing.
         if (!existingProfile) {
           await clearAuthSessionSafely();
           const err = new Error("Your AIRIS authentication account exists, but its user profile could not be found. Please contact the AIRIS administrator.");
@@ -584,7 +577,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       throw err;
     }
 
-    // Make sure the student accepts the terms and upload conditions before continuing.
     if (
       acceptedTerms !== true ||
       acceptedPrivacy !== true ||

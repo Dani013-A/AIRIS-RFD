@@ -44,11 +44,11 @@ export const useStudentStore = create<StudentState>((set, get) => ({
   loadStudentProfile: async (studentId) => {
     set({ loading: true, error: null, selectedStudent: null, selectedAnalysis: null, selectedResume: null });
     try {
-      const data = await fetchStudentDetails(studentId);
+      const studentDetails = await fetchStudentDetails(studentId);
       set({
-        selectedStudent: data.student,
-        selectedAnalysis: data.resumeAnalysis,
-        selectedResume: data.resume,
+        selectedStudent: studentDetails.student,
+        selectedAnalysis: studentDetails.resumeAnalysis,
+        selectedResume: studentDetails.resume,
         loading: false,
       });
     } catch (err: any) {

@@ -57,8 +57,8 @@ export default function StudentProfileScreen() {
   const loadActivities = async () => {
     if (!currentUser?.uid) return;
     try {
-      const data = await fetchUserActivities(currentUser.uid);
-      setActivities(data);
+      const fetchedActivities = await fetchUserActivities(currentUser.uid);
+      setActivities(fetchedActivities);
     } catch (e) {
       console.error("Failed to load activities", e);
     } finally {
@@ -146,19 +146,19 @@ export default function StudentProfileScreen() {
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        
+
         <View className="rounded-3xl bg-white p-6 border border-[#BFD6EA] items-center" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
           <View className="h-20 w-20 items-center justify-center rounded-full bg-[#79D5C8] mb-4 shadow-sm border-2 border-white">
             <Ionicons name="person" size={42} color="white" />
           </View>
-          
+
           <Text className="text-2xl font-extrabold text-[#1F3A5F] text-center">
             {currentUser?.fullName || "TIP Student"}
           </Text>
           <Text className="text-sm font-semibold text-[#4F6B82] mt-1 text-center px-4">
             {currentUser?.degreeProgram || "Not Selected"}
           </Text>
-          
+
           {currentUser?.targetPosition ? (
             <View className="mt-4 bg-[#FEF5F1] px-4 py-1.5 rounded-full border border-[#F4A47A]">
               <Text className="text-xs font-bold text-[#CA5D25] uppercase tracking-wider">
@@ -191,10 +191,10 @@ export default function StudentProfileScreen() {
 
         {activeTab === "profile" ? (
           <View className="gap-5">
-            
+
             <View className="rounded-2xl bg-white p-6 border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
               <Text className="text-sm font-bold text-[#1F3A5F] mb-4 uppercase tracking-wider">Personal Details</Text>
-              
+
               <View className="gap-4">
                 <View className="flex-row justify-between py-2 border-b border-[#EAF2F7]">
                   <Text className="text-sm font-medium text-[#4F6B82]">Registered Email</Text>
@@ -215,7 +215,7 @@ export default function StudentProfileScreen() {
 
             <View className="rounded-2xl bg-white p-6 border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
               <Text className="text-sm font-bold text-[#1F3A5F] mb-4 uppercase tracking-wider">Activity Summary</Text>
-              
+
               <View className="flex-row gap-4">
                 <View className="flex-1 bg-[#F4F8FB] border border-[#BFD6EA] p-4 rounded-xl items-center">
                   <View className="h-10 w-10 bg-white rounded-full items-center justify-center mb-2 shadow-sm">
@@ -234,7 +234,7 @@ export default function StudentProfileScreen() {
               </View>
 
               <Text className="text-xs font-bold text-[#1F3A5F] uppercase tracking-wider mt-8 mb-4">Timeline Logs</Text>
-              
+
               {loadingActivities ? (
                 <ActivityIndicator size="small" color="#79D5C8" />
               ) : activities.length > 0 ? (
@@ -260,7 +260,7 @@ export default function StudentProfileScreen() {
           </View>
         ) : (
           <View className="gap-4">
-            
+
             <View className="rounded-2xl bg-white border border-[#BFD6EA] overflow-hidden" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
               <TouchableOpacity
                 onPress={() => togglePanel("account")}
@@ -293,7 +293,7 @@ export default function StudentProfileScreen() {
                       editable={!loading}
                     />
                   </View>
-                  
+
                   <View className="gap-2">
                     <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">College Dept</Text>
                     <TextInput
@@ -305,7 +305,7 @@ export default function StudentProfileScreen() {
                       editable={!loading}
                     />
                   </View>
-                  
+
                   <View className="gap-2">
                     <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">Degree Program</Text>
                     <TextInput
@@ -317,7 +317,7 @@ export default function StudentProfileScreen() {
                       editable={!loading}
                     />
                   </View>
-                  
+
                   <View className="gap-2">
                     <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">Preferred Career</Text>
                     <TextInput
@@ -374,7 +374,7 @@ export default function StudentProfileScreen() {
               {expandedPanel === "privacy" && (
                 <View className="px-5 pb-6 border-t border-[#EAF2F7] pt-5 gap-5">
                   <Text className="text-sm font-bold text-[#CA5D25] uppercase tracking-wider">Change Password</Text>
-                  
+
                   <View className="gap-2">
                     <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">New Password</Text>
                     <View className="flex-row items-center rounded-xl border border-[#BFD6EA] px-4 py-3 bg-[#F4F8FB] h-12">
@@ -392,7 +392,7 @@ export default function StudentProfileScreen() {
                       </TouchableOpacity>
                     </View>
                   </View>
-                  
+
                   <View className="gap-2">
                     <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">Confirm Password</Text>
                     <View className="flex-row items-center rounded-xl border border-[#BFD6EA] px-4 py-3 bg-[#F4F8FB] h-12">

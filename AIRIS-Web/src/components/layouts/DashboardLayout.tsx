@@ -69,7 +69,7 @@ export function DashboardLayout({ children }: LayoutProps) {
     <div className="flex h-screen w-screen p-4 md:p-5 bg-white gap-4 md:gap-5 overflow-hidden">
       {/* Sidebar navigation: floating rounded panel */}
       <aside className="hidden md:flex md:w-64 flex-col bg-sidebar-bg rounded-[32px] py-8 px-4 shrink-0 shadow-xs justify-between">
-        
+
         {/* Header containing Owl Mascot logo */}
         <div className="flex flex-col items-center pb-6 border-b border-[#A5C2DA]/30">
           <OwlMascot size={70} />
@@ -115,7 +115,7 @@ export function DashboardLayout({ children }: LayoutProps) {
 
       {/* Main Content Area: Floating rounded panel */}
       <div className="flex-1 h-full bg-panel-bg rounded-[32px] flex flex-col overflow-hidden shadow-xs border border-[#A5C2DA]/20">
-        
+
         {/* Mobile Header Bar */}
         <header className="flex md:hidden items-center justify-between px-6 py-4 bg-white border-b border-[#A5C2DA]/20 h-16">
           <div className="flex items-center gap-2">

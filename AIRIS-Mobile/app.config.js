@@ -28,7 +28,7 @@ const withAndroidReleaseSigning = (config) => {
         const targetString = "signingConfig signingConfigs.debug";
         const targetIndex = config.modResults.contents.indexOf(targetString, buildTypeReleaseMatch);
         if (targetIndex !== -1) {
-          config.modResults.contents = 
+          config.modResults.contents =
             config.modResults.contents.substring(0, targetIndex) +
             "signingConfig signingConfigs.release" +
             config.modResults.contents.substring(targetIndex + targetString.length);
@@ -45,8 +45,8 @@ module.exports = ({ config }) => {
     ...config,
     android: {
       ...config.android,
-      versionCode: process.env.GITHUB_RUN_NUMBER 
-        ? parseInt(process.env.GITHUB_RUN_NUMBER, 10) 
+      versionCode: process.env.GITHUB_RUN_NUMBER
+        ? parseInt(process.env.GITHUB_RUN_NUMBER, 10)
         : (config.android?.versionCode || 1),
       googleServicesFile:
         process.env.GOOGLE_SERVICES_JSON ||
@@ -60,4 +60,3 @@ module.exports = ({ config }) => {
 
   return updatedConfig;
 };
-

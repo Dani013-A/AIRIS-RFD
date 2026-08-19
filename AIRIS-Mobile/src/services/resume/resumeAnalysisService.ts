@@ -11,7 +11,7 @@ export function getBackendBaseUrls(): string[] {
   if (process.env.EXPO_PUBLIC_API_URL) {
     urls.push(process.env.EXPO_PUBLIC_API_URL);
   }
-  
+
   // Expo LAN IP (Useful for physical devices on same WiFi)
   const hostUri = Constants.expoConfig?.hostUri || (Constants.manifest as any)?.hostUri;
   if (hostUri) {
@@ -19,13 +19,12 @@ export function getBackendBaseUrls(): string[] {
     urls.push(`http://${lanIp}:8000`);
   }
 
-  // Fallbacks
   if (Platform.OS === 'android') {
     urls.push("http://10.0.2.2:8000"); // Emulator
   } else {
     urls.push("http://localhost:8000"); // iOS Simulator / Web
   }
-  
+
   return [...new Set(urls)];
 }
 
@@ -144,14 +143,14 @@ export async function calculateAtsCompatibility(
     throw new Error("Target position is not selected. Cannot perform analysis.");
   }
 
-  // Pre-parse the sections locally so we can send them to the SBERT backend
+  // Pre-parse sections for SBERT.
   const parsedSectionsList = parseResumeSections(rawText);
   const parsedSectionsDict: Record<string, string> = {};
   for (const sec of parsedSectionsList) {
     parsedSectionsDict[sec.name] = sec.content;
   }
 
-  // Local validation to ensure the document resembles a resume before proceeding
+  // Validate document structure locally.
   function isResumeValidLocal(text: string, sections: Record<string, string>): boolean {
     if (!text.trim() || text.split(/\s+/).filter(Boolean).length < 20) {
       return false;
@@ -164,8 +163,8 @@ export async function calculateAtsCompatibility(
   }
 
   const baseUrls = getBackendBaseUrls();
-  
-  // Pre-calculate accurate deterministic frontend scores so the backend doesn't have to guess or hallucinate
+
+  // Pre-calculate deterministic scores.
   let localAnalysis: any = null;
   try {
     localAnalysis = analyzeResume(rawText, targetPosition);
@@ -196,7 +195,7 @@ export async function calculateAtsCompatibility(
         if (result && result.valid === false) {
           throw new Error(result.message || 'Invalid resume according to backend validation.');
         }
-        
+
         // Ensure array properties exist to prevent frontend `.some()` crashes
         result.detectedSections = result.detectedSections || [];
         result.missingSections = result.missingSections || [];
@@ -222,4 +221,3 @@ export async function calculateAtsCompatibility(
     );
   }
 }
-

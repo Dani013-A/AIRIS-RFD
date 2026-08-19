@@ -45,7 +45,6 @@ export async function signInAdmin(email: string, password: string): Promise<Admi
     updatedAt: userData.updatedAt,
   };
 
-  // Log successful login
   await logAuditEvent("AdminLogin", `Administrator ${adminUser.fullName} logged in successfully.`, adminUser.fullName);
 
   return adminUser;

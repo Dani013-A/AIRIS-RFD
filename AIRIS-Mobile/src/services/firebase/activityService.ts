@@ -33,7 +33,7 @@ export async function saveUserActivity(
 ): Promise<void> {
   const activitiesColRef = collection(db, USERS_COLLECTION, userId, ACTIVITIES_SUBCOLLECTION);
   const docRef = doc(activitiesColRef, activityId);
-  
+
   await setDoc(docRef, {
     id: activityId,
     ...activityData,
@@ -48,6 +48,6 @@ export async function fetchUserActivities(userId: string): Promise<UserActivity[
   const activitiesColRef = collection(db, USERS_COLLECTION, userId, ACTIVITIES_SUBCOLLECTION);
   const q = query(activitiesColRef, orderBy("completedAt", "desc"));
   const querySnapshot = await getDocs(q);
-  
+
   return querySnapshot.docs.map(doc => doc.data() as UserActivity);
 }

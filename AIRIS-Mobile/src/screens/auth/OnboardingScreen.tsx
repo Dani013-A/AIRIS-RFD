@@ -38,7 +38,7 @@ export default function OnboardingScreen() {
 
           <Text className="text-3xl font-extrabold tracking-tight text-[#1F3A5F] mb-1">AIRIS</Text>
           <Text className="text-center text-sm font-bold text-[#F4A47A] uppercase tracking-widest mb-4">
-            Welcome, {currentUser?.firstName || "Student"}
+            Welcome, {currentUser?.fullName || "Student"}
           </Text>
 
           <Text className="text-center text-sm font-medium text-[#4F6B82] leading-6 px-4">
@@ -86,10 +86,10 @@ export default function OnboardingScreen() {
       </ScrollView>
 
       <View className="absolute bottom-6 left-6 right-6">
-        <PrimaryButton 
-          title="Continue" 
-          variant="navy" 
-          onPress={handleContinue} 
+        <PrimaryButton
+          title="Continue"
+          variant="navy"
+          onPress={handleContinue}
         />
       </View>
     </SafeAreaView>

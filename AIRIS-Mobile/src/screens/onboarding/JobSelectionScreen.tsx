@@ -88,7 +88,7 @@ export default function JobSelectionScreen() {
       setTargetPosition(resolvedValue);
       setSearch("");
       setValidationError("");
-      
+
       if (resolvedValue.toLowerCase() !== queryRole.toLowerCase()) {
         Alert.alert(
           "Role Normalized",
@@ -104,8 +104,8 @@ export default function JobSelectionScreen() {
       const fuzzyMatched = fuzzyMatchRole(queryRole);
       const roleToValidate = fuzzyMatched || queryRole;
 
-      const result = await validateCareerRole(roleToValidate, degreeProgram);
-      if (result.isValid) {
+      const validationResult = await validateCareerRole(roleToValidate, degreeProgram);
+      if (validationResult.isValid) {
         setTargetPosition(roleToValidate);
         setSearch("");
         setValidationError("");
@@ -116,7 +116,7 @@ export default function JobSelectionScreen() {
           );
         }
       } else {
-        setValidationError(result.reason || "Invalid career role.");
+        setValidationError(validationResult.reason || "Invalid career role.");
       }
     } catch {
       setValidationError("Failed to execute validation. Please try again.");

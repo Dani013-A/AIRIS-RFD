@@ -49,7 +49,6 @@ export async function saveResumeAndAnalysisTransaction(
   const userRef = doc(db, USERS_COLLECTION, userId);
 
   return runTransaction(db, async (transaction) => {
-    // Step 1: Read the user's details to find their current resume version number.
     const userSnap = await transaction.get(userRef);
     if (!userSnap.exists()) {
       throw new Error("User document does not exist.");
@@ -58,14 +57,12 @@ export async function saveResumeAndAnalysisTransaction(
     const currentCounter = userData.resumeVersionCounter || 0;
     const nextVersion = currentCounter + 1;
 
-    // Step 2: Set up references for the new resume and analysis records.
     const resumesColRef = collection(db, USERS_COLLECTION, userId, RESUMES_SUBCOLLECTION);
     const resumeDocRef = doc(resumesColRef);
 
     const analysesColRef = collection(db, USERS_COLLECTION, userId, ANALYSES_SUBCOLLECTION);
     const analysisDocRef = doc(analysesColRef);
 
-    // Step 3: Prepare the structured data and generate initial recommendations.
     const recommendations = getAiRecommendationsForResume(
       analysisResult,
       userData.degreeProgram || "",
@@ -103,7 +100,6 @@ export async function saveResumeAndAnalysisTransaction(
       createdAt: serverTimestamp() as any,
     };
 
-    // Step 4: Write all changes to the database together.
     transaction.set(resumeDocRef, resumeData);
     transaction.set(analysisDocRef, analysisDoc);
     transaction.update(userRef, {

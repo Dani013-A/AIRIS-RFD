@@ -254,12 +254,12 @@ export default function RegisterScreen() {
         {touched.password || password.length > 0 ? (
           <View className="mb-6 p-4 bg-white rounded-xl border border-[#BFD6EA]">
             <Text className="text-xs font-bold text-[#1F3A5F] mb-3 uppercase tracking-wider">Password Requirements</Text>
-            
+
             <View className="flex-row items-center mb-2">
-              <Ionicons 
-                name={hasMinLength ? "checkmark-circle" : "ellipse-outline"} 
-                size={16} 
-                color={hasMinLength ? "#79D5C8" : (touched.password && !hasMinLength ? "#CA5D25" : "#94A3B8")} 
+              <Ionicons
+                name={hasMinLength ? "checkmark-circle" : "ellipse-outline"}
+                size={16}
+                color={hasMinLength ? "#79D5C8" : (touched.password && !hasMinLength ? "#CA5D25" : "#94A3B8")}
               />
               <Text className={`ml-2 text-xs font-medium ${hasMinLength ? "text-[#1F3A5F]" : (touched.password && !hasMinLength ? "text-[#CA5D25]" : "text-[#4F6B82]")}`}>
                 Minimum 8 characters
@@ -267,10 +267,10 @@ export default function RegisterScreen() {
             </View>
 
             <View className="flex-row items-center mb-2">
-              <Ionicons 
-                name={hasUppercase ? "checkmark-circle" : "ellipse-outline"} 
-                size={16} 
-                color={hasUppercase ? "#79D5C8" : (touched.password && !hasUppercase ? "#CA5D25" : "#94A3B8")} 
+              <Ionicons
+                name={hasUppercase ? "checkmark-circle" : "ellipse-outline"}
+                size={16}
+                color={hasUppercase ? "#79D5C8" : (touched.password && !hasUppercase ? "#CA5D25" : "#94A3B8")}
               />
               <Text className={`ml-2 text-xs font-medium ${hasUppercase ? "text-[#1F3A5F]" : (touched.password && !hasUppercase ? "text-[#CA5D25]" : "text-[#4F6B82]")}`}>
                 At least 1 uppercase letter (A-Z)
@@ -278,10 +278,10 @@ export default function RegisterScreen() {
             </View>
 
             <View className="flex-row items-center mb-2">
-              <Ionicons 
-                name={hasLowercase ? "checkmark-circle" : "ellipse-outline"} 
-                size={16} 
-                color={hasLowercase ? "#79D5C8" : (touched.password && !hasLowercase ? "#CA5D25" : "#94A3B8")} 
+              <Ionicons
+                name={hasLowercase ? "checkmark-circle" : "ellipse-outline"}
+                size={16}
+                color={hasLowercase ? "#79D5C8" : (touched.password && !hasLowercase ? "#CA5D25" : "#94A3B8")}
               />
               <Text className={`ml-2 text-xs font-medium ${hasLowercase ? "text-[#1F3A5F]" : (touched.password && !hasLowercase ? "text-[#CA5D25]" : "text-[#4F6B82]")}`}>
                 At least 1 lowercase letter (a-z)
@@ -289,10 +289,10 @@ export default function RegisterScreen() {
             </View>
 
             <View className="flex-row items-center mb-2">
-              <Ionicons 
-                name={hasNumber ? "checkmark-circle" : "ellipse-outline"} 
-                size={16} 
-                color={hasNumber ? "#79D5C8" : (touched.password && !hasNumber ? "#CA5D25" : "#94A3B8")} 
+              <Ionicons
+                name={hasNumber ? "checkmark-circle" : "ellipse-outline"}
+                size={16}
+                color={hasNumber ? "#79D5C8" : (touched.password && !hasNumber ? "#CA5D25" : "#94A3B8")}
               />
               <Text className={`ml-2 text-xs font-medium ${hasNumber ? "text-[#1F3A5F]" : (touched.password && !hasNumber ? "text-[#CA5D25]" : "text-[#4F6B82]")}`}>
                 At least 1 number (0-9)
@@ -300,10 +300,10 @@ export default function RegisterScreen() {
             </View>
 
             <View className="flex-row items-center">
-              <Ionicons 
-                name={hasSpecial ? "checkmark-circle" : "ellipse-outline"} 
-                size={16} 
-                color={hasSpecial ? "#79D5C8" : (touched.password && !hasSpecial ? "#CA5D25" : "#94A3B8")} 
+              <Ionicons
+                name={hasSpecial ? "checkmark-circle" : "ellipse-outline"}
+                size={16}
+                color={hasSpecial ? "#79D5C8" : (touched.password && !hasSpecial ? "#CA5D25" : "#94A3B8")}
               />
               <Text className={`ml-2 text-xs font-medium ${hasSpecial ? "text-[#1F3A5F]" : (touched.password && !hasSpecial ? "text-[#CA5D25]" : "text-[#4F6B82]")}`}>
                 At least 1 special character
