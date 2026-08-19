@@ -24,10 +24,18 @@ export default function PreSimulationBriefingScreen() {
   }, []);
 
   const startSetup = async () => {
+    console.log("[Interview Setup] startSetup called.");
+    console.log("[Interview Setup] currentUser ID:", currentUser?.uid);
+    console.log("[Interview Setup] activeResume ID:", activeResume?.resumeId);
+    console.log("[Interview Setup] activeAnalysis exists:", !!activeAnalysis);
+
     if (!currentUser || !activeResume || !activeAnalysis) {
+      console.warn("[Interview Setup] Missing required data. Aborting initialization.");
       setError("Resume or Profile data missing. Please upload a resume and try again.");
       return;
     }
+
+    console.log("[Interview Setup] Data validation passed. Preparing request to backend...");
 
     setLoading(true);
     setError(null);
@@ -43,21 +51,24 @@ export default function PreSimulationBriefingScreen() {
       }
 
       // 1. Hit the backend to generate the first question
+      console.log("[Interview Setup] Sending POST request to backend...");
       const response = await startInterviewSimulation({
         targetRole: currentUser.targetPosition || "Unknown Role",
         program: currentUser.degreeProgram || "Unknown Program",
         parsedResume: parsedResumeDict,
       });
+      console.log("[Interview Setup] Received response from backend successfully.");
 
       // 2. Initialize the Zustand session
       initializeSession({
         userId: currentUser.uid,
         targetRole: currentUser.targetPosition,
         program: currentUser.degreeProgram,
-        resumeId: currentUser.activeResumeId,
+        resumeId: currentUser.activeResumeId || "none",
         interviewType: "one-on-one",
         firstQuestion: response.question,
         firstQuestionType: response.questionType,
+        firstQuestionBenchmark: response.benchmarkAnswer,
         totalQuestions: 5, // We can adjust this later
       });
       
@@ -69,18 +80,6 @@ export default function PreSimulationBriefingScreen() {
     }
   };
 
-  if (loading || !session) {
-    return (
-      <SafeAreaView className="flex-1 bg-[#F4F8FB] items-center justify-center px-6">
-        <ActivityIndicator size="large" color="#F4A47A" />
-        <Text className="text-[#1F3A5F] font-bold text-lg mt-6">Preparing Interview...</Text>
-        <Text className="text-[#4F6B82] text-sm text-center mt-2 font-medium">
-          Reviewing your resume and generating targeted questions.
-        </Text>
-      </SafeAreaView>
-    );
-  }
-
   if (error) {
     return (
       <SafeAreaView className="flex-1 bg-[#F4F8FB] items-center justify-center px-6">
@@ -91,6 +90,18 @@ export default function PreSimulationBriefingScreen() {
         <TouchableOpacity onPress={startSetup} className="mt-4">
           <Text className="text-[#CA5D25] font-bold">Try Again</Text>
         </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  if (loading || !session) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#F4F8FB] items-center justify-center px-6">
+        <ActivityIndicator size="large" color="#F4A47A" />
+        <Text className="text-[#1F3A5F] font-bold text-lg mt-6">Preparing Interview...</Text>
+        <Text className="text-[#4F6B82] text-sm text-center mt-2 font-medium">
+          Reviewing your resume and generating targeted questions.
+        </Text>
       </SafeAreaView>
     );
   }
@@ -112,7 +123,7 @@ export default function PreSimulationBriefingScreen() {
         <View className="bg-white p-6 rounded-3xl border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
           <View className="flex-row items-center justify-between mb-4">
             <View className="bg-[#EAF2F7] px-3 py-1 rounded-full border border-[#BFD6EA]">
-              <Text className="text-[10px] font-bold text-[#1F3A5F] uppercase tracking-wider">Question 1 of {session.totalQuestions}</Text>
+              <Text className="text-[10px] font-bold text-[#1F3A5F] uppercase tracking-wider">Question 1</Text>
             </View>
           </View>
 

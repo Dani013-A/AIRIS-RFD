@@ -16,10 +16,11 @@ export interface InterviewSession {
   // Progress
   currentQuestion: string;
   currentQuestionType: string;
+  currentBenchmarkAnswer?: string;
   questionsAsked: number; // to track 1 of N
 
   // History for Backend
-  history: Array<{ question: string; answer: string; questionType?: string }>;
+  history: Array<{ question: string; answer: string; questionType?: string; benchmarkAnswer?: string; isInteraction?: boolean }>;
   evaluations: Array<any>;
   
   // Final
@@ -31,8 +32,8 @@ interface InterviewStore {
   session: InterviewSession | null;
   
   // Actions
-  initializeSession: (data: Partial<InterviewSession> & { firstQuestion: string; firstQuestionType: string }) => void;
-  submitAnswer: (answer: string, evaluation: any, nextQuestion?: string, nextQuestionType?: string, isComplete?: boolean) => void;
+  initializeSession: (data: Partial<InterviewSession> & { firstQuestion: string; firstQuestionType: string; firstQuestionBenchmark?: string }) => void;
+  submitAnswer: (answer: string, evaluation: any, nextQuestion?: string, nextQuestionType?: string, nextBenchmark?: string, isComplete?: boolean, isInteractionEvent?: boolean) => void;
   setFinalReport: (report: any) => void;
   setStatus: (status: InterviewStatus) => void;
   clearSession: () => void;
@@ -55,13 +56,14 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
       totalQuestions: data.totalQuestions || 5, // default 5 questions for now
       currentQuestion: data.firstQuestion,
       currentQuestionType: data.firstQuestionType,
+      currentBenchmarkAnswer: data.firstQuestionBenchmark,
       questionsAsked: 1,
       history: [],
       evaluations: [],
     }
   }),
 
-  submitAnswer: (answer, evaluation, nextQuestion, nextQuestionType, isComplete) => set((state) => {
+  submitAnswer: (answer, evaluation, nextQuestion, nextQuestionType, nextBenchmark, isComplete, isInteractionEvent) => set((state) => {
     if (!state.session) return state;
 
     const updatedHistory = [
@@ -70,10 +72,12 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
         question: state.session.currentQuestion,
         answer: answer,
         questionType: state.session.currentQuestionType,
+        benchmarkAnswer: state.session.currentBenchmarkAnswer,
+        isInteraction: isInteractionEvent === true,
       }
     ];
 
-    const updatedEvaluations = [...state.session.evaluations, evaluation];
+    const updatedEvaluations = evaluation ? [...state.session.evaluations, evaluation] : state.session.evaluations;
 
     if (isComplete) {
       return {
@@ -95,7 +99,8 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
         evaluations: updatedEvaluations,
         currentQuestion: nextQuestion || 'Please continue.',
         currentQuestionType: nextQuestionType || 'follow-up',
-        questionsAsked: state.session.questionsAsked + 1,
+        currentBenchmarkAnswer: nextBenchmark,
+        questionsAsked: isInteractionEvent ? state.session.questionsAsked : state.session.questionsAsked + 1,
       }
     };
   }),

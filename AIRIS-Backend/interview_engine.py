@@ -41,7 +41,7 @@ def _extract_json(text: str) -> dict:
 def find_best_dataset_question(target_role: str, category: str, history: List[dict]) -> Dict[str, Any]:
     dataset = load_dataset()
     if not dataset:
-        return {"text": f"Tell me about your experience as a {target_role}."}
+        return {"text": f"Tell me about your experience as a {target_role}.", "idealAnswer": "Relevant experience detailed clearly."}
 
     # Filter by category and exclude already asked questions
     asked_texts = [h.get("question", "").lower() for h in history]
@@ -77,8 +77,8 @@ def find_best_dataset_question(target_role: str, category: str, history: List[di
     return best_q
 
 def generate_first_question(target_role: str, program: str, parsed_resume: dict) -> Dict[str, Any]:
-    # Fetch a dataset question
     base_question = find_best_dataset_question(target_role, "introductory", [])
+    benchmark_answer = base_question.get("idealAnswer", "")
     
     prompt = f"""
     You are an expert, professional, and rigorous technical interviewer. You are interviewing a fresh graduate for the role of '{target_role}'.
@@ -105,7 +105,47 @@ def generate_first_question(target_role: str, program: str, parsed_resume: dict)
     """
     
     raw_response = generate_text_with_fallback(prompt)
-    return _extract_json(raw_response)
+    res = _extract_json(raw_response)
+    # Inject the benchmark answer so the frontend can store it and send it back
+    res["benchmarkAnswer"] = benchmark_answer
+    return res
+
+def classify_interaction_intent(current_question: str, current_answer: str) -> dict:
+    prompt = f"""
+    You are classifying a candidate's speech during an interview.
+    
+    Current Interviewer Question: "{current_question}"
+    Candidate's Input: "{current_answer}"
+    
+    Classify the candidate's input into exactly one of the following INTENT categories:
+    - ANSWER: A substantive attempt to answer the question (including partial answers, self-corrections, or explicitly stating "I don't know" / "I'm not sure").
+    - REPEAT_REQUEST: Asking the interviewer to repeat the question or stating they didn't hear it.
+    - CLARIFICATION_REQUEST: Asking what the question means or asking for an example.
+    - TIME_REQUEST: Asking for a moment to think (e.g., "Give me a second").
+    - UNRELATED_QUESTION: Asking an unrelated conversational question (e.g., "What's the salary?", "Where is the office?").
+    - SKIP_REQUEST: Explicitly asking to skip to the next question.
+    - RESTART_ANSWER: Explicitly asking to restart their current answer from the beginning.
+    
+    If the intent is NOT 'ANSWER' or 'SKIP_REQUEST', provide a 'suggestedResponse' for the interviewer to say.
+    - For REPEAT_REQUEST: Simply repeat the original question naturally.
+    - For CLARIFICATION_REQUEST: Briefly clarify the meaning of the question without giving away the answer, then ask them to proceed.
+    - For TIME_REQUEST: Acknowledge naturally ("Take your time.").
+    - For UNRELATED_QUESTION: State that you do not have that specific information (do not hallucinate company policies or salaries) and gracefully pivot back to the interview question.
+    - For RESTART_ANSWER: Acknowledge ("Of course, go ahead") and let them start over.
+    
+    OUTPUT FORMAT (Strict JSON):
+    {{
+        "intent": "ANSWER | REPEAT_REQUEST | CLARIFICATION_REQUEST | TIME_REQUEST | UNRELATED_QUESTION | SKIP_REQUEST | RESTART_ANSWER",
+        "suggestedResponse": "If intent is an interaction, provide the interviewer's natural response here. Otherwise, leave empty."
+    }}
+    """
+    try:
+        raw_response = generate_text_with_fallback(prompt)
+        res = _extract_json(raw_response)
+        return res if isinstance(res, dict) else {"intent": "ANSWER", "suggestedResponse": ""}
+    except Exception as e:
+        print("Intent classification failed:", e)
+        return {"intent": "ANSWER", "suggestedResponse": ""}
 
 def evaluate_answer_and_generate_next(
     target_role: str, 
@@ -118,9 +158,53 @@ def evaluate_answer_and_generate_next(
     total_questions: int
 ) -> Dict[str, Any]:
     
+    # 1. Deterministic Validation for Empty/Corrupted Text
+    cleaned_ans = current_answer.strip()
+    words = [w for w in cleaned_ans.split() if re.search(r'[a-zA-Z0-9]', w)]
+    if not cleaned_ans or len(words) < 2:
+        return {
+            "isInteractionEvent": True,
+            "nextQuestion": {
+                "question": "I'm sorry, I didn't quite catch that. Could you please repeat yourself?",
+                "questionType": "interaction",
+                "difficulty": 0,
+                "isFollowUp": True,
+                "benchmarkAnswer": ""
+            },
+            "evaluation": None,
+            "isComplete": False
+        }
+        
+    # 2. AI Intent Classification
+    intent_res = classify_interaction_intent(current_question, current_answer)
+    if not isinstance(intent_res, dict):
+        intent_res = {}
+    intent = intent_res.get("intent", "ANSWER")
+    
+    if intent in ["REPEAT_REQUEST", "CLARIFICATION_REQUEST", "TIME_REQUEST", "UNRELATED_QUESTION", "RESTART_ANSWER"]:
+        suggested_response = intent_res.get("suggestedResponse", "Could you please elaborate?")
+        return {
+            "isInteractionEvent": True,
+            "nextQuestion": {
+                "question": suggested_response,
+                "questionType": "interaction",
+                "difficulty": 0,
+                "isFollowUp": True,
+                "benchmarkAnswer": ""
+            },
+            "evaluation": None,
+            "isComplete": False
+        }
+
+    # For SKIP_REQUEST, we bypass evaluation but still generate a new substantive question.
+    is_skip = (intent == "SKIP_REQUEST")
+
+    # Check if early termination conditions are met
+    # Let's say if we have 3 strong technical answers, we can terminate early.
+    # We won't strictly enforce here to let Gemini decide, but we pass is_final_question flag.
+    # A hidden limit is defined by the frontend (totalQuestions, usually around 5-7).
     is_final_question = len(history) >= total_questions - 1
 
-    # Decide next category based on progress
     next_cat = "technical"
     if is_final_question:
         next_cat = "closing"
@@ -137,7 +221,7 @@ def evaluate_answer_and_generate_next(
     Resume Data: {json.dumps(parsed_resume)}
     
     INTERVIEW PROGRESS:
-    Question {len(history) + 1} of {total_questions}
+    Question {len(history) + 1}
     
     PREVIOUS INTERVIEW HISTORY:
     {json.dumps(history[-3:])} # (Showing last 3 interactions for context)
@@ -150,29 +234,24 @@ def evaluate_answer_and_generate_next(
     "{next_base.get("text")}"
     
     TASK 1: EVALUATE THE ANSWER
-    Evaluate the candidate's answer strictly. Score out of 100 on multiple dimensions.
-    Be rigorous. If the answer is vague, generic, or lacks evidence, penalize it heavily.
-    Do NOT give high scores just for participating.
+    {
+    "The candidate requested to SKIP this question. Do not evaluate it. Leave the evaluation object strictly as null." if is_skip else
+    "Evaluate the candidate's answer strictly. Score out of 100 on multiple dimensions.\n"
+    "Be rigorous. If the answer is vague, generic, extremely short, or lacks evidence, penalize it heavily.\n"
+    "Do NOT give high scores just for participating."
+    }
     
     TASK 2: DECIDE ON FOLLOW-UP OR NEXT TOPIC
-    If the answer was extremely vague, contradictory, or unsupported, you MUST ask a challenging follow-up question. Do not use the KNOWLEDGE BASE QUESTION in this case.
-    Otherwise, move on to a new topic by ADAPTING the provided KNOWLEDGE BASE QUESTION to fit the candidate's context.
+    {
+    "Since the candidate skipped, move on to a new topic by ADAPTING the provided KNOWLEDGE BASE QUESTION to fit the candidate's context." if is_skip else
+    "If the answer was extremely vague, contradictory, or unsupported, you MUST ask a challenging follow-up question. Do not use the KNOWLEDGE BASE QUESTION in this case.\n"
+    "Otherwise, move on to a new topic by ADAPTING the provided KNOWLEDGE BASE QUESTION to fit the candidate's context."
+    }
     {"Since this is the final question, the next question should be a concluding remark or asking if they have questions." if is_final_question else ""}
     
     OUTPUT FORMAT (Strict JSON):
     {{
-        "evaluation": {{
-            "overall": 80,
-            "clarity": 85,
-            "relevance": 70,
-            "technicalAccuracy": 90,
-            "specificity": 60,
-            "communication": 75,
-            "evidence": 50,
-            "strengths": ["Clear communication"],
-            "weaknesses": ["Lacked quantifiable evidence"],
-            "feedback": "Internal observation of the candidate's performance on this question."
-        }},
+        "evaluation": {{"overall": 80, "clarity": 85, "relevance": 70, "technicalAccuracy": 90, "specificity": 60, "communication": 75, "evidence": 50, "strengths": ["Clear communication"], "weaknesses": ["Lacked quantifiable evidence"], "feedback": "Internal observation of the candidate's performance on this question."}} if this is NOT a skip request, otherwise null,
         "nextQuestion": {{
             "question": "The adapted dataset question OR a follow-up question",
             "questionType": "behavioral | technical | situational | follow-up | closing",
@@ -186,11 +265,58 @@ def evaluate_answer_and_generate_next(
     """
     
     raw_response = generate_text_with_fallback(prompt)
-    return _extract_json(raw_response)
+    res = _extract_json(raw_response)
+    if not isinstance(res, dict):
+        res = {"evaluation": None, "nextQuestion": {}, "isComplete": False}
+        
+    if not isinstance(res.get("nextQuestion"), dict):
+        res["nextQuestion"] = {}
+    
+    # If it's not a follow-up, pass along the new benchmark answer
+    if not res["nextQuestion"].get("isFollowUp", False):
+        res["nextQuestion"]["benchmarkAnswer"] = next_base.get("idealAnswer", "")
+    else:
+        # Follow-ups don't have a reliable benchmark in the dataset.
+        res["nextQuestion"]["benchmarkAnswer"] = ""
+        
+    return res
+
+def calculate_semantic_correctness(history: List[dict]) -> float:
+    scores = []
+    for turn in history:
+        # We look for benchmarkAnswer either sent up at the end, or stored in history
+        ans = turn.get("answer", turn.get("candidateAnswer", ""))
+        bm = turn.get("benchmarkAnswer", "")
+        
+        # Skip conversational interaction events (e.g. repeat requests) entirely
+        if turn.get("isInteraction", False):
+            continue
+            
+        # We skip semantic scoring for questions without a valid benchmark (e.g. follow-ups)
+        if not ans or not bm:
+            continue
+            
+        target_emb = _cached_encode(bm)
+        user_emb = _cached_encode(ans)
+        sim = calculate_cosine_similarity(target_emb, user_emb)
+        
+        score = max(0.0, min(100.0, float(sim * 100)))
+        # Penalize if the answer was extremely short (e.g. "I don't know")
+        if len(ans.split()) < 5:
+            score = max(0.0, score - 50.0)
+            
+        scores.append(score)
+        
+    if not scores:
+        return 0.0
+    return round(sum(scores) / len(scores), 2)
 
 def generate_final_report(target_role: str, program: str, parsed_resume: dict, history: List[dict], evaluations: List[dict]) -> Dict[str, Any]:
+    
+    semantic_score = calculate_semantic_correctness(history)
+    
     prompt = f"""
-    You are an expert HR assessor. The candidate just completed a simulated interview for the role of '{target_role}'.
+    You are an expert HR assessor. The candidate completed a simulated interview for the role of '{target_role}'.
     
     CANDIDATE CONTEXT:
     Degree Program: {program}
@@ -201,19 +327,16 @@ def generate_final_report(target_role: str, program: str, parsed_resume: dict, h
     Question-by-Question Evaluations: {json.dumps(evaluations)}
     
     TASK:
-    Generate a final, structured interview report.
-    Do NOT be overly encouraging. Be strictly professional, objective, and realistic. 
-    Identify overall strengths, areas to improve, the absolute weakest answer, and actionable feedback.
+    Generate a final, structured interview report aligned with the official AIRIS manuscript scoring criteria.
+    Feedback must be grounded in the actual transcript. Prioritize significant findings, avoid redundant feedback, and use a constructive tone.
     
-    Instead of calculating a single performance score, you MUST evaluate the following three core metrics on a 0-100 scale:
-    1. semanticCorrectness: How factually and technically accurate were their answers against industry standards?
-    2. aiHolisticEvaluation: How well did they structure their thoughts, use the STAR method, and maintain professionalism?
-    3. communicationClarity: Based strictly on the textual transcript, rate their fluency, response length, and lack of filler words.
+    EVALUATION METRICS TO CALCULATE:
+    1. aiHolisticEvaluation (0-100): Evaluate coherence, professionalism, completeness, and overall response quality.
+    2. communicationClarity (0-100): Based on transcript text, evaluate speaking pace, filler word frequency ("um", "uh"), fluency, response length, and pause duration proxies. Penalize heavy filler words and disjointed sentences.
     
     OUTPUT FORMAT (Strict JSON):
     {{
         "metrics": {{
-            "semanticCorrectness": 75,
             "aiHolisticEvaluation": 80,
             "communicationClarity": 70
         }},
@@ -227,7 +350,7 @@ def generate_final_report(target_role: str, program: str, parsed_resume: dict, h
         ],
         "weakestAnswer": {{
             "question": "The question they failed at",
-            "whyItWasWeak": "Reasoning",
+            "whyItWasWeak": "Reasoning based on actual response",
             "howToImprove": "Actionable advice",
             "betterResponseStructure": "Example of a good response"
         }},
@@ -242,33 +365,33 @@ def generate_final_report(target_role: str, program: str, parsed_resume: dict, h
         raw_response = generate_text_with_fallback(prompt)
         parsed_report = _extract_json(raw_response)
         
-        # Calculate official Interview Score formula
         metrics = parsed_report.get("metrics", {})
-        sem_correct = float(metrics.get("semanticCorrectness", 0))
         ai_holistic = float(metrics.get("aiHolisticEvaluation", 0))
         comm_clarity = float(metrics.get("communicationClarity", 0))
+        sem_correct = float(semantic_score)
         
-        # Interview Score = (Semantic Correctness × 0.40) + (AI Holistic Evaluation × 0.40) + (Communication Clarity × 0.20)
+        # Formula mandated by manuscript: (Semantic Correctness x 0.40) + (AI Holistic x 0.40) + (Communication Clarity x 0.20)
         overall_score = round((sem_correct * 0.40) + (ai_holistic * 0.40) + (comm_clarity * 0.20))
         
         parsed_report["overallPerformance"] = overall_score
         
-        # Retain category breakdown for backwards compatibility in frontend if needed
         parsed_report["categoryBreakdown"] = {
             "SemanticCorrectness": sem_correct,
             "AIHolisticEvaluation": ai_holistic,
             "CommunicationClarity": comm_clarity
         }
         
+        # Ensure 'metrics' includes SemanticCorrectness for standard completeness
+        parsed_report["metrics"]["semanticCorrectness"] = sem_correct
+        
         return parsed_report
         
     except Exception as e:
         print("Failed to generate final report:", e)
-        # Safe fallback
         return {
             "overallPerformance": 0,
             "categoryBreakdown": {
-                "SemanticCorrectness": 0,
+                "SemanticCorrectness": semantic_score,
                 "AIHolisticEvaluation": 0,
                 "CommunicationClarity": 0
             },

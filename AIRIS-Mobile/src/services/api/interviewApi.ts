@@ -1,7 +1,21 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 // Get backend URL from env, with smart fallbacks for local development
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || (Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000');
+export const getBaseUrl = (): string => {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+  
+  // Expo LAN IP (Useful for physical devices on same WiFi)
+  const hostUri = Constants.expoConfig?.hostUri || (Constants.manifest as any)?.hostUri;
+  if (hostUri) {
+    const lanIp = hostUri.split(':')[0];
+    return `http://${lanIp}:8000`;
+  }
+
+  return Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
+};
 
 export interface InterviewStartRequest {
   targetRole: string;
@@ -30,6 +44,7 @@ export interface InterviewReportRequest {
 
 export const startInterviewSimulation = async (data: InterviewStartRequest) => {
   try {
+    const BASE_URL = getBaseUrl();
     const response = await fetch(`${BASE_URL}/interview/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -49,6 +64,7 @@ export const startInterviewSimulation = async (data: InterviewStartRequest) => {
 
 export const submitInterviewAnswer = async (data: InterviewAnswerRequest) => {
   try {
+    const BASE_URL = getBaseUrl();
     const response = await fetch(`${BASE_URL}/interview/answer`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -68,6 +84,7 @@ export const submitInterviewAnswer = async (data: InterviewAnswerRequest) => {
 
 export const generateInterviewReport = async (data: InterviewReportRequest) => {
   try {
+    const BASE_URL = getBaseUrl();
     const response = await fetch(`${BASE_URL}/interview/report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -85,29 +102,23 @@ export const generateInterviewReport = async (data: InterviewReportRequest) => {
   }
 };
 
+import * as FileSystem from 'expo-file-system/legacy';
+
 export const transcribeAudio = async (uri: string, mimeType: string) => {
   try {
-    const formData = new FormData();
-    formData.append('audio', {
-      uri,
-      name: 'recording.m4a',
-      type: mimeType,
-    } as any);
-
-    const response = await fetch(`${BASE_URL}/interview/transcribe`, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'Accept': 'application/json',
-      },
+    const BASE_URL = getBaseUrl();
+    const response = await FileSystem.uploadAsync(`${BASE_URL}/interview/transcribe`, uri, {
+      fieldName: 'audio',
+      httpMethod: 'POST',
+      uploadType: FileSystem.FileSystemUploadType?.MULTIPART ?? 1,
+      mimeType: mimeType || 'audio/mp4',
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error(`[API Error] POST /interview/transcribe returned ${response.status}: ${errText}`);
+    if (response.status !== 200) {
+      console.error(`[API Error] POST /interview/transcribe returned ${response.status}: ${response.body}`);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    const data = await response.json();
+    const data = JSON.parse(response.body);
     return data.transcription;
   } catch (error: any) {
     console.error('Failed to transcribe audio:', error.message);

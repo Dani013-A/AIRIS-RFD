@@ -11,6 +11,7 @@ import { normalizeResumeText, validateResumeText } from "../services/resume/resu
 import { calculateAtsCompatibility } from "../services/resume/resumeAnalysisService";
 import { saveResumeLocally } from "../services/resume/localResumeStorage";
 import { useAuthStore } from "./authStore";
+import { saveUserActivity } from "../services/firebase/activityService";
 
 interface ResumeState {
   activeResume: Resume | null;
@@ -114,6 +115,13 @@ export const useResumeStore = create<ResumeState>((set) => ({
         structuredData,
         analysisResult
       );
+
+      // Log the activity to the unified timeline
+      await saveUserActivity(userId, resume.latestAnalysisId!, {
+        title: `Analyzed ${file.name}`,
+        type: "Resume Analysis",
+        score: analysisResult.atsScore.overallScore
+      });
 
       // Step 5: Save a copy of the resume text and file metadata directly on the user's device for offline access.
       await saveResumeLocally(

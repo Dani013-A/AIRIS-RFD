@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore } from "../../store/authStore";
 import { useResumeStore } from "../../store/resumeStore";
 import { PrimaryButton } from "../../components/ui";
+import { fetchUserActivities, UserActivity } from "../../services/firebase/activityService";
 
 export default function StudentProfileScreen() {
   const router = useRouter();
@@ -40,14 +41,30 @@ export default function StudentProfileScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passVisible, setPassVisible] = useState(false);
 
+  const [activities, setActivities] = useState<UserActivity[]>([]);
+  const [loadingActivities, setLoadingActivities] = useState(true);
+
   useEffect(() => {
     if (currentUser) {
       setEditName(currentUser.fullName);
       setEditCollege(currentUser.college || "");
       setEditProgram(currentUser.degreeProgram || "");
       setEditCareer(currentUser.targetPosition || "");
+      loadActivities();
     }
   }, [currentUser]);
+
+  const loadActivities = async () => {
+    if (!currentUser?.uid) return;
+    try {
+      const data = await fetchUserActivities(currentUser.uid);
+      setActivities(data);
+    } catch (e) {
+      console.error("Failed to load activities", e);
+    } finally {
+      setLoadingActivities(false);
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -109,8 +126,8 @@ export default function StudentProfileScreen() {
     }
   };
 
-  const hasResume = currentUser?.hasUploadedResume === true && !!activeResume && !!activeAnalysis;
-  const resumeScore = hasResume ? activeAnalysis?.atsScore?.overallScore || 0 : null;
+  const resumeScans = activities.filter(a => a.type === "Resume Analysis").length;
+  const mockPracticed = activities.filter(a => a.type === "Mock Interview").length;
 
   return (
     <SafeAreaView className="flex-1 bg-[#F4F8FB] px-6" edges={["top", "left", "right"]}>
@@ -204,31 +221,38 @@ export default function StudentProfileScreen() {
                   <View className="h-10 w-10 bg-white rounded-full items-center justify-center mb-2 shadow-sm">
                     <Ionicons name="document-text" size={20} color="#79D5C8" />
                   </View>
-                  <Text className="text-xl font-extrabold text-[#1F3A5F]">{hasResume ? "1" : "0"}</Text>
+                  <Text className="text-xl font-extrabold text-[#1F3A5F]">{resumeScans}</Text>
                   <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-wider text-center mt-1">Resume Scans</Text>
                 </View>
                 <View className="flex-1 bg-[#F4F8FB] border border-[#BFD6EA] p-4 rounded-xl items-center">
                   <View className="h-10 w-10 bg-white rounded-full items-center justify-center mb-2 shadow-sm">
                     <Ionicons name="videocam" size={20} color="#F4A47A" />
                   </View>
-                  <Text className="text-xl font-extrabold text-[#1F3A5F]">0</Text>
+                  <Text className="text-xl font-extrabold text-[#1F3A5F]">{mockPracticed}</Text>
                   <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-wider text-center mt-1">Mock Practiced</Text>
                 </View>
               </View>
 
               <Text className="text-xs font-bold text-[#1F3A5F] uppercase tracking-wider mt-8 mb-4">Timeline Logs</Text>
               
-              {hasResume ? (
-                <View className="flex-row items-start pl-2">
-                  <View className="items-center mr-4">
-                    <View className="h-4 w-4 rounded-full bg-[#79D5C8] border-2 border-white shadow-sm" />
-                    <View className="w-0.5 h-12 bg-[#EAF2F7] mt-1" />
+              {loadingActivities ? (
+                <ActivityIndicator size="small" color="#79D5C8" />
+              ) : activities.length > 0 ? (
+                activities.map((activity, index) => (
+                  <View key={activity.id} className="flex-row items-start pl-2">
+                    <View className="items-center mr-4">
+                      <View className="h-4 w-4 rounded-full bg-[#79D5C8] border-2 border-white shadow-sm" />
+                      {index !== activities.length - 1 && <View className="w-0.5 h-12 bg-[#EAF2F7] mt-1" />}
+                    </View>
+                    <View className="flex-1 pb-4">
+                      <Text className="text-sm font-bold text-[#1F3A5F]">{activity.title}</Text>
+                      <Text className="text-[11px] text-[#4F6B82] font-medium mt-1">
+                        Type: {activity.type} | Score: {activity.score}
+                        {activity.completedAt && ` | ${new Date(activity.completedAt.seconds ? activity.completedAt.seconds * 1000 : activity.completedAt).toLocaleDateString()}`}
+                      </Text>
+                    </View>
                   </View>
-                  <View className="flex-1 pb-4">
-                    <Text className="text-sm font-bold text-[#1F3A5F]">Resume Analyzed successfully</Text>
-                    <Text className="text-[11px] text-[#4F6B82] font-medium mt-1">Type: PDF Scan | Overall: {resumeScore}%</Text>
-                  </View>
-                </View>
+                ))
               ) : (
                 <Text className="text-sm text-[#8B95A5] italic pl-2">No activity history logged yet.</Text>
               )}

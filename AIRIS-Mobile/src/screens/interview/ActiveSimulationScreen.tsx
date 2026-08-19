@@ -125,7 +125,9 @@ export default function ActiveSimulationScreen() {
         response.evaluation,
         response.nextQuestion?.question,
         response.nextQuestion?.questionType,
-        response.isComplete
+        response.nextQuestion?.benchmarkAnswer,
+        response.isComplete,
+        response.isInteractionEvent
       );
 
       setAnswer("");
@@ -170,7 +172,7 @@ export default function ActiveSimulationScreen() {
            </TouchableOpacity>
            <View className="items-center">
              <Text className="text-xs font-bold text-[#4F6B82] uppercase tracking-wider">Interview Active</Text>
-             <Text className="text-base font-extrabold text-[#1F3A5F]">Question {session.questionsAsked} of {session.totalQuestions}</Text>
+             <Text className="text-base font-extrabold text-[#1F3A5F]">Question {session.questionsAsked}</Text>
            </View>
            <View className="w-7" />
         </View>

@@ -3,112 +3,181 @@
     "id": "intro-1",
     "category": "introductory",
     "competency": "communication",
-    "tags": ["general", "all roles"],
-    "text": "Tell me about yourself and your journey into this field."
+    "tags": [
+      "general",
+      "all roles"
+    ],
+    "text": "Tell me about yourself and your journey into this field.",
+    "idealAnswer": "I am a recent graduate with a degree in [Degree] and a strong passion for [Field]. During my studies, I focused on [Key Skill 1] and [Key Skill 2], completing several projects such as [Project Name]. I am eager to apply my academic background and internships to a professional role and continue growing in this industry."
   },
   {
     "id": "intro-2",
     "category": "introductory",
     "competency": "motivation",
-    "tags": ["general", "all roles"],
-    "text": "Why are you interested in this specific role, and how does it align with your long-term career goals?"
+    "tags": [
+      "general",
+      "all roles"
+    ],
+    "text": "Why are you interested in this specific role, and how does it align with your long-term career goals?",
+    "idealAnswer": "I am interested in this role because it perfectly aligns with my background in [Field] and my goal to develop expertise in [Specific Area]. I admire the company's commitment to [Company Value/Goal], and I see this position as an opportunity to contribute to meaningful projects while building a long-term career here."
   },
   {
     "id": "behav-1",
     "category": "behavioral",
     "competency": "problem solving",
-    "tags": ["general", "all roles"],
-    "text": "Tell me about a time you encountered an unexpected problem in a project. How did you handle it?"
+    "tags": [
+      "general",
+      "all roles"
+    ],
+    "text": "Tell me about a time you encountered an unexpected problem in a project. How did you handle it?",
+    "idealAnswer": "In a recent project, we encountered an unexpected issue when [describe problem]. I immediately communicated the issue to the team, analyzed the root cause, and proposed a workaround by [action taken]. We adjusted our timeline, implemented the fix, and successfully delivered the project on time."
   },
   {
     "id": "behav-2",
     "category": "behavioral",
     "competency": "teamwork",
-    "tags": ["general", "all roles"],
-    "text": "Describe a situation where you had a disagreement with a team member. How did you resolve it?"
+    "tags": [
+      "general",
+      "all roles"
+    ],
+    "text": "Describe a situation where you had a disagreement with a team member. How did you resolve it?",
+    "idealAnswer": "When a team member and I disagreed on the approach for [task], I scheduled a quick meeting to discuss our perspectives. I listened actively to their concerns, explained the reasoning behind my proposal, and we found a compromise that combined the best of both ideas, ensuring the project moved forward smoothly."
   },
   {
     "id": "behav-3",
     "category": "behavioral",
     "competency": "time management",
-    "tags": ["general", "all roles"],
-    "text": "Tell me about a time you had to juggle multiple tight deadlines. How did you prioritize your tasks?"
+    "tags": [
+      "general",
+      "all roles"
+    ],
+    "text": "Tell me about a time you had to juggle multiple tight deadlines. How did you prioritize your tasks?",
+    "idealAnswer": "During my final semester, I had to balance multiple major assignments and a part-time internship. I used a task management tool to prioritize my workload based on deadlines and impact. By breaking down large tasks into smaller milestones and communicating my availability clearly, I met all deadlines without compromising quality."
   },
   {
     "id": "tech-se-1",
     "category": "technical",
     "competency": "software architecture",
-    "tags": ["software developer", "software engineer", "full stack"],
-    "text": "How do you decide between a microservices architecture versus a monolithic architecture for a new web application?"
+    "tags": [
+      "software developer",
+      "software engineer",
+      "full stack"
+    ],
+    "text": "How do you decide between a microservices architecture versus a monolithic architecture for a new web application?",
+    "idealAnswer": "I would evaluate the project's scale, team size, and time-to-market. A monolithic architecture is often best for simple, quick-to-launch applications with small teams. However, if the application requires high scalability, independent deployment of components, and we have the infrastructure to support it, I would choose a microservices architecture."
   },
   {
     "id": "tech-se-2",
     "category": "technical",
     "competency": "version control",
-    "tags": ["software developer", "software engineer", "git"],
-    "text": "Explain your typical Git workflow when working on a new feature in a team setting."
+    "tags": [
+      "software developer",
+      "software engineer",
+      "git"
+    ],
+    "text": "Explain your typical Git workflow when working on a new feature in a team setting.",
+    "idealAnswer": "My typical workflow starts with pulling the latest changes from the main branch. I then create a new feature branch, write the code, and make atomic, descriptive commits. Once the feature is complete and tested locally, I push the branch and open a Pull Request, requesting code reviews before merging it into the main branch."
   },
   {
     "id": "tech-se-3",
     "category": "technical",
     "competency": "api design",
-    "tags": ["software developer", "backend engineer"],
-    "text": "What are the core principles of RESTful API design, and how do you handle versioning?"
+    "tags": [
+      "software developer",
+      "backend engineer"
+    ],
+    "text": "What are the core principles of RESTful API design, and how do you handle versioning?",
+    "idealAnswer": "Core principles of REST include statelessness, client-server separation, uniform interface, and resource-based URIs using standard HTTP methods (GET, POST, PUT, DELETE). For versioning, I prefer including the version number in the URL path (e.g., /api/v1/resource) to ensure backward compatibility as the API evolves."
   },
   {
     "id": "tech-da-1",
     "category": "technical",
     "competency": "database management",
-    "tags": ["data analyst", "sql", "database"],
-    "text": "Explain the difference between an INNER JOIN and a LEFT JOIN, and describe a specific scenario where you would use each."
+    "tags": [
+      "data analyst",
+      "sql",
+      "database"
+    ],
+    "text": "Explain the difference between an INNER JOIN and a LEFT JOIN, and describe a specific scenario where you would use each.",
+    "idealAnswer": "An INNER JOIN returns only the rows that have matching values in both tables, useful when you only want complete records (e.g., customers who have made an order). A LEFT JOIN returns all rows from the left table and the matched rows from the right table, which is useful when you want a list of all customers and any orders they might have made, leaving NULL if they haven't ordered."
   },
   {
     "id": "tech-da-2",
     "category": "technical",
     "competency": "data cleaning",
-    "tags": ["data analyst", "data scientist", "python"],
-    "text": "Walk me through your process for identifying and handling missing or corrupt data in a large dataset."
+    "tags": [
+      "data analyst",
+      "data scientist",
+      "python"
+    ],
+    "text": "Walk me through your process for identifying and handling missing or corrupt data in a large dataset.",
+    "idealAnswer": "I start by profiling the data to identify the extent of missing or corrupt values. For missing data, I decide whether to drop the rows (if insignificant), impute them using statistical measures like mean/median, or flag them, depending on the context. For corrupt data, I trace the source, apply data type casting, or use regex to clean and standardize the formats before proceeding with analysis."
   },
   {
     "id": "tech-da-3",
     "category": "technical",
     "competency": "data visualization",
-    "tags": ["data analyst", "power bi", "tableau"],
-    "text": "When building a dashboard for executive stakeholders, how do you decide which metrics to highlight?"
+    "tags": [
+      "data analyst",
+      "power bi",
+      "tableau"
+    ],
+    "text": "When building a dashboard for executive stakeholders, how do you decide which metrics to highlight?",
+    "idealAnswer": "I begin by understanding the executives' core business objectives and the KPIs that directly measure success against those goals. I prioritize high-level, actionable metrics and present them using clear, intuitive visualizations like KPIs, line charts for trends, and bar charts for comparisons, avoiding clutter and allowing for drill-down if they need more details."
   },
   {
     "id": "tech-ce-1",
     "category": "technical",
     "competency": "civil engineering",
-    "tags": ["civil engineer", "structural engineer"],
-    "text": "Describe the process you follow for analyzing the load-bearing capacity of a structural beam."
+    "tags": [
+      "civil engineer",
+      "structural engineer"
+    ],
+    "text": "Describe the process you follow for analyzing the load-bearing capacity of a structural beam.",
+    "idealAnswer": "I would start by determining the design loads, including dead, live, and environmental loads. Next, I'd calculate the shear forces and bending moments using structural analysis principles. Finally, I would select a beam material and cross-section, ensuring the maximum stresses and deflections are within the allowable limits defined by the relevant design codes."
   },
   {
     "id": "tech-ce-2",
     "category": "technical",
     "competency": "project management",
-    "tags": ["civil engineer", "construction management"],
-    "text": "How do you ensure compliance with local building codes and safety regulations during a construction project?"
+    "tags": [
+      "civil engineer",
+      "construction management"
+    ],
+    "text": "How do you ensure compliance with local building codes and safety regulations during a construction project?",
+    "idealAnswer": "I ensure compliance by thoroughly reviewing local building codes and zoning laws during the planning phase and securing all necessary permits. During construction, I conduct regular site inspections, maintain a strict safety protocol (like OSHA standards), and coordinate with designated safety officers and municipal inspectors to verify that all work meets the approved plans."
   },
   {
     "id": "sit-1",
     "category": "situational",
     "competency": "adaptability",
-    "tags": ["general", "all roles"],
-    "text": "You are halfway through a project and the client completely changes the requirements. What is your immediate response?"
+    "tags": [
+      "general",
+      "all roles"
+    ],
+    "text": "You are halfway through a project and the client completely changes the requirements. What is your immediate response?",
+    "idealAnswer": "I would immediately pause work on the affected areas and schedule a meeting with the client and project stakeholders to clarify the new requirements. I would then assess the impact on the timeline and budget, communicate these changes transparently, and revise the project plan and deliverables to align with the new direction."
   },
   {
     "id": "sit-2",
     "category": "situational",
     "competency": "communication",
-    "tags": ["general", "all roles"],
-    "text": "You need to explain a highly complex technical issue to a non-technical stakeholder. How do you approach this?"
+    "tags": [
+      "general",
+      "all roles"
+    ],
+    "text": "You need to explain a highly complex technical issue to a non-technical stakeholder. How do you approach this?",
+    "idealAnswer": "I approach this by avoiding jargon and using relatable analogies to explain the core concept. I focus on the business impact of the technical issue\u2014how it affects cost, timeline, or users\u2014rather than the technical minutiae, and I pause frequently to check for understanding and answer any questions they might have."
   },
   {
     "id": "close-1",
     "category": "closing",
     "competency": "professionalism",
-    "tags": ["general", "all roles"],
-    "text": "That concludes the technical portion of our interview. Do you have any questions for me about the role or the company?"
+    "tags": [
+      "general",
+      "all roles"
+    ],
+    "text": "That concludes the technical portion of our interview. Do you have any questions for me about the role or the company?",
+    "idealAnswer": "Yes, I have a couple of questions. Could you tell me more about the day-to-day responsibilities of this role? And what are the biggest challenges the team is currently facing?"
   }
 ]

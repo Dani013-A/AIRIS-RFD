@@ -23,7 +23,8 @@ def call_groq_whisper(file_bytes: bytes, mime_type: str) -> str:
     }
     data = {
         "model": "whisper-large-v3-turbo",
-        "response_format": "json"
+        "response_format": "json",
+        "prompt": "Umm, let me think like, hmm... okay, here's what I'm, like, thinking. Uh, yeah."
     }
     
     res = requests.post(url, headers=headers, files=files, data=data, timeout=10)
@@ -38,7 +39,11 @@ def call_gemini_audio(file_bytes: bytes, mime_type: str) -> str:
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel("gemini-1.5-flash")
     
-    prompt = "Please accurately transcribe the following spoken audio. Output strictly the text transcription with no extra conversational text."
+    prompt = (
+        "Please accurately transcribe the following spoken audio. Output strictly the text transcription with no extra conversational text. "
+        "IMPORTANT: Transcribe EVERYTHING exactly as spoken. Do not clean up the text. Include all filler words (umm, uh, hm, like), "
+        "stuttering, mispronunciations, and repeated words. Keep it absolutely verbatim."
+    )
     
     response = model.generate_content([
         prompt,

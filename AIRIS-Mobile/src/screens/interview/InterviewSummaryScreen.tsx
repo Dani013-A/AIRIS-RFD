@@ -8,6 +8,7 @@ import { generateInterviewReport } from "../../services/api/interviewApi";
 import { PrimaryButton } from "../../components/ui";
 import { useAuthStore } from "../../store/authStore";
 import { saveInterviewSession } from "../../services/firebase/interviewService";
+import { saveUserActivity } from "../../services/firebase/activityService";
 
 export default function InterviewSummaryScreen() {
   const router = useRouter();
@@ -44,6 +45,11 @@ export default function InterviewSummaryScreen() {
         const updatedSession = useInterviewStore.getState().session;
         if (updatedSession) {
           await saveInterviewSession(currentUser.uid, updatedSession);
+          await saveUserActivity(currentUser.uid, updatedSession.sessionId, {
+            title: `Completed ${updatedSession.targetRole} Interview`,
+            type: "Mock Interview",
+            score: updatedSession.finalReport.overallPerformance
+          });
         }
       }
     } catch (err) {
