@@ -105,3 +105,14 @@ export interface Resume {
   analysisStatus: ResumeExtractionStatus;
   latestAnalysisId: string | null;
 }
+
+export type {
+  LearningSnapshot,
+  ImprovementAreaItem,
+  SkillGapItem,
+  SkillToLearnItem,
+  TopicAndConceptItem,
+  RecommendedCourseItem,
+  CertificationItem,
+  InterviewPrepItem,
+} from "../services/resume/resumeAnalysisEngine";

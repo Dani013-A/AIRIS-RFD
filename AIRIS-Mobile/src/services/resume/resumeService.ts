@@ -158,3 +158,75 @@ export async function fetchAnalysisByIdFromDb(
 
   return docSnap.data();
 }
+
+/**
+ * Saves a new role-targeted analysis document for an existing resume in a single atomic transaction.
+ * - Does NOT mutate rawText, structuredData, or resumeVersion.
+ * - Appends a new analysis document under users/{userId}/resumeAnalyses/{newAnalysisId}.
+ * - Updates latestAnalysisId on users/{userId}/resumes/{resumeId}.
+ * - Updates targetPosition on users/{userId}.
+ */
+export async function saveRetargetedAnalysisTransaction(
+  userId: string,
+  resumeId: string,
+  targetPosition: string,
+  analysisResult: ResumeAnalysisResult
+): Promise<{ analysisId: string; analysisDoc: any }> {
+  const userRef = doc(db, USERS_COLLECTION, userId);
+  const resumeDocRef = doc(db, USERS_COLLECTION, userId, RESUMES_SUBCOLLECTION, resumeId);
+
+  return runTransaction(db, async (transaction) => {
+    const userSnap = await transaction.get(userRef);
+    if (!userSnap.exists()) {
+      throw new Error("User document does not exist.");
+    }
+    const userData = userSnap.data();
+
+    const resumeSnap = await transaction.get(resumeDocRef);
+    if (!resumeSnap.exists()) {
+      throw new Error("Resume document does not exist.");
+    }
+
+    const analysesColRef = collection(db, USERS_COLLECTION, userId, ANALYSES_SUBCOLLECTION);
+    const analysisDocRef = doc(analysesColRef);
+
+    const recommendations = getAiRecommendationsForResume(
+      analysisResult,
+      userData.degreeProgram || "",
+      targetPosition
+    );
+
+    const analysisDoc = {
+      analysisId: analysisDocRef.id,
+      userId,
+      resumeId,
+      targetPosition,
+      scoringModelVersion: "1.0.0",
+      result: cleanUndefined({
+        ...analysisResult,
+        recommendations,
+      }),
+      createdAt: serverTimestamp() as any,
+    };
+
+    transaction.set(analysisDocRef, analysisDoc);
+    transaction.update(resumeDocRef, {
+      latestAnalysisId: analysisDocRef.id,
+      updatedAt: serverTimestamp(),
+    });
+    transaction.update(userRef, {
+      targetPosition,
+      updatedAt: serverTimestamp(),
+    });
+
+    const localTime = { toDate: () => new Date() } as any;
+
+    return {
+      analysisId: analysisDocRef.id,
+      analysisDoc: {
+        ...analysisDoc,
+        createdAt: localTime,
+      },
+    };
+  });
+}

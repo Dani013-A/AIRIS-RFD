@@ -144,12 +144,87 @@ export interface ResumeScoreTrace {
   suggestionsSummaryLog: string;
 }
 
+export interface SkillGapItem {
+  skill: string;
+  importance: "high" | "medium" | "low";
+  reason: string;
+}
+
+export interface ImprovementAreaItem {
+  priority: number;
+  area: string;
+  title: string;
+  reason: string;
+  action: string;
+  evidence: string;
+  relatedSkills: string[];
+}
+
+export interface SkillToLearnItem {
+  title: string;
+  priority: "high" | "medium" | "low";
+  description: string;
+}
+
+export interface TopicAndConceptItem {
+  topic: string;
+  category: string;
+  summary: string;
+}
+
+export interface RecommendedCourseItem {
+  title: string;
+  provider: string;
+  url: string;
+  type: string;
+  description: string;
+}
+
+export interface CertificationItem {
+  title: string;
+  issuer: string;
+  importance: string;
+  description: string;
+  url?: string;
+  type?: string;
+}
+
+export interface InterviewPrepItem {
+  questionType: string;
+  topic: string;
+  keyFocus: string;
+}
+
+export interface LearningSnapshot {
+  snapshotVersion: string;
+  generatedAt: string;
+  targetPosition: string;
+  degreeProgram?: string;
+  careerSummary?: string;
+  strengths?: string[];
+  improvementAreas?: ImprovementAreaItem[];
+  careerContext?: {
+    targetPosition: string;
+    program?: string;
+    detectedSkills?: string[];
+    missingSkills?: string[];
+  };
+  skillGaps: SkillGapItem[];
+  skillsToLearn: SkillToLearnItem[];
+  topicsAndConcepts: TopicAndConceptItem[];
+  recommendedCourses: RecommendedCourseItem[];
+  certifications: CertificationItem[];
+  seminars?: RecommendedCourseItem[];
+  interviewPrep: InterviewPrepItem[];
+}
+
 export interface ResumeAnalysisResult {
   parsedSections: ParsedResumeSection[];
   detectedSections: DetectedSection[];
   missingSections: MissingSection[];
   atsScore: ATSScore;
   suggestions: ResumeSuggestion[];
+  learningSnapshot?: LearningSnapshot;
   isAnalysisComplete: boolean;
   analyzedAt: string | null;
   analysisVersion: string;
@@ -257,7 +332,6 @@ function findSectionNameFromHeading(heading: string): ResumeSectionName | null {
       return sectionName;
     }
   }
-  console.log(`Failed to find alias for: '${heading}' (normalized: '${normalizedHeading}')`);
   return null;
 }
 

@@ -34,6 +34,7 @@ import {
   updateProfileDetails,
 } from "../services/firebase/userService";
 import { useOnboardingStore } from "./onboardingStore";
+import { clearLearningMemoryCache } from "../services/learning/learningCatalogService";
 import { mapAuthError, sanitizeErrorForLogging } from "../utils/errorMapper";
 let GoogleSignin: any = null;
 let statusCodes: any = {};
@@ -356,6 +357,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       );
     } finally {
       useOnboardingStore.getState().reset();
+      try {
+        clearLearningMemoryCache();
+      } catch (learningCacheErr) {
+        console.warn("Failed to clear learning cache on logout:", learningCacheErr);
+      }
       set({
         currentUser: null,
         loading: false,

@@ -10,7 +10,7 @@ def check_groq():
     if not api_key: return
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    data = {"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": "Hello"}], "temperature": 0.2}
+    data = {"model": "openai/gpt-oss-120b", "messages": [{"role": "user", "content": "Hello"}], "temperature": 0.2}
     res = requests.post(url, headers=headers, json=data)
     print("Groq Response:", res.status_code, res.text)
 

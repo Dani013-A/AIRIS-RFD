@@ -4,3 +4,4 @@ export * from "./PageHeader";
 export * from "./StatusBadge";
 export * from "./InformationCard";
 export * from "./StateComponents";
+export * from "./Skeleton";

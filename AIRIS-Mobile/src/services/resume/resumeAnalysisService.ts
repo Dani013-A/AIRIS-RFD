@@ -54,7 +54,9 @@ export async function uploadResumeFileWithProgress(
   for (const baseUrl of baseUrls) {
     try {
       const uploadUrl = `${baseUrl}/upload`;
-      console.log(`Attempting real-time upload connection to: ${uploadUrl}...`);
+      if (__DEV__) {
+        console.log(`Connecting to backend service at ${uploadUrl}...`);
+      }
 
       const result = await new Promise<any>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -120,7 +122,9 @@ export async function uploadResumeFileWithProgress(
         };
       }
     } catch (e) {
-      console.log(`Backend upload attempt failed at ${baseUrl}:`, e);
+      if (__DEV__) {
+        console.log(`Connection attempt to ${baseUrl} unfulfilled, trying fallback...`);
+      }
     }
   }
 

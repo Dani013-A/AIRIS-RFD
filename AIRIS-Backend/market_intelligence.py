@@ -10,11 +10,13 @@ MIN_SKILLS_THRESHOLD = 50
 
 def get_firestore_client():
     try:
-        get_app()
-    except ValueError:
-        # If no explicit credential is provided, firebase_admin uses GOOGLE_APPLICATION_CREDENTIALS automatically.
-        initialize_app()
-    return firestore.client()
+        try:
+            get_app()
+        except ValueError:
+            initialize_app()
+        return firestore.client()
+    except Exception:
+        return None
 
 def fetch_job_trends() -> dict:
     """

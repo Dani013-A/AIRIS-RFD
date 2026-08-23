@@ -178,10 +178,18 @@ def validate_and_enhance_analysis(
                 "matchedChunk": None
             })
 
+    from ai_service import generate_learning_snapshot
+    learning_snapshot = generate_learning_snapshot(
+        target_position=target_position,
+        parsed_sections=parsed_sections,
+        sbert_results=sbert_results
+    )
+
     default_response = {
         "atsScore": ats_score,
         "detectedSections": detected_sections_list,
         "missingSections": missing_sections,
+        "learningSnapshot": learning_snapshot,
         "suggestions": [],
         "recommendations": []
     }

@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Modal,
   Text,
   TextInput,
@@ -140,9 +141,17 @@ export default function RegisterScreen() {
       }}
     >
       <View className="items-center mb-8">
-        <View className="mb-4 h-24 w-24 rounded-full bg-white items-center justify-center border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 }}>
-          <Text className="text-4xl font-black text-[#1F3A5F]">A</Text>
-        </View>
+        <Image
+          source={require("../../../assets/images/airis-logo-new.png")}
+          className="mb-4 h-24 w-24 rounded-3xl"
+          resizeMode="contain"
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+          }}
+        />
 
         <Text className="text-4xl font-extrabold tracking-tight text-[#1F3A5F]">AIRIS</Text>
         <Text className="mt-2 text-center text-sm font-medium text-[#4F6B82]">

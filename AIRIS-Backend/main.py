@@ -1,5 +1,14 @@
 import os
 import uuid
+import logging
+import warnings
+
+# Suppress verbose third-party loggers
+logging.getLogger("transformers").setLevel(logging.ERROR)
+logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
+
 from ai_validator import is_resume_valid
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
 from file_utils import extract_text
@@ -126,6 +135,7 @@ async def analyze_resume(request: Request):
             "detectedSections": enhanced_result.get("detectedSections", []),
             "missingSections": enhanced_result.get("missingSections", []),
             "recommendations": enhanced_result.get("recommendations", []),
+            "learningSnapshot": enhanced_result.get("learningSnapshot"),
             "isAnalysisComplete": True,
             "analyzedAt": enhanced_result.get("analyzedAt", ""),
             "analysisVersion": "1.1.0-sbert",
@@ -186,6 +196,7 @@ async def upload_resume(
             "atsScore": enhanced_result["atsScore"],
             "suggestions": enhanced_result["suggestions"],
             "recommendations": enhanced_result.get("recommendations", []),
+            "learningSnapshot": enhanced_result.get("learningSnapshot"),
             "isAnalysisComplete": True,
             "analyzedAt": enhanced_result.get("analyzedAt", ""),
             "analysisVersion": "1.1.0-sbert",

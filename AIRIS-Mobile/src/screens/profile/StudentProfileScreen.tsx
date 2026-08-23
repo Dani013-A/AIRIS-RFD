@@ -28,6 +28,7 @@ export default function StudentProfileScreen() {
 
   const activeResume = useResumeStore((state) => state.activeResume);
   const activeAnalysis = useResumeStore((state) => state.activeAnalysis);
+  const retargetActiveResume = useResumeStore((state) => state.retargetActiveResume);
 
   const [activeTab, setActiveTab] = useState<"profile" | "settings">("profile");
   const [expandedPanel, setExpandedPanel] = useState<"account" | "privacy" | "about" | null>(null);
@@ -37,9 +38,13 @@ export default function StudentProfileScreen() {
   const [editProgram, setEditProgram] = useState(currentUser?.degreeProgram || "");
   const [editCareer, setEditCareer] = useState(currentUser?.targetPosition || "");
 
+  const [isRetargeting, setIsRetargeting] = useState(false);
+  const [retargetStatusText, setRetargetStatusText] = useState("");
+
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passVisible, setPassVisible] = useState(false);
+  const [confirmPassVisible, setConfirmPassVisible] = useState(false);
 
   const [activities, setActivities] = useState<UserActivity[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
@@ -82,11 +87,40 @@ export default function StudentProfileScreen() {
       return;
     }
     clearError();
+    const targetChanged = editCareer.trim().toLowerCase() !== (currentUser?.targetPosition || "").trim().toLowerCase();
+
     try {
-      await updateProfile(editName, editCollege, editProgram, editCareer);
-      Alert.alert("Success", "Profile details saved successfully.");
+      if (targetChanged && currentUser?.hasUploadedResume && activeResume?.rawText) {
+        setIsRetargeting(true);
+        setRetargetStatusText(`Analyzing resume alignment for ${editCareer.trim()}...`);
+
+        // 1. Update profile in database & auth store
+        await updateProfile(editName, editCollege, editProgram, editCareer.trim());
+
+        // 2. Perform ONE intentional role retarget analysis
+        try {
+          await retargetActiveResume(editCareer.trim());
+          Alert.alert(
+            "Career Target Updated",
+            `Your profile has been saved and your resume has been re-targeted for "${editCareer.trim()}". Your dashboard, interview prep, and learning recommendations have been updated.`
+          );
+        } catch (retargetErr) {
+          Alert.alert(
+            "Retargeting Incomplete",
+            "Your target role was updated, but the new resume analysis could not be completed at this time. Your previous analysis remains active and safe."
+          );
+        }
+
+        setIsRetargeting(false);
+        setRetargetStatusText("");
+      } else {
+        await updateProfile(editName, editCollege, editProgram, editCareer.trim());
+        Alert.alert("Success", "Profile details saved successfully.");
+      }
       setExpandedPanel(null);
     } catch (err) {
+      setIsRetargeting(false);
+      setRetargetStatusText("");
       Alert.alert("Save Error", err instanceof Error ? err.message : "Failed to update profile.");
     }
   };
@@ -319,32 +353,83 @@ export default function StudentProfileScreen() {
                   </View>
 
                   <View className="gap-2">
-                    <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">Preferred Career</Text>
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">Preferred Career</Text>
+                      {currentUser?.hasUploadedResume && (
+                        <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-wider">
+                          Re-targets active resume
+                        </Text>
+                      )}
+                    </View>
                     <TextInput
                       className="rounded-xl border border-[#BFD6EA] px-4 py-3 text-base text-[#1F3A5F] bg-[#F4F8FB] h-12"
                       value={editCareer}
                       onChangeText={setEditCareer}
                       placeholder="e.g. Software Engineer"
                       placeholderTextColor="#94A3B8"
-                      editable={!loading}
+                      editable={!loading && !isRetargeting}
                     />
+
+                    {/* Quick career suggestion pills */}
+                    <View className="flex-row flex-wrap gap-1.5 mt-1">
+                      {[
+                        "Software Engineer",
+                        "Data Analyst",
+                        "Cybersecurity Analyst",
+                        "Cloud Engineer",
+                        "Frontend Developer",
+                        "Backend Developer",
+                        "QA Engineer",
+                        "UI/UX Designer",
+                      ].map((role) => (
+                        <TouchableOpacity
+                          key={role}
+                          onPress={() => setEditCareer(role)}
+                          disabled={loading || isRetargeting}
+                          className={`px-2.5 py-1 rounded-full border ${
+                            editCareer.trim().toLowerCase() === role.toLowerCase()
+                              ? "bg-[#FEF5F1] border-[#F4A47A]"
+                              : "bg-white border-[#BFD6EA]"
+                          }`}
+                        >
+                          <Text
+                            className={`text-[11px] font-semibold ${
+                              editCareer.trim().toLowerCase() === role.toLowerCase()
+                                ? "text-[#CA5D25] font-bold"
+                                : "text-[#4F6B82]"
+                            }`}
+                          >
+                            {role}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    {isRetargeting && (
+                      <View className="flex-row items-center gap-2 mt-2 p-3 bg-[#FEF5F1] rounded-xl border border-[#F4A47A]">
+                        <ActivityIndicator size="small" color="#CA5D25" />
+                        <Text className="text-xs font-bold text-[#CA5D25] flex-1">
+                          {retargetStatusText || "Re-targeting resume..."}
+                        </Text>
+                      </View>
+                    )}
                   </View>
 
                   <View className="flex-row gap-3 mt-4">
                     <TouchableOpacity
                       onPress={handleCancelProfile}
-                      disabled={loading}
+                      disabled={loading || isRetargeting}
                       className="flex-1 h-14 items-center justify-center rounded-xl border border-[#BFD6EA] bg-white"
                     >
                       <Text className="text-sm font-bold text-[#4F6B82]">Cancel</Text>
                     </TouchableOpacity>
                     <View className="flex-1">
                       <PrimaryButton
-                        title="Save Changes"
+                        title={isRetargeting ? "Re-targeting..." : "Save Changes"}
                         variant="orange"
                         onPress={handleSaveProfile}
-                        loading={loading}
-                        disabled={loading}
+                        loading={loading || isRetargeting}
+                        disabled={loading || isRetargeting}
                       />
                     </View>
                   </View>
@@ -377,9 +462,10 @@ export default function StudentProfileScreen() {
 
                   <View className="gap-2">
                     <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">New Password</Text>
-                    <View className="flex-row items-center rounded-xl border border-[#BFD6EA] px-4 py-3 bg-[#F4F8FB] h-12">
+                    <View className="flex-row items-center rounded-xl border border-[#BFD6EA] px-4 bg-[#F4F8FB] h-12">
                       <TextInput
                         className="flex-1 text-base text-[#1F3A5F]"
+                        style={{ paddingVertical: 0 }}
                         placeholder="New Password"
                         placeholderTextColor="#94A3B8"
                         value={newPassword}
@@ -387,24 +473,44 @@ export default function StudentProfileScreen() {
                         secureTextEntry={!passVisible}
                         editable={!loading}
                       />
-                      <TouchableOpacity onPress={() => setPassVisible(!passVisible)} className="p-1 -mr-1">
-                        <Ionicons name={passVisible ? "eye-off" : "eye"} size={20} color="#8B95A5" />
+                      <TouchableOpacity
+                        onPress={() => setPassVisible((v) => !v)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        className="p-2 -mr-2 items-center justify-center"
+                      >
+                        <Ionicons
+                          name={passVisible ? "eye-off-outline" : "eye-outline"}
+                          size={20}
+                          color="#8B95A5"
+                        />
                       </TouchableOpacity>
                     </View>
                   </View>
 
                   <View className="gap-2">
                     <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">Confirm Password</Text>
-                    <View className="flex-row items-center rounded-xl border border-[#BFD6EA] px-4 py-3 bg-[#F4F8FB] h-12">
+                    <View className="flex-row items-center rounded-xl border border-[#BFD6EA] px-4 bg-[#F4F8FB] h-12">
                       <TextInput
                         className="flex-1 text-base text-[#1F3A5F]"
+                        style={{ paddingVertical: 0 }}
                         placeholder="Confirm Password"
                         placeholderTextColor="#94A3B8"
                         value={confirmPassword}
                         onChangeText={setConfirmPassword}
-                        secureTextEntry={!passVisible}
+                        secureTextEntry={!confirmPassVisible}
                         editable={!loading}
                       />
+                      <TouchableOpacity
+                        onPress={() => setConfirmPassVisible((v) => !v)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        className="p-2 -mr-2 items-center justify-center"
+                      >
+                        <Ionicons
+                          name={confirmPassVisible ? "eye-off-outline" : "eye-outline"}
+                          size={20}
+                          color="#8B95A5"
+                        />
+                      </TouchableOpacity>
                     </View>
                   </View>
 

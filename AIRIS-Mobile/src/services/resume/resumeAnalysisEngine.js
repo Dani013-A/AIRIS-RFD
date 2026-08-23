@@ -121,7 +121,6 @@ function findSectionNameFromHeading(heading) {
             return sectionName;
         }
     }
-    console.log("Failed to find alias for: '".concat(heading, "' (normalized: '").concat(normalizedHeading, "')"));
     return null;
 }
 function hasQuantifiableAchievements(text) {

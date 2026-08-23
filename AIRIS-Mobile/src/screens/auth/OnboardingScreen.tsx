@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { BackHandler, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { BackHandler, Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PrimaryButton } from "../../components/ui";
 import { useAuthStore } from "../../store/authStore";
@@ -32,9 +32,17 @@ export default function OnboardingScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
       >
         <View className="items-center px-6 pt-10 pb-8 bg-[#CFE0EC] rounded-b-[40px] border-b border-[#BFD6EA] mb-6">
-          <View className="mb-4 h-24 w-24 rounded-full bg-white items-center justify-center border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 }}>
-            <Text className="text-4xl font-black text-[#1F3A5F]">A</Text>
-          </View>
+          <Image
+            source={require("../../../assets/images/airis-logo-new.png")}
+            className="mb-4 h-24 w-24 rounded-3xl"
+            resizeMode="contain"
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+            }}
+          />
 
           <Text className="text-3xl font-extrabold tracking-tight text-[#1F3A5F] mb-1">AIRIS</Text>
           <Text className="text-center text-sm font-bold text-[#F4A47A] uppercase tracking-widest mb-4">

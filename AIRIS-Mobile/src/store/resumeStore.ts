@@ -3,6 +3,7 @@ import type { Resume, ResumeExtractionMethod, ResumeSourceFileType, ResumeProces
 import type { ResumeAnalysisResult } from "../services/resume/resumeAnalysisEngine";
 import {
   saveResumeAndAnalysisTransaction,
+  saveRetargetedAnalysisTransaction,
   fetchActiveResumeFromDb,
   fetchAnalysisByIdFromDb,
 } from "../services/resume/resumeService";
@@ -12,6 +13,10 @@ import { calculateAtsCompatibility } from "../services/resume/resumeAnalysisServ
 import { saveResumeLocally } from "../services/resume/localResumeStorage";
 import { useAuthStore } from "./authStore";
 import { saveUserActivity } from "../services/firebase/activityService";
+import {
+  matchLearningRecommendations,
+  logForYouRecommendations,
+} from "../services/learning/learningCatalogService";
 
 interface ResumeState {
   activeResume: Resume | null;
@@ -26,8 +31,10 @@ interface ResumeState {
     file: { name: string; mimeType: string; uri?: string },
     sourceFileType: ResumeSourceFileType,
     extractionMethod: ResumeExtractionMethod,
-    rawText: string
+    rawText: string,
+    precomputedAnalysis?: ResumeAnalysisResult
   ) => Promise<void>;
+  retargetActiveResume: (newTargetPosition: string) => Promise<void>;
   setProcessingStatus: (status: ResumeProcessingStatus) => void;
   clearAnalysisState: () => void;
   clearStore: () => void;
@@ -86,7 +93,8 @@ export const useResumeStore = create<ResumeState>((set) => ({
     file,
     sourceFileType,
     extractionMethod,
-    rawText
+    rawText,
+    precomputedAnalysis
   ) => {
     try {
       set({ processingStatus: "validating", error: null });
@@ -98,7 +106,7 @@ export const useResumeStore = create<ResumeState>((set) => ({
       const structuredData = parseAndBuildStructuredData(normalized);
 
       set({ processingStatus: "analyzing" });
-      const analysisResult = await calculateAtsCompatibility(normalized, targetPosition);
+      const analysisResult = precomputedAnalysis || (await calculateAtsCompatibility(normalized, targetPosition));
 
       set({ processingStatus: "saving" });
       const { resume } = await saveResumeAndAnalysisTransaction(
@@ -115,7 +123,17 @@ export const useResumeStore = create<ResumeState>((set) => ({
       await saveUserActivity(userId, resume.latestAnalysisId!, {
         title: `Analyzed ${file.name}`,
         type: "Resume Analysis",
-        score: analysisResult.atsScore.overallScore
+        score: analysisResult.atsScore.overallScore,
+        resumeId: resume.resumeId,
+        analysisId: resume.latestAnalysisId!,
+        targetPosition: analysisResult.learningSnapshot?.targetPosition || targetPosition || "",
+        fileName: file.name,
+        metadata: {
+          resumeId: resume.resumeId,
+          analysisId: resume.latestAnalysisId!,
+          targetPosition: analysisResult.learningSnapshot?.targetPosition || targetPosition || "",
+          fileName: file.name,
+        },
       });
 
       // Save locally for offline access.
@@ -139,6 +157,30 @@ export const useResumeStore = create<ResumeState>((set) => ({
         error: null,
       });
 
+      // Log the exact For You recommendations upon processing
+      try {
+        const forYouItems = matchLearningRecommendations({
+          targetPosition,
+          skillGaps: analysisResult.learningSnapshot?.skillGaps,
+          skillsToLearn: analysisResult.learningSnapshot?.skillsToLearn,
+          detectedSkills: analysisResult.learningSnapshot?.careerContext?.detectedSkills,
+          missingSkills: analysisResult.learningSnapshot?.careerContext?.missingSkills,
+          learningSnapshot: analysisResult.learningSnapshot,
+          categoryId: "for_you",
+          resourceType: "all",
+        });
+        if (forYouItems && forYouItems.length > 0) {
+          logForYouRecommendations(
+            userId,
+            targetPosition || "General Track",
+            analysisResult.learningSnapshot?.skillGaps,
+            forYouItems
+          );
+        }
+      } catch (logErr) {
+        // Quiet logging
+      }
+
       const currentAuthUser = useAuthStore.getState().currentUser;
       if (currentAuthUser) {
         useAuthStore.setState({
@@ -150,6 +192,128 @@ export const useResumeStore = create<ResumeState>((set) => ({
         });
       }
     } catch (err) {
+      set({
+        processingStatus: "failed",
+        error: err instanceof Error ? err.message : String(err),
+      });
+      throw err;
+    }
+  },
+
+  retargetActiveResume: async (newTargetPosition: string) => {
+    const state = useResumeStore.getState();
+    const activeResume = state.activeResume;
+    const currentUser = useAuthStore.getState().currentUser;
+
+    if (!activeResume || !activeResume.rawText || !currentUser) {
+      console.log("[AIRIS Retarget] No active resume found to retarget.");
+      return;
+    }
+
+    const previousRole = currentUser.targetPosition || "General Track";
+    console.log("============================================================");
+    console.log("AIRIS — CAREER RETARGET");
+    console.log("============================================================");
+    console.log(`Previous Role: ${previousRole}`);
+    console.log(`New Role: ${newTargetPosition}`);
+    console.log("Resume: Existing Resume");
+    console.log("Action: Intentional Role Retarget Analysis");
+    console.log("Status: STARTED");
+    console.log("============================================================");
+
+    try {
+      set({ processingStatus: "analyzing", error: null });
+
+      // Run ONE intentional calculation against the new target position
+      const newAnalysisResult = await calculateAtsCompatibility(activeResume.rawText, newTargetPosition);
+
+      set({ processingStatus: "saving" });
+
+      // Save new analysis document & update latestAnalysisId atomically
+      const { analysisId } = await saveRetargetedAnalysisTransaction(
+        currentUser.uid,
+        activeResume.resumeId,
+        newTargetPosition,
+        newAnalysisResult
+      );
+
+      // Log user activity
+      await saveUserActivity(currentUser.uid, analysisId, {
+        title: `Re-targeted resume for ${newTargetPosition}`,
+        type: "Resume Analysis",
+        score: newAnalysisResult.atsScore.overallScore,
+        resumeId: activeResume.resumeId,
+        analysisId: analysisId,
+        targetPosition: newTargetPosition,
+        fileName: activeResume.originalFileName,
+        metadata: {
+          resumeId: activeResume.resumeId,
+          analysisId: analysisId,
+          targetPosition: newTargetPosition,
+          fileName: activeResume.originalFileName,
+        },
+      });
+
+      // Update local cache
+      await saveResumeLocally(
+        currentUser.uid,
+        activeResume.resumeVersion,
+        "",
+        activeResume.originalFileName,
+        activeResume.fileType,
+        activeResume.rawText,
+        activeResume.resumeId,
+        newAnalysisResult.atsScore.overallScore,
+        newAnalysisResult.atsScore.breakdown?.atsCompatibilityScore ?? 0,
+        newAnalysisResult.atsScore.breakdown?.resumeQualityScore ?? 0
+      );
+
+      // Make new analysis active ONLY after success
+      set({
+        activeResume: {
+          ...activeResume,
+          latestAnalysisId: analysisId,
+        },
+        activeAnalysis: newAnalysisResult,
+        processingStatus: "completed",
+        error: null,
+      });
+
+      // Log refreshed For You recommendations
+      try {
+        const forYouItems = matchLearningRecommendations({
+          targetPosition: newTargetPosition,
+          skillGaps: newAnalysisResult.learningSnapshot?.skillGaps,
+          skillsToLearn: newAnalysisResult.learningSnapshot?.skillsToLearn,
+          detectedSkills: newAnalysisResult.learningSnapshot?.careerContext?.detectedSkills,
+          missingSkills: newAnalysisResult.learningSnapshot?.careerContext?.missingSkills,
+          learningSnapshot: newAnalysisResult.learningSnapshot,
+          categoryId: "for_you",
+          resourceType: "all",
+        });
+        if (forYouItems && forYouItems.length > 0) {
+          logForYouRecommendations(
+            currentUser.uid,
+            newTargetPosition,
+            newAnalysisResult.learningSnapshot?.skillGaps,
+            forYouItems
+          );
+        }
+      } catch (logErr) {
+        // Quiet logging
+      }
+
+      console.log("============================================================");
+      console.log("AIRIS — CAREER RETARGET COMPLETE");
+      console.log("============================================================");
+      console.log(`Target Role: ${newTargetPosition}`);
+      console.log("Analysis: Created");
+      console.log("For You: Refreshed");
+      console.log("Status: SUCCESS");
+      console.log("============================================================");
+    } catch (err) {
+      console.error("[AIRIS Retarget] Failed to retarget resume:", err);
+      // Keep old activeAnalysis and activeResume completely intact on failure!
       set({
         processingStatus: "failed",
         error: err instanceof Error ? err.message : String(err),

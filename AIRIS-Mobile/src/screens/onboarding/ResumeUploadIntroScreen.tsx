@@ -47,6 +47,7 @@ export default function ResumeUploadIntroScreen() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [bytesUploaded, setBytesUploaded] = useState<{ loaded: number; total: number }>({ loaded: 0, total: 0 });
   const [uploadPhase, setUploadPhase] = useState<string>("Uploading file...");
+  const [uploadStage, setUploadStage] = useState<"idle" | "uploading" | "extracting" | "analyzing" | "saving" | "completed">("idle");
 
   const fileName = activeResume?.originalFileName || null;
 
@@ -90,23 +91,33 @@ export default function ResumeUploadIntroScreen() {
       }
 
       const asset = result.assets[0];
-      const fileSize = asset.size || 0;
+      const initialSize = asset.size && asset.size > 0 ? asset.size : 10240;
       const selectedFile = {
         uri: asset.uri,
         name: asset.name,
         mimeType: asset.mimeType || "application/octet-stream",
+        size: initialSize,
       };
 
       const fileExtension = selectedFile.name.split(".").pop()?.toLowerCase() || "";
+      const validExtensions = ["pdf", "doc", "docx", "txt", "png", "jpg", "jpeg"];
+      const isValidMime =
+        selectedFile.mimeType.includes("pdf") ||
+        selectedFile.mimeType.includes("word") ||
+        selectedFile.mimeType.includes("text") ||
+        selectedFile.mimeType.startsWith("image/");
+
+      if (!validExtensions.includes(fileExtension) && !isValidMime) {
+        Alert.alert("Unsupported Format", "Please select a PDF, DOCX, TXT, or Image file.");
+        return;
+      }
 
       clearAnalysisState();
-
-      const initialSize = fileSize > 0 ? fileSize : 10240;
+      useResumeStore.getState().setProcessingStatus("extracting");
+      setUploadStage("uploading");
       setUploadProgress(0);
       setBytesUploaded({ loaded: 0, total: initialSize });
-      setUploadPhase("Connecting to server...");
-
-      useResumeStore.getState().setProcessingStatus("extracting");
+      setUploadPhase("Uploading resume file...");
 
       let extractedText = "";
       let sourceFileType: any = "pdf";
@@ -123,6 +134,7 @@ export default function ResumeUploadIntroScreen() {
         sourceDetailType = "image_ocr";
       }
 
+      let precomputedAnalysis: any = undefined;
       try {
         const uploadResult = await uploadResumeFileWithProgress(
           { ...selectedFile, size: initialSize },
@@ -131,16 +143,20 @@ export default function ResumeUploadIntroScreen() {
             setUploadProgress(progressEvent.progress);
             setBytesUploaded({ loaded: progressEvent.loaded, total: progressEvent.total || initialSize });
             if (progressEvent.phase === "uploading") {
+              setUploadStage("uploading");
               setUploadPhase(`Uploading resume file... (${progressEvent.progress}%)`);
             } else {
-              setUploadPhase("Parsing resume sections & ATS scoring...");
+              setUploadStage("analyzing");
+              setUploadPhase("Parsing resume sections & evaluating alignment...");
             }
           }
         );
 
         extractedText = uploadResult.rawText;
+        precomputedAnalysis = uploadResult.analysisResult;
       } catch (backendError) {
         console.log("Backend upload fallback to client parser:", backendError);
+        setUploadStage("extracting");
         setUploadPhase("Reading document content...");
         setUploadProgress(50);
         setBytesUploaded({ loaded: Math.round(initialSize * 0.5), total: initialSize });
@@ -159,7 +175,8 @@ export default function ResumeUploadIntroScreen() {
         setBytesUploaded({ loaded: initialSize, total: initialSize });
       }
 
-      setUploadPhase("Finalizing resume analysis...");
+      setUploadStage("saving");
+      setUploadPhase("Finalizing resume analysis & saving...");
       setUploadProgress(100);
 
       await uploadAndProcessResume(
@@ -168,10 +185,13 @@ export default function ResumeUploadIntroScreen() {
         selectedFile,
         sourceFileType,
         sourceDetailType,
-        extractedText
+        extractedText,
+        precomputedAnalysis
       );
+      setUploadStage("completed");
     } catch (err) {
       useResumeStore.getState().setProcessingStatus("idle");
+      setUploadStage("idle");
       setUploadProgress(0);
       Alert.alert(
         "Upload Failure",
@@ -223,7 +243,7 @@ export default function ResumeUploadIntroScreen() {
       await completeOnboarding(agreeTerms, agreePrivacy, "1.0.0", "1.0.0");
       const latestUser = useAuthStore.getState().currentUser;
       if (latestUser?.hasCompletedOnboarding) {
-        router.replace("/(student)/(tabs)/dashboard" as any);
+        router.replace("/(student)/(tabs)/resume" as any);
       }
     } catch (err) {
       Alert.alert(
@@ -271,25 +291,68 @@ export default function ResumeUploadIntroScreen() {
             }`}
           >
             {isProcessing ? (
-              <View className="w-full items-center px-4">
-                <Text className="text-2xl font-bold text-[#1F3A5F]">{uploadProgress}%</Text>
-
-                <View className="w-full bg-[#EAF2F7] h-3 rounded-full overflow-hidden mt-4 p-0.5 border border-[#BFD6EA]">
-                  <View
-                    style={{ width: `${Math.max(uploadProgress, 4)}%` }}
-                    className="h-full bg-[#F4A47A] rounded-full"
-                  />
-                </View>
-
-                {bytesUploaded.total > 0 ? (
-                  <Text className="mt-3 text-xs font-semibold text-[#4F6B82]">
-                    {formatBytes(bytesUploaded.loaded)} / {formatBytes(bytesUploaded.total)}
-                  </Text>
-                ) : null}
-
-                <Text className="mt-2 text-center text-sm font-bold text-[#1F3A5F]">
-                  {uploadPhase}
+              <View className="w-full px-4 py-3">
+                <Text className="text-xs font-bold text-[#1F3A5F] uppercase tracking-wider mb-4 text-center">
+                  Analyzing Your Resume
                 </Text>
+
+                <View className="gap-3">
+                  {/* Stage 1: Upload */}
+                  <View className="flex-row items-center">
+                    {uploadStage === "uploading" ? (
+                      <ActivityIndicator size="small" color="#F4A47A" style={{ width: 20, height: 20 }} />
+                    ) : (
+                      <Ionicons name="checkmark-circle" size={20} color="#79D5C8" />
+                    )}
+                    <Text className={`ml-3 text-xs font-semibold ${uploadStage === "uploading" ? "text-[#CA5D25] font-bold" : "text-[#1F3A5F]"}`}>
+                      {uploadStage === "uploading"
+                        ? `Uploading document (${bytesUploaded.total > 0 ? formatBytes(bytesUploaded.loaded) : "in progress"}...)`
+                        : "Document uploaded successfully"}
+                    </Text>
+                  </View>
+
+                  {/* Stage 2: Extraction & Structure */}
+                  <View className="flex-row items-center">
+                    {uploadStage === "uploading" ? (
+                      <Ionicons name="ellipse-outline" size={20} color="#BFD6EA" />
+                    ) : uploadStage === "extracting" ? (
+                      <ActivityIndicator size="small" color="#F4A47A" style={{ width: 20, height: 20 }} />
+                    ) : (
+                      <Ionicons name="checkmark-circle" size={20} color="#79D5C8" />
+                    )}
+                    <Text className={`ml-3 text-xs font-semibold ${uploadStage === "extracting" ? "text-[#CA5D25] font-bold" : uploadStage === "uploading" ? "text-[#8B95A5]" : "text-[#1F3A5F]"}`}>
+                      Extracting sections & content
+                    </Text>
+                  </View>
+
+                  {/* Stage 3: Semantic Alignment & SBERT Analysis */}
+                  <View className="flex-row items-center">
+                    {uploadStage === "uploading" || uploadStage === "extracting" ? (
+                      <Ionicons name="ellipse-outline" size={20} color="#BFD6EA" />
+                    ) : uploadStage === "analyzing" ? (
+                      <ActivityIndicator size="small" color="#F4A47A" style={{ width: 20, height: 20 }} />
+                    ) : (
+                      <Ionicons name="checkmark-circle" size={20} color="#79D5C8" />
+                    )}
+                    <Text className={`ml-3 text-xs font-semibold ${uploadStage === "analyzing" ? "text-[#CA5D25] font-bold" : uploadStage === "saving" || uploadStage === "completed" ? "text-[#1F3A5F]" : "text-[#8B95A5]"}`}>
+                      Matching alignment to {currentUser?.targetPosition || "target role"}
+                    </Text>
+                  </View>
+
+                  {/* Stage 4: Learning Roadmap & Finalization */}
+                  <View className="flex-row items-center">
+                    {uploadStage === "saving" ? (
+                      <ActivityIndicator size="small" color="#F4A47A" style={{ width: 20, height: 20 }} />
+                    ) : uploadStage === "completed" ? (
+                      <Ionicons name="checkmark-circle" size={20} color="#79D5C8" />
+                    ) : (
+                      <Ionicons name="ellipse-outline" size={20} color="#BFD6EA" />
+                    )}
+                    <Text className={`ml-3 text-xs font-semibold ${uploadStage === "saving" ? "text-[#CA5D25] font-bold" : uploadStage === "completed" ? "text-[#1F3A5F]" : "text-[#8B95A5]"}`}>
+                      Curating skill gaps & learning roadmap
+                    </Text>
+                  </View>
+                </View>
               </View>
             ) : fileName ? (
               <>

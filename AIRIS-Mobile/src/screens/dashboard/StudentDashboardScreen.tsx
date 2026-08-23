@@ -67,6 +67,23 @@ export default function StudentDashboardScreen() {
     router.push("/(student)/(tabs)/profile" as any);
   };
 
+  const handleViewActivity = (activity: UserActivity) => {
+    if (activity.type === "Mock Interview") {
+      router.push("/(student)/(tabs)/interview" as any);
+    } else {
+      router.push({
+        pathname: "/(student)/resume-view",
+        params: {
+          activityId: activity.id,
+          analysisId: activity.analysisId || activity.metadata?.analysisId || activity.id,
+          resumeId: activity.resumeId || activity.metadata?.resumeId || "",
+          targetPosition: activity.targetPosition || activity.metadata?.targetPosition || "",
+          title: activity.title,
+        },
+      } as any);
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-[#F4F8FB] px-6" edges={["top", "left", "right"]}>
 
@@ -235,7 +252,7 @@ export default function StudentDashboardScreen() {
                      {activity.title}
                    </Text>
                 </View>
-                <TouchableOpacity onPress={() => router.push(activity.type === 'Mock Interview' ? "/(student)/(tabs)/interview" as any : "/(student)/(tabs)/resume" as any)} className="bg-[#FEF5F1] px-4 py-2 rounded-full border border-[#FDEEE6]">
+                <TouchableOpacity onPress={() => handleViewActivity(activity)} className="bg-[#FEF5F1] px-4 py-2 rounded-full border border-[#FDEEE6]">
                   <Text className="text-xs font-bold text-[#CA5D25]">View</Text>
                 </TouchableOpacity>
               </View>

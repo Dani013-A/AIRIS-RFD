@@ -15,12 +15,22 @@ const ACTIVITIES_SUBCOLLECTION = "activities";
 export type ActivityType = "Resume Analysis" | "Mock Interview";
 
 export interface UserActivity {
-  id: string; // The activity document ID (can map to analysisId or sessionId)
+  id: string; // The activity document ID (maps to analysisId or sessionId)
   title: string;
   type: ActivityType;
   score: number;
   completedAt: any; // Firestore server timestamp or Date
-  metadata?: any; // Additional data if needed
+  resumeId?: string;
+  analysisId?: string;
+  targetPosition?: string;
+  fileName?: string;
+  metadata?: {
+    resumeId?: string;
+    analysisId?: string;
+    targetPosition?: string;
+    fileName?: string;
+    [key: string]: any;
+  };
 }
 
 /**

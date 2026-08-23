@@ -1,13 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { documentDirectory, EncodingType, writeAsStringAsync } from "expo-file-system/legacy";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
-import * as WebBrowser from "expo-web-browser";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   ScrollView,
   Text,
   TextInput,
@@ -15,33 +13,43 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getAiRecommendationsForResume } from "../../data/learningRecommendations";
+import { ResourceCard } from "../../components/learning/ResourceCard";
+import { SkeletonResourceCard } from "../../components/ui";
+import { DEFAULT_LEARNING_CATEGORIES } from "../../data/learningCategories";
 import {
-  fetchLearningMaterials,
-  LearningMaterial,
-  searchLearningMaterials,
-} from "../../services/firebase/learningService";
+  getInstantCatalog,
+  loadCachedCatalog,
+  logForYouRecommendations,
+  matchLearningRecommendations,
+  refreshCatalog,
+  subscribeToCatalog,
+} from "../../services/learning/learningCatalogService";
 import { useAuthStore } from "../../store/authStore";
 import { useResumeStore } from "../../store/resumeStore";
+import {
+  LearningCategory,
+  LearningResource,
+  PrimaryLearnCategory,
+} from "../../types/learning.types";
 import { generatePdfFromMarkdown } from "../../utils/pdfGenerator";
 
 interface ResumeTemplate {
   id: string;
   name: string;
   badge: string;
-  atsRate: string;
+  standard: string;
   description: string;
   rationale: string;
   content: string;
 }
 
-const TEMPLATES: ResumeTemplate[] = [
+const ATS_TEMPLATES: ResumeTemplate[] = [
   {
     id: "harvard",
-    name: "Harvard Professional",
-    badge: "Recruiter Baseline",
-    atsRate: "99% ATS Compliant",
-    description: "The gold standard for general business, finance, and corporate applications.",
+    name: "Harvard Standard",
+    badge: "Corporate & Business",
+    standard: "Standard ATS Formatting",
+    description: "The gold standard for general business, finance, management, and corporate applications.",
     rationale:
       "Clean, single-column, reverse-chronological template utilizing standard font hierarchy, prominent headers, and metric-based bullets.",
     content: `# JUAN DELA CRUZ
@@ -57,10 +65,10 @@ Bachelor of Science in Computer Science | Graduation: June 2026
 ## EXPERIENCE
 Global Tech Solutions – Makati, Metro Manila
 Software Developer Intern | January 2025 – May 2025
-- Task & Tool: Built responsive frontend elements using React Native and Tailwind CSS.
-- Metric Result: Decreased screen load latency by 15% and improved user test score by 10%.
-- Task & Tool: Developed and tested back-end REST API pathways using Node.js and Express.
-- Metric Result: Integrated Firebase auth token checks, securing sessions for 500+ active users.
+- Built responsive frontend elements using React Native and Tailwind CSS.
+- Decreased screen load latency by 15% and improved user test score by 10%.
+- Developed and tested back-end REST API pathways using Node.js and Express.
+- Integrated Firebase auth token checks, securing sessions for 500+ active users.
 
 ## PROJECTS
 AIRIS Mobile Application – Lead Developer | Capstone Project | July 2025 – Present
@@ -74,11 +82,11 @@ AIRIS Mobile Application – Lead Developer | Capstone Project | July 2025 – P
 `,
   },
   {
-    id: "google",
-    name: "Google Software Developer",
-    badge: "Tech Cohort",
-    atsRate: "98% ATS Compliant",
-    description: "Highly optimized for software engineering, data science, and IT roles.",
+    id: "tech_cohort",
+    name: "Tech Cohort Standard",
+    badge: "Engineering & IT",
+    standard: "Technical ATS Formatting",
+    description: "Optimized for software engineering, data science, cybersecurity, and cloud IT roles.",
     rationale:
       "Emphasizes technical stack context immediately below contact details, grouping projects, code contributions, and languages.",
     content: `# JUAN DELA CRUZ
@@ -92,10 +100,10 @@ juan.dela.cruz@gmail.com | +63 917 123 4567 | github.com/juandelacruz | linkedin
 ## TECHNICAL EXPERIENCE
 Innovate Technologies – Quezon City, Metro Manila
 Backend Software Intern | January 2025 – May 2025
-- Task & Tool: Engineered serverless backend functions in Node.js and deployed to AWS Lambda.
-- Metric Result: Reduced database read latency by 20% and resolved 15+ backend API bottleneck bugs.
-- Task & Tool: Maintained secure MongoDB schema designs and wrote clean integration test suites.
-- Metric Result: Achieved 92% unit test code path coverage across core authentication endpoints.
+- Engineered serverless backend functions in Node.js and deployed to AWS Lambda.
+- Reduced database read latency by 20% and resolved 15+ backend API bottleneck bugs.
+- Maintained secure MongoDB schema designs and wrote clean integration test suites.
+- Achieved 92% unit test code path coverage across core authentication endpoints.
 
 ## ENGINEERING PROJECTS
 AIRIS Automated Resume Parser | Capstone Project | July 2025 – Present
@@ -109,94 +117,140 @@ Bachelor of Science in Information Technology | Graduation: June 2026
   },
 ];
 
-type CategoryType =
-  | "Interview Preparation"
-  | "Resume Writing"
-  | "Professional Communication"
-  | "Curated Learning Materials";
+interface LearningScreenProps {
+  initialCategory?: PrimaryLearnCategory;
+}
 
-export default function LearningScreen() {
+export default function LearningScreen({ initialCategory = "interviews" }: LearningScreenProps) {
   const router = useRouter();
-  const params = useLocalSearchParams<{ search?: string }>();
-  const [selectedCategory, setSelectedCategory] = useState<CategoryType>("Interview Preparation");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [resources, setResources] = useState<LearningMaterial[]>([]);
-  const [loading, setLoading] = useState(false);
+
+  // Catalog state - initialized immediately with first-paint cache
+  const initialData = getInstantCatalog();
+  const [catalogResources, setCatalogResources] = useState<LearningResource[]>(initialData.resources);
+  const [catalogCategories, setCatalogCategories] = useState<LearningCategory[]>(
+    initialData.categories.length > 0 ? initialData.categories : DEFAULT_LEARNING_CATEGORIES
+  );
+  const [selectedCategoryId, setSelectedCategoryId] = useState<PrimaryLearnCategory>(initialCategory);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const currentUser = useAuthStore((state) => state.currentUser);
   const degreeProgram = currentUser?.degreeProgram || "";
+  const targetPosition = currentUser?.targetPosition || "";
 
   const activeAnalysis = useResumeStore((state) => state.activeAnalysis);
   const fetchActiveResume = useResumeStore((state) => state.fetchActiveResume);
 
+  // State for search query
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
+  // Resume analysis sync
   useEffect(() => {
     if (currentUser?.uid && currentUser?.activeResumeId && !activeAnalysis) {
       fetchActiveResume(currentUser.uid, currentUser.activeResumeId);
     }
   }, [currentUser]);
 
-  const loadResources = async (queryText = "", category = selectedCategory) => {
-    if (!currentUser) return;
-    setLoading(true);
-    try {
-      if (category === "Curated Learning Materials") {
-        const allRecs =
-          activeAnalysis?.recommendations ||
-          getAiRecommendationsForResume(
-            activeAnalysis,
-            degreeProgram,
-            currentUser?.targetPosition || "",
-          );
-
-        if (queryText.trim()) {
-          const normQuery = queryText.toLowerCase().trim();
-          const filtered = allRecs.filter(
-            (r) =>
-              r.title.toLowerCase().includes(normQuery) ||
-              r.description.toLowerCase().includes(normQuery) ||
-              r.provider.toLowerCase().includes(normQuery),
-          );
-          setResources(filtered as any);
-        } else {
-          setResources(allRecs as any);
-        }
-      } else {
-        let data: LearningMaterial[] = [];
-        if (queryText.trim()) {
-          data = await searchLearningMaterials(queryText, category as any, degreeProgram);
-        } else {
-          data = await fetchLearningMaterials(category as any, degreeProgram);
-        }
-        setResources(data);
-      }
-    } catch {
-      Alert.alert("Load Error", "Failed to retrieve learning materials.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // First-paint cached load + background refresh
   useEffect(() => {
-    if (!currentUser) return;
-    if (params.search) {
-      setSearchQuery(params.search);
-      loadResources(params.search, selectedCategory);
-    } else {
-      loadResources("", selectedCategory);
-    }
-  }, [selectedCategory, degreeProgram, activeAnalysis, params.search, currentUser]);
+    let isMounted = true;
 
-  const handleSearchSubmit = () => {
-    loadResources(searchQuery, selectedCategory);
-  };
+    async function initCatalog() {
+      // 1. Load local cache
+      const cached = await loadCachedCatalog();
+      if (isMounted) {
+        setCatalogResources(cached.resources);
+        setCatalogCategories(
+          cached.categories.length > 0 ? cached.categories : DEFAULT_LEARNING_CATEGORIES
+        );
+      }
 
-  const handleResourcePress = async (item: any) => {
-    try {
-      await WebBrowser.openBrowserAsync(item.url);
-    } catch {
-      Alert.alert("Error", "An error occurred while trying to launch this resource.");
+      // 2. Background non-blocking refresh from Firestore
+      setIsRefreshing(true);
+      try {
+        const fresh = await refreshCatalog();
+        if (isMounted) {
+          setCatalogResources(fresh.resources);
+          setCatalogCategories(
+            fresh.categories.length > 0 ? fresh.categories : DEFAULT_LEARNING_CATEGORIES
+          );
+        }
+      } catch (err) {
+        console.log("Background catalog refresh error:", err);
+      } finally {
+        if (isMounted) {
+          setIsRefreshing(false);
+        }
+      }
     }
-  };
+
+    initCatalog();
+
+    // 3. Subscribe to background updates
+    const unsubscribe = subscribeToCatalog((updated) => {
+      if (isMounted) {
+        setCatalogResources(updated.resources);
+        setCatalogCategories(
+          updated.categories.length > 0 ? updated.categories : DEFAULT_LEARNING_CATEGORIES
+        );
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  // Compute recommendations dynamically based on active category tab
+  const rawMatchedRecommendations = useMemo(() => {
+    const learningSnap = activeAnalysis?.learningSnapshot;
+    const items = matchLearningRecommendations({
+      targetPosition,
+      degreeProgram,
+      skillGaps: learningSnap?.skillGaps,
+      skillsToLearn: learningSnap?.skillsToLearn,
+      detectedSkills: learningSnap?.careerContext?.detectedSkills,
+      missingSkills: learningSnap?.careerContext?.missingSkills,
+      learningSnapshot: learningSnap,
+      categoryId: selectedCategoryId,
+      resourceType: "all",
+      customCatalog: catalogResources,
+    });
+
+    if (selectedCategoryId === "for_you" && items && items.length > 0) {
+      logForYouRecommendations(
+        currentUser?.uid || "Student",
+        targetPosition || "General Track",
+        learningSnap?.skillGaps,
+        items
+      );
+    }
+
+    return items;
+  }, [
+    catalogResources,
+    selectedCategoryId,
+    targetPosition,
+    degreeProgram,
+    activeAnalysis,
+    currentUser,
+  ]);
+
+  // Apply search filtering on the matched recommendations
+  const displayedResources = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return rawMatchedRecommendations;
+    }
+    const q = searchQuery.toLowerCase().trim();
+    return rawMatchedRecommendations.filter((item) => {
+      const inTitle = item.title.toLowerCase().includes(q);
+      const inDesc = item.description.toLowerCase().includes(q);
+      const inProvider = item.provider.toLowerCase().includes(q);
+      const inSkills = (item.skills || []).some((s) => s.toLowerCase().includes(q));
+      const inTags = (item.tags || []).some((t) => t.toLowerCase().includes(q));
+      return inTitle || inDesc || inProvider || inSkills || inTags;
+    });
+  }, [rawMatchedRecommendations, searchQuery]);
 
   const handleDownloadTemplate = async (template: ResumeTemplate) => {
     try {
@@ -222,9 +276,12 @@ export default function LearningScreen() {
     }
   };
 
+  const learningSnap = activeAnalysis?.learningSnapshot;
+
   return (
-    <SafeAreaView className="flex-1 bg-[#F4F8FB] px-6" edges={["top", "left", "right"]}>
-      <View className="flex-row items-center justify-between py-4">
+    <SafeAreaView className="flex-1 bg-[#F4F8FB] px-5" edges={["top", "left", "right"]}>
+      {/* SCREEN HEADER */}
+      <View className="flex-row items-center justify-between py-3 mb-1">
         <TouchableOpacity
           onPress={() => router.push("/(student)/(tabs)/dashboard" as any)}
           className="h-10 w-10 items-center justify-center rounded-full bg-white border border-[#BFD6EA]"
@@ -232,317 +289,244 @@ export default function LearningScreen() {
         >
           <Ionicons name="arrow-back" size={20} color="#1F3A5F" />
         </TouchableOpacity>
-        <Text className="text-xl font-extrabold text-[#1F3A5F]">Learning</Text>
-        <View className="w-10" />
+        <Text className="text-xl font-extrabold text-[#1F3A5F]">Knowledge Hub</Text>
+        <View className="w-10 items-center justify-center">
+          {isRefreshing && <ActivityIndicator size="small" color="#CA5D25" />}
+        </View>
       </View>
 
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 120 }}
       >
-        <View className="flex-row items-center justify-between mt-2 mb-8 bg-white p-5 rounded-2xl border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-          <View className="flex-1 pr-4">
-            <Text className="text-lg font-bold text-[#1F3A5F] mb-1">Knowledge Hub</Text>
-            <Text className="text-sm font-medium text-[#4F6B82] leading-5">
-              Curated resources and templates for your employment preparation.
+        {/* HERO BANNER */}
+        <View
+          className="flex-row items-center justify-between mt-1 mb-4 bg-white p-4 rounded-2xl border border-[#BFD6EA]"
+          style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}
+        >
+          <View className="flex-1 pr-3">
+            <Text className="text-base font-bold text-[#1F3A5F] mb-0.5">Career Knowledge Center</Text>
+            <Text className="text-xs font-medium text-[#4F6B82] leading-4">
+              Curated learning materials, interview prep, resume guides, and career roadmaps.
             </Text>
           </View>
-          <View className="h-14 w-14 rounded-full bg-[#EAF2F7] items-center justify-center border-2 border-white shadow-sm">
-            <Ionicons name="book" size={24} color="#79D5C8" />
+          <View className="h-12 w-12 rounded-full bg-[#EAF2F7] items-center justify-center border border-[#BFD6EA]">
+            <Ionicons name="book" size={20} color="#79D5C8" />
           </View>
         </View>
 
-        <Text className="text-sm font-bold text-[#1F3A5F] mb-3 uppercase tracking-wider">Browse Topics</Text>
+        {/* BROWSE TOPICS HEADER */}
+        <Text className="text-xs font-bold text-[#1F3A5F] mb-3 uppercase tracking-wider">
+          BROWSE TOPICS
+        </Text>
 
+        {/* PRIMARY CATEGORY NAVIGATION PILLS */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          className="flex-row mb-6"
+          className="flex-row mb-5"
           contentContainerStyle={{ gap: 10 }}
         >
-          <TouchableOpacity
-            onPress={() => setSelectedCategory("Interview Preparation")}
-            className={`flex-row items-center px-5 py-3 rounded-full border ${
-              selectedCategory === "Interview Preparation"
-                ? "bg-[#FEF5F1] border-[#F4A47A]"
-                : "bg-white border-[#BFD6EA]"
-            }`}
-          >
-            <Ionicons
-              name="chatbubbles-outline"
-              size={18}
-              color={selectedCategory === "Interview Preparation" ? "#CA5D25" : "#4F6B82"}
-              style={{ marginRight: 8 }}
-            />
-            <Text
-              className={`text-sm font-bold ${
-                selectedCategory === "Interview Preparation" ? "text-[#CA5D25]" : "text-[#4F6B82]"
-              }`}
-            >
-              Interviews
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setSelectedCategory("Resume Writing")}
-            className={`flex-row items-center px-5 py-3 rounded-full border ${
-              selectedCategory === "Resume Writing"
-                ? "bg-[#FEF5F1] border-[#F4A47A]"
-                : "bg-white border-[#BFD6EA]"
-            }`}
-          >
-            <Ionicons
-              name="document-text-outline"
-              size={18}
-              color={selectedCategory === "Resume Writing" ? "#CA5D25" : "#4F6B82"}
-              style={{ marginRight: 8 }}
-            />
-            <Text
-              className={`text-sm font-bold ${
-                selectedCategory === "Resume Writing" ? "text-[#CA5D25]" : "text-[#4F6B82]"
-              }`}
-            >
-              Resume Writing
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setSelectedCategory("Professional Communication")}
-            className={`flex-row items-center px-5 py-3 rounded-full border ${
-              selectedCategory === "Professional Communication"
-                ? "bg-[#FEF5F1] border-[#F4A47A]"
-                : "bg-white border-[#BFD6EA]"
-            }`}
-          >
-            <Ionicons
-              name="people-outline"
-              size={18}
-              color={selectedCategory === "Professional Communication" ? "#CA5D25" : "#4F6B82"}
-              style={{ marginRight: 8 }}
-            />
-            <Text
-              className={`text-sm font-bold ${
-                selectedCategory === "Professional Communication"
-                  ? "text-[#CA5D25]"
-                  : "text-[#4F6B82]"
-              }`}
-            >
-              Communication
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setSelectedCategory("Curated Learning Materials")}
-            className={`flex-row items-center px-5 py-3 rounded-full border ${
-              selectedCategory === "Curated Learning Materials"
-                ? "bg-[#FEF5F1] border-[#F4A47A]"
-                : "bg-white border-[#BFD6EA]"
-            }`}
-          >
-            <Ionicons
-              name="sparkles-outline"
-              size={18}
-              color={selectedCategory === "Curated Learning Materials" ? "#CA5D25" : "#4F6B82"}
-              style={{ marginRight: 8 }}
-            />
-            <Text
-              className={`text-sm font-bold ${
-                selectedCategory === "Curated Learning Materials"
-                  ? "text-[#CA5D25]"
-                  : "text-[#4F6B82]"
-              }`}
-            >
-              AI Curated
-            </Text>
-          </TouchableOpacity>
+          {catalogCategories.map((cat) => {
+            const isSelected = selectedCategoryId === cat.id;
+            return (
+              <TouchableOpacity
+                key={cat.id}
+                onPress={() => {
+                  setSelectedCategoryId(cat.id as PrimaryLearnCategory);
+                  setSearchQuery("");
+                }}
+                activeOpacity={0.8}
+                className={`flex-row items-center px-5 py-3 rounded-full border ${
+                  isSelected
+                    ? "bg-[#FEF5F1] border-[#F4A47A]"
+                    : "bg-white border-[#BFD6EA]"
+                }`}
+                style={{
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: isSelected ? 0.08 : 0.03,
+                  shadowRadius: 1,
+                  elevation: 1,
+                }}
+              >
+                <Ionicons
+                  name={cat.icon as any}
+                  size={18}
+                  color={isSelected ? "#CA5D25" : "#4F6B82"}
+                  style={{ marginRight: 8 }}
+                />
+                <Text
+                  className={`text-sm font-bold ${
+                    isSelected ? "text-[#CA5D25]" : "text-[#4F6B82]"
+                  }`}
+                >
+                  {cat.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
 
-        <View className="flex-row items-center rounded-xl bg-white border border-[#BFD6EA] px-4 py-1 h-14 mb-8" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-          <Ionicons name="search-outline" size={20} color="#8B95A5" style={{ marginRight: 10 }} />
+        {/* SEARCH BAR */}
+        <View
+          className="flex-row items-center rounded-xl bg-white border border-[#BFD6EA] px-3.5 h-12 mb-4"
+          style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 2, elevation: 1 }}
+        >
+          <Ionicons name="search-outline" size={18} color="#8B95A5" style={{ marginRight: 8 }} />
           <TextInput
-            className="flex-1 text-base text-[#1F3A5F] h-full"
-            placeholder="Search resources, templates..."
+            className="flex-1 text-sm text-[#1F3A5F] h-full"
+            placeholder="Search resources, topics, skills..."
             placeholderTextColor="#94A3B8"
             value={searchQuery}
             onChangeText={setSearchQuery}
-            onSubmitEditing={handleSearchSubmit}
             returnKeyType="search"
+            clearButtonMode="while-editing"
           />
           {searchQuery ? (
-            <TouchableOpacity
-              onPress={() => {
-                setSearchQuery("");
-                loadResources("", selectedCategory);
-              }}
-              className="p-2 -mr-2"
-            >
-              <Ionicons name="close-circle" size={20} color="#8B95A5" />
+            <TouchableOpacity onPress={() => setSearchQuery("")} className="p-1.5">
+              <Ionicons name="close-circle" size={18} color="#8B95A5" />
             </TouchableOpacity>
           ) : null}
         </View>
 
-        {loading ? (
-          <View className="py-16 items-center justify-center">
-            <ActivityIndicator size="large" color="#F4A47A" />
-            <Text className="mt-4 text-sm text-[#4F6B82] font-bold">
-              Loading materials...
-            </Text>
-          </View>
-        ) : (
-          <View className="gap-5">
-            {selectedCategory === "Resume Writing" && searchQuery === "" && (
-              <View className="bg-white border border-[#BFD6EA] rounded-2xl p-5 mb-2" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-                <Text className="text-base font-extrabold text-[#1F3A5F] mb-1">
-                  ATS Template Library
+        {/* PERSONALIZED COACH ROADMAP OVERVIEW (RENDERED ON "FOR YOU" TAB WHEN NOT SEARCHING) */}
+        {selectedCategoryId === "for_you" && !searchQuery && (
+          <View className="bg-white border border-[#BFD6EA] rounded-2xl p-4 mb-4 shadow-sm">
+            <View className="flex-row items-center justify-between mb-2">
+              <View className="bg-[#FEF5F1] px-2.5 py-0.5 rounded-full border border-[#F4A47A]">
+                <Text className="text-[9px] font-black uppercase tracking-widest text-[#CA5D25]">
+                  Personalized Roadmap
                 </Text>
-                <Text className="text-sm font-medium text-[#4F6B82] leading-5 mb-5">
-                  Recruiter-approved templates for TIP students. Exported as standard PDF.
+              </View>
+              <Text className="text-xs font-bold text-[#4F6B82]">
+                Target: {learningSnap?.targetPosition || targetPosition || "General Track"}
+              </Text>
+            </View>
+
+            {learningSnap?.careerSummary ? (
+              <Text className="text-xs font-medium leading-5 text-[#1F3A5F] mb-3">
+                {learningSnap.careerSummary}
+              </Text>
+            ) : (
+              <Text className="text-xs font-medium leading-5 text-[#4F6B82] mb-3">
+                Resources curated specifically for your {targetPosition || "career"} track and detected skill growth areas.
+              </Text>
+            )}
+
+            {learningSnap?.skillGaps && learningSnap.skillGaps.length > 0 && (
+              <View className="pt-2.5 border-t border-[#EAF2F7]">
+                <Text className="text-[9px] font-bold text-[#CA5D25] uppercase tracking-wider mb-1.5">
+                  Priority Skill Gaps
                 </Text>
-                <View className="gap-3">
-                  {TEMPLATES.map((tpl) => (
-                    <TouchableOpacity
-                      key={tpl.id}
-                      onPress={() => handleDownloadTemplate(tpl)}
-                      className="flex-row items-center justify-between bg-[#F4F8FB] border border-[#EAF2F7] p-4 rounded-xl"
-                    >
-                      <View className="flex-1 mr-4">
-                        <Text className="text-sm font-bold text-[#1F3A5F]">{tpl.name}</Text>
-                        <Text className="text-xs font-bold text-[#79D5C8] mt-1 uppercase tracking-wider">
-                          {tpl.atsRate}
-                        </Text>
-                      </View>
-                      <View className="h-10 w-10 bg-white rounded-full items-center justify-center shadow-sm">
-                        <Ionicons name="download-outline" size={20} color="#F4A47A" />
-                      </View>
-                    </TouchableOpacity>
+                <View className="flex-row flex-wrap gap-1.5">
+                  {learningSnap.skillGaps.map((gap, gIdx) => (
+                    <View key={gIdx} className="bg-[#FEF5F1] border border-[#F4A47A] px-2.5 py-0.5 rounded-full flex-row items-center">
+                      <Ionicons name="alert-circle" size={11} color="#CA5D25" style={{ marginRight: 3 }} />
+                      <Text className="text-[10px] font-bold text-[#CA5D25]">{gap.skill}</Text>
+                    </View>
                   ))}
                 </View>
               </View>
             )}
 
-            {resources.length > 0 ? (
-              resources.map((item: any) => {
-                const isRecommendation = !!item.provider;
-                return (
-                  <TouchableOpacity
-                    key={item.id || item.title}
-                    onPress={() => handleResourcePress(item)}
-                    activeOpacity={0.85}
-                    className="rounded-2xl bg-white border border-[#BFD6EA] overflow-hidden"
-                    style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}
-                  >
-                    {item.thumbnailUrl ? (
-                      <Image
-                        source={{ uri: item.thumbnailUrl }}
-                        className="w-full h-44"
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View className="w-full h-32 bg-[#F4F8FB] items-center justify-center border-b border-[#EAF2F7]">
-                        <Ionicons
-                          name={
-                            item.type === "video"
-                              ? "logo-youtube"
-                              : item.type === "pdf"
-                                ? "document-text"
-                                : item.type === "certification"
-                                  ? "ribbon"
-                                  : "school"
-                          }
-                          size={40}
-                          color="#BFD6EA"
-                        />
-                      </View>
-                    )}
-
-                    <View className="p-5">
-                      <View className="flex-row flex-wrap items-center gap-2 mb-3">
-                        <View
-                          className={`px-3 py-1 rounded-full ${
-                            item.type === "video"
-                              ? "bg-red-50 border border-red-100"
-                              : item.type === "pdf"
-                                ? "bg-blue-50 border border-blue-100"
-                                : item.type === "certification"
-                                  ? "bg-amber-50 border border-amber-100"
-                                  : "bg-[#EAF2F7] border border-[#BFD6EA]"
-                          }`}
-                        >
-                          <Text
-                            className={`text-[10px] font-bold uppercase tracking-wider ${
-                              item.type === "video"
-                                ? "text-red-600"
-                                : item.type === "pdf"
-                                  ? "text-blue-600"
-                                  : item.type === "certification"
-                                    ? "text-amber-600"
-                                    : "text-[#1F3A5F]"
-                            }`}
-                          >
-                            {item.type === "video"
-                              ? "YouTube Video"
-                              : item.type === "pdf"
-                                ? "PDF Document"
-                                : item.type === "certification"
-                                  ? "Certification"
-                                  : "Study Course"}
-                          </Text>
-                        </View>
-
-                        {isRecommendation && item.isAiSuggestedGap && (
-                          <View className="px-3 py-1 rounded-full bg-[#FEF5F1] border border-[#F4A47A]">
-                            <Text className="text-[10px] font-bold uppercase tracking-wider text-[#CA5D25]">
-                              Skill Gap Target
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-
-                      <Text className="text-base font-extrabold text-[#1F3A5F]">{item.title}</Text>
-
-                      {isRecommendation && (
-                        <Text className="text-xs font-bold text-[#79D5C8] uppercase tracking-wider mt-1.5">
-                          {item.provider}
-                        </Text>
-                      )}
-
-                      <Text className="text-sm font-medium leading-5 text-[#4F6B82] mt-2">
-                        {item.description}
-                      </Text>
-
-                      {isRecommendation && item.gapRationale && (
-                        <View className="mt-4 p-4 bg-[#FEF5F1] rounded-xl border border-[#FDEEE6]">
-                          <View className="flex-row items-center gap-2 mb-1.5">
-                            <Ionicons name="sparkles" size={16} color="#F4A47A" />
-                            <Text className="text-xs font-bold text-[#CA5D25] uppercase tracking-wider">
-                              AI Recommendation
-                            </Text>
-                          </View>
-                          <Text className="text-xs font-medium leading-5 text-[#4F6B82]">
-                            {item.gapRationale}
-                          </Text>
-                        </View>
-                      )}
+            {learningSnap?.strengths && learningSnap.strengths.length > 0 && (
+              <View className="mt-2 pt-2 border-t border-[#EAF2F7]">
+                <Text className="text-[9px] font-bold text-[#4F6B82] uppercase tracking-wider mb-1.5">
+                  Resume Strengths
+                </Text>
+                <View className="flex-row flex-wrap gap-1.5">
+                  {learningSnap.strengths.map((str, sIdx) => (
+                    <View key={sIdx} className="bg-[#D7F1ED]/40 border border-[#79D5C8]/50 px-2.5 py-0.5 rounded-full flex-row items-center">
+                      <Ionicons name="checkmark-circle" size={11} color="#1E5D53" style={{ marginRight: 3 }} />
+                      <Text className="text-[10px] font-bold text-[#1E5D53]">{str}</Text>
                     </View>
-                  </TouchableOpacity>
-                );
-              })
-            ) : (
-              <View className="py-16 items-center justify-center">
-                <View className="h-16 w-16 bg-[#EAF2F7] rounded-full items-center justify-center mb-4">
-                  <Ionicons name="search" size={32} color="#BFD6EA" />
+                  ))}
                 </View>
-                <Text className="text-base text-[#1F3A5F] font-bold text-center">
-                  No resources found for "{searchQuery}".
-                </Text>
-                <Text className="text-sm text-[#4F6B82] font-medium text-center mt-2">
-                  Try adjusting your search terms.
-                </Text>
               </View>
             )}
           </View>
         )}
+
+        {/* ATS TEMPLATES SECTION (RENDERED ON "RESUME" TAB WHEN NOT SEARCHING) */}
+        {selectedCategoryId === "resume" && !searchQuery && (
+          <View className="bg-white border border-[#BFD6EA] rounded-2xl p-4 mb-4 shadow-sm">
+            <View className="flex-row items-center justify-between mb-1">
+              <Text className="text-sm font-bold text-[#1F3A5F]">Standard ATS Templates</Text>
+              <View className="bg-[#EAF2F7] px-2 py-0.5 rounded-full border border-[#BFD6EA]">
+                <Text className="text-[9px] font-bold text-[#1F3A5F]">PDF Export</Text>
+              </View>
+            </View>
+            <Text className="text-xs font-medium text-[#4F6B82] leading-4 mb-3">
+              Clean, single-column resume templates designed to comply with ATS parsers.
+            </Text>
+            <View className="gap-2">
+              {ATS_TEMPLATES.map((tpl) => (
+                <TouchableOpacity
+                  key={tpl.id}
+                  onPress={() => handleDownloadTemplate(tpl)}
+                  activeOpacity={0.8}
+                  className="flex-row items-center justify-between bg-[#F4F8FB] border border-[#EAF2F7] p-3 rounded-xl"
+                >
+                  <View className="flex-1 mr-3">
+                    <Text className="text-xs font-bold text-[#1F3A5F]">{tpl.name}</Text>
+                    <Text className="text-[11px] font-medium text-[#4F6B82] mt-0.5">{tpl.description}</Text>
+                    <Text className="text-[9px] font-bold text-[#79D5C8] mt-1 uppercase tracking-wider">
+                      {tpl.standard}
+                    </Text>
+                  </View>
+                  <View className="h-9 w-9 bg-white rounded-full items-center justify-center shadow-sm border border-[#BFD6EA]">
+                    <Ionicons name="download-outline" size={16} color="#CA5D25" />
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* SECTION HEADER */}
+        <View className="flex-row items-center justify-between mb-3 px-0.5">
+          <Text className="text-xs font-bold text-[#1F3A5F] uppercase tracking-wider">
+            {selectedCategoryId === "for_you"
+              ? "Recommended for Your Career Growth"
+              : selectedCategoryId === "interviews"
+              ? "Interview Preparation & Strategy"
+              : selectedCategoryId === "resume"
+              ? "Resume Development & Writing"
+              : "Professional Communication"}
+          </Text>
+          <Text className="text-[11px] font-bold text-[#4F6B82]">
+            {displayedResources.length} {displayedResources.length === 1 ? "resource" : "resources"}
+          </Text>
+        </View>
+
+        {/* RESOURCE CARDS FEED */}
+        <View className="gap-1">
+          {displayedResources.length > 0 ? (
+            displayedResources.map((resource) => (
+              <ResourceCard key={resource.id} resource={resource} />
+            ))
+          ) : isRefreshing ? (
+            <View className="gap-2">
+              <SkeletonResourceCard />
+              <SkeletonResourceCard />
+              <SkeletonResourceCard />
+            </View>
+          ) : (
+            <View className="py-12 items-center justify-center bg-white rounded-2xl border border-[#BFD6EA] px-6">
+              <View className="h-14 w-14 bg-[#EAF2F7] rounded-full items-center justify-center mb-2">
+                <Ionicons name="search-outline" size={26} color="#BFD6EA" />
+              </View>
+              <Text className="text-sm text-[#1F3A5F] font-bold text-center">
+                No matching resources found
+              </Text>
+              <Text className="text-xs text-[#4F6B82] font-medium text-center mt-1 leading-4">
+                Try searching for a different keyword or switch categories.
+              </Text>
+            </View>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

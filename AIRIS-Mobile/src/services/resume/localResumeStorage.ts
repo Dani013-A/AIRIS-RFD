@@ -68,14 +68,24 @@ export async function saveResumeLocally(
 
     const checksum = computeChecksum(rawText);
 
-    // 1. Copy the original file from the picker temp path to standard directory
+    // 1. Copy the original file from the picker temp path to standard directory if provided
     const fileExtension = fileName.split(".").pop() || "";
     const localFileName = `original_resume.${fileExtension}`;
     const localFileUri = `${userVersionDir}${localFileName}`;
-    await copyAsync({
-      from: fileUri,
-      to: localFileUri,
-    });
+
+    if (fileUri && fileUri.trim() !== "") {
+      try {
+        const sourceInfo = await getInfoAsync(fileUri);
+        if (sourceInfo.exists) {
+          await copyAsync({
+            from: fileUri,
+            to: localFileUri,
+          });
+        }
+      } catch (copyErr) {
+        console.log("[Local Resume Storage] Skipped binary copy or file not found:", copyErr);
+      }
+    }
 
     // 2. Save the raw extracted text as a text file
     const localTextUri = `${userVersionDir}extracted_text.txt`;
@@ -101,9 +111,13 @@ export async function saveResumeLocally(
     };
 
     // Attempt to query file size info
-    const fileInfo = await getInfoAsync(localFileUri);
-    if (fileInfo.exists) {
-      metadata.fileSize = fileInfo.size;
+    try {
+      const fileInfo = await getInfoAsync(localFileUri);
+      if (fileInfo.exists) {
+        metadata.fileSize = fileInfo.size;
+      }
+    } catch {
+      // Ignore
     }
 
     const metadataUri = `${userVersionDir}metadata.json`;

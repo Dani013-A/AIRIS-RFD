@@ -8,6 +8,8 @@ import { useAuthStore } from "../../store/authStore";
 import { useResumeStore } from "../../store/resumeStore";
 
 import { getAiRecommendationsForResume } from "../../data/learningRecommendations";
+import { getGrowthPathRecommendations } from "../../services/learning/learningCatalogService";
+import { SkeletonScoreCard, SkeletonResourceCard } from "../../components/ui";
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -23,6 +25,7 @@ export default function DashboardScreen() {
   const [showScoreMath, setShowScoreMath] = useState(false);
   const [showAtsMatchDetails, setShowAtsMatchDetails] = useState(false);
   const [showAtsCompatDetails, setShowAtsCompatDetails] = useState(false);
+  const [infoModalContent, setInfoModalContent] = useState<{ title: string; explanation: string; roleDependence: string } | null>(null);
 
   const isProcessing =
     processingStatus === "extracting" ||
@@ -31,7 +34,7 @@ export default function DashboardScreen() {
     processingStatus === "analyzing" ||
     processingStatus === "saving";
 
-  if (isProcessing) {
+  if (isProcessing && !activeAnalysis) {
     const isStageDone = (stage: string) => {
       const order = ["extracting", "validating", "parsing", "analyzing", "saving"];
       return order.indexOf(processingStatus) > order.indexOf(stage);
@@ -59,16 +62,15 @@ export default function DashboardScreen() {
         <View className="py-6 items-center justify-center flex-1">
           <Text className="mt-4 text-2xl font-extrabold text-[#1F3A5F] text-center">Analyzing your resume</Text>
           <Text className="mt-3 text-center text-sm text-[#4F6B82] px-4 leading-5 mb-10">
-            AIRIS is reviewing your resume structure, skills, experience, and target-role alignment.
-            This may take a little while. Please keep the app open while we finish.
+            AIRIS is reviewing your resume structure, skills, experience, and target-role alignment against {currentUser?.targetPosition || "your target role"}.
           </Text>
 
           <View className="w-full bg-white p-6 rounded-3xl shadow-sm border border-[#BFD6EA]">
             {renderStage("extracting", "Reading resume content")}
             {renderStage("validating", "Checking document structure")}
             {renderStage("parsing", "Identifying education & experience sections")}
-            {renderStage("analyzing", "Analyzing skills and role alignment")}
-            {renderStage("saving", "Finding improvement opportunities")}
+            {renderStage("analyzing", `Matching alignment to ${currentUser?.targetPosition || "target role"}`)}
+            {renderStage("saving", "Finding improvement opportunities & saving")}
           </View>
         </View>
       </SafeAreaView>
@@ -85,7 +87,7 @@ export default function DashboardScreen() {
       if (supported) {
         await Linking.openURL(url);
       } else {
-        Alert.alert("Link Error", "Cannot open this URL on your device.");
+        Alert.alert("Link Error", "Cannot open this official link on your device.");
       }
     } catch {
       Alert.alert("Link Error", "Failed to open official link.");
@@ -96,10 +98,14 @@ export default function DashboardScreen() {
     setExpandedBreakdown(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  if (loading) {
+  if (loading && !activeAnalysis) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-[#F4F8FB]">
-        <ActivityIndicator size="large" color="#F4A47A" />
+      <SafeAreaView className="flex-1 bg-[#F4F8FB] px-6" edges={["top", "left", "right"]}>
+        <View className="py-6">
+          <SkeletonScoreCard />
+          <SkeletonResourceCard />
+          <SkeletonResourceCard />
+        </View>
       </SafeAreaView>
     );
   }
@@ -171,18 +177,25 @@ export default function DashboardScreen() {
   const getConcept = (ruleId: string) => ruleId.replace("match_", "").replace(/_/g, " ");
 
   const detectedSections = activeAnalysis.detectedSections || [];
-  const allRecommendations = getAiRecommendationsForResume(
-    activeAnalysis,
-    currentUser?.degreeProgram || "",
-    currentUser?.targetPosition || "",
-  );
 
-  const filteredRecommendations = allRecommendations.filter((r) => {
-    if (activeTab === "certification") {
-      return r.type === "certification" || r.type === "documentation" || r.type === "learning-path";
-    }
-    return r.type === activeTab;
-  });
+  // Dynamically compute authoritative growth path recommendations (gap-driven, deduplicated, validated)
+  const growthPaths = React.useMemo(() => {
+    return getGrowthPathRecommendations({
+      targetPosition: currentUser?.targetPosition || "",
+      degreeProgram: currentUser?.degreeProgram || "",
+      activeResume,
+      activeAnalysis,
+    });
+  }, [currentUser?.targetPosition, currentUser?.degreeProgram, activeResume, activeAnalysis]);
+
+  let filteredRecommendations: any[] = [];
+  if (activeTab === "certification") {
+    filteredRecommendations = growthPaths.certifications;
+  } else if (activeTab === "course") {
+    filteredRecommendations = growthPaths.courses;
+  } else if (activeTab === "seminar") {
+    filteredRecommendations = growthPaths.practicalLearning;
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-[#F4F8FB]" edges={["top", "left", "right"]}>
@@ -201,8 +214,40 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </View>
 
+          {isProcessing && activeAnalysis && (
+            <View className="mb-6 p-4 bg-[#FEF5F1] rounded-2xl border border-[#F4A47A] flex-row items-center shadow-sm">
+              <ActivityIndicator size="small" color="#CA5D25" className="mr-3" />
+              <View className="flex-1">
+                <Text className="text-xs font-bold text-[#CA5D25] uppercase tracking-wider">
+                  Updating Career Analysis
+                </Text>
+                <Text className="text-xs text-[#4F6B82] mt-0.5">
+                  Evaluating alignment against {currentUser?.targetPosition || "new target role"}...
+                </Text>
+              </View>
+            </View>
+          )}
+
           <View className="items-center mb-6">
-            <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-widest mb-2">Your Resume Score</Text>
+            <View className="flex-row items-center gap-1.5 mb-2">
+              <Text className="text-[11px] font-bold text-[#4F6B82] uppercase tracking-widest">
+                Overall ATS Score
+              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  setInfoModalContent({
+                    title: "Overall ATS Score",
+                    explanation:
+                      "Combines your resume's intrinsic strength with how well it matches your current target role.",
+                    roleDependence:
+                      "Calculated as 50% Intrinsic Resume Score + 50% Target Match / Role Relevance.",
+                  })
+                }
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="information-circle-outline" size={16} color="#4F6B82" />
+              </TouchableOpacity>
+            </View>
             <Text className="text-[80px] leading-[90px] font-black text-[#1F3A5F]">{overallScore}</Text>
             <View className={`mt-2 px-5 py-2 rounded-full ${overallScore >= 70 ? 'bg-[#D7F1ED] border border-[#79D5C8]' : 'bg-[#FDEEE6] border border-[#F4A47A]'}`} style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1, elevation: 1 }}>
                <Text className={`text-sm font-bold ${overallScore >= 70 ? 'text-[#1E5D53]' : 'text-[#CA5D25]'}`}>
@@ -210,7 +255,7 @@ export default function DashboardScreen() {
                </Text>
             </View>
             <TouchableOpacity onPress={() => setShowScoreMath(!showScoreMath)} className="mt-3 bg-[#F4F8FB] px-4 py-2 rounded-full border border-[#EAF2F7] flex-row items-center" style={{ alignSelf: 'center' }}>
-              <Text className="text-[10px] font-bold text-[#4F6B82] mr-2 text-center flex-shrink" style={{ flexShrink: 1 }}>Score = Resume Score 50% + Role Relevance 50%</Text>
+              <Text className="text-[10px] font-bold text-[#4F6B82] mr-2 text-center flex-shrink" style={{ flexShrink: 1 }}>Score = Intrinsic 50% + Target Match 50%</Text>
               <Ionicons name={showScoreMath ? "chevron-up" : "chevron-down"} size={14} color="#8B95A5" />
             </TouchableOpacity>
 
@@ -224,11 +269,11 @@ export default function DashboardScreen() {
                   {activeAnalysis.atsScore.resumeScore && activeAnalysis.atsScore.roleRelevance ? (
                     <>
                       <View className="flex-row justify-between items-center">
-                        <Text className="text-xs font-bold text-[#4F6B82]">Resume Score</Text>
+                        <Text className="text-xs font-bold text-[#4F6B82]">Intrinsic Resume Score</Text>
                         <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.resumeScore.total}/100 × 50% = <Text className="font-bold text-[#1F3A5F] text-xs">{Number.isInteger(activeAnalysis.atsScore.resumeScore.total * 0.5) ? (activeAnalysis.atsScore.resumeScore.total * 0.5) : (activeAnalysis.atsScore.resumeScore.total * 0.5).toFixed(1)}</Text></Text>
                       </View>
                       <View className="flex-row justify-between items-center">
-                        <Text className="text-xs font-bold text-[#4F6B82]">Role Relevance</Text>
+                        <Text className="text-xs font-bold text-[#4F6B82]">Target Match / Role Relevance</Text>
                         <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.total}/100 × 50% = <Text className="font-bold text-[#1F3A5F] text-xs">{Number.isInteger(activeAnalysis.atsScore.roleRelevance.total * 0.5) ? (activeAnalysis.atsScore.roleRelevance.total * 0.5) : (activeAnalysis.atsScore.roleRelevance.total * 0.5).toFixed(1)}</Text></Text>
                       </View>
                     </>
@@ -249,7 +294,7 @@ export default function DashboardScreen() {
 
                   <View className="h-[1px] bg-[#EAF2F7] my-2" />
                   <View className="flex-row justify-between items-center bg-[#F4F8FB] -mx-5 -mb-5 p-5">
-                    <Text className="text-xs font-black text-[#1F3A5F] uppercase tracking-widest">Overall Resume Score</Text>
+                    <Text className="text-xs font-black text-[#1F3A5F] uppercase tracking-widest">Overall ATS Score</Text>
                     <Text className="text-lg font-black text-[#1F3A5F]">≈ {overallScore}</Text>
                   </View>
                 </View>
@@ -262,13 +307,31 @@ export default function DashboardScreen() {
           {/* Resume Score Intrinsic Card */}
           <View className="bg-white rounded-2xl border border-[#BFD6EA] mx-6 mb-4 overflow-hidden" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
             <TouchableOpacity onPress={() => setShowAtsCompatDetails(!showAtsCompatDetails)} className="flex-row items-center justify-between p-5">
-              <View>
-                <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-widest mb-1">Intrinsic Value</Text>
+              <View className="flex-1 pr-3">
+                <View className="flex-row items-center gap-1.5 mb-1">
+                  <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-widest">Intrinsic Strength</Text>
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setInfoModalContent({
+                        title: "Intrinsic Resume Score",
+                        explanation:
+                          "Measures the strength of your resume itself, independent of your target role.",
+                        roleDependence:
+                          "It does NOT change when you switch your target career. Evaluates format completeness, action verbs, and skill depth.",
+                      });
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="information-circle-outline" size={15} color="#4F6B82" />
+                  </TouchableOpacity>
+                </View>
                 <View className="flex-row items-baseline">
                   <Text className="text-3xl font-black text-[#1F3A5F]">{activeAnalysis.atsScore.resumeScore?.total ?? 0}</Text>
                   <Text className="text-lg font-bold text-[#8B95A5]">/100</Text>
                 </View>
-                <Text className="text-xs font-bold text-[#1F3A5F] mt-1">Resume Score</Text>
+                <Text className="text-xs font-bold text-[#1F3A5F] mt-1">Intrinsic Resume Score</Text>
+                <Text className="text-[11px] text-[#8B95A5] mt-0.5">Independent of target role</Text>
               </View>
               <Ionicons name={showAtsCompatDetails ? "chevron-up" : "chevron-down"} size={20} color="#8B95A5" />
             </TouchableOpacity>
@@ -299,13 +362,32 @@ export default function DashboardScreen() {
           {/* Role Relevance Diagnostic */}
           <View className="bg-white rounded-2xl border border-[#BFD6EA] mx-6 mb-4 overflow-hidden" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
             <TouchableOpacity onPress={() => setShowAtsMatchDetails(!showAtsMatchDetails)} className="flex-row items-center justify-between p-5">
-              <View>
-                <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-widest mb-1">Target Match</Text>
+              <View className="flex-1 pr-3">
+                <View className="flex-row items-center gap-1.5 mb-1">
+                  <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-widest">Target Alignment</Text>
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setInfoModalContent({
+                        title: "Target Match / Role Relevance",
+                        explanation: `Measures how closely your resume matches your current target position (${currentUser?.targetPosition || "target role"}).`,
+                        roleDependence:
+                          "Dynamically recalculates whenever you switch your preferred career in Profile settings.",
+                      });
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="information-circle-outline" size={15} color="#4F6B82" />
+                  </TouchableOpacity>
+                </View>
                 <View className="flex-row items-baseline">
                   <Text className="text-3xl font-black text-[#1F3A5F]">{activeAnalysis.atsScore.roleRelevance?.total ?? 0}</Text>
                   <Text className="text-lg font-bold text-[#8B95A5]">/100</Text>
                 </View>
-                <Text className="text-xs font-bold text-[#1F3A5F] mt-1">Role Relevance</Text>
+                <Text className="text-xs font-bold text-[#1F3A5F] mt-1">Target Match / Role Relevance</Text>
+                <Text className="text-[11px] text-[#CA5D25] font-semibold mt-0.5">
+                  Match to {currentUser?.targetPosition || "Target Role"}
+                </Text>
               </View>
               <Ionicons name={showAtsMatchDetails ? "chevron-up" : "chevron-down"} size={20} color="#8B95A5" />
             </TouchableOpacity>
@@ -561,11 +643,11 @@ export default function DashboardScreen() {
             <TouchableOpacity onPress={() => setActiveTab("certification")} className={`flex-1 py-2.5 rounded-lg items-center ${activeTab === "certification" ? "bg-white border border-[#BFD6EA]" : ""}`} style={activeTab === "certification" ? { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1, elevation: 1 } : {}}>
               <Text className={`text-xs font-bold ${activeTab === "certification" ? "text-[#1F3A5F]" : "text-[#4F6B82]"}`}>Certifications</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setActiveTab("seminar")} className={`flex-1 py-2.5 rounded-lg items-center ${activeTab === "seminar" ? "bg-white border border-[#BFD6EA]" : ""}`} style={activeTab === "seminar" ? { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1, elevation: 1 } : {}}>
-              <Text className={`text-xs font-bold ${activeTab === "seminar" ? "text-[#1F3A5F]" : "text-[#4F6B82]"}`}>Seminars</Text>
-            </TouchableOpacity>
             <TouchableOpacity onPress={() => setActiveTab("course")} className={`flex-1 py-2.5 rounded-lg items-center ${activeTab === "course" ? "bg-white border border-[#BFD6EA]" : ""}`} style={activeTab === "course" ? { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1, elevation: 1 } : {}}>
               <Text className={`text-xs font-bold ${activeTab === "course" ? "text-[#1F3A5F]" : "text-[#4F6B82]"}`}>Courses</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setActiveTab("seminar")} className={`flex-1 py-2.5 rounded-lg items-center ${activeTab === "seminar" ? "bg-white border border-[#BFD6EA]" : ""}`} style={activeTab === "seminar" ? { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1, elevation: 1 } : {}}>
+              <Text className={`text-xs font-bold ${activeTab === "seminar" ? "text-[#1F3A5F]" : "text-[#4F6B82]"}`}>Learn & Practice</Text>
             </TouchableOpacity>
           </View>
 
@@ -595,19 +677,15 @@ export default function DashboardScreen() {
                   </View>
                 )}
 
-                <View className="flex-row gap-3 mt-1">
+                <View className="mt-1">
                   <TouchableOpacity
                     onPress={() => handleOpenOfficialLink(item.url)}
-                    className="flex-1 h-12 flex-row items-center justify-center rounded-xl bg-[#EAF2F7] border border-[#BFD6EA]"
+                    className="h-12 flex-row items-center justify-center rounded-xl bg-[#EAF2F7] border border-[#BFD6EA]"
                   >
-                    <Text className="text-xs font-bold text-[#1F3A5F] mr-2">Official Resource</Text>
+                    <Text className="text-xs font-bold text-[#1F3A5F] mr-2">
+                      {item.type === "certification" ? "View Certification" : item.type === "course" ? "View Course" : "Explore Resource"}
+                    </Text>
                     <Ionicons name="open-outline" size={16} color="#1F3A5F" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => router.push(`/(student)/(tabs)/learn?search=${encodeURIComponent(item.title)}` as any)}
-                    className="h-12 px-5 items-center justify-center rounded-xl border border-[#BFD6EA] bg-white"
-                  >
-                    <Ionicons name="search" size={18} color="#4F6B82" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -616,7 +694,7 @@ export default function DashboardScreen() {
             {filteredRecommendations.length === 0 && (
               <View className="items-center py-12 bg-[#F4F8FB] rounded-2xl border border-dashed border-[#BFD6EA]">
                 <Ionicons name="document-text-outline" size={32} color="#BFD6EA" className="mb-2" />
-                <Text className="text-sm font-bold text-[#8B95A5]">No {activeTab}s recommended right now.</Text>
+                <Text className="text-sm font-bold text-[#8B95A5]">No {activeTab === "seminar" ? "practical resources" : `${activeTab}s`} recommended right now.</Text>
               </View>
             )}
           </View>
@@ -661,6 +739,54 @@ export default function DashboardScreen() {
             </ScrollView>
           </View>
         </View>
+      </Modal>
+
+      {/* SCORE INFO TOOLTIP MODAL */}
+      <Modal
+        visible={!!infoModalContent}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setInfoModalContent(null)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setInfoModalContent(null)}
+          className="flex-1 justify-center items-center px-6"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-[#BFD6EA]"
+          >
+            <View className="flex-row items-center justify-between pb-3 border-b border-[#EAF2F7]">
+              <Text className="text-base font-extrabold text-[#1F3A5F]">
+                {infoModalContent?.title}
+              </Text>
+              <TouchableOpacity onPress={() => setInfoModalContent(null)} className="h-8 w-8 items-center justify-center bg-[#EAF2F7] rounded-full">
+                <Ionicons name="close" size={18} color="#1F3A5F" />
+              </TouchableOpacity>
+            </View>
+
+            <Text className="mt-4 text-sm leading-6 text-[#1F3A5F] font-medium">
+              {infoModalContent?.explanation}
+            </Text>
+
+            {infoModalContent?.roleDependence ? (
+              <View className="mt-3 p-3.5 bg-[#F4F8FB] rounded-xl border border-[#BFD6EA]">
+                <Text className="text-xs font-semibold text-[#4F6B82] leading-5">
+                  {infoModalContent.roleDependence}
+                </Text>
+              </View>
+            ) : null}
+
+            <TouchableOpacity
+              onPress={() => setInfoModalContent(null)}
+              className="mt-5 h-12 bg-[#CA5D25] rounded-xl items-center justify-center shadow-sm"
+            >
+              <Text className="text-xs font-bold text-white uppercase tracking-wider">Got It</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );
