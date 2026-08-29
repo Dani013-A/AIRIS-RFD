@@ -433,18 +433,33 @@ export default function LearningScreen({ initialCategory = "interviews" }: Learn
 
             {learningSnap?.strengths && learningSnap.strengths.length > 0 && (
               <View className="mt-2 pt-2 border-t border-[#EAF2F7]">
-                <Text className="text-[9px] font-bold text-[#4F6B82] uppercase tracking-wider mb-1.5">
-                  Resume Strengths
-                </Text>
-                <View className="flex-row flex-wrap gap-1.5">
-                  {learningSnap.strengths.map((str, sIdx) => (
-                    <View key={sIdx} className="bg-[#D7F1ED]/40 border border-[#79D5C8]/50 px-2.5 py-0.5 rounded-full flex-row items-center">
-                      <Ionicons name="checkmark-circle" size={11} color="#1E5D53" style={{ marginRight: 3 }} />
-                      <Text className="text-[10px] font-bold text-[#1E5D53]">{str}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
+  <Text className="text-[9px] font-bold text-[#4F6B82] uppercase tracking-wider mb-1.5">
+    Resume Strengths
+  </Text>
+
+  <View className="flex-row flex-wrap gap-1.5">
+    {learningSnap.strengths.map((str, sIdx) => (
+      <View
+        key={sIdx}
+        className="bg-[#D7F1ED]/40 border border-[#79D5C8]/50 px-2.5 py-1.5 rounded-full flex-row items-start max-w-full"
+      >
+        <Ionicons
+          name="checkmark-circle"
+          size={11}
+          color="#1E5D53"
+          style={{ marginRight: 4, marginTop: 1 }}
+        />
+
+        <Text
+          className="text-[10px] font-bold text-[#1E5D53] flex-shrink"
+          style={{ maxWidth: 300 }}
+        >
+          {str}
+        </Text>
+      </View>
+    ))}
+  </View>
+</View>
             )}
           </View>
         )}

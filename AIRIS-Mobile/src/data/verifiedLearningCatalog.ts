@@ -31,7 +31,7 @@ export const VERIFIED_LEARNING_CATALOG: LearningResource[] = [
     category: "interviews",
     careerPaths: ["all career paths", "all tech roles"],
     skills: ["interviewing", "behavioral interviews", "star method", "communication"],
-    url: "https://www.youtube.com/watch?v=0nTRi3fZzG0",
+    url: "https://www.youtube.com/watch?v=uQEuo7woEEk ",
     thumbnailUrl: "https://img.youtube.com/vi/0nTRi3fZzG0/hqdefault.jpg",
     isVerified: true,
     isActive: true,
