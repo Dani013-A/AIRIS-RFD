@@ -98,7 +98,17 @@ async def analyze_resume(request: Request):
             from resume_parser import parse_resume
             parsed_sections = parse_resume(raw_text)
 
-        target_pos = str(analysis_payload.get("targetPosition") or analysis_payload.get("target_position") or "Software Engineer")
+        target_pos = str(analysis_payload.get("targetPosition") or analysis_payload.get("target_position") or "").strip()
+        if not target_pos:
+            raise HTTPException(status_code=400, detail="Target position is required for resume analysis.")
+
+        # Validate resume content BEFORE expensive SBERT / LLM analysis
+        if not is_resume_valid(parsed_sections, raw_text):
+            return {
+                "valid": False,
+                "message": "The provided data does not appear to be a valid resume.",
+                "analysisId": None,
+            }
 
         skills_text = str(parsed_sections.get("Skills", ""))
         experience_text = str(parsed_sections.get("WorkExperience", "") or parsed_sections.get("Experience", ""))
@@ -115,14 +125,6 @@ async def analyze_resume(request: Request):
             target_position=target_pos,
             sbert_results=sbert_results
         )
-
-        # Validate resume content using parsed sections
-        if not is_resume_valid(parsed_sections):
-            return {
-                "valid": False,
-                "message": "The provided data does not appear to be a valid resume.",
-                "analysisId": None,
-            }
 
         analysis_id = str(uuid.uuid4())
         response = {
@@ -143,6 +145,8 @@ async def analyze_resume(request: Request):
 
         return response
 
+    except HTTPException:
+        raise
     except Exception as e:
         print("Analysis error:", e)
         raise HTTPException(status_code=500, detail="An internal error occurred during analysis.")
@@ -155,10 +159,12 @@ async def upload_resume(
 ):
     """
     Accept a resume file, extract raw text, parse sections, and run analysis.
-    Guaranteed immune to 422 Unprocessable Content errors.
     """
     try:
-        selected_position = targetPosition or target_position or "Software Engineer"
+        selected_position = (targetPosition or target_position or "").strip()
+        if not selected_position:
+            raise HTTPException(status_code=400, detail="Target position is required for upload analysis.")
+
         filename = getattr(file, "filename", "uploaded_resume.pdf") or "uploaded_resume.pdf"
         content = await file.read()
         raw_text = extract_text(content, filename)
@@ -166,7 +172,7 @@ async def upload_resume(
         from resume_parser import parse_resume
         parsed_sections = parse_resume(raw_text)
 
-        if not is_resume_valid(parsed_sections):
+        if not is_resume_valid(parsed_sections, raw_text):
             return {
                 "valid": False,
                 "message": "The provided file does not appear to be a valid resume.",
@@ -201,9 +207,12 @@ async def upload_resume(
             "analyzedAt": enhanced_result.get("analyzedAt", ""),
             "analysisVersion": "1.1.0-sbert",
         }
+    except HTTPException:
+        raise
     except Exception as e:
         print("Upload analysis error:", e)
         raise HTTPException(status_code=500, detail="An internal error occurred during upload analysis.")
+
 @app.post("/normalize")
 def normalize_input(req: NormalizationRequest):
     """
@@ -218,14 +227,14 @@ def normalize_input(req: NormalizationRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 class InterviewStartRequest(BaseModel):
-    targetRole: str
-    program: str
-    parsedResume: Dict[str, Any]
+    targetRole: Optional[str] = None
+    program: Optional[str] = None
+    parsedResume: Optional[Dict[str, Any]] = None
 
 class InterviewAnswerRequest(BaseModel):
-    targetRole: str
-    program: str
-    parsedResume: Dict[str, Any]
+    targetRole: Optional[str] = None
+    program: Optional[str] = None
+    parsedResume: Optional[Dict[str, Any]] = None
     history: List[Dict[str, Any]]
     currentQuestion: str
     currentAnswer: str
@@ -233,9 +242,9 @@ class InterviewAnswerRequest(BaseModel):
     totalQuestions: int
 
 class InterviewReportRequest(BaseModel):
-    targetRole: str
-    program: str
-    parsedResume: Dict[str, Any]
+    targetRole: Optional[str] = None
+    program: Optional[str] = None
+    parsedResume: Optional[Dict[str, Any]] = None
     history: List[Dict[str, Any]]
     evaluations: List[Dict[str, Any]]
 
@@ -244,15 +253,24 @@ import datetime
 @app.post("/interview/start")
 def start_interview(req: InterviewStartRequest):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{timestamp}] [INTERVIEW] Starting session for target role: {req.targetRole}")
+    target_role = (req.targetRole or "").strip()
+    if not target_role:
+        raise HTTPException(status_code=400, detail="Target role is required to start an interview session.")
+
+    program = (req.program or "").strip()
+    parsed_resume = req.parsedResume if isinstance(req.parsedResume, dict) else {}
+
+    print(f"[{timestamp}] [INTERVIEW] Starting session for target role: {target_role}")
     try:
         from interview_engine import generate_first_question
-        result = generate_first_question(req.targetRole, req.program, req.parsedResume)
+        result = generate_first_question(target_role, program, parsed_resume)
         print(f"[{timestamp}] [INTERVIEW] Successfully generated first question.")
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[{timestamp}] [INTERVIEW ERROR] Start Error:", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to generate interview question: {str(e)}")
 
 @app.post("/interview/answer")
 def evaluate_interview_answer(req: InterviewAnswerRequest):

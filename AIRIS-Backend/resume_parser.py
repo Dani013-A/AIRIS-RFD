@@ -18,7 +18,11 @@ SECTION_ALIASES = {
 }
 
 def _normalize_heading(text: str) -> str:
-    return re.sub(r'[^a-z0-9]', '', text.lower())
+    text_clean = text.lower()
+    # Collapse spaced letters like "e d u c a t i o n" -> "education"
+    text_collapsed = re.sub(r'\b([a-z])\s+([a-z])\s+([a-z])\b', r'\1\2\3', text_clean)
+    text_collapsed = re.sub(r'\b([a-z])\s+([a-z])\b', r'\1\2', text_collapsed)
+    return re.sub(r'[^a-z0-9]', '', text_collapsed)
 
 NORMALIZED_ALIASES = {}
 for section, aliases in SECTION_ALIASES.items():
@@ -35,15 +39,21 @@ def _is_probable_heading(line: str) -> bool:
 
 def _detect_section_heading(line: str) -> str:
     stripped = line.strip()
-    norm = _normalize_heading(stripped)
+    # Support inline colon headings e.g. "SKILLS: Revit" or "EXPERIENCE: Intern"
+    header_part = stripped.split(":", 1)[0].strip() if ":" in stripped else stripped
+    norm = _normalize_heading(header_part)
     if norm in NORMALIZED_ALIASES:
         return NORMALIZED_ALIASES[norm]
 
-    if _is_probable_heading(stripped):
+    full_norm = _normalize_heading(stripped)
+    if full_norm in NORMALIZED_ALIASES:
+        return NORMALIZED_ALIASES[full_norm]
+
+    if _is_probable_heading(header_part):
         for alias_norm, section in NORMALIZED_ALIASES.items():
             if len(alias_norm) > 4 and alias_norm in norm:
                 return section
-        return "Custom_" + re.sub(r'[^a-zA-Z0-9]', '', stripped)
+        return "Custom_" + re.sub(r'[^a-zA-Z0-9]', '', header_part)
     return None
 
 def parse_resume(text: str) -> Dict[str, str]:
@@ -72,6 +82,10 @@ def parse_resume(text: str) -> Dict[str, str]:
         if heading:
             current_key = heading
             sections.setdefault(current_key, [])
+            if ":" in line:
+                body_after_colon = line.split(":", 1)[1].strip()
+                if body_after_colon:
+                    sections[current_key].append(body_after_colon)
             continue
 
         if current_key is None:

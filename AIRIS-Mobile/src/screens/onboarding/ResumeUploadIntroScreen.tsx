@@ -112,6 +112,21 @@ export default function ResumeUploadIntroScreen() {
         return;
       }
 
+      const targetPosition = (currentUser?.targetPosition || "").trim();
+      if (!targetPosition) {
+        Alert.alert(
+          "Target Position Required",
+          "Please select a target position before uploading your resume.",
+          [
+            {
+              text: "Select Target Position",
+              onPress: () => router.push("/(student)/(onboarding)/job-selection" as any),
+            },
+          ]
+        );
+        return;
+      }
+
       clearAnalysisState();
       useResumeStore.getState().setProcessingStatus("extracting");
       setUploadStage("uploading");
@@ -138,7 +153,7 @@ export default function ResumeUploadIntroScreen() {
       try {
         const uploadResult = await uploadResumeFileWithProgress(
           { ...selectedFile, size: initialSize },
-          currentUser.targetPosition || "Software Developer",
+          targetPosition,
           (progressEvent: UploadProgressEvent) => {
             setUploadProgress(progressEvent.progress);
             setBytesUploaded({ loaded: progressEvent.loaded, total: progressEvent.total || initialSize });
@@ -165,9 +180,8 @@ export default function ResumeUploadIntroScreen() {
           extractedText = await extractTextFromFile(selectedFile.uri, selectedFile.name, selectedFile.mimeType);
         } else {
           const fullName = currentUser.fullName || "Student";
-          const college = currentUser.college || "College of Computer Studies";
-          const degreeProgram = currentUser.degreeProgram || "Information Technology";
-          const targetPosition = currentUser.targetPosition || "Software Developer";
+          const college = currentUser.college || "";
+          const degreeProgram = currentUser.degreeProgram || "";
           extractedText = getMockResumeText(fullName, college, degreeProgram, targetPosition);
         }
 

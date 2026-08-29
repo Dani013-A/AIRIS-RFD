@@ -3,26 +3,96 @@ import uuid
 from typing import Dict, Any, List
 from ai_service import generate_text_with_fallback, evaluate_intrinsic_resume_strength
 
-def is_resume_valid(parsed_sections: Dict[str, str]) -> bool:
-    """Enhanced heuristic to determine if a document appears to be a resume.
-    Tolerant of various layout structures, sizes, and section naming conventions.
+def is_resume_valid(parsed_sections: Dict[str, str], raw_text: str = "") -> bool:
+    """
+    Multidisciplinary, composite-signal validator to determine if a document is a resume.
+    Evaluates structural section diversity, text density bounds, contact information,
+    and universal cross-discipline career terminology without discipline bias.
     """
     if not parsed_sections:
         return False
 
-    combined_text = " ".join([f"{k} {v}" for k, v in parsed_sections.items()]).strip()
-    if not combined_text or len(combined_text.split()) < 3:
-        return True
     import re
+    from resume_parser import SECTION_ALIASES
+
+    CAREER_SECTIONS = {
+        "Education", "WorkExperience", "Skills", "Projects", "Certifications",
+        "Internships", "OrganizationsAndLeadership", "Achievements", "Languages",
+        "Trainings", "RelevantCoursework", "ProfessionalSummary"
+    }
+
+    combined_text = raw_text or " ".join([f"{k} {v}" for k, v in parsed_sections.items()])
+    combined_clean = combined_text.strip()
+
+    # Normalize spaced text (e.g. "E D U C A T I O N" -> "EDUCATION")
+    normalized_search = re.sub(r'(?<=\b[a-zA-Z])\s+(?=[a-zA-Z]\b)', '', combined_clean).lower()
+
+    words = combined_clean.split()
+    word_count = len(words)
+
+    # 1. Reject extremely short text (< 12 words)
+    if word_count < 12:
+        return False
+
+    # 2. Reject obvious non-resume document markers (Cover letters, Memos, Syllabi, Job Openings)
+    top_5_lines = "\n".join(combined_clean.splitlines()[:5]).lower()
+    bottom_5_lines = "\n".join(combined_clean.splitlines()[-5:]).lower()
+
+    is_cover_letter = ("dear hiring" in top_5_lines or "dear recruiter" in top_5_lines or "re: application for" in top_5_lines or "i am writing to express my" in top_5_lines or "sincerely," in bottom_5_lines)
+    is_job_opening = ("job opening:" in top_5_lines or "job summary:" in top_5_lines or "we are seeking an experienced" in top_5_lines or "salary range:" in top_5_lines or "key responsibilities:" in combined_clean.lower())
+    is_memo_or_announcement = ("announcement regarding" in top_5_lines or "policy update" in top_5_lines or "meeting minutes" in top_5_lines or "syllabus:" in top_5_lines or "course syllabus" in top_5_lines or "project summary:" in top_5_lines or "project description:" in top_5_lines or "lab activity" in top_5_lines or "laboratory activity" in top_5_lines or "activity no." in top_5_lines)
+
+    recognized_career_sections = [
+        k for k in parsed_sections.keys()
+        if k in CAREER_SECTIONS or (k not in ("Content", "ContactInformation"))
+    ]
+    career_section_count = len(recognized_career_sections)
+
+    if is_cover_letter or is_job_opening or is_memo_or_announcement:
+        return False
+
+    # 3. Contact Information Signals
     email_pattern = re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", re.IGNORECASE)
     phone_pattern = re.compile(r"(?:\+?\d{1,3})?[\s-]?\(?\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4}")
+    linkedin_pattern = re.compile(r"linkedin\.com", re.IGNORECASE)
+    github_pattern = re.compile(r"github\.com", re.IGNORECASE)
 
-    has_contact = bool(email_pattern.search(combined_text) or phone_pattern.search(combined_text))
+    has_contact = (
+        bool(email_pattern.search(combined_clean))
+        or bool(phone_pattern.search(combined_clean))
+        or bool(linkedin_pattern.search(combined_clean))
+        or bool(github_pattern.search(combined_clean))
+    )
 
-    keywords = ["education", "experience", "skills", "projects", "work", "university", "college", "degree", "intern", "developer", "engineer"]
-    matched_keywords = sum(1 for kw in keywords if kw in combined_text.lower())
+    # 4. Universal Multidisciplinary Resume Vocabulary
+    universal_resume_terms = [
+        "education", "experience", "skills", "projects", "work", "university",
+        "college", "degree", "bachelor", "master", "gpa", "intern", "internship",
+        "certification", "certificate", "curriculum vitae", "resume", "objective",
+        "summary", "responsibilities", "achievement", "award", "leadership", "background",
+        "bs", "ba", "ms", "mba", "phd"
+    ]
+    search_text = (combined_clean + " " + normalized_search).lower()
+    matched_terms = sum(1 for term in universal_resume_terms if re.search(r'\b' + re.escape(term) + r'\b', search_text))
 
-    return has_contact or matched_keywords >= 2 or len(combined_text.split()) >= 100
+    # 5. Composite Multidisciplinary Validation Rules:
+    # Path A: Strong structural evidence (>= 2 career sections)
+    if career_section_count >= 2:
+        return True
+
+    # Path B: 1 career section + (contact info OR >= 2 universal terms)
+    if career_section_count >= 1 and (has_contact or matched_terms >= 2):
+        return True
+
+    # Path C: Contact Info + Strong Universal Resume Vocabulary (>= 3 terms) for messy formatting
+    if has_contact and matched_terms >= 3:
+        return True
+
+    # Path D: Explicit Resume/CV header in top lines + (contact info OR >= 1 career section)
+    if ("resume" in top_5_lines or "curriculum vitae" in top_5_lines or "cv" in top_5_lines) and (has_contact or career_section_count >= 1):
+        return True
+
+    return False
 
 def validate_and_enhance_analysis(
     raw_text: str,

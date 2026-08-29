@@ -41,8 +41,8 @@ export default function StudentDashboardScreen() {
   }, [currentUser?.uid]);
 
   const userName = currentUser?.fullName || "Student";
-  const userProgram = currentUser?.degreeProgram || "BS Computer Science";
-  const targetJob = currentUser?.targetPosition || "Software Engineer";
+  const userProgram = currentUser?.degreeProgram || "Degree Program Not Selected";
+  const targetJob = currentUser?.targetPosition || "Target Role Not Selected";
 
   const resumeActivities = activities.filter(a => a.type === "Resume Analysis");
   const interviewActivities = activities.filter(a => a.type === "Mock Interview");

@@ -53,11 +53,18 @@ export const startInterviewSimulation = async (payload: InterviewStartRequest) =
     if (!response.ok) {
       const errText = await response.text();
       console.error(`[API Error] POST /interview/start returned ${response.status}: ${errText}`);
-      throw new Error(`HTTP error! status: ${response.status}`);
+      let userMsg = "Unable to start the interview right now. Please try again.";
+      try {
+        const parsed = JSON.parse(errText);
+        if (response.status === 400 && parsed?.detail) {
+          userMsg = parsed.detail;
+        }
+      } catch (_) {}
+      throw new Error(userMsg);
     }
     return await response.json();
   } catch (error: any) {
-    console.error('Failed to start interview:', error.message);
+    console.error('Failed to start interview:', error.message || error);
     throw error;
   }
 };
@@ -73,11 +80,18 @@ export const submitInterviewAnswer = async (payload: InterviewAnswerRequest) => 
     if (!response.ok) {
       const errText = await response.text();
       console.error(`[API Error] POST /interview/answer returned ${response.status}: ${errText}`);
-      throw new Error(`HTTP error! status: ${response.status}`);
+      let userMsg = "Unable to evaluate answer right now. Please try again.";
+      try {
+        const parsed = JSON.parse(errText);
+        if (response.status === 400 && parsed?.detail) {
+          userMsg = parsed.detail;
+        }
+      } catch (_) {}
+      throw new Error(userMsg);
     }
     return await response.json();
   } catch (error: any) {
-    console.error('Failed to submit interview answer:', error.message);
+    console.error('Failed to submit interview answer:', error.message || error);
     throw error;
   }
 };
@@ -93,11 +107,18 @@ export const generateInterviewReport = async (payload: InterviewReportRequest) =
     if (!response.ok) {
       const errText = await response.text();
       console.error(`[API Error] POST /interview/report returned ${response.status}: ${errText}`);
-      throw new Error(`HTTP error! status: ${response.status}`);
+      let userMsg = "Unable to generate interview report. Please try again.";
+      try {
+        const parsed = JSON.parse(errText);
+        if (response.status === 400 && parsed?.detail) {
+          userMsg = parsed.detail;
+        }
+      } catch (_) {}
+      throw new Error(userMsg);
     }
     return await response.json();
   } catch (error: any) {
-    console.error('Failed to generate interview report:', error.message);
+    console.error('Failed to generate interview report:', error.message || error);
     throw error;
   }
 };
@@ -116,12 +137,12 @@ export const transcribeAudio = async (uri: string, mimeType: string) => {
 
     if (response.status !== 200) {
       console.error(`[API Error] POST /interview/transcribe returned ${response.status}: ${response.body}`);
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error("Unable to transcribe audio response. Please try again.");
     }
     const data = JSON.parse(response.body);
     return data.transcription;
   } catch (error: any) {
-    console.error('Failed to transcribe audio:', error.message);
+    console.error('Failed to transcribe audio:', error.message || error);
     throw error;
   }
 };

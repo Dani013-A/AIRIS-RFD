@@ -77,15 +77,25 @@ def find_best_dataset_question(target_role: str, category: str, history: List[di
     return best_q
 
 def generate_first_question(target_role: str, program: str, parsed_resume: dict) -> Dict[str, Any]:
-    base_question = find_best_dataset_question(target_role, "introductory", [])
+    safe_target_role = (target_role or "").strip()
+    if not safe_target_role:
+        raise ValueError("target_role is required for question generation.")
+
+    safe_program = (program or "").strip()
+    program_context = f"    Degree Program: {safe_program}\n" if safe_program else ""
+    safe_resume = parsed_resume if isinstance(parsed_resume, dict) else {}
+
+    base_question = find_best_dataset_question(safe_target_role, "introductory", [])
     benchmark_answer = base_question.get("idealAnswer", "")
 
+    resume_str = json.dumps(safe_resume, default=str)
+
     prompt = f"""
-    You are an expert, professional, and rigorous technical interviewer. You are interviewing a fresh graduate for the role of '{target_role}'.
+    You are an expert, professional, and rigorous technical interviewer. You are interviewing a fresh graduate for the role of '{safe_target_role}'.
 
     CANDIDATE CONTEXT:
-    Degree Program: {program}
-    Resume Data: {json.dumps(parsed_resume)}
+    Target Role: {safe_target_role}
+{program_context}    Resume Data: {resume_str}
 
     BASE KNOWLEDGE QUESTION:
     "{base_question.get("text")}"
@@ -106,9 +116,11 @@ def generate_first_question(target_role: str, program: str, parsed_resume: dict)
 
     raw_response = generate_text_with_fallback(prompt)
     extracted_json = _extract_json(raw_response)
-    # Inject the benchmark answer so the frontend can store it and send it back
-    extracted_json["benchmarkAnswer"] = benchmark_answer
-    return extracted_json
+    if isinstance(extracted_json, dict) and extracted_json.get("question"):
+        extracted_json["benchmarkAnswer"] = benchmark_answer
+        return extracted_json
+
+    raise ValueError("LLM response did not return a valid question JSON structure.")
 
 def classify_interaction_intent(current_question: str, current_answer: str) -> dict:
     prompt = f"""
