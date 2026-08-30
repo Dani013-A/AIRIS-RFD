@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
 import { NativeModules, Platform } from "react-native";
-import { analyzeResume, parseResumeSections, type ResumeAnalysisResult } from "./resumeAnalysisEngine";
+import { analyzeResume, parseResumeSections, detectResumeSections, type ResumeAnalysisResult } from "./resumeAnalysisEngine";
 
 /**
  * Returns prioritized backend candidate URLs supporting dynamic host IP extraction
@@ -115,6 +115,15 @@ export async function uploadResumeFileWithProgress(
 
         const sections = result.parsedSections || {};
         const rawText = result.rawText || Object.values(sections).join("\n\n");
+
+        if (result.atsScore) {
+          result.parsedSections = sections;
+          if (!result.detectedSections || result.detectedSections.length === 0) {
+            const parsed = parseResumeSections(rawText);
+            result.detectedSections = detectResumeSections(parsed);
+          }
+        }
+
         return {
           rawText,
           parsedSections: sections,
@@ -200,10 +209,13 @@ export async function calculateAtsCompatibility(
           throw new Error(result.message || 'Invalid resume according to backend validation.');
         }
 
-        // Ensure array properties exist to prevent frontend `.some()` crashes
-        result.detectedSections = result.detectedSections || [];
-        result.missingSections = result.missingSections || [];
+        // Ensure array properties exist and derive detectedSections if empty
         result.parsedSections = result.parsedSections || {};
+        if (!result.detectedSections || result.detectedSections.length === 0) {
+          const parsed = parseResumeSections(rawText);
+          result.detectedSections = detectResumeSections(parsed);
+        }
+        result.missingSections = result.missingSections || [];
 
         console.log("SBERT Analysis completed successfully from backend!");
         return result as ResumeAnalysisResult;

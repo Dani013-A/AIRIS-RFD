@@ -10,6 +10,8 @@ export type ResumeProcessingStatus =
   | "validating"
   | "parsing"
   | "analyzing"
+  | "awaiting_self_assessment"
+  | "finalizing"
   | "saving"
   | "completed"
   | "failed";

@@ -4,17 +4,17 @@ from typing import Dict, List
 SECTION_ALIASES = {
     "ContactInformation": ["contact", "contact information", "contact details", "personal information", "personal details", "contactinfo"],
     "ProfessionalSummary": ["summary", "professional summary", "career summary", "profile", "professional profile", "objective", "about me", "about"],
-    "WorkExperience": ["experience", "work experience", "professional experience", "employment", "employment history", "work history", "history"],
+    "WorkExperience": ["experience", "work experience", "professional experience", "employment", "employment history", "work history", "history", "career history", "relevant experience", "practical experience", "professional background"],
     "Internships": ["internship", "internships", "internship experience", "on the job training", "ojt", "practicum"],
-    "Education": ["education", "educational background", "academic background", "academic history"],
+    "Education": ["education", "educational background", "academic background", "academic history", "education & qualifications", "education and qualifications", "academic qualifications", "academic profile"],
     "RelevantCoursework": ["relevant coursework", "coursework", "relevant courses", "academic coursework", "subjects"],
-    "Skills": ["skills", "technical skills", "core skills", "competencies", "core competencies", "technical competencies", "areas of expertise"],
-    "Projects": ["projects", "academic projects", "personal projects", "project experience", "relevant projects", "technical projects", "selected projects", "capstone", "undergraduate thesis", "thesis"],
-    "Certifications": ["certifications", "certificates", "licenses and certifications", "credentials", "professional certifications", "certifications & trainings", "trainings and certifications"],
-    "OrganizationsAndLeadership": ["organizations", "leadership", "organizations & leadership", "extracurricular activities", "student organizations", "affiliations"],
-    "Achievements": ["achievements", "awards", "honors", "accomplishments", "honors & awards", "honors and awards"],
+    "Skills": ["skills", "technical skills", "core skills", "competencies", "core competencies", "technical competencies", "areas of expertise", "technical proficiencies", "skills & proficiencies", "skills and proficiencies", "key skills", "specializations", "hard skills", "tools & technologies", "tools and technologies"],
+    "Projects": ["projects", "academic projects", "personal projects", "project experience", "relevant projects", "technical projects", "selected projects", "capstone", "capstone project", "undergraduate thesis", "thesis", "key projects", "featured projects", "systems developed"],
+    "Certifications": ["certifications", "certificates", "licenses and certifications", "credentials", "professional certifications", "certifications & trainings", "trainings and certifications", "certifications and licenses", "courses & certifications"],
+    "OrganizationsLeadership": ["organizations", "leadership", "organizations & leadership", "organizations and leadership", "extracurricular activities", "student organizations", "affiliations", "leadership experience", "volunteering", "volunteer experience", "community involvement"],
+    "Achievements": ["achievements", "awards", "honors", "accomplishments", "honors & awards", "honors and awards", "awards & recognition", "awards and recognition"],
     "Languages": ["languages", "language proficiency", "language skills"],
-    "Trainings": ["trainings", "training", "seminars", "workshops", "professional development", "trainings & seminars", "seminars & workshops", "seminars and workshops"]
+    "Trainings": ["trainings", "training", "seminars", "workshops", "professional development", "trainings & seminars", "seminars & workshops", "seminars and workshops", "workshops & seminars", "trainings and workshops"]
 }
 
 def _normalize_heading(text: str) -> str:

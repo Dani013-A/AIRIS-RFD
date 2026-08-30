@@ -1,11 +1,12 @@
 import numpy as np
 import time
 from sentence_transformers import SentenceTransformer
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 import os
 import json
+from functools import lru_cache
 from ai_service import generate_text_with_fallback
-from semantic_chunker import chunk_resume_sections
+from evidence_chunker import chunk_resume_evidence, EvidenceChunk
 
 _model = None
 
@@ -18,12 +19,6 @@ def get_sbert_model() -> SentenceTransformer:
             _model = SentenceTransformer("all-MiniLM-L6-v2")
     return _model
 
-CAREER_CONCEPTS: Dict[str, List[str]] = {
-    "data analyst": ["SQL databases", "Python programming", "Data cleaning", "Data visualization", "Tableau or Power BI", "Excel", "Statistical analysis", "Reporting"],
-    "software engineer": ["JavaScript or TypeScript", "React or Angular", "Node.js or Backend", "API development", "Git version control", "Testing and debugging", "Data structures", "Databases"],
-    "civil engineer": ["AutoCAD", "Structural analysis", "Project management", "Concrete design", "Surveying", "Construction site safety", "Estimation"],
-}
-
 def calculate_cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
     dot_product = np.dot(vec1, vec2)
     norm_a = np.linalg.norm(vec1)
@@ -32,15 +27,76 @@ def calculate_cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
         return 0.0
     return float(dot_product / (norm_a * norm_b))
 
-def fetch_dynamic_profile_from_ai(target_position: str) -> List[str]:
-    """Uses LLM to retrieve granular concepts for any custom role."""
+@lru_cache(maxsize=1024)
+def _cached_encode(text: str) -> np.ndarray:
+    return get_sbert_model().encode(text)
+
+# --- GENERIC DATA-DRIVEN BENCHMARK CATALOG (Domain-Neutral) ---
+# Expandable catalog for standard roles; unlisted roles fetch dynamic profiles
+CAREER_BENCHMARKS: Dict[str, Dict[str, List[str]]] = {
+    "software engineer": {
+        "required_skills": ["Python", "FastAPI", "React Native", "TypeScript", "SQL"],
+        "recommended_skills": ["Firebase", "REST API", "Docker", "Git"],
+        "education_benchmarks": ["Bachelor of Science in Information Technology", "Bachelor of Science in Computer Science", "Software Engineering Fundamentals", "Computer Science Discipline"],
+        "certification_benchmarks": ["AWS Certified Developer", "CompTIA Security+", "Microsoft Certified Developer"]
+    },
+    "senior software engineer": {
+        "required_skills": ["Python", "FastAPI", "PostgreSQL", "React", "TypeScript"],
+        "recommended_skills": ["Docker", "Kubernetes", "AWS", "System Design"],
+        "education_benchmarks": ["Bachelor of Science in Computer Science", "Computer Science Degree", "Software Architecture"],
+        "certification_benchmarks": ["AWS Certified Solutions Architect", "AWS Certified Developer"]
+    },
+    "data analyst": {
+        "required_skills": ["SQL", "Python", "Data Visualization", "Excel", "Financial Reporting"],
+        "recommended_skills": ["Power BI", "Tableau", "Statistical Analysis", "ETL"],
+        "education_benchmarks": ["Bachelor of Science in Information Technology", "Statistics", "Computer Science", "Business Analytics"],
+        "certification_benchmarks": ["Google Data Analytics Professional Certificate", "Microsoft Certified Power BI Data Analyst"]
+    },
+    "accountant": {
+        "required_skills": ["Financial Auditing", "Bookkeeping", "Tax Compliance", "Excel", "Financial Reporting"],
+        "recommended_skills": ["Bank Reconciliation", "Accounting Software", "Internal Controls"],
+        "education_benchmarks": ["Bachelor of Science in Accountancy", "Accounting Discipline", "Financial Management Degree"],
+        "certification_benchmarks": ["Certified Public Accountant", "Certified Bookkeeper"]
+    },
+    "civil engineer": {
+        "required_skills": ["Structural Analysis", "AutoCAD", "STAAD.Pro", "Quantity Estimation", "Construction Planning"],
+        "recommended_skills": ["Concrete Structure Design", "Site Safety"],
+        "education_benchmarks": ["Bachelor of Science in Civil Engineering", "Civil Engineering Discipline", "Structural Engineering"],
+        "certification_benchmarks": ["Licensed Civil Engineer", "Professional Engineer"]
+    },
+    "architectural designer": {
+        "required_skills": ["AutoCAD", "SketchUp", "Architectural Design", "3D Modeling", "Technical Drawing"],
+        "recommended_skills": ["Building Information Modeling", "Drafting"],
+        "education_benchmarks": ["Bachelor of Science in Architecture", "Architectural Studies", "Design Studio"],
+        "certification_benchmarks": ["Registered Architect", "Autodesk Certified Professional"]
+    },
+    "marketing specialist": {
+        "required_skills": ["Digital Marketing", "Social Media Marketing", "Excel", "Market Research", "Content Creation"],
+        "recommended_skills": ["Google Analytics", "Campaign Planning", "Customer Personas"],
+        "education_benchmarks": ["Bachelor of Science in Business Administration", "Marketing Management", "Business Administration"],
+        "certification_benchmarks": ["Google Analytics Certificate", "HubSpot Marketing Certified"]
+    }
+}
+
+# Backward-compatibility export for normalizer.py and entity normalizer lookup
+CAREER_CONCEPTS: Dict[str, List[str]] = {
+    role: data.get("required_skills", []) + data.get("recommended_skills", [])
+    for role, data in CAREER_BENCHMARKS.items()
+}
+
+def fetch_dynamic_profile_from_ai(target_position: str) -> Dict[str, List[str]]:
+    """Uses LLM to retrieve data-driven benchmark profiles for unlisted roles."""
     prompt = f"""
-    You are an expert technical recruiter. Provide exactly 10 distinct, key technical skills, tools, and core competencies expected for a professional working as a '{target_position}'.
-
-    Return ONLY a JSON array of strings. Do not include markdown formatting or explanation.
-    Example: ["Skill 1", "Tool 2", "Competency 3"]
+    You are an expert technical recruiter. Provide benchmark competencies for a professional working as '{target_position}'.
+    Return ONLY a JSON object with this exact structure:
+    {{
+        "required_skills": ["Skill 1", "Skill 2", "Skill 3", "Skill 4", "Skill 5"],
+        "recommended_skills": ["Skill 6", "Skill 7"],
+        "education_benchmarks": ["Degree in relevant field", "Academic discipline"],
+        "certification_benchmarks": ["Relevant Certification Title"]
+    }}
+    Do not include markdown formatting or extra text.
     """
-
     try:
         response_text = generate_text_with_fallback(prompt)
         if response_text.startswith("```"):
@@ -48,227 +104,151 @@ def fetch_dynamic_profile_from_ai(target_position: str) -> List[str]:
             if lines[0].startswith("```json") or lines[0].startswith("```"):
                 response_text = "\n".join(lines[1:-1]).strip()
         parsed = json.loads(response_text)
-        if isinstance(parsed, list) and len(parsed) > 0:
-            return [str(p) for p in parsed]
+        if isinstance(parsed, dict) and "required_skills" in parsed:
+            return parsed
     except Exception as e:
-        print("Failed to fetch dynamic career profile from AI:", e)
+        print(f"Dynamic profile fetch failed for '{target_position}': {e}")
 
-    return ["technical skills", "professional experience", "problem solving", "communication"]
+    norm = target_position.replace(" ", "+")
+    return {
+        "required_skills": [f"{target_position} Core Competency", "Domain Knowledge", "Technical Skills", "Problem Solving", "Execution"],
+        "recommended_skills": ["Industry Best Practices", "Tools"],
+        "education_benchmarks": [f"Degree in {target_position} or related field", "Relevant Academic Discipline"],
+        "certification_benchmarks": [f"Professional Certification in {target_position}"]
+    }
 
-from functools import lru_cache
+def get_target_benchmark_profile(target_position: str) -> Dict[str, List[str]]:
+    norm_pos = target_position.strip().lower()
+    if norm_pos in CAREER_BENCHMARKS:
+        return CAREER_BENCHMARKS[norm_pos]
 
-@lru_cache(maxsize=1024)
-def _cached_encode(text: str) -> np.ndarray:
-    return get_sbert_model().encode(text)
+    # Partial matching check for standard roles
+    for key, profile in CAREER_BENCHMARKS.items():
+        if key in norm_pos or norm_pos in key:
+            return profile
+
+    return fetch_dynamic_profile_from_ai(target_position)
 
 def evaluate_semantic_alignment(
     parsed_sections: Dict[str, str],
     target_position: str
 ) -> Dict[str, Any]:
+    """
+    SBERT Semantic Measurement Layer.
+    Encodes candidate evidence chunks and compares them against target-career-specific benchmark references
+    using cosine similarity to produce semantic evidence retrieval maps.
+    """
     start_time = time.time()
     model = get_sbert_model()
-    norm_position = target_position.strip().lower()
 
-    # 1. Get Target Concepts
-    concepts = CAREER_CONCEPTS.get(norm_position)
-    if not concepts:
-        print(f"Custom role '{target_position}' not in hardcoded dictionary. Fetching dynamic profile...")
-        concepts = fetch_dynamic_profile_from_ai(target_position)
+    # 1. Fetch data-driven target profile
+    profile = get_target_benchmark_profile(target_position)
+    req_skills = profile.get("required_skills", [])
+    rec_skills = profile.get("recommended_skills", [])
+    all_skill_concepts = req_skills + rec_skills
+    edu_benchmarks = profile.get("education_benchmarks", [])
+    cert_benchmarks = profile.get("certification_benchmarks", [])
 
-    # 2. Chunk Resume
-    resume_chunks = chunk_resume_sections(parsed_sections)
+    # 2. Extract Traceable Evidence Chunks
+    evidence_chunks = chunk_resume_evidence(parsed_sections)
 
-    # 3. Handle Empty Resumes
-    if not resume_chunks:
-        print("LOG: Resume appears completely empty or unchunkable.")
+    if not evidence_chunks:
         return {
-            "skillsMatchScore": 0,
-            "experienceScore": 0,
+            "evidence": [],
+            "requiredSkills": req_skills,
+            "recommendedSkills": rec_skills,
             "educationScore": 0,
             "certificationsScore": 0,
-            "overallMatchScore": 0,
-            "evidence": [],
-            "standardProfileUsed": ", ".join(concepts)
+            "chunks": []
         }
 
-    # 4. Generate Embeddings for Concepts
-    concept_embs = []
-    for c in concepts:
+    # 3. Encode all Evidence Chunks
+    chunk_embs = []
+    for chunk in evidence_chunks:
         try:
-            concept_embs.append(_cached_encode(c))
-        except:
-            concept_embs.append(model.encode(c))
+            chunk_embs.append(_cached_encode(chunk.text))
+        except Exception:
+            chunk_embs.append(model.encode(chunk.text))
 
-    # 5. Group Chunks by Category and Embed
-    skills_sections = ["Skills"]
-    experience_sections = ["WorkExperience", "Internships", "Projects", "OrganizationsAndLeadership"]
-    education_sections = ["Education", "RelevantCoursework"]
-    certifications_sections = ["Certifications", "Trainings", "Achievements"]
+    # 4. Semantic Similarity Search for Skill Concepts
+    evidence_results = []
 
-    def is_in_category(section_name: str, category_list: List[str]) -> bool:
-        for cat in category_list:
-            if cat.lower() in section_name.lower():
-                return True
-        return False
-
-    cat_chunks = {
-        "skills": [],
-        "experience": [],
-        "education": [],
-        "certifications": []
-    }
-
-    for chunk in resume_chunks:
-        sec = chunk["section"]
-        if is_in_category(sec, skills_sections):
-            cat_chunks["skills"].append(chunk)
-        elif is_in_category(sec, experience_sections):
-            cat_chunks["experience"].append(chunk)
-        elif is_in_category(sec, education_sections):
-            cat_chunks["education"].append(chunk)
-        elif is_in_category(sec, certifications_sections):
-            cat_chunks["certifications"].append(chunk)
-        # 2. Threshold Fallback
-        else:
-            cat_chunks["experience"].append(chunk)
-
-    cat_embs = {k: [] for k in cat_chunks.keys()}
-    for cat, chunks in cat_chunks.items():
-        for chunk in chunks:
-            try:
-                emb = _cached_encode(chunk["text"])
-            except:
-                emb = model.encode(chunk["text"])
-            cat_embs[cat].append(emb)
-
-    # Flat list of all chunks
-    # 6. Find global best chunk for each concept to validate
-    all_chunks = []
-    all_embs = []
-    for cat in cat_chunks:
-        all_chunks.extend(cat_chunks[cat])
-        all_embs.extend(cat_embs[cat])
-
-    # 9. Format Final Evidence Output for Frontend
-    global_evidence = []
-    for i, concept in enumerate(concepts):
-        c_emb = concept_embs[i]
+    for concept in all_skill_concepts:
+        c_emb = _cached_encode(concept)
         best_sim = 0.0
         best_chunk = None
+        best_has_verbatim = False
 
-        for j, chunk in enumerate(all_chunks):
-            sim = calculate_cosine_similarity(c_emb, all_embs[j])
-            if concept.lower() in chunk["text"].lower():
-                sim = min(1.0, sim + 0.2)
+        c_lower = concept.lower()
+        concept_terms = [t.strip() for t in c_lower.replace("/", " ").replace("-", " ").split() if len(t.strip()) >= 3]
+
+        for idx, chunk in enumerate(evidence_chunks):
+            raw_sim = calculate_cosine_similarity(c_emb, chunk_embs[idx])
+            chunk_lower = chunk.text.lower()
+
+            has_verbatim = c_lower in chunk_lower
+            if not has_verbatim and concept_terms:
+                has_verbatim = any(term in chunk_lower for term in concept_terms)
+
+            sim = min(1.0, raw_sim + 0.25) if has_verbatim else raw_sim
+
             if sim > best_sim:
                 best_sim = sim
                 best_chunk = chunk
+                best_has_verbatim = has_verbatim
 
-        global_evidence.append({
-            "concept": concept,
-            "best_sim": best_sim,
-            "best_chunk": best_chunk
-        })
+        if best_chunk and best_has_verbatim:
+            if best_sim >= 0.45:
+                status = "STRONG_MATCH"
+            elif best_sim >= 0.25:
+                status = "PARTIAL_MATCH"
+            else:
+                status = "NO_RELEVANT_EVIDENCE"
 
-    # 7. Batch Validate Evidence using LLM
-    from ai_service import validate_evidence_batch
-    batch_to_validate = []
-    for ev in global_evidence:
-        if ev["best_sim"] >= 0.15 and ev["best_chunk"]:
-            batch_to_validate.append({
-                "concept": ev["concept"],
-                "evidence": ev["best_chunk"]["text"]
+            evidence_results.append({
+                "concept": concept,
+                "status": status,
+                "best_sim": round(best_sim, 3),
+                "matchedSection": best_chunk.section,
+                "matchedChunk": best_chunk.text,
+                "chunkId": best_chunk.chunkId
+            })
+        else:
+            # Evidence Verification Gate: Pure semantic proximity without verbatim or alias evidence is rejected
+            evidence_results.append({
+                "concept": concept,
+                "status": "NO_RELEVANT_EVIDENCE",
+                "best_sim": 0.0,
+                "matchedSection": None,
+                "matchedChunk": None,
+                "chunkId": None
             })
 
-    validation_results = {}
-    if batch_to_validate:
-        try:
-            print(f"LOG: Validating {len(batch_to_validate)} pieces of evidence via LLM...")
-            llm_results = validate_evidence_batch(batch_to_validate)
-            for res in llm_results:
-                concept = res.get("concept")
-                classification = res.get("classification")
-                if concept and classification:
-                    validation_results[concept] = classification
-        except Exception as e:
-            print(f"LOG: Validation failed, falling back to thresholds. Error: {e}")
-
-    concept_status = {}
-    for ev in global_evidence:
-        c = ev["concept"]
-        sim = ev["best_sim"]
-
-        # 1. Check LLM Result
-        if c in validation_results:
-            concept_status[c] = validation_results[c]
-        else:
-            if sim >= 0.40:
-                concept_status[c] = "STRONG_MATCH"
-            elif sim >= 0.25:
-                concept_status[c] = "PARTIAL_MATCH"
-            else:
-                concept_status[c] = "NO_RELEVANT_EVIDENCE"
-
-    # 8. Calculate Validated Component Scores
-    def calculate_validated_category_score(cat_name: str) -> float:
-        c_chunks = cat_chunks[cat_name]
-        c_embs = cat_embs[cat_name]
-        if not c_chunks:
-            return 0.0
-
-        total_sim = 0.0
-        for i, concept in enumerate(concepts):
-            status = concept_status.get(concept, "NO_RELEVANT_EVIDENCE")
-            if status == "NO_RELEVANT_EVIDENCE":
-                continue
-
-            c_emb = concept_embs[i]
-            best_sim = 0.0
-            for j, chunk in enumerate(c_chunks):
-                sim = calculate_cosine_similarity(c_emb, c_embs[j])
-                if concept.lower() in chunk["text"].lower():
-                    sim = min(1.0, sim + 0.2)
-                if sim > best_sim:
-                    best_sim = sim
-            total_sim += best_sim
-
-        return total_sim / len(concepts) if concepts else 0.0
-
-    skills_sim = calculate_validated_category_score("skills")
-    experience_sim = calculate_validated_category_score("experience")
-    education_sim = calculate_validated_category_score("education")
-    cert_sim = calculate_validated_category_score("certifications")
-
-    skills_score = int(skills_sim * 100)
-    experience_score = int(experience_sim * 100)
-    education_score = int(education_sim * 100)
-    cert_score = int(cert_sim * 100)
-
-    evidence = []
-    for ev in global_evidence:
-        c = ev["concept"]
-        best_chunk = ev["best_chunk"]
-
-        evidence.append({
-            "concept": c,
-            "status": concept_status.get(c, "NO_RELEVANT_EVIDENCE"),
-            "bestSimilarity": ev["best_sim"],
-            "matchedChunk": best_chunk["text"] if best_chunk else None,
-            "matchedSection": best_chunk["section"] if best_chunk else None
-        })
-
-    overall_match = int((skills_score * 0.4) + (experience_score * 0.3) + (education_score * 0.2) + (cert_score * 0.1))
+    # 5. Semantic Measurement for Education Criterion (Academic Discipline Benchmark)
+    edu_chunks = [c for c in evidence_chunks if c.section in ("Education", "RelevantCoursework")]
+    edu_similarity_score = 0.0
+    if edu_chunks and edu_benchmarks:
+        max_edu_sim = 0.0
+        for edu_c in edu_chunks:
+            c_emb = _cached_encode(edu_c.text)
+            for bm in edu_benchmarks:
+                bm_emb = _cached_encode(bm)
+                sim = calculate_cosine_similarity(c_emb, bm_emb)
+                if any(kw in edu_c.text.lower() for kw in ["bachelor", "degree", "bs", "ba", "master", "gpa"]):
+                    sim = min(1.0, sim + 0.20)
+                if sim > max_edu_sim:
+                    max_edu_sim = sim
+        edu_similarity_score = round(max_edu_sim * 100)
 
     elapsed = time.time() - start_time
-    print(f"LOG: SBERT Semantic Analysis (with LLM Validation) completed in {elapsed:.2f} seconds!")
-    print(f"Scores -> Skills: {skills_score}, Exp: {experience_score}, Edu: {education_score}, Cert: {cert_score}")
+    print(f"SBERT Semantic Alignment for '{target_position}' completed in {elapsed:.2f}s across {len(evidence_chunks)} chunks.")
 
     return {
-        "skillsMatchScore": skills_score,
-        "experienceScore": experience_score,
-        "educationScore": education_score,
-        "certificationsScore": cert_score,
-        "overallMatchScore": overall_match,
-        "evidence": evidence,
-        "standardProfileUsed": ", ".join(concepts)
+        "evidence": evidence_results,
+        "requiredSkills": req_skills,
+        "recommendedSkills": rec_skills,
+        "educationBenchmarks": edu_benchmarks,
+        "certificationBenchmarks": cert_benchmarks,
+        "eduSimilarityScore": edu_similarity_score,
+        "chunks": [c.dict() for c in evidence_chunks]
     }

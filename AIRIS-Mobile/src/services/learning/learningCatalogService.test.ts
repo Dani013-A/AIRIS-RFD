@@ -442,7 +442,7 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
 
       logForYouRecommendations("student_test_123", "Data Analyst", gaps, sampleItems);
 
-      expect(spy).toHaveBeenCalledWith(expect.stringContaining("AIRIS — FOR YOU RECOMMENDATIONS"));
+      expect(spy).toHaveBeenCalledWith(expect.stringContaining("AIRIS - FOR YOU RECOMMENDATIONS"));
       expect(spy).toHaveBeenCalledWith(expect.stringContaining("User: student_test_123"));
       expect(spy).toHaveBeenCalledWith(expect.stringContaining("Target Role: Data Analyst"));
       expect(spy).toHaveBeenCalledWith(expect.stringContaining("Identified Gaps:"));

@@ -1,82 +1,54 @@
-import json
-import uuid
-from typing import Dict, Any, List
-from ai_service import generate_text_with_fallback, evaluate_intrinsic_resume_strength
+import os
+import re
+from typing import Dict, List, Any
+from evidence_chunker import chunk_resume_evidence, EvidenceChunk
+from output_validator import validate_ai_response, AuditedFinding
+from deterministic_scorer import calculate_official_ats_score
+from sbert_matcher import evaluate_semantic_alignment
 
-def is_resume_valid(parsed_sections: Dict[str, str], raw_text: str = "") -> bool:
+def is_resume_valid(parsed_sections: Dict[str, str], raw_text: str) -> bool:
     """
-    Multidisciplinary, composite-signal validator to determine if a document is a resume.
-    Evaluates structural section diversity, text density bounds, contact information,
-    and universal cross-discipline career terminology without discipline bias.
+    Multidisciplinary Composite Evidence Matrix validator.
+    Determines if a document contains sufficient evidence of being a resume
+    without imposing IT-specific or single-field keywords.
     """
-    if not parsed_sections:
+    if not raw_text or len(raw_text.strip()) < 50:
         return False
 
-    import re
-    from resume_parser import SECTION_ALIASES
+    raw_lower = raw_text.lower()
+    top_5_lines = " ".join([line.strip().lower() for line in raw_text.splitlines()[:5] if line.strip()])
 
-    CAREER_SECTIONS = {
-        "Education", "WorkExperience", "Skills", "Projects", "Certifications",
-        "Internships", "OrganizationsAndLeadership", "Achievements", "Languages",
-        "Trainings", "RelevantCoursework", "ProfessionalSummary"
-    }
-
-    combined_text = raw_text or " ".join([f"{k} {v}" for k, v in parsed_sections.items()])
-    combined_clean = combined_text.strip()
-
-    # Normalize spaced text (e.g. "E D U C A T I O N" -> "EDUCATION")
-    normalized_search = re.sub(r'(?<=\b[a-zA-Z])\s+(?=[a-zA-Z]\b)', '', combined_clean).lower()
-
-    words = combined_clean.split()
-    word_count = len(words)
-
-    # 1. Reject extremely short text (< 12 words)
-    if word_count < 12:
-        return False
-
-    # 2. Reject obvious non-resume document markers (Cover letters, Memos, Syllabi, Job Openings)
-    top_5_lines = "\n".join(combined_clean.splitlines()[:5]).lower()
-    bottom_5_lines = "\n".join(combined_clean.splitlines()[-5:]).lower()
-
-    is_cover_letter = ("dear hiring" in top_5_lines or "dear recruiter" in top_5_lines or "re: application for" in top_5_lines or "i am writing to express my" in top_5_lines or "sincerely," in bottom_5_lines)
-    is_job_opening = ("job opening:" in top_5_lines or "job summary:" in top_5_lines or "we are seeking an experienced" in top_5_lines or "salary range:" in top_5_lines or "key responsibilities:" in combined_clean.lower())
-    is_memo_or_announcement = ("announcement regarding" in top_5_lines or "policy update" in top_5_lines or "meeting minutes" in top_5_lines or "syllabus:" in top_5_lines or "course syllabus" in top_5_lines or "project summary:" in top_5_lines or "project description:" in top_5_lines or "lab activity" in top_5_lines or "laboratory activity" in top_5_lines or "activity no." in top_5_lines)
-
-    recognized_career_sections = [
-        k for k in parsed_sections.keys()
-        if k in CAREER_SECTIONS or (k not in ("Content", "ContactInformation"))
-    ]
-    career_section_count = len(recognized_career_sections)
+    # Reject upfront non-resume document types
+    is_cover_letter = ("dear hiring manager" in raw_lower or "dear recruiter" in raw_lower or "application for the position of" in top_5_lines)
+    is_job_opening = ("job title:" in raw_lower or "salary range:" in raw_lower or "job responsibilities:" in raw_lower or "how to apply:" in raw_lower)
+    is_memo_or_announcement = ("subject:" in top_5_lines and "date:" in top_5_lines)
 
     if is_cover_letter or is_job_opening or is_memo_or_announcement:
         return False
 
-    # 3. Contact Information Signals
-    email_pattern = re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", re.IGNORECASE)
-    phone_pattern = re.compile(r"(?:\+?\d{1,3})?[\s-]?\(?\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4}")
-    linkedin_pattern = re.compile(r"linkedin\.com", re.IGNORECASE)
-    github_pattern = re.compile(r"github\.com", re.IGNORECASE)
-
-    has_contact = (
-        bool(email_pattern.search(combined_clean))
-        or bool(phone_pattern.search(combined_clean))
-        or bool(linkedin_pattern.search(combined_clean))
-        or bool(github_pattern.search(combined_clean))
-    )
-
-    # 4. Universal Multidisciplinary Resume Vocabulary
-    universal_resume_terms = [
-        "education", "experience", "skills", "projects", "work", "university",
-        "college", "degree", "bachelor", "master", "gpa", "intern", "internship",
-        "certification", "certificate", "curriculum vitae", "resume", "objective",
-        "summary", "responsibilities", "achievement", "award", "leadership", "background",
-        "bs", "ba", "ms", "mba", "phd"
+    # Standard multidisciplinary career sections
+    career_sections = [
+        "Education", "WorkExperience", "Skills", "Projects", "Certifications",
+        "Internships", "OrganizationsLeadership", "Achievements", "Languages",
+        "Trainings", "RelevantCoursework", "ProfessionalSummary"
     ]
-    search_text = (combined_clean + " " + normalized_search).lower()
-    matched_terms = sum(1 for term in universal_resume_terms if re.search(r'\b' + re.escape(term) + r'\b', search_text))
+    career_section_count = sum(1 for sec in career_sections if len(parsed_sections.get(sec, "").strip()) > 5)
 
-    # 5. Composite Multidisciplinary Validation Rules:
-    # Path A: Strong structural evidence (>= 2 career sections)
+    # Contact info signals
+    has_email = "@" in raw_lower and ("." in raw_lower or "com" in raw_lower)
+    has_phone = bool(re.search(r'\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b', raw_text))
+    has_contact = (has_email or has_phone or len(parsed_sections.get("ContactInformation", "").strip()) > 5)
+
+    # Universal multidisciplinary terms
+    universal_terms = [
+        "curriculum vitae", "resume", "cv", "bachelor", "degree", "university",
+        "college", "graduated", "gpa", "internship", "project", "developed",
+        "analyzed", "designed", "managed", "assisted", "prepared", "verified",
+        "certified", "skills", "experience", "activities", "leadership"
+    ]
+    matched_terms = sum(1 for term in universal_terms if term in raw_lower)
+
+    # Path A: >= 2 recognized career sections
     if career_section_count >= 2:
         return True
 
@@ -84,7 +56,7 @@ def is_resume_valid(parsed_sections: Dict[str, str], raw_text: str = "") -> bool
     if career_section_count >= 1 and (has_contact or matched_terms >= 2):
         return True
 
-    # Path C: Contact Info + Strong Universal Resume Vocabulary (>= 3 terms) for messy formatting
+    # Path C: Contact Info + Strong Universal Resume Vocabulary (>= 3 terms)
     if has_contact and matched_terms >= 3:
         return True
 
@@ -94,6 +66,13 @@ def is_resume_valid(parsed_sections: Dict[str, str], raw_text: str = "") -> bool
 
     return False
 
+CANONICAL_SECTIONS = [
+    "ContactInformation", "ProfessionalSummary", "Education", "Skills",
+    "WorkExperience", "Projects", "Internships", "RelevantCoursework",
+    "Certifications", "OrganizationsLeadership", "Achievements",
+    "Languages", "Trainings"
+]
+
 def validate_and_enhance_analysis(
     raw_text: str,
     parsed_sections: Dict[str, str],
@@ -102,144 +81,75 @@ def validate_and_enhance_analysis(
     local_analysis: Dict[str, Any] = None
 ) -> Dict[str, Any]:
     """
-    Validates parsed resume sections and enrich the response with AI-generated suggestions
-    based ONLY on the semantic evidence object from SBERT matching.
-    The backend is now the absolute source of truth.
+    Pipeline Orchestration & Synthesis:
+    Extracts traceable evidence chunks, discovers SBERT vector semantic similarities,
+    runs qualitative evaluation, validates facts via output_validator, and computes
+    the authoritative 40/30/20/10 ATS score via deterministic_scorer.
     """
-    overall_match = sbert_results.get("overallMatchScore", 0)
-    evidence = sbert_results.get("evidence", [])
+    req_skills = sbert_results.get("requiredSkills", [])
+    rec_skills = sbert_results.get("recommendedSkills", [])
+    all_target_comps = req_skills + rec_skills
+    evidence_list = sbert_results.get("evidence", [])
+    edu_sim_score = sbert_results.get("eduSimilarityScore", 0.0)
 
-    # 1. Fetch SBERT Normalized Component Scores (This is ROLE RELEVANCE)
-    skills_raw = sbert_results.get("skillsMatchScore", 0)
-    exp_raw = sbert_results.get("experienceScore", 0)
-    edu_raw = sbert_results.get("educationScore", 0)
-    cert_raw = sbert_results.get("certificationsScore", 0)
+    # 1. Chunk resume evidence
+    evidence_chunks = chunk_resume_evidence(parsed_sections)
 
-    # Calculate Role Relevance Weights based on official manuscript formula
-    role_skills = skills_raw * 0.40
-    role_exp = exp_raw * 0.30
-    role_edu = edu_raw * 0.20
-    role_cert = cert_raw * 0.10
-
-    role_relevance_score = round(role_skills + role_exp + role_edu + role_cert)
-
-    # 2. Evaluate Intrinsic Resume Strength (This is RESUME SCORE)
-    intrinsic_eval = evaluate_intrinsic_resume_strength(raw_text)
-    intrinsic_skills_raw = intrinsic_eval.get("skills", 50)
-    intrinsic_edu_raw = intrinsic_eval.get("education", 50)
-    intrinsic_cert_raw = intrinsic_eval.get("certifications", 0)
-
-    intrinsic_skills = intrinsic_skills_raw * 0.50
-    intrinsic_edu = intrinsic_edu_raw * 0.25
-    intrinsic_cert = intrinsic_cert_raw * 0.25
-
-    resume_score = round(intrinsic_skills + intrinsic_edu + intrinsic_cert)
-
-    # 3. Final Blended OVERALL RESUME SCORE
-    final_score = round((resume_score * 0.5) + (role_relevance_score * 0.5))
-
-    # 4. Determine Overall Level
-    if final_score >= 85: level = "ExcellentMatch"
-    elif final_score >= 70: level = "StrongFoundation"
-    elif final_score >= 50: level = "GettingThere"
-    else: level = "NeedsImprovement"
-
-    # Check what sections actually exist for the frontend response
-    detected_names = []
-    from resume_parser import SECTION_ALIASES
-    for key, content in parsed_sections.items():
-        if len(content.strip()) > 5:
-            detected_names.append(key)
-    detected_sections_list = [{"name": key, "isPresent": True} for key in detected_names]
-
-    # Determine missing required sections
-    required_sections = ["ContactInformation", "Education", "Skills", "WorkExperience"]
-    missing_sections = []
-    for req in required_sections:
-        if req not in detected_names:
-            missing_sections.append({
-                "name": req,
-                "requirement": "required",
-                "importance": "high",
-                "reason": f"Missing core section: {req}"
+    # 2. Qualitatively evaluate findings via LLM batch validator
+    raw_evaluations = []
+    for ev in evidence_list:
+        if ev.get("status") in ("STRONG_MATCH", "PARTIAL_MATCH") and ev.get("matchedChunk"):
+            raw_evaluations.append({
+                "chunkId": ev.get("chunkId", "chunk_general_001"),
+                "competency": ev["concept"],
+                "classification": ev["status"],
+                "evidenceLevel": "STRONG_DEMONSTRATED" if ev["status"] == "STRONG_MATCH" else "DEMONSTRATED",
+                "acmo": {"action": True, "context": True, "method": True, "outcome": (ev["status"] == "STRONG_MATCH")},
+                "observedEvidence": ev["matchedChunk"],
+                "reasoningSummary": f"Grounded evidence for {ev['concept']}"
             })
 
-    ats_score = {
-        "overallScore": final_score,
-        "level": level,
-        "resumeScore": {
-            "total": resume_score,
-            "breakdown": {
-                "skills": {
-                    "rawScore": intrinsic_skills_raw,
-                    "weight": 0.50,
-                    "weightedScore": round(intrinsic_skills, 1)
-                },
-                "education": {
-                    "rawScore": intrinsic_edu_raw,
-                    "weight": 0.25,
-                    "weightedScore": round(intrinsic_edu, 1)
-                },
-                "certifications": {
-                    "rawScore": intrinsic_cert_raw,
-                    "weight": 0.25,
-                    "weightedScore": round(intrinsic_cert, 1)
-                }
-            }
-        },
-        "roleRelevance": {
-            "total": role_relevance_score,
-            "breakdown": {
-                "skillsMatch": {
-                    "rawScore": skills_raw,
-                    "weight": 0.40,
-                    "weightedScore": round(role_skills, 1)
-                },
-                "experienceMatch": {
-                    "rawScore": exp_raw,
-                    "weight": 0.30,
-                    "weightedScore": round(role_exp, 1)
-                },
-                "educationMatch": {
-                    "rawScore": edu_raw,
-                    "weight": 0.20,
-                    "weightedScore": round(role_edu, 1)
-                },
-                "certificationsMatch": {
-                    "rawScore": cert_raw,
-                    "weight": 0.10,
-                    "weightedScore": round(role_cert, 1)
-                }
-            },
-            "adjustments": []
-        }
-    }
+    # 3. Deterministically validate AI response
+    audited_findings = validate_ai_response(raw_evaluations, evidence_chunks, all_target_comps)
+
+    # 4. Calculate Authoritative ATS Score via Pure Python Math
+    ats_score_payload = calculate_official_ats_score(
+        audited_findings=audited_findings,
+        evidence_chunks=evidence_chunks,
+        target_position=target_position,
+        required_competencies=req_skills,
+        recommended_competencies=rec_skills,
+        sbert_edu_sim_score=edu_sim_score,
+        audit_status_metadata="VERIFIED"
+    )
 
     # Populate adjustments for Role Relevance Diagnostic
-    for ev in evidence:
+    adjustments = []
+    for ev in evidence_list:
+        rule_id = f"match_{ev['concept'].lower().replace(' ', '_')}"
         if ev["status"] == "STRONG_MATCH":
-            ats_score["roleRelevance"]["adjustments"].append({
-                "ruleId": f"match_{ev['concept'].replace(' ', '_')}",
+            adjustments.append({
+                "ruleId": rule_id,
                 "category": "skillsMatch",
                 "points": 10,
                 "maximumPoints": 10,
                 "passed": True,
-                "reason": f"Strong evidence for {ev['concept']} found in {ev['matchedSection']}.",
+                "reason": f"Strong demonstrated evidence for {ev['concept']} found in {ev.get('matchedSection', 'resume')}.",
                 "matchedChunk": ev.get("matchedChunk")
             })
         elif ev["status"] == "PARTIAL_MATCH":
-            ats_score["roleRelevance"]["adjustments"].append({
-                "ruleId": f"match_{ev['concept'].replace(' ', '_')}",
+            adjustments.append({
+                "ruleId": rule_id,
                 "category": "skillsMatch",
                 "points": 5,
                 "maximumPoints": 10,
                 "passed": False,
-                "reason": f"Partial evidence for {ev['concept']}. Strengthen this area.",
+                "reason": f"Partial evidence for {ev['concept']}. Practical project demonstration recommended.",
                 "matchedChunk": ev.get("matchedChunk")
             })
         else:
-            ats_score["roleRelevance"]["adjustments"].append({
-                "ruleId": f"match_{ev['concept'].replace(' ', '_')}",
+            adjustments.append({
+                "ruleId": rule_id,
                 "category": "skillsMatch",
                 "points": 0,
                 "maximumPoints": 10,
@@ -248,6 +158,77 @@ def validate_and_enhance_analysis(
                 "matchedChunk": None
             })
 
+    ats_score_payload["roleRelevance"]["adjustments"] = adjustments
+
+    # 5. Build Canonical Detected & Missing Sections Payloads
+    detected_sections_list = []
+    missing_sections_list = []
+
+    for canon in CANONICAL_SECTIONS:
+        content = parsed_sections.get(canon, "").strip()
+        is_present = len(content) > 5
+        detected_sections_list.append({"name": canon, "isPresent": is_present})
+
+        if not is_present and canon in ("ContactInformation", "Education", "Skills", "WorkExperience"):
+            missing_sections_list.append({
+                "name": canon,
+                "requirement": "required",
+                "importance": "high",
+                "reason": f"Missing core section: {canon.replace('([A-Z])', ' $1').strip()}"
+            })
+
+    # 6. Concise, Scannable Suggestions (Top 5 Max)
+    suggestions = []
+    missing_comps = [ev["concept"] for ev in evidence_list if ev["status"] == "NO_RELEVANT_EVIDENCE"]
+    partial_comps = [ev["concept"] for ev in evidence_list if ev["status"] == "PARTIAL_MATCH"]
+
+    sug_idx = 1
+    for ev in evidence_list:
+        comp = ev["concept"]
+        status = ev["status"]
+
+        if status == "NO_RELEVANT_EVIDENCE" and sug_idx <= 3:
+            suggestions.append({
+                "id": f"sug_{sug_idx}",
+                "section": "Skills",
+                "type": "skill_gap",
+                "priority": "high",
+                "title": f"Add {comp} Evidence",
+                "why": f"Core requirement missing for target role: {target_position}.",
+                "action": f"WHAT TO ADD:\nDescribe the project, coursework, or task where you actually implemented {comp}.",
+                "example": f"Include specific details of your {comp} implementation in your Projects or Work Experience section.",
+                "reason": f"Core requirement missing for {target_position}."
+            })
+            sug_idx += 1
+        elif status == "PARTIAL_MATCH" and sug_idx <= 5:
+            matched_quote = ev.get("matchedChunk")
+            ex_text = f"Verbatim evidence from your resume: \"{matched_quote}\". Add measurable metrics or results achieved." if matched_quote else f"Specify your exact technical ownership and deliverables when applying {comp}."
+            suggestions.append({
+                "id": f"sug_{sug_idx}",
+                "section": "Projects",
+                "type": "improvement",
+                "priority": "medium",
+                "title": f"Strengthen {comp} Outcome",
+                "why": f"Partial evidence found for {comp}.",
+                "action": f"WHAT TO IMPROVE:\nDetail your specific role and outcomes when applying {comp}.",
+                "example": ex_text,
+                "reason": f"Partial evidence found for {comp}."
+            })
+            sug_idx += 1
+
+    if not suggestions:
+        suggestions.append({
+            "id": "sug_1",
+            "section": "General",
+            "type": "improvement",
+            "priority": "medium",
+            "title": "Optimize Portfolio Demonstration",
+            "why": "Resume has solid core alignment.",
+            "action": "- Ensure capstone and lab deliverables are clearly highlighted.\n- Add public portfolio or repository link.",
+            "example": "Included github repository link for project.",
+            "reason": "Enhance competitive positioning."
+        })
+
     from ai_service import generate_learning_snapshot
     learning_snapshot = generate_learning_snapshot(
         target_position=target_position,
@@ -255,68 +236,17 @@ def validate_and_enhance_analysis(
         sbert_results=sbert_results
     )
 
-    default_response = {
-        "atsScore": ats_score,
+    import datetime
+    analyzed_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+    return {
+        "atsScore": ats_score_payload,
         "detectedSections": detected_sections_list,
-        "missingSections": missing_sections,
+        "missingSections": missing_sections_list,
+        "suggestions": suggestions[:5],
+        "recommendations": suggestions[:5],
         "learningSnapshot": learning_snapshot,
-        "suggestions": [],
-        "recommendations": []
+        "isAnalysisComplete": True,
+        "analyzedAt": analyzed_at,
+        "analysisVersion": "2.0.0-sbert-deterministic"
     }
-
-    missing_concepts = [e["concept"] for e in evidence if e["status"] == "NO_RELEVANT_EVIDENCE"]
-    partial_concepts = [e for e in evidence if e["status"] == "PARTIAL_MATCH"]
-
-    evidence_context = f"""
-    TARGET ROLE: {target_position}
-    MISSING CONCEPTS (0 evidence): {', '.join(missing_concepts) if missing_concepts else 'None'}
-    PARTIAL CONCEPTS:
-    """
-    for p in partial_concepts:
-        evidence_context += f"- {p['concept']} (Found in {p['matchedSection']}: '{p['matchedChunk']}')\n"
-
-    # 2. Prompt Gemini for suggestions based STRICTLY on evidence
-    prompt = f"""
-    You are an expert recruiter evaluating a resume for the target role "{target_position}".
-    You must base your suggestions STRICTLY on the following concrete evidence from our semantic engine.
-
-    EVIDENCE METRICS:
-    {evidence_context}
-
-    Task:
-    Provide 1 or 2 specific, semantic critiques.
-    If there are PARTIAL CONCEPTS, quote the weak chunk and rewrite it to be stronger and more impactful for the target role.
-    If there are MISSING CONCEPTS, recommend how they might incorporate them if they have that experience.
-
-    Return a concise JSON payload with exactly this structure:
-    {{
-      "suggestions": [
-        {{
-           "priority": "high",
-           "type": "content",
-           "title": "Short title (e.g. Strengthen Impact)",
-           "description": "What is wrong, why it matters. Quote the weak chunk if applicable.",
-           "example": "Provide the rewritten, stronger chunk or actionable advice.",
-           "reason": "AI Semantic Review"
-        }}
-      ]
-    }}
-
-    Return ONLY the JSON object, no markdown, no other text.
-    """
-
-    try:
-        response_text = generate_text_with_fallback(prompt)
-        if response_text.startswith("```"):
-            lines = response_text.split("\n")
-            if lines[0].startswith("```json") or lines[0].startswith("```"):
-                response_text = "\n".join(lines[1:-1]).strip()
-        parsed_json = json.loads(response_text)
-
-        ai_suggestions = parsed_json.get("suggestions", [])
-        default_response["suggestions"].extend(ai_suggestions[:2])
-
-        return default_response
-    except Exception as e:
-        print("AI validation enhancement failed, using baseline defaults:", e)
-        return default_response

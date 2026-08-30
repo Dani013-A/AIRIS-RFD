@@ -131,6 +131,8 @@ export interface ResumeSuggestion {
   message?: string;
   description?: string;
   example?: string;
+  why?: string;
+  action?: string;
   reason: string;
 }
 
@@ -228,6 +230,7 @@ export interface ResumeAnalysisResult {
   isAnalysisComplete: boolean;
   analyzedAt: string | null;
   analysisVersion: string;
+  analysisSessionId?: string;
   trace?: ResumeScoreTrace;
   recommendations?: any[];
 }

@@ -201,6 +201,8 @@ async def upload_resume(
             "parsedSections": parsed_sections,
             "atsScore": enhanced_result["atsScore"],
             "suggestions": enhanced_result["suggestions"],
+            "detectedSections": enhanced_result.get("detectedSections", []),
+            "missingSections": enhanced_result.get("missingSections", []),
             "recommendations": enhanced_result.get("recommendations", []),
             "learningSnapshot": enhanced_result.get("learningSnapshot"),
             "isAnalysisComplete": True,

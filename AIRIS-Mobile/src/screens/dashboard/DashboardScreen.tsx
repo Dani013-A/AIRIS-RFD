@@ -10,6 +10,15 @@ import { useResumeStore } from "../../store/resumeStore";
 import { getAiRecommendationsForResume } from "../../data/learningRecommendations";
 import { getGrowthPathRecommendations } from "../../services/learning/learningCatalogService";
 import { SkeletonScoreCard, SkeletonResourceCard } from "../../components/ui";
+import SkillSelfAssessmentModal, { type SkillAssessmentTarget } from "../../components/resume/SkillSelfAssessmentModal";
+import {
+  getStoredSelfAssessments,
+  saveSelfAssessments,
+  evaluatePersonalizedCompetency,
+  formatCanonicalCompetencyName,
+  type SkillSelfAssessmentMap,
+  type PersonalizedCompetencyItem
+} from "../../services/resume/selfAssessmentService";
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -18,6 +27,10 @@ export default function DashboardScreen() {
   const activeResume = useResumeStore((state) => state.activeResume);
   const activeAnalysis = useResumeStore((state) => state.activeAnalysis);
   const processingStatus = useResumeStore((state) => state.processingStatus);
+  const pendingTargetSkills = useResumeStore((state) => state.pendingTargetSkills);
+  const currentAnalysisSessionId = useResumeStore((state) => state.currentAnalysisSessionId);
+  const completeSelfAssessmentAndFinalize = useResumeStore((state) => state.completeSelfAssessmentAndFinalize);
+  const refreshPersonalizedGuidance = useResumeStore((state) => state.refreshPersonalizedGuidance);
 
   const [showAllSuggestions, setShowAllSuggestions] = useState(false);
   const [expandedBreakdown, setExpandedBreakdown] = useState<Record<string, boolean>>({});
@@ -26,6 +39,46 @@ export default function DashboardScreen() {
   const [showAtsMatchDetails, setShowAtsMatchDetails] = useState(false);
   const [showAtsCompatDetails, setShowAtsCompatDetails] = useState(false);
   const [infoModalContent, setInfoModalContent] = useState<{ title: string; explanation: string; roleDependence: string } | null>(null);
+
+  const [selfRatings, setSelfRatings] = useState<SkillSelfAssessmentMap>({});
+  const [showSelfAssessmentModal, setShowSelfAssessmentModal] = useState(false);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    getStoredSelfAssessments().then((ratings) => {
+      if (!isMounted) return;
+      setSelfRatings(ratings);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeAnalysis]);
+
+  // REQUIREMENT 3: HARD ROUTE GUARD
+  // A newly analyzed resume must NEVER expose ATS score or Dashboard content before self-assessment is completed.
+  if (
+    processingStatus === "awaiting_self_assessment" ||
+    (activeAnalysis && currentAnalysisSessionId && activeAnalysis.analysisSessionId !== currentAnalysisSessionId)
+  ) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#F4F8FB] px-6 justify-center items-center" edges={["top", "left", "right"]}>
+        <View className="bg-white p-6 rounded-3xl border border-[#BFD6EA] items-center w-full max-w-sm">
+          <Ionicons name="shield-checkmark" size={48} color="#CA5D25" />
+          <Text className="text-xl font-extrabold text-[#1F3A5F] mt-4 text-center">Self-Assessment Required</Text>
+          <Text className="text-xs text-[#4F6B82] leading-5 text-center mt-2 mb-6">
+            Please complete your target skill self-assessment on the upload screen before viewing your personalized dashboard.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.replace("/(student)/resume-upload" as any)}
+            className="w-full h-12 bg-[#CA5D25] rounded-xl items-center justify-center"
+          >
+            <Text className="text-xs font-bold text-white uppercase tracking-wider">Complete Assessment</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const isProcessing =
     processingStatus === "extracting" ||
@@ -255,7 +308,7 @@ export default function DashboardScreen() {
                </Text>
             </View>
             <TouchableOpacity onPress={() => setShowScoreMath(!showScoreMath)} className="mt-3 bg-[#F4F8FB] px-4 py-2 rounded-full border border-[#EAF2F7] flex-row items-center" style={{ alignSelf: 'center' }}>
-              <Text className="text-[10px] font-bold text-[#4F6B82] mr-2 text-center flex-shrink" style={{ flexShrink: 1 }}>Score = Intrinsic 50% + Target Match 50%</Text>
+              <Text className="text-[10px] font-bold text-[#4F6B82] mr-2 text-center flex-shrink" style={{ flexShrink: 1 }}>ATS Score = Skills 40% + Exp 30% + Edu 20% + Cert 10%</Text>
               <Ionicons name={showScoreMath ? "chevron-up" : "chevron-down"} size={14} color="#8B95A5" />
             </TouchableOpacity>
 
@@ -265,16 +318,24 @@ export default function DashboardScreen() {
                   <Text className="text-[10px] font-bold text-[#1F3A5F] uppercase tracking-widest text-center">How is this calculated?</Text>
                 </View>
                 <View className="p-5 gap-3">
-                  {/* New Architecture Display */}
-                  {activeAnalysis.atsScore.resumeScore && activeAnalysis.atsScore.roleRelevance ? (
+                  {/* Official Manuscript Formula Display */}
+                  {activeAnalysis.atsScore.roleRelevance?.breakdown ? (
                     <>
                       <View className="flex-row justify-between items-center">
-                        <Text className="text-xs font-bold text-[#4F6B82]">Intrinsic Resume Score</Text>
-                        <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.resumeScore.total}/100 × 50% = <Text className="font-bold text-[#1F3A5F] text-xs">{Number.isInteger(activeAnalysis.atsScore.resumeScore.total * 0.5) ? (activeAnalysis.atsScore.resumeScore.total * 0.5) : (activeAnalysis.atsScore.resumeScore.total * 0.5).toFixed(1)}</Text></Text>
+                        <Text className="text-xs font-bold text-[#4F6B82]">Skills Match</Text>
+                        <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.breakdown.skillsMatch.rawScore}/100 x 40% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.roleRelevance.breakdown.skillsMatch.weightedScore}</Text></Text>
                       </View>
                       <View className="flex-row justify-between items-center">
-                        <Text className="text-xs font-bold text-[#4F6B82]">Target Match / Role Relevance</Text>
-                        <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.total}/100 × 50% = <Text className="font-bold text-[#1F3A5F] text-xs">{Number.isInteger(activeAnalysis.atsScore.roleRelevance.total * 0.5) ? (activeAnalysis.atsScore.roleRelevance.total * 0.5) : (activeAnalysis.atsScore.roleRelevance.total * 0.5).toFixed(1)}</Text></Text>
+                        <Text className="text-xs font-bold text-[#4F6B82]">Experience & Projects</Text>
+                        <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.breakdown.experienceMatch.rawScore}/100 x 30% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.roleRelevance.breakdown.experienceMatch.weightedScore}</Text></Text>
+                      </View>
+                      <View className="flex-row justify-between items-center">
+                        <Text className="text-xs font-bold text-[#4F6B82]">Education Relevance</Text>
+                        <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.breakdown.educationMatch.rawScore}/100 x 20% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.roleRelevance.breakdown.educationMatch.weightedScore}</Text></Text>
+                      </View>
+                      <View className="flex-row justify-between items-center">
+                        <Text className="text-xs font-bold text-[#4F6B82]">Certifications</Text>
+                        <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.breakdown.certificationsMatch.rawScore}/100 x 10% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.roleRelevance.breakdown.certificationsMatch.weightedScore}</Text></Text>
                       </View>
                     </>
                   ) : (
@@ -295,7 +356,7 @@ export default function DashboardScreen() {
                   <View className="h-[1px] bg-[#EAF2F7] my-2" />
                   <View className="flex-row justify-between items-center bg-[#F4F8FB] -mx-5 -mb-5 p-5">
                     <Text className="text-xs font-black text-[#1F3A5F] uppercase tracking-widest">Overall ATS Score</Text>
-                    <Text className="text-lg font-black text-[#1F3A5F]">≈ {overallScore}</Text>
+                    <Text className="text-lg font-black text-[#1F3A5F]">~ {overallScore}</Text>
                   </View>
                 </View>
               </View>
@@ -421,75 +482,234 @@ export default function DashboardScreen() {
                   </View>
                 )}
 
-                <Text className="text-sm font-bold text-[#1F3A5F] mb-1">Role Competency Analysis</Text>
-                <Text className="text-xs text-[#4F6B82] mb-5 flex-wrap" style={{ flexShrink: 1 }}>
-                  Here is the actual evidence we detected in your resume for {currentUser?.targetPosition || 'your target role'}.
-                </Text>
+                {/* Personalized Competency Guidance Computation */}
+                {(() => {
+                  const personalizedItems: PersonalizedCompetencyItem[] = semanticAdjustments.map((adj) => {
+                    const rawConcept = getConcept(adj.ruleId);
+                    const conceptName = formatCanonicalCompetencyName(rawConcept);
+                    const status = adj.points === 10 ? "STRONG_MATCH" : adj.points === 5 ? "PARTIAL_MATCH" : "NO_RELEVANT_EVIDENCE";
+                    const userRating = selfRatings[rawConcept.toLowerCase()] || "SKIP";
 
-                {strongMatches.length > 0 && (
-                  <View className="mb-4">
-                    <View className="flex-row items-center mb-2">
-                      <Ionicons name="checkmark-circle" size={14} color="#1E5D53" />
-                      <Text className="ml-1.5 text-[10px] font-bold text-[#1E5D53] uppercase tracking-widest">Strong Matches</Text>
-                    </View>
-                    <View className="gap-3 pl-1">
-                      {strongMatches.map((adj, i) => (
-                        <View key={i} className="flex-row items-start">
-                          <Ionicons name="checkmark-circle" size={12} color="#1E5D53" style={{ marginRight: 6, marginTop: 1 }} />
-                          <View className="flex-1">
-                            <Text className="text-xs font-bold text-[#1F3A5F]">{getConcept(adj.ruleId)}</Text>
-                            {adj.matchedChunk && (
-                              <Text className="text-[11px] text-[#4F6B82] mt-0.5 italic">"{adj.matchedChunk}"</Text>
-                            )}
+                    return evaluatePersonalizedCompetency({
+                      competency: conceptName,
+                      targetRelevance: "HIGH",
+                      resumeEvidenceStatus: status,
+                      matchedChunk: adj.matchedChunk,
+                      selfRating: userRating,
+                    });
+                  });
+
+                  const strongPoints = personalizedItems.filter(
+                    (item) =>
+                      item.personalizedStatus === "STRONG_POINT" ||
+                      item.personalizedStatus === "STRONG_POINT_LIMITED_EVIDENCE" ||
+                      item.personalizedStatus === "ADDITIONAL_STRENGTH"
+                  );
+
+                  const moderatePoints = personalizedItems.filter(
+                    (item) => item.personalizedStatus === "MODERATE_POINT"
+                  );
+
+                  const weakPoints = personalizedItems.filter(
+                    (item) => item.personalizedStatus === "WEAK_POINT"
+                  );
+
+                  const mismatchPoints = personalizedItems.filter(
+                    (item) => item.personalizedStatus === "CONFIDENCE_MISMATCH"
+                  );
+
+                  return (
+                    <View>
+                      <View className="flex-row items-center justify-between mb-2">
+                        <View className="flex-1 pr-2">
+                          <Text className="text-sm font-bold text-[#1F3A5F]">Personalized Competency Guidance</Text>
+                          <Text className="text-xs text-[#4F6B82] flex-wrap mt-0.5" style={{ flexShrink: 1 }}>
+                            Personalized guidance combining resume evidence, target role alignment, and your confidence ratings.
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => setShowSelfAssessmentModal(true)}
+                          className="px-3 py-1.5 rounded-full bg-[#FFF3ED] border border-[#F4A47A] flex-row items-center"
+                        >
+                          <Ionicons name="options-outline" size={13} color="#CA5D25" style={{ marginRight: 4 }} />
+                          <Text className="text-[11px] font-bold text-[#CA5D25]">
+                            {Object.keys(selfRatings).length > 0 ? "Update Ratings" : "Rate Confidence"}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <View className="h-[1px] bg-[#EAF2F7] my-3" />
+
+                      {/* STRONG POINTS */}
+                      {strongPoints.length > 0 && (
+                        <View className="mb-4">
+                          <View className="flex-row items-center mb-2.5">
+                            <Ionicons name="checkmark-circle" size={15} color="#1E5D53" />
+                            <Text className="ml-1.5 text-[11px] font-bold text-[#1E5D53] uppercase tracking-widest">
+                              Strong Points ({strongPoints.length})
+                            </Text>
+                          </View>
+                          <View className="gap-3">
+                            {strongPoints.map((item, i) => (
+                              <View key={i} className="bg-[#F8FAFC] p-3.5 rounded-xl border border-[#E2E8F0]">
+                                <View className="flex-row justify-between items-start mb-1">
+                                  <Text className="text-xs font-bold text-[#1F3A5F] flex-1 mr-2">{item.competency}</Text>
+                                  <View
+                                    className={`px-2 py-0.5 rounded-full ${
+                                      item.personalizedStatus === "STRONG_POINT_LIMITED_EVIDENCE"
+                                        ? "bg-[#FEF5F1] border border-[#FDEEE6]"
+                                        : "bg-[#D7F1ED]/40 border border-[#79D5C8]/40"
+                                    }`}
+                                  >
+                                    <Text
+                                      className={`text-[9px] font-bold ${
+                                        item.personalizedStatus === "STRONG_POINT_LIMITED_EVIDENCE"
+                                          ? "text-[#CA5D25]"
+                                          : "text-[#1E5D53]"
+                                      }`}
+                                    >
+                                      {item.headline}
+                                    </Text>
+                                  </View>
+                                </View>
+
+                                <Text className="text-xs text-[#4F6B82] leading-4 mb-2">{item.description}</Text>
+
+                                <View className="bg-white p-2.5 rounded-lg border border-[#E2E8F0]">
+                                  <Text className="text-[10px] font-bold text-[#1F3A5F] uppercase tracking-wider mb-0.5">
+                                    Action Recommendation
+                                  </Text>
+                                  <Text className="text-xs text-[#4F6B82] leading-4">{item.actionRecommendation}</Text>
+                                </View>
+
+                                {item.matchedChunk && (
+                                  <Text className="text-[11px] text-[#4F6B82] mt-2 italic">
+                                    Verbatim Evidence: "{item.matchedChunk}"
+                                  </Text>
+                                )}
+                              </View>
+                            ))}
                           </View>
                         </View>
-                      ))}
-                    </View>
-                  </View>
-                )}
+                      )}
 
-                {partialMatches.length > 0 && (
-                  <View className="mb-4">
-                    <View className="flex-row items-center mb-2">
-                      <Ionicons name="warning" size={14} color="#CA5D25" />
-                      <Text className="ml-1.5 text-[10px] font-bold text-[#CA5D25] uppercase tracking-widest">Partial Matches</Text>
-                    </View>
-                    <View className="gap-3 pl-1">
-                      {partialMatches.map((adj, i) => (
-                        <View key={i} className="flex-row items-start">
-                          <Ionicons name="warning" size={12} color="#CA5D25" style={{ marginRight: 6, marginTop: 1 }} />
-                          <View className="flex-1">
-                            <Text className="text-xs font-bold text-[#1F3A5F]">{getConcept(adj.ruleId)}</Text>
-                            {adj.matchedChunk && (
-                              <Text className="text-[11px] text-[#4F6B82] mt-0.5 italic">"{adj.matchedChunk}"</Text>
-                            )}
+                      {/* MODERATE POINTS */}
+                      {moderatePoints.length > 0 && (
+                        <View className="mb-4">
+                          <View className="flex-row items-center mb-2.5">
+                            <Ionicons name="warning" size={15} color="#CA5D25" />
+                            <Text className="ml-1.5 text-[11px] font-bold text-[#CA5D25] uppercase tracking-widest">
+                              Moderate Points ({moderatePoints.length})
+                            </Text>
+                          </View>
+                          <View className="gap-3">
+                            {moderatePoints.map((item, i) => (
+                              <View key={i} className="bg-[#FFF8F5] p-3.5 rounded-xl border border-[#FDEEE6]">
+                                <View className="flex-row justify-between items-start mb-1">
+                                  <Text className="text-xs font-bold text-[#1F3A5F] flex-1 mr-2">{item.competency}</Text>
+                                  <View className="px-2 py-0.5 rounded-full bg-[#FFF3ED] border border-[#F4A47A]/30">
+                                    <Text className="text-[9px] font-bold text-[#CA5D25]">{item.headline}</Text>
+                                  </View>
+                                </View>
+
+                                <Text className="text-xs text-[#4F6B82] leading-4 mb-2">{item.description}</Text>
+
+                                <View className="bg-white p-2.5 rounded-lg border border-[#FDEEE6]">
+                                  <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-wider mb-0.5">
+                                    Action Recommendation
+                                  </Text>
+                                  <Text className="text-xs text-[#4F6B82] leading-4">{item.actionRecommendation}</Text>
+                                </View>
+
+                                {item.matchedChunk && (
+                                  <Text className="text-[11px] text-[#4F6B82] mt-2 italic">
+                                    Verbatim Evidence: "{item.matchedChunk}"
+                                  </Text>
+                                )}
+                              </View>
+                            ))}
                           </View>
                         </View>
-                      ))}
-                    </View>
-                  </View>
-                )}
+                      )}
 
-                {missingMatches.length > 0 && (
-                  <View>
-                    <View className="flex-row items-center mb-2">
-                      <Ionicons name="close-circle" size={14} color="#D32F2F" />
-                      <Text className="ml-1.5 text-[10px] font-bold text-[#D32F2F] uppercase tracking-widest">Missing / Weak Areas</Text>
-                    </View>
-                    <View className="gap-2 pl-1">
-                      {missingMatches.map((adj, i) => (
-                        <View key={i} className="flex-row items-start">
-                          <Ionicons name="close-circle" size={12} color="#D32F2F" style={{ marginRight: 6, marginTop: 1 }} />
-                          <Text className="text-xs font-semibold text-[#1F3A5F] flex-1 flex-wrap">{getConcept(adj.ruleId)}</Text>
+                      {/* CONFIDENCE MISMATCHES */}
+                      {mismatchPoints.length > 0 && (
+                        <View className="mb-4">
+                          <View className="flex-row items-center mb-2.5">
+                            <Ionicons name="alert-circle" size={15} color="#CA5D25" />
+                            <Text className="ml-1.5 text-[11px] font-bold text-[#CA5D25] uppercase tracking-widest">
+                              Confidence Mismatches ({mismatchPoints.length})
+                            </Text>
+                          </View>
+                          <View className="gap-3">
+                            {mismatchPoints.map((item, i) => (
+                              <View key={i} className="bg-[#FFF8F5] p-3.5 rounded-xl border border-[#F4A47A]">
+                                <View className="flex-row justify-between items-start mb-1">
+                                  <Text className="text-xs font-bold text-[#1F3A5F] flex-1 mr-2">{item.competency}</Text>
+                                  <View className="px-2 py-0.5 rounded-full bg-[#FFF3ED] border border-[#CA5D25]">
+                                    <Text className="text-[9px] font-bold text-[#CA5D25]">{item.headline}</Text>
+                                  </View>
+                                </View>
+
+                                <Text className="text-xs text-[#4F6B82] leading-4 mb-2">{item.description}</Text>
+
+                                <View className="bg-white p-2.5 rounded-lg border border-[#FDEEE6]">
+                                  <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-wider mb-0.5">
+                                    Action Recommendation
+                                  </Text>
+                                  <Text className="text-xs text-[#4F6B82] leading-4">{item.actionRecommendation}</Text>
+                                </View>
+
+                                {item.matchedChunk && (
+                                  <Text className="text-[11px] text-[#4F6B82] mt-2 italic">
+                                    Verbatim Evidence: "{item.matchedChunk}"
+                                  </Text>
+                                )}
+                              </View>
+                            ))}
+                          </View>
                         </View>
-                      ))}
-                    </View>
-                  </View>
-                )}
+                      )}
 
-                {strongMatches.length === 0 && partialMatches.length === 0 && missingMatches.length === 0 && (
-                  <Text className="text-xs text-[#8B95A5] italic mt-2">No specific competency matches were detected for this analysis.</Text>
-                )}
+                      {/* WEAK POINTS / GAPS */}
+                      {weakPoints.length > 0 && (
+                        <View className="mb-2">
+                          <View className="flex-row items-center mb-2.5">
+                            <Ionicons name="close-circle" size={15} color="#D32F2F" />
+                            <Text className="ml-1.5 text-[11px] font-bold text-[#D32F2F] uppercase tracking-widest">
+                              Weak Points / Gaps ({weakPoints.length})
+                            </Text>
+                          </View>
+                          <View className="gap-3">
+                            {weakPoints.map((item, i) => (
+                              <View key={i} className="bg-[#FEF2F2] p-3.5 rounded-xl border border-[#FCA5A5]/40">
+                                <View className="flex-row justify-between items-start mb-1">
+                                  <Text className="text-xs font-bold text-[#1F3A5F] flex-1 mr-2">{item.competency}</Text>
+                                  <View className="px-2 py-0.5 rounded-full bg-[#FEE2E2] border border-[#FCA5A5]">
+                                    <Text className="text-[9px] font-bold text-[#D32F2F]">{item.headline}</Text>
+                                  </View>
+                                </View>
+
+                                <Text className="text-xs text-[#4F6B82] leading-4 mb-2">{item.description}</Text>
+
+                                <View className="bg-white p-2.5 rounded-lg border border-[#FCA5A5]/30">
+                                  <Text className="text-[10px] font-bold text-[#D32F2F] uppercase tracking-wider mb-0.5">
+                                    Action Recommendation
+                                  </Text>
+                                  <Text className="text-xs text-[#4F6B82] leading-4">{item.actionRecommendation}</Text>
+                                </View>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      )}
+
+                      {personalizedItems.length === 0 && (
+                        <Text className="text-xs text-[#8B95A5] italic mt-2">No specific competency evaluations were detected for this target role.</Text>
+                      )}
+                    </View>
+                  );
+                })()}
               </View>
             )}
           </View>
@@ -505,39 +725,65 @@ export default function DashboardScreen() {
           <Text className="text-lg font-extrabold text-[#1F3A5F] mb-3">Detected Sections</Text>
           <View className="flex-row flex-wrap gap-2">
             {(() => {
+              const CANONICAL_DISPLAY_NAMES: Record<string, string> = {
+                ContactInformation: "Contact Information",
+                ProfessionalSummary: "Professional Summary",
+                Education: "Education",
+                Skills: "Skills",
+                WorkExperience: "Work Experience",
+                Projects: "Projects",
+                Internships: "Internships",
+                RelevantCoursework: "Relevant Coursework",
+                Certifications: "Certifications",
+                OrganizationsLeadership: "Organizations & Leadership",
+                Achievements: "Achievements",
+                Languages: "Languages",
+                Trainings: "Trainings",
+              };
+
               const ALL_SECTIONS: string[] = [
                 "ContactInformation", "ProfessionalSummary", "Education", "Skills",
                 "WorkExperience", "Projects", "Internships", "RelevantCoursework",
-                "Certifications", "OrganizationsAndLeadership", "Achievements",
+                "Certifications", "OrganizationsLeadership", "Achievements",
                 "Languages", "Trainings"
               ];
 
-              const detectedNames = new Set(detectedSections.filter(s => s.isPresent).map(s => s.name));
+              const normalizeSecKey = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+              const presentSectionKeys = new Set(
+                detectedSections
+                  .filter((s) => s.isPresent)
+                  .map((s) => normalizeSecKey(s.name))
+              );
 
               // Add any custom detected sections
               detectedSections.filter(s => s.isPresent).forEach(s => {
-                if (!ALL_SECTIONS.includes(s.name) && (s.name as string) !== 'Content') {
+                const norm = normalizeSecKey(s.name);
+                if (!ALL_SECTIONS.some(sec => normalizeSecKey(sec) === norm) && (s.name as string) !== 'Content') {
                   ALL_SECTIONS.push(s.name);
                 }
               });
 
-              return ALL_SECTIONS.map((sectionName, idx) => {
-                const isPresent = detectedNames.has(sectionName as any);
-                if (isPresent) {
+              return ALL_SECTIONS.map((sectionKey, idx) => {
+                const normKey = normalizeSecKey(sectionKey);
+                const isDetected = presentSectionKeys.has(normKey);
+                const displayName = CANONICAL_DISPLAY_NAMES[sectionKey] || sectionKey.replace(/([A-Z])/g, " $1").trim();
+
+                if (isDetected) {
                   return (
-                    <View key={`sec-${idx}`} className="flex-row items-center bg-white px-3 py-1.5 rounded-full border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1, elevation: 1 }}>
-                      <Ionicons name="checkmark-circle" size={14} color="#79D5C8" />
-                      <Text className="ml-1.5 text-xs font-bold text-[#1F3A5F]">
-                        {sectionName.replace(/([A-Z])/g, " $1").trim()}
+                    <View key={idx} className="flex-row items-center bg-[#D7F1ED] px-3 py-1.5 rounded-full border border-[#79D5C8]">
+                      <Ionicons name="checkmark-circle" size={14} color="#1E5D53" />
+                      <Text className="ml-1.5 text-xs font-bold text-[#1E5D53]">
+                        {displayName}
                       </Text>
                     </View>
                   );
                 } else {
                   return (
-                    <View key={`sec-${idx}`} className="flex-row items-center bg-transparent px-3 py-1.5 rounded-full border border-[#BFD6EA] opacity-60">
+                    <View key={idx} className="flex-row items-center bg-[#EAF2F7]/50 px-3 py-1.5 rounded-full border border-[#BFD6EA]/50 opacity-60">
                       <Ionicons name="ellipse-outline" size={14} color="#8B95A5" />
                       <Text className="ml-1.5 text-xs font-semibold text-[#4F6B82]">
-                        {sectionName.replace(/([A-Z])/g, " $1").trim()}
+                        {displayName}
                       </Text>
                     </View>
                   );
@@ -552,34 +798,46 @@ export default function DashboardScreen() {
           <View className="flex-row items-center justify-between mb-4">
             <Text className="text-lg font-extrabold text-[#1F3A5F]">Improve Your Resume</Text>
             {sortedSuggestions.length > 3 && (
-              <TouchableOpacity onPress={() => setShowAllSuggestions(true)}>
-                <Text className="text-sm font-bold text-[#F4A47A]">View all {sortedSuggestions.length} →</Text>
+              <TouchableOpacity onPress={() => setShowAllSuggestions(true)} className="flex-row items-center">
+                <Text className="text-sm font-bold text-[#F4A47A] mr-1">View all {sortedSuggestions.length}</Text>
+                <Ionicons name="chevron-forward" size={14} color="#F4A47A" />
               </TouchableOpacity>
             )}
           </View>
 
           <View className="gap-4">
-            {topSuggestions.map((suggestion, idx) => (
-              <View key={idx} className="bg-white rounded-2xl p-5 border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-                <View className="flex-row items-start mb-3">
-                  <View className="mt-0.5 mr-2">
-                    <Ionicons name={suggestion.priority === "critical" ? "warning" : "bulb"} size={18} color={suggestion.priority === "critical" ? "#CA5D25" : "#1F3A5F"} />
+            {topSuggestions.map((suggestion, idx) => {
+              const formattedTitle = formatCanonicalCompetencyName(suggestion.title || "Resume Improvement");
+              const bodyText = suggestion.why || suggestion.reason || suggestion.description || suggestion.message;
+              const actionText = suggestion.action || suggestion.example;
+              const isRewrite = !!suggestion.example && suggestion.example.startsWith("Verbatim");
+
+              return (
+                <View key={idx} className="bg-white rounded-2xl p-4 border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
+                  <View className="flex-row items-start mb-2">
+                    <View className="mt-0.5 mr-2">
+                      <Ionicons name={suggestion.priority === "critical" || suggestion.priority === "high" ? "warning" : "bulb"} size={18} color={suggestion.priority === "critical" || suggestion.priority === "high" ? "#CA5D25" : "#1F3A5F"} />
+                    </View>
+                    <Text className="text-base font-bold text-[#1F3A5F] flex-1">{formattedTitle}</Text>
                   </View>
-                  <Text className="text-base font-bold text-[#1F3A5F] flex-1">{suggestion.title}</Text>
+
+                  {bodyText ? (
+                    <Text className="text-xs leading-4 text-[#4F6B82] mb-3">
+                      {bodyText}
+                    </Text>
+                  ) : null}
+
+                  {actionText ? (
+                    <View className="bg-[#FEF5F1] p-3 rounded-xl border border-[#FDEEE6]">
+                      <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-widest mb-1">
+                        {isRewrite ? "Verified Evidence & Next Step" : "Suggested Action"}
+                      </Text>
+                      <Text className="text-xs leading-4 text-[#CA5D25] font-medium">{actionText}</Text>
+                    </View>
+                  ) : null}
                 </View>
-
-                <Text className="text-sm leading-5 text-justify text-[#4F6B82] mb-3">
-                  {suggestion.description || suggestion.message}
-                </Text>
-
-                {suggestion.example && (
-                  <View className="bg-[#FEF5F1] p-4 rounded-xl border border-[#FDEEE6]">
-                    <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-widest mb-1.5">Suggested Rewrite</Text>
-                    <Text className="text-sm leading-5 text-justify text-[#CA5D25] font-medium">{suggestion.example}</Text>
-                  </View>
-                )}
-              </View>
-            ))}
+              );
+            })}
             {topSuggestions.length === 0 && (
               <View className="bg-[#F1FAF8] p-5 rounded-2xl border border-[#D7F1ED] items-center" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1, elevation: 1 }}>
                 <Ionicons name="checkmark-circle" size={32} color="#1E5D53" className="mb-2" />
@@ -714,27 +972,38 @@ export default function DashboardScreen() {
 
             <ScrollView className="p-6 bg-[#F4F8FB]" showsVerticalScrollIndicator={false}>
               <View className="gap-4 pb-12">
-                {sortedSuggestions.map((suggestion, idx) => (
-                  <View key={idx} className="bg-white rounded-2xl p-5 border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-                    <View className="flex-row items-start mb-3">
-                      <View className="mt-0.5 mr-2">
-                        <Ionicons name={suggestion.priority === "critical" ? "warning" : "bulb"} size={18} color={suggestion.priority === "critical" ? "#CA5D25" : "#1F3A5F"} />
+                {sortedSuggestions.map((suggestion, idx) => {
+                  const formattedTitle = formatCanonicalCompetencyName(suggestion.title || "Resume Improvement");
+                  const bodyText = suggestion.why || suggestion.reason || suggestion.description || suggestion.message;
+                  const actionText = suggestion.action || suggestion.example;
+                  const isRewrite = !!suggestion.example && suggestion.example.startsWith("Verbatim");
+
+                  return (
+                    <View key={idx} className="bg-white rounded-2xl p-4 border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
+                      <View className="flex-row items-start mb-2">
+                        <View className="mt-0.5 mr-2">
+                          <Ionicons name={suggestion.priority === "critical" || suggestion.priority === "high" ? "warning" : "bulb"} size={18} color={suggestion.priority === "critical" || suggestion.priority === "high" ? "#CA5D25" : "#1F3A5F"} />
+                        </View>
+                        <Text className="text-base font-bold text-[#1F3A5F] flex-1">{formattedTitle}</Text>
                       </View>
-                      <Text className="text-base font-bold text-[#1F3A5F] flex-1">{suggestion.title}</Text>
+
+                      {bodyText ? (
+                        <Text className="text-xs leading-4 text-[#4F6B82] mb-3">
+                          {bodyText}
+                        </Text>
+                      ) : null}
+
+                      {actionText ? (
+                        <View className="bg-[#FEF5F1] p-3 rounded-xl border border-[#FDEEE6]">
+                          <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-widest mb-1">
+                            {isRewrite ? "Verified Evidence & Next Step" : "Suggested Action"}
+                          </Text>
+                          <Text className="text-xs leading-4 text-[#CA5D25] font-medium">{actionText}</Text>
+                        </View>
+                      ) : null}
                     </View>
-
-                    <Text className="text-sm leading-5 text-justify text-[#4F6B82] mb-3">
-                      {suggestion.description || suggestion.message}
-                    </Text>
-
-                    {suggestion.example && (
-                      <View className="bg-[#FEF5F1] p-4 rounded-xl border border-[#FDEEE6]">
-                        <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-widest mb-1.5">Suggested Rewrite</Text>
-                        <Text className="text-sm leading-5 text-justify text-[#CA5D25] font-medium">{suggestion.example}</Text>
-                      </View>
-                    )}
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             </ScrollView>
           </View>
@@ -788,6 +1057,31 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      {/* SKILL SELF-ASSESSMENT MODAL (UPDATE CONFIDENCE RATINGS) */}
+      <SkillSelfAssessmentModal
+        visible={showSelfAssessmentModal}
+        skills={
+          pendingTargetSkills.length > 0
+            ? pendingTargetSkills
+            : semanticAdjustments
+                .map((adj) => ({
+                  name: formatCanonicalCompetencyName(getConcept(adj.ruleId)),
+                  relevance: "HIGH" as const,
+                }))
+                .slice(0, 8)
+        }
+        initialRatings={selfRatings}
+        onSave={async (newRatings) => {
+          await refreshPersonalizedGuidance(newRatings);
+          const updated = await getStoredSelfAssessments();
+          setSelfRatings(updated);
+          setShowSelfAssessmentModal(false);
+        }}
+        onSkip={() => {
+          setShowSelfAssessmentModal(false);
+        }}
+      />
     </SafeAreaView>
   );
 }

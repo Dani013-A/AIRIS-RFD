@@ -399,9 +399,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   /**
    * Session persistence handler.
    * On app launch, Firebase restores the auth state from AsyncStorage.
-   * - If no user → stay on login.
-   * - If user exists but email not verified → sign out and go to login.
-   * - If user exists and verified → load Firestore profile and let the route guard handle navigation.
+   * - If no user -> stay on login.
+   * - If user exists but email not verified -> sign out and go to login.
+   * - If user exists and verified -> load Firestore profile and let the route guard handle navigation.
    */
   initializeAuth: () => {
     set({ loading: true, isInitialized: false });

@@ -20,6 +20,8 @@ function formatBytes(bytes: number): string {
   return `${mb.toFixed(2)} MB`;
 }
 
+import SkillSelfAssessmentModal from "../../components/resume/SkillSelfAssessmentModal";
+
 export default function ResumeUploadIntroScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -31,7 +33,9 @@ export default function ResumeUploadIntroScreen() {
 
   const activeResume = useResumeStore((state) => state.activeResume);
   const processingStatus = useResumeStore((state) => state.processingStatus);
+  const pendingTargetSkills = useResumeStore((state) => state.pendingTargetSkills);
   const uploadAndProcessResume = useResumeStore((state) => state.uploadAndProcessResume);
+  const completeSelfAssessmentAndFinalize = useResumeStore((state) => state.completeSelfAssessmentAndFinalize);
   const clearAnalysisState = useResumeStore((state) => state.clearAnalysisState);
   const resumeError = useResumeStore((state) => state.error);
 
@@ -47,7 +51,7 @@ export default function ResumeUploadIntroScreen() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [bytesUploaded, setBytesUploaded] = useState<{ loaded: number; total: number }>({ loaded: 0, total: 0 });
   const [uploadPhase, setUploadPhase] = useState<string>("Uploading file...");
-  const [uploadStage, setUploadStage] = useState<"idle" | "uploading" | "extracting" | "analyzing" | "saving" | "completed">("idle");
+  const [uploadStage, setUploadStage] = useState<"idle" | "uploading" | "extracting" | "analyzing" | "awaiting_assessment" | "saving" | "completed">("idle");
 
   const fileName = activeResume?.originalFileName || null;
 
@@ -202,7 +206,14 @@ export default function ResumeUploadIntroScreen() {
         extractedText,
         precomputedAnalysis
       );
-      setUploadStage("completed");
+
+      const currentStatus = useResumeStore.getState().processingStatus;
+      if (currentStatus === "awaiting_self_assessment") {
+        setUploadStage("awaiting_assessment");
+        setUploadPhase("Please rate your confidence for the target skills below.");
+      } else {
+        setUploadStage("completed");
+      }
     } catch (err) {
       useResumeStore.getState().setProcessingStatus("idle");
       setUploadStage("idle");
@@ -236,6 +247,13 @@ export default function ResumeUploadIntroScreen() {
         "manual_paste",
         pastedText
       );
+      const currentStatus = useResumeStore.getState().processingStatus;
+      if (currentStatus === "awaiting_self_assessment") {
+        setUploadStage("awaiting_assessment");
+        setUploadPhase("Please rate your confidence for the target skills below.");
+      } else {
+        setUploadStage("completed");
+      }
       setPastedText("");
       setTempFile(null);
     } catch (err) {
@@ -248,8 +266,8 @@ export default function ResumeUploadIntroScreen() {
       Alert.alert("Consent Required", "Please check and agree to both the Terms of Service and Privacy Policy.");
       return;
     }
-    if (!activeResume || !currentUser?.activeResumeId) {
-      Alert.alert("Resume Required", "Please upload and analyze your resume successfully first.");
+    if (processingStatus !== "completed" || !activeResume || !currentUser?.activeResumeId) {
+      Alert.alert("Assessment Required", "Please complete your skill self-assessment to view your personalized dashboard.");
       return;
     }
 
@@ -277,6 +295,7 @@ export default function ResumeUploadIntroScreen() {
   const isSubmitEnabled =
     agreeTerms &&
     agreePrivacy &&
+    processingStatus === "completed" &&
     (!!activeResume && !!currentUser?.activeResumeId);
 
   return (
@@ -585,6 +604,20 @@ export default function ResumeUploadIntroScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* SKILL SELF-ASSESSMENT MODAL IN UPLOAD FLOW */}
+      <SkillSelfAssessmentModal
+        visible={processingStatus === "awaiting_self_assessment"}
+        skills={pendingTargetSkills}
+        onSave={async (ratings) => {
+          await completeSelfAssessmentAndFinalize(ratings);
+          setUploadStage("completed");
+        }}
+        onSkip={async () => {
+          await completeSelfAssessmentAndFinalize({});
+          setUploadStage("completed");
+        }}
+      />
     </SafeAreaView>
   );
 }

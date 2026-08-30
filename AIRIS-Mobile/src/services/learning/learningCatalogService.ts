@@ -1495,7 +1495,7 @@ export function logForYouRecommendations(
   items: MatchedResourceItem[]
 ): void {
   console.log("============================================================");
-  console.log("AIRIS — FOR YOU RECOMMENDATIONS");
+  console.log("AIRIS - FOR YOU RECOMMENDATIONS");
   console.log("============================================================");
   console.log(`\nUser: ${user}`);
   console.log(`\nTarget Role: ${targetRole || "Not Specified"}\n`);
