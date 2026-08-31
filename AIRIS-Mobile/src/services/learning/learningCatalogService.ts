@@ -1214,13 +1214,20 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
     if (!resource.isActive) continue;
     if (!validateLearningResource(resource)) continue;
 
-    // Exclude evergreen category items (interviews, resume, communication) from For You
-    if (
-      resource.category === "interviews" ||
-      resource.category === "resume" ||
-      resource.category === "communication"
-    ) {
-      continue;
+    // If specific category is requested, filter accordingly
+    if (params.categoryId && params.categoryId !== "for_you") {
+      if (resource.category !== params.categoryId) {
+        continue;
+      }
+    } else if (params.categoryId === "for_you" || !params.categoryId) {
+      // Exclude evergreen category items (interviews, resume, communication) from For You feed
+      if (
+        resource.category === "interviews" ||
+        resource.category === "resume" ||
+        resource.category === "communication"
+      ) {
+        continue;
+      }
     }
 
     // Filter by resource type if requested
@@ -1361,17 +1368,27 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
       }
     }
 
-    // STRICT RELEVANCE FILTER:
-    // Exclude Tier 4 (Generic) and Tier 5 (Irrelevant) from the "For You" feed!
-    if (tier === "TIER_1_DIRECT_GAP" || tier === "TIER_2_ROLE_COMPETENCY" || tier === "TIER_3_SUPPORTING") {
+    const isCategoryTab = params.categoryId && params.categoryId !== "for_you";
+    if (isCategoryTab || tier === "TIER_1_DIRECT_GAP" || tier === "TIER_2_ROLE_COMPETENCY" || tier === "TIER_3_SUPPORTING") {
+      if (!reason && isCategoryTab) {
+        const firstSkill = (resource.skills && resource.skills[0]) || resource.title;
+        if (params.categoryId === "interviews") {
+          reason = `Prepares for ${params.targetPosition || "technical"} interview questions by covering ${firstSkill}.`;
+        } else if (params.categoryId === "communication") {
+          reason = `Develops targeted ${firstSkill} competencies for professional workplace collaboration and presentations.`;
+        } else if (params.categoryId === "resume") {
+          reason = `Helps structure ${firstSkill} accomplishments to maximize resume alignment for ${params.targetPosition || "target role applications"}.`;
+        }
+      }
+
       seenUrls.add(normUrl);
       scoredItems.push({
         ...resource,
-        relevanceScore: score,
-        recommendationReason: reason,
+        relevanceScore: score > 0 ? score : 50,
+        recommendationReason: reason || resource.description,
         matchedSkillGap: matchedGapName || "NONE",
         matchedCompetency: matchedComp || "core technical",
-        relevanceTier: tier,
+        relevanceTier: tier === "TIER_5_IRRELEVANT" ? "TIER_3_SUPPORTING" : tier,
         matchEvidence: itemEvidence,
         isPersonalizedGap: tier === "TIER_1_DIRECT_GAP",
       });

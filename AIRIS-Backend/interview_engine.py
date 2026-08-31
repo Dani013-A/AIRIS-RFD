@@ -114,13 +114,25 @@ def generate_first_question(target_role: str, program: str, parsed_resume: dict)
     }}
     """
 
-    raw_response = generate_text_with_fallback(prompt)
-    extracted_json = _extract_json(raw_response)
-    if isinstance(extracted_json, dict) and extracted_json.get("question"):
-        extracted_json["benchmarkAnswer"] = benchmark_answer
-        return extracted_json
+    try:
+        raw_response = generate_text_with_fallback(prompt)
+        extracted_json = _extract_json(raw_response)
+        if isinstance(extracted_json, dict) and extracted_json.get("question"):
+            extracted_json["benchmarkAnswer"] = benchmark_answer
+            return extracted_json
+    except Exception as llm_err:
+        print(f"[INTERVIEW ERROR] LLM question generation failed: {llm_err}. Using deterministic fallback.")
 
-    raise ValueError("LLM response did not return a valid question JSON structure.")
+    # High-quality fallback matching candidate target role
+    fallback_text = base_question.get("text") or f"Tell me about your background and preparation for the {safe_target_role} role."
+    return {
+        "question": fallback_text,
+        "questionType": "introductory",
+        "difficulty": 1,
+        "targetCompetencies": ["communication", "background"],
+        "benchmarkAnswer": benchmark_answer,
+        "isFallback": True,
+    }
 
 def classify_interaction_intent(current_question: str, current_answer: str) -> dict:
     prompt = f"""

@@ -4,6 +4,14 @@ import pypandoc
 import re
 from typing import Union
 
+def get_pdf_page_count(file_bytes: bytes) -> int:
+    """Return the total number of pages in a PDF document using fitz."""
+    try:
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        return len(doc)
+    except Exception:
+        return 1
+
 def extract_text_from_pdf(file_bytes: bytes) -> str:
     """Extract raw text from a PDF file using PyMuPDF (fitz) with safe fallback."""
     try:

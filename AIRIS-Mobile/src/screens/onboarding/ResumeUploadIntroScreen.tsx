@@ -11,6 +11,8 @@ import { useResumeStore } from "../../store/resumeStore";
 import { extractTextFromFile } from "../../services/resume/resumeExtractionService";
 import { getMockResumeText } from "../../fixtures/resume/mockResume";
 import { uploadResumeFileWithProgress, type UploadProgressEvent } from "../../services/resume/resumeAnalysisService";
+import { classifyNameMatch } from "../../utils/nameMatcher";
+import { normalizeApiError } from "../../utils/errorMapper";
 
 function formatBytes(bytes: number): string {
   if (!bytes || bytes <= 0) return "0 KB";
@@ -174,6 +176,10 @@ export default function ResumeUploadIntroScreen() {
         extractedText = uploadResult.rawText;
         precomputedAnalysis = uploadResult.analysisResult;
       } catch (backendError) {
+        const normErr = normalizeApiError(backendError);
+        if (normErr.code === "EXCEEDED_PAGE_LIMIT" || normErr.code === "INVALID_RESUME") {
+          throw new Error(normErr.userMessage);
+        }
         console.log("Backend upload fallback to client parser:", backendError);
         setUploadStage("extracting");
         setUploadPhase("Reading document content...");
@@ -191,6 +197,29 @@ export default function ResumeUploadIntroScreen() {
 
         setUploadProgress(100);
         setBytesUploaded({ loaded: initialSize, total: initialSize });
+      }
+
+      // Name Matching Decision Flow (Warning / Confirmation)
+      const nameCheck = classifyNameMatch(currentUser.fullName || "", extractedText);
+      if (nameCheck.classification === "CLEAR_MISMATCH") {
+        const confirmProceed = await new Promise<boolean>((resolve) => {
+          Alert.alert(
+            "Name Verification Warning",
+            "The candidate name in the uploaded document appears to differ from your profile name. Would you like to proceed with this resume or select another file?",
+            [
+              { text: "Select Different File", style: "cancel", onPress: () => resolve(false) },
+              { text: "Proceed Anyway", style: "default", onPress: () => resolve(true) },
+            ]
+          );
+        });
+
+        if (!confirmProceed) {
+          useResumeStore.getState().setProcessingStatus("idle");
+          setUploadStage("idle");
+          setUploadProgress(0);
+          setTempFile(null);
+          return;
+        }
       }
 
       setUploadStage("saving");
@@ -218,10 +247,8 @@ export default function ResumeUploadIntroScreen() {
       useResumeStore.getState().setProcessingStatus("idle");
       setUploadStage("idle");
       setUploadProgress(0);
-      Alert.alert(
-        "Upload Failure",
-        err instanceof Error ? err.message : "Failed to process resume upload."
-      );
+      const normalized = normalizeApiError(err, "Failed to process resume upload.");
+      Alert.alert("Upload Notice", normalized.userMessage);
     }
   };
 

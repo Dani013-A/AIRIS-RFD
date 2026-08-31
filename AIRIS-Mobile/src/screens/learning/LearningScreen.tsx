@@ -254,7 +254,36 @@ export default function LearningScreen({ initialCategory = "interviews" }: Learn
 
   const handleDownloadTemplate = async (template: ResumeTemplate) => {
     try {
-      const pdfContent = generatePdfFromMarkdown(template.name, template.content);
+      const name = currentUser?.fullName || "YOUR NAME";
+      const program = currentUser?.degreeProgram || "Degree Program";
+      const target = currentUser?.targetPosition || targetPosition || "Target Position";
+
+      const cleanTemplateContent = `# ${name.toUpperCase()}
+Phone: +63 9XX XXX XXXX | Email: student@tip.edu.ph | Location: Manila, Philippines
+
+## PROFESSIONAL SUMMARY
+Motivated ${program} graduate preparing for entry-level opportunities as a ${target}. Demonstrates foundational domain knowledge, analytical problem solving, and professional teamwork.
+
+## EDUCATION
+Technological Institute of the Philippines – Manila, Philippines
+${program} | Expected Graduation: 2026
+- Relevant Coursework: Core Academic & Professional Discipline Modules
+
+## CORE COMPETENCIES & SKILLS
+- Technical & Domain Skills: [List relevant discipline skills]
+- Tools & Software: [List software, tools, or frameworks]
+- Soft Skills: Problem Solving, Team Collaboration, Communication
+
+## PROJECTS & RELEVANT EXPERIENCE
+[Project Title or Internship Role] | Technological Institute of the Philippines
+- Applied core principles to solve practical challenges and achieve project goals.
+- Documented methodology, collaborated with project team members, and delivered final presentation.
+
+## CERTIFICATIONS & ACHIEVEMENTS
+- [List professional certifications, academic honors, or campus leadership roles]
+`;
+
+      const pdfContent = generatePdfFromMarkdown(template.name, cleanTemplateContent);
       const fileName = `${template.id}_ats_template.pdf`;
       const localUri = `${documentDirectory || ""}${fileName}`;
 

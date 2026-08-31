@@ -167,6 +167,16 @@ async def upload_resume(
 
         filename = getattr(file, "filename", "uploaded_resume.pdf") or "uploaded_resume.pdf"
         content = await file.read()
+
+        if filename.lower().endswith(".pdf"):
+            from file_utils import get_pdf_page_count
+            page_count = get_pdf_page_count(content)
+            if page_count > 3:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Your resume is {page_count} pages long. Please upload a resume with 3 pages or fewer."
+                )
+
         raw_text = extract_text(content, filename)
 
         from resume_parser import parse_resume

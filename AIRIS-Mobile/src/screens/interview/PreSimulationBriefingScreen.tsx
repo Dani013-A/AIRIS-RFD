@@ -8,6 +8,7 @@ import { useResumeStore } from "../../store/resumeStore";
 import { useInterviewStore } from "../../store/interviewStore";
 import { startInterviewSimulation } from "../../services/api/interviewApi";
 import { PrimaryButton } from "../../components/ui";
+import { normalizeApiError } from "../../utils/errorMapper";
 
 export default function PreSimulationBriefingScreen() {
   const router = useRouter();
@@ -74,7 +75,8 @@ export default function PreSimulationBriefingScreen() {
 
     } catch (err) {
       console.error(err);
-      setError("Failed to initialize interview session. The AI provider might be down.");
+      const normalized = normalizeApiError(err, "Failed to initialize interview session. Please try again.");
+      setError(normalized.userMessage);
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   ScrollView,
   Text,
   TextInput,
@@ -15,6 +16,8 @@ import { useAuthStore } from "../../store/authStore";
 import { useResumeStore } from "../../store/resumeStore";
 import { PrimaryButton } from "../../components/ui";
 import { fetchUserActivities, UserActivity } from "../../services/firebase/activityService";
+import { tipManilaPrograms } from "../../data/tipManilaPrograms";
+import { validatePersonName, validateAcademicSelection } from "../../utils/inputValidator";
 
 export default function StudentProfileScreen() {
   const router = useRouter();
@@ -37,6 +40,9 @@ export default function StudentProfileScreen() {
   const [editCollege, setEditCollege] = useState(currentUser?.college || "");
   const [editProgram, setEditProgram] = useState(currentUser?.degreeProgram || "");
   const [editCareer, setEditCareer] = useState(currentUser?.targetPosition || "");
+
+  const [showCollegeModal, setShowCollegeModal] = useState(false);
+  const [showProgramModal, setShowProgramModal] = useState(false);
 
   const [isRetargeting, setIsRetargeting] = useState(false);
   const [retargetStatusText, setRetargetStatusText] = useState("");
@@ -82,12 +88,27 @@ export default function StudentProfileScreen() {
   };
 
   const handleSaveProfile = async () => {
-    if (!editName.trim()) {
-      Alert.alert("Required Field", "Full name cannot be empty.");
+    const nameVal = validatePersonName(editName);
+    if (!nameVal.isValid) {
+      Alert.alert("Invalid Name", nameVal.message);
       return;
     }
+
+    const academicVal = validateAcademicSelection(editCollege, editProgram);
+    if (!academicVal.isValid) {
+      Alert.alert("Invalid Academic Selection", academicVal.message);
+      return;
+    }
+
+    if (!editCareer.trim()) {
+      Alert.alert("Required Field", "Preferred career target cannot be empty.");
+      return;
+    }
+
     clearError();
     const targetChanged = editCareer.trim().toLowerCase() !== (currentUser?.targetPosition || "").trim().toLowerCase();
+    const academicChanged = editCollege.trim().toLowerCase() !== (currentUser?.college || "").trim().toLowerCase() ||
+                            editProgram.trim().toLowerCase() !== (currentUser?.degreeProgram || "").trim().toLowerCase();
 
     try {
       if (targetChanged && currentUser?.hasUploadedResume && activeResume?.rawText) {
@@ -95,7 +116,7 @@ export default function StudentProfileScreen() {
         setRetargetStatusText(`Analyzing resume alignment for ${editCareer.trim()}...`);
 
         // 1. Update profile in database & auth store
-        await updateProfile(editName, editCollege, editProgram, editCareer.trim());
+        await updateProfile(nameVal.normalizedValue!, editCollege.trim(), editProgram.trim(), editCareer.trim());
 
         // 2. Perform ONE intentional role retarget analysis
         try {
@@ -114,8 +135,16 @@ export default function StudentProfileScreen() {
         setIsRetargeting(false);
         setRetargetStatusText("");
       } else {
-        await updateProfile(editName, editCollege, editProgram, editCareer.trim());
-        Alert.alert("Success", "Profile details saved successfully.");
+        await updateProfile(nameVal.normalizedValue!, editCollege.trim(), editProgram.trim(), editCareer.trim());
+
+        if (academicChanged && currentUser?.hasUploadedResume) {
+          Alert.alert(
+            "Academic Program Updated",
+            "Your academic profile has been updated. If your course alignment or skill targets have changed, consider updating your target career or re-analyzing your resume for updated recommendations."
+          );
+        } else {
+          Alert.alert("Success", "Profile details saved successfully.");
+        }
       }
       setExpandedPanel(null);
     } catch (err) {
@@ -330,26 +359,36 @@ export default function StudentProfileScreen() {
 
                   <View className="gap-2">
                     <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">College Dept</Text>
-                    <TextInput
-                      className="rounded-xl border border-[#BFD6EA] px-4 py-3 text-base text-[#1F3A5F] bg-[#F4F8FB] h-12"
-                      value={editCollege}
-                      onChangeText={setEditCollege}
-                      placeholder="e.g. College of Computer Studies"
-                      placeholderTextColor="#94A3B8"
-                      editable={!loading}
-                    />
+                    <TouchableOpacity
+                      onPress={() => setShowCollegeModal(true)}
+                      disabled={loading || isRetargeting}
+                      className="rounded-xl border border-[#BFD6EA] px-4 py-3 bg-[#F4F8FB] h-12 flex-row items-center justify-between"
+                    >
+                      <Text className={`text-base ${editCollege ? "text-[#1F3A5F] font-semibold" : "text-[#94A3B8]"}`}>
+                        {editCollege || "Select College Department"}
+                      </Text>
+                      <Ionicons name="chevron-down" size={18} color="#8B95A5" />
+                    </TouchableOpacity>
                   </View>
 
                   <View className="gap-2">
                     <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">Degree Program</Text>
-                    <TextInput
-                      className="rounded-xl border border-[#BFD6EA] px-4 py-3 text-base text-[#1F3A5F] bg-[#F4F8FB] h-12"
-                      value={editProgram}
-                      onChangeText={setEditProgram}
-                      placeholder="e.g. BS Computer Science"
-                      placeholderTextColor="#94A3B8"
-                      editable={!loading}
-                    />
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (!editCollege) {
+                          Alert.alert("Select Department First", "Please select a College Department before selecting a Degree Program.");
+                          return;
+                        }
+                        setShowProgramModal(true);
+                      }}
+                      disabled={loading || isRetargeting}
+                      className="rounded-xl border border-[#BFD6EA] px-4 py-3 bg-[#F4F8FB] h-12 flex-row items-center justify-between"
+                    >
+                      <Text className={`text-base ${editProgram ? "text-[#1F3A5F] font-semibold" : "text-[#94A3B8]"}`}>
+                        {editProgram || "Select Degree Program"}
+                      </Text>
+                      <Ionicons name="chevron-down" size={18} color="#8B95A5" />
+                    </TouchableOpacity>
                   </View>
 
                   <View className="gap-2">
@@ -370,39 +409,37 @@ export default function StudentProfileScreen() {
                       editable={!loading && !isRetargeting}
                     />
 
-                    {/* Quick career suggestion pills */}
+                    {/* Dynamic career suggestion pills from canonical academic catalog */}
                     <View className="flex-row flex-wrap gap-1.5 mt-1">
-                      {[
-                        "Software Engineer",
-                        "Data Analyst",
-                        "Cybersecurity Analyst",
-                        "Cloud Engineer",
-                        "Frontend Developer",
-                        "Backend Developer",
-                        "QA Engineer",
-                        "UI/UX Designer",
-                      ].map((role) => (
-                        <TouchableOpacity
-                          key={role}
-                          onPress={() => setEditCareer(role)}
-                          disabled={loading || isRetargeting}
-                          className={`px-2.5 py-1 rounded-full border ${
-                            editCareer.trim().toLowerCase() === role.toLowerCase()
-                              ? "bg-[#FEF5F1] border-[#F4A47A]"
-                              : "bg-white border-[#BFD6EA]"
-                          }`}
-                        >
-                          <Text
-                            className={`text-[11px] font-semibold ${
+                      {(() => {
+                        const collegeData = tipManilaPrograms.find((c) => c.name.toLowerCase() === editCollege.toLowerCase());
+                        const progData = collegeData?.programs.find((p) => p.name.toLowerCase() === editProgram.toLowerCase());
+                        const dynamicSuggestions = progData?.suggestedPositions || [
+                          "Software Engineer", "Data Analyst", "Civil Engineer", "Accountant", "Architect", "QA Engineer"
+                        ];
+                        return dynamicSuggestions.slice(0, 8).map((role) => (
+                          <TouchableOpacity
+                            key={role}
+                            onPress={() => setEditCareer(role)}
+                            disabled={loading || isRetargeting}
+                            className={`px-2.5 py-1 rounded-full border ${
                               editCareer.trim().toLowerCase() === role.toLowerCase()
-                                ? "text-[#CA5D25] font-bold"
-                                : "text-[#4F6B82]"
+                                ? "bg-[#FEF5F1] border-[#F4A47A]"
+                                : "bg-white border-[#BFD6EA]"
                             }`}
                           >
-                            {role}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
+                            <Text
+                              className={`text-[11px] font-semibold ${
+                                editCareer.trim().toLowerCase() === role.toLowerCase()
+                                  ? "text-[#CA5D25] font-bold"
+                                  : "text-[#4F6B82]"
+                              }`}
+                            >
+                              {role}
+                            </Text>
+                          </TouchableOpacity>
+                        ));
+                      })()}
                     </View>
 
                     {isRetargeting && (
@@ -570,6 +607,87 @@ export default function StudentProfileScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* College Department Selection Modal */}
+      <Modal visible={showCollegeModal} animationType="slide" transparent={true} onRequestClose={() => setShowCollegeModal(false)}>
+        <View className="flex-1 bg-black/50 justify-end">
+          <View className="bg-white rounded-t-3xl p-6 max-h-[80%] border-t border-[#BFD6EA]">
+            <View className="flex-row items-center justify-between pb-4 border-b border-[#EAF2F7] mb-4">
+              <Text className="text-lg font-extrabold text-[#1F3A5F]">Select College Department</Text>
+              <TouchableOpacity onPress={() => setShowCollegeModal(false)} className="p-1">
+                <Ionicons name="close" size={24} color="#8B95A5" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 20 }}>
+              {tipManilaPrograms.map((c) => {
+                const isSelected = editCollege.toLowerCase() === c.name.toLowerCase();
+                return (
+                  <TouchableOpacity
+                    key={c.name}
+                    onPress={() => {
+                      setEditCollege(c.name);
+                      // Reset program if it doesn't belong to new college
+                      const validInNewCollege = c.programs.some((p) => p.name.toLowerCase() === editProgram.toLowerCase());
+                      if (!validInNewCollege && c.programs.length > 0) {
+                        setEditProgram(c.programs[0].name);
+                      }
+                      setShowCollegeModal(false);
+                    }}
+                    className={`p-4 rounded-xl border flex-row items-center justify-between ${
+                      isSelected ? "bg-[#FEF5F1] border-[#F4A47A]" : "bg-[#F4F8FB] border-[#EAF2F7]"
+                    }`}
+                  >
+                    <Text className={`text-sm font-bold flex-1 pr-2 ${isSelected ? "text-[#CA5D25]" : "text-[#1F3A5F]"}`}>
+                      {c.name}
+                    </Text>
+                    {isSelected && <Ionicons name="checkmark-circle" size={20} color="#CA5D25" />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Degree Program Selection Modal */}
+      <Modal visible={showProgramModal} animationType="slide" transparent={true} onRequestClose={() => setShowProgramModal(false)}>
+        <View className="flex-1 bg-black/50 justify-end">
+          <View className="bg-white rounded-t-3xl p-6 max-h-[80%] border-t border-[#BFD6EA]">
+            <View className="flex-row items-center justify-between pb-4 border-b border-[#EAF2F7] mb-4">
+              <Text className="text-lg font-extrabold text-[#1F3A5F]">Select Degree Program</Text>
+              <TouchableOpacity onPress={() => setShowProgramModal(false)} className="p-1">
+                <Ionicons name="close" size={24} color="#8B95A5" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 20 }}>
+              {(() => {
+                const collegeData = tipManilaPrograms.find((c) => c.name.toLowerCase() === editCollege.toLowerCase());
+                const availablePrograms = collegeData ? collegeData.programs : [];
+                return availablePrograms.map((p) => {
+                  const isSelected = editProgram.toLowerCase() === p.name.toLowerCase();
+                  return (
+                    <TouchableOpacity
+                      key={p.name}
+                      onPress={() => {
+                        setEditProgram(p.name);
+                        setShowProgramModal(false);
+                      }}
+                      className={`p-4 rounded-xl border flex-row items-center justify-between ${
+                        isSelected ? "bg-[#FEF5F1] border-[#F4A47A]" : "bg-[#F4F8FB] border-[#EAF2F7]"
+                      }`}
+                    >
+                      <Text className={`text-sm font-bold flex-1 pr-2 ${isSelected ? "text-[#CA5D25]" : "text-[#1F3A5F]"}`}>
+                        {p.name}
+                      </Text>
+                      {isSelected && <Ionicons name="checkmark-circle" size={20} color="#CA5D25" />}
+                    </TouchableOpacity>
+                  );
+                });
+              })()}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
