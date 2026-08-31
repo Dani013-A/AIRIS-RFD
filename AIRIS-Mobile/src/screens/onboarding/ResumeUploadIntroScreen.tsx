@@ -63,15 +63,6 @@ export default function ResumeUploadIntroScreen() {
     return () => subscription.remove();
   }, []);
 
-  React.useEffect(() => {
-    const sub = AppState.addEventListener("change", (nextState) => {
-      if (nextState === "background" || nextState === "inactive") {
-        useResumeStore.getState().clearStore();
-      }
-    });
-    return () => sub.remove();
-  }, []);
-
   const handleToggleTerms = () => setAgreeTerms(!agreeTerms);
   const handleTogglePrivacy = () => setAgreePrivacy(!agreePrivacy);
 
@@ -133,7 +124,6 @@ export default function ResumeUploadIntroScreen() {
         return;
       }
 
-      clearAnalysisState();
       useResumeStore.getState().setProcessingStatus("extracting");
       setUploadStage("uploading");
       setUploadProgress(0);
@@ -265,7 +255,6 @@ export default function ResumeUploadIntroScreen() {
 
     try {
       setShowPasteModal(false);
-      clearAnalysisState();
       await uploadAndProcessResume(
         currentUser.uid,
         currentUser.targetPosition || "",
