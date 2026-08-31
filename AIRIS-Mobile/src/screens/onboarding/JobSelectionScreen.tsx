@@ -17,7 +17,7 @@ import {
   View,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PrimaryButton } from "../../components/ui";
 import { tipManilaPrograms } from "../../data/tipManilaPrograms";
@@ -29,6 +29,7 @@ import { fuzzyMatchRole } from "../../utils/fuzzyMatcher";
 const BACKEND_ENDPOINT = `${process.env.EXPO_PUBLIC_API_URL || (Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000')}/normalize`;
 
 export default function JobSelectionScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [isValidating, setIsValidating] = useState(false);
@@ -130,6 +131,27 @@ export default function JobSelectionScreen() {
       Alert.alert("Selection Required", "Please select a target position to continue.");
       return;
     }
+
+    const valResult = await validateCareerRole(targetPosition, degreeProgram || "");
+    if (!valResult.isValid) {
+      Alert.alert("Target Position Invalid", valResult.reason || "Please select a valid professional role.");
+      return;
+    }
+
+    if (valResult.isUnrelatedWarning) {
+      const proceed = await new Promise<boolean>((resolve) => {
+        Alert.alert(
+          "Target Career Alignment Warning",
+          valResult.reason || `"${targetPosition}" differs from your academic background (${degreeProgram}). Your resume analysis and recommendations may be less aligned. Do you want to continue?`,
+          [
+            { text: "Select Different Target", style: "cancel", onPress: () => resolve(false) },
+            { text: "Continue Anyway", style: "default", onPress: () => resolve(true) },
+          ]
+        );
+      });
+      if (!proceed) return;
+    }
+
     await completeInitialSetup(college, degreeProgram, targetPosition);
     router.replace("/(student)/onboarding");
   }
@@ -177,7 +199,7 @@ export default function JobSelectionScreen() {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 160 }}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 24, 36) }}
         keyboardShouldPersistTaps="handled"
       >
         {isCustomQueryNew && (
@@ -223,7 +245,7 @@ export default function JobSelectionScreen() {
                 }`}
                 style={selected ? {} : { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}
               >
-                <View className={`mr-4 h-10 w-10 items-center justify-center rounded-full ${selected ? "bg-white" : "bg-[#EAF2F7]"}`}>
+                <View className={`mr-4 h-12 w-12 items-center justify-center rounded-full ${selected ? "bg-white" : "bg-[#EAF2F7]"}`}>
                   <Ionicons name="briefcase-outline" size={18} color={selected ? "#CA5D25" : "#1F3A5F"} />
                 </View>
                 <Text className={`text-sm font-bold flex-1 ${selected ? "text-[#CA5D25]" : "text-[#1F3A5F]"}`}>{position}</Text>
@@ -232,18 +254,18 @@ export default function JobSelectionScreen() {
             );
           })}
         </View>
-      </ScrollView>
 
-      {/* Action button */}
-      <View className="absolute bottom-6 left-6 right-6">
-        <PrimaryButton
-          title="Continue"
-          variant="orange"
-          onPress={handleContinue}
-          loading={loading}
-          disabled={!targetPosition || loading}
-        />
-      </View>
+        {/* Action button in scroll flow */}
+        <View className="mt-8">
+          <PrimaryButton
+            title="Continue"
+            variant="orange"
+            onPress={handleContinue}
+            loading={loading}
+            disabled={!targetPosition || loading}
+          />
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

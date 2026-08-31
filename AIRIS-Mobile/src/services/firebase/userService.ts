@@ -118,3 +118,38 @@ export const updateProfileDetails = async (
     updatedAt: serverTimestamp(),
   });
 };
+
+export const deleteUserAccountCascade = async (uid: string): Promise<void> => {
+  const { deleteDoc } = await import("firebase/firestore");
+  const { deleteUser } = await import("firebase/auth");
+  const { auth } = await import("../../config/firebase");
+
+  console.log(`[AUTH][ACCOUNT_DELETE][START] Initiating account cascade deletion for user UID: ${uid}`);
+
+  if (!auth.currentUser) {
+    console.error(`[AUTH][ACCOUNT_DELETE][ERROR] No active Firebase Auth session for UID: ${uid}`);
+    const err = new Error("auth/user-not-found");
+    (err as any).code = "auth/user-not-found";
+    throw err;
+  }
+
+  // 1. First delete Firestore user document while user is still authenticated
+  console.log(`[AUTH][ACCOUNT_DELETE][FIRESTORE_DELETE] Deleting Firestore user document users/${uid}...`);
+  const userRef = doc(db, USERS_COLLECTION, uid);
+  await deleteDoc(userRef);
+
+  // 2. Delete Firebase Auth user record
+  console.log(`[AUTH][ACCOUNT_DELETE][AUTH_DELETE] Deleting Firebase Auth user account...`);
+  try {
+    await deleteUser(auth.currentUser);
+
+    // 3. Clean up local persistent profile photo for this account
+    const { deleteLocalProfilePhoto } = await import("./profilePhotoService");
+    await deleteLocalProfilePhoto(uid);
+
+    console.log(`[AUTH][ACCOUNT_DELETE][SUCCESS] Account cascade deletion finished cleanly for ${uid}`);
+  } catch (authErr: any) {
+    console.error(`[AUTH][ACCOUNT_DELETE][ERROR] Auth deletion failed:`, authErr?.code || authErr?.message);
+    throw authErr;
+  }
+};

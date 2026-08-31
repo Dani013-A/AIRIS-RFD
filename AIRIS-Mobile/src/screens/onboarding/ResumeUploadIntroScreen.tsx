@@ -290,11 +290,7 @@ export default function ResumeUploadIntroScreen() {
 
   const handleContinue = async () => {
     if (!agreeTerms || !agreePrivacy) {
-      Alert.alert("Consent Required", "Please check and agree to both the Terms of Service and Privacy Policy.");
-      return;
-    }
-    if (processingStatus !== "completed" || !activeResume || !currentUser?.activeResumeId) {
-      Alert.alert("Assessment Required", "Please complete your skill self-assessment to view your personalized dashboard.");
+      Alert.alert("Consent Required", "Please check and agree to both the Terms of Service and Privacy Policy to proceed.");
       return;
     }
 
@@ -302,7 +298,7 @@ export default function ResumeUploadIntroScreen() {
       await completeOnboarding(agreeTerms, agreePrivacy, "1.0.0", "1.0.0");
       const latestUser = useAuthStore.getState().currentUser;
       if (latestUser?.hasCompletedOnboarding) {
-        router.replace("/(student)/(tabs)/resume" as any);
+        router.replace("/(student)/(tabs)/dashboard" as any);
       }
     } catch (err) {
       Alert.alert(
@@ -319,11 +315,7 @@ export default function ResumeUploadIntroScreen() {
     processingStatus === "analyzing" ||
     processingStatus === "saving";
 
-  const isSubmitEnabled =
-    agreeTerms &&
-    agreePrivacy &&
-    processingStatus === "completed" &&
-    (!!activeResume && !!currentUser?.activeResumeId);
+  const isSubmitEnabled = agreeTerms && agreePrivacy && !isProcessing;
 
   return (
     <SafeAreaView className="flex-1 bg-[#F4F8FB] px-6" edges={["top", "left", "right"]}>

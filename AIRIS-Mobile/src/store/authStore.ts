@@ -72,7 +72,7 @@ interface AuthState {
   sendPasswordReset: (email: string) => Promise<void>;
   clearPasswordResetSuccess: () => void;
   updateProfile: (fullName: string, college: string, degreeProgram: string, targetPosition: string) => Promise<void>;
-  updatePasswordAction: (newPassword: string) => Promise<void>;
+  updatePasswordAction: (currentPassword: string, newPassword: string) => Promise<void>;
   completeOnboarding: (
     acceptedTerms: boolean,
     acceptedPrivacy: boolean,
@@ -92,7 +92,8 @@ interface AuthState {
     termsVersion: string,
     privacyVersion: string
   ) => Promise<void>;
-  saveHasUploadedResume: (uploaded: boolean) => Promise<void>;
+  updateProfilePhotoAction: () => Promise<boolean>;
+  deleteAccountAction: (currentPassword?: string) => Promise<void>;
   checkSessionValidity: () => Promise<boolean>;
 }
 
@@ -294,12 +295,34 @@ export const useAuthStore = create<AuthState>((set) => ({
           error: null,
         });
       } else {
-        // Prompt if profile is missing.
         if (!existingProfile) {
-          await clearAuthSessionSafely();
-          const err = new Error("Your AIRIS authentication account exists, but its user profile could not be found. Please contact the AIRIS administrator.");
-          set({ error: err.message });
-          throw err;
+          console.warn(`[AUTH][AUTO_HEAL] Recovering missing profile during Google login for UID: ${firebaseUser.uid}`);
+          const recoveredProfile: AppUser = {
+            uid: firebaseUser.uid,
+            email: emailLower,
+            fullName: firebaseUser.displayName?.trim() || "TIP Student",
+            role: "student",
+            isProfileComplete: false,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            hasCompletedOnboarding: false,
+            hasCompletedInitialSetup: false,
+            college: "",
+            degreeProgram: "",
+            targetPosition: "",
+            acceptedTerms: false,
+            acceptedPrivacy: false,
+            termsVersion: "",
+            privacyVersion: "",
+            activeResumeId: null,
+          };
+          await createProfileTransaction(firebaseUser.uid, recoveredProfile);
+          set({
+            currentUser: recoveredProfile,
+            loading: false,
+            error: null,
+          });
+          return;
         }
 
         set({
@@ -550,11 +573,50 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  updatePasswordAction: async (newPassword) => {
+  updateProfilePhotoAction: async () => {
+    const currentUser = useAuthStore.getState().currentUser;
+    if (!currentUser) {
+      const err = new Error("No user is currently signed in.");
+      set({ error: err.message });
+      throw err;
+    }
+
+    try {
+      set({ loading: true, error: null });
+      const { pickAndUploadProfilePhoto } = await import("../services/firebase/profilePhotoService");
+      const result = await pickAndUploadProfilePhoto(currentUser.uid);
+
+      if (result.success && result.photoURL) {
+        set({
+          currentUser: {
+            ...currentUser,
+            photoURL: result.photoURL,
+          },
+          loading: false,
+          error: null,
+        });
+        return true;
+      } else {
+        set({
+          loading: false,
+          error: result.message || "Failed to update profile photo.",
+        });
+        return false;
+      }
+    } catch (error) {
+      set({
+        loading: false,
+        error: mapAuthError(error),
+      });
+      return false;
+    }
+  },
+
+  updatePasswordAction: async (currentPassword, newPassword) => {
     try {
       set({ loading: true, error: null });
 
-      await changePassword(newPassword);
+      await changePassword(currentPassword, newPassword);
 
       set({
         loading: false,
@@ -564,6 +626,55 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({
         loading: false,
         error: mapAuthError(error),
+      });
+      throw error;
+    }
+  },
+
+  deleteAccountAction: async (currentPassword) => {
+    const currentUser = useAuthStore.getState().currentUser;
+    if (!currentUser) {
+      console.error(`[AUTH][ACCOUNT_DELETE][ERROR] No active authenticated user found in store.`);
+      const err = new Error("No authenticated user session found.");
+      set({ error: err.message });
+      throw err;
+    }
+
+    try {
+      set({ loading: true, error: null });
+      console.log(`[AUTH][ACCOUNT_DELETE][CONFIRM] User confirmed account deletion request for UID: ${currentUser.uid}`);
+
+      // Reauthenticate if password is provided
+      if (auth.currentUser && auth.currentUser.email && currentPassword) {
+        console.log(`[AUTH][ACCOUNT_DELETE][REAUTH_START] Attempting credential reauthentication...`);
+        const { EmailAuthProvider, reauthenticateWithCredential } = await import("firebase/auth");
+        const cred = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+        await reauthenticateWithCredential(auth.currentUser, cred);
+        console.log(`[AUTH][ACCOUNT_DELETE][REAUTH_SUCCESS] Credential reauthentication succeeded.`);
+      }
+
+      const { deleteUserAccountCascade } = await import("../services/firebase/userService");
+      await deleteUserAccountCascade(currentUser.uid);
+
+      set({
+        currentUser: null,
+        loading: false,
+        error: null,
+      });
+      clearLearningMemoryCache();
+      console.log(`[AUTH][ACCOUNT_DELETE][SUCCESS] Account deletion complete and local session cleared.`);
+    } catch (error: any) {
+      const errCode = error?.code || "";
+      if (errCode === "auth/requires-recent-login" || String(error).includes("requires-recent-login")) {
+        console.warn(`[AUTH][ACCOUNT_DELETE][REAUTH_REQUIRED] Reauthentication required for sensitive account deletion operation.`);
+      } else {
+        console.error(`[AUTH][ACCOUNT_DELETE][ERROR]`, error?.code || error?.message || error);
+      }
+
+      const userMsg = mapAuthError(error);
+      set({
+        loading: false,
+        error: userMsg,
       });
       throw error;
     }

@@ -168,6 +168,19 @@ async def upload_resume(
         filename = getattr(file, "filename", "uploaded_resume.pdf") or "uploaded_resume.pdf"
         content = await file.read()
 
+        if not content or len(content) == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="The uploaded file is empty. Please choose a valid resume file."
+            )
+
+        allowed_exts = (".pdf", ".docx", ".doc", ".rtf", ".txt")
+        if not any(filename.lower().endswith(ext) for ext in allowed_exts):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid file format. Please upload a valid PDF, DOCX, DOC, RTF, or TXT resume document."
+            )
+
         if filename.lower().endswith(".pdf"):
             from file_utils import get_pdf_page_count
             page_count = get_pdf_page_count(content)
@@ -178,6 +191,13 @@ async def upload_resume(
                 )
 
         raw_text = extract_text(content, filename)
+
+        if not raw_text or len(raw_text.strip()) < 30:
+            return {
+                "valid": False,
+                "message": "Unable to extract readable text from this document. Please ensure the file is not empty, corrupted, or password-protected.",
+                "analysisId": None,
+            }
 
         from resume_parser import parse_resume
         parsed_sections = parse_resume(raw_text)

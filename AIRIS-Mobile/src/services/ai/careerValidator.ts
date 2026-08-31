@@ -19,6 +19,7 @@ const STOP_WORDS = [
 
 export interface ValidationResult {
   isValid: boolean;
+  isUnrelatedWarning?: boolean;
   reason?: string;
 }
 
@@ -26,7 +27,7 @@ export const validateCareerRole = async (
   role: string,
   degreeProgram: string
 ): Promise<ValidationResult> => {
-  await new Promise((resolve) => setTimeout(resolve, 800));
+  await new Promise((resolve) => setTimeout(resolve, 300));
 
   const cleanRole = role.trim().toLowerCase();
   if (cleanRole.length < 3) {
@@ -49,51 +50,51 @@ export const validateCareerRole = async (
   if (!hasSuffix && words.length < 2) {
     return {
       isValid: false,
-      reason: `"${role}" seems too generic. Try adding a modifier (e.g. "${role} Developer" or "${role} Specialist").`
+      reason: `"${role}" seems too generic. Try adding a modifier (e.g. "${role} Specialist" or "${role} Engineer").`
     };
   }
 
-  const lowerProg = degreeProgram.toLowerCase();
+  if (!degreeProgram) {
+    return { isValid: true };
+  }
 
-  if (lowerProg.includes("computer") || lowerProg.includes("information technology") || lowerProg.includes("data science") || lowerProg.includes("multimedia")) {
-    const techKeywords = [
-      "software", "web", "app", "mobile", "frontend", "backend", "fullstack", "full-stack", "qa",
-      "quality", "test", "cloud", "devops", "network", "system", "cyber", "security", "data",
-      "analytics", "ml", "ai", "machine", "game", "animator", "3d", "multimedia", "design", "it",
-      "programmer", "developer", "administrator", "scrum", "agile", "product", "technology", "tech"
-    ];
-    if (!techKeywords.some(kw => cleanRole.includes(kw)) && !words.some(w => ["developer", "programmer", "engineer"].includes(w))) {
-      return {
-        isValid: false,
-        reason: `This position is unrelated to your computing field (${degreeProgram}).`
-      };
-    }
+  // Generalized Dynamic Domain Compatibility Matching using canonical catalog
+  const { tipManilaPrograms } = await import("../../data/tipManilaPrograms");
+
+  let targetCollege = tipManilaPrograms.find((c) =>
+    c.programs.some((p) => p.name.toLowerCase() === degreeProgram.toLowerCase())
+  );
+
+  if (!targetCollege) {
+    // Fuzzy search degree program match
+    targetCollege = tipManilaPrograms.find((c) =>
+      c.programs.some((p) => p.name.toLowerCase().includes(degreeProgram.toLowerCase()) || degreeProgram.toLowerCase().includes(p.name.toLowerCase()))
+    );
   }
-  else if (lowerProg.includes("civil") || lowerProg.includes("mechanical") || lowerProg.includes("electrical") || lowerProg.includes("electronics") || lowerProg.includes("chemical") || lowerProg.includes("industrial") || lowerProg.includes("architecture")) {
-    const engKeywords = [
-      "structural", "civil", "hvac", "mechanical", "electrical", "electronics", "power", "chemical",
-      "industrial", "process", "plant", "manufacturing", "draftsman", "architect", "cad", "bim",
-      "site", "project", "construction", "maintenance", "geotechnical", "estimation", "estimator",
-      "safety", "quality", "automotive", "operations"
-    ];
-    if (!engKeywords.some(kw => cleanRole.includes(kw)) && !cleanRole.includes("engineer") && !cleanRole.includes("architect")) {
-      return {
-        isValid: false,
-        reason: `This role does not align with your engineering/architecture field (${degreeProgram}).`
-      };
-    }
-  }
-  else if (lowerProg.includes("accountancy") || lowerProg.includes("accounting") || lowerProg.includes("business") || lowerProg.includes("marketing") || lowerProg.includes("human resource") || lowerProg.includes("logistics") || lowerProg.includes("finance")) {
-    const bizKeywords = [
-      "accounting", "accountant", "auditor", "bookkeeper", "tax", "audit", "financial", "finance",
-      "analyst", "investment", "credit", "treasury", "hr", "human", "recruitment", "logistics",
-      "supply", "procurement", "warehouse", "inventory", "marketing", "brand", "sales", "business"
-    ];
-    if (!bizKeywords.some(kw => cleanRole.includes(kw)) && !words.some(w => ["manager", "analyst", "specialist", "officer"].includes(w))) {
-      return {
-        isValid: false,
-        reason: `This role is outside the scope of your business/accounting program (${degreeProgram}).`
-      };
+
+  if (targetCollege) {
+    const suggestedInCollege = targetCollege.programs.flatMap((p) => p.suggestedPositions.map((sp) => sp.toLowerCase()));
+
+    const isDirectMatch = suggestedInCollege.some((sp) =>
+      sp.includes(cleanRole) || cleanRole.includes(sp) || words.some((w) => sp.includes(w))
+    );
+
+    if (!isDirectMatch) {
+      // Check if role belongs to another distinct college's suggested positions
+      const otherColleges = tipManilaPrograms.filter((c) => c.name !== targetCollege?.name);
+      const isOtherDomainMatch = otherColleges.some((c) =>
+        c.programs.some((p) =>
+          p.suggestedPositions.some((sp) => sp.toLowerCase().includes(cleanRole) || cleanRole.includes(sp.toLowerCase()))
+        )
+      );
+
+      if (isOtherDomainMatch) {
+        return {
+          isValid: true,
+          isUnrelatedWarning: true,
+          reason: `"${role}" differs significantly from your academic background (${degreeProgram}). Your resume score and recommendations may be less aligned. Do you want to continue?`
+        };
+      }
     }
   }
 

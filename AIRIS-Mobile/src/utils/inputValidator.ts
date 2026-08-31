@@ -108,3 +108,89 @@ export async function validateCareerInput(career: string, degreeProgram?: string
 
   return { isValid: true, normalizedValue: trimmed };
 }
+
+export interface CustomCourseValidationOutput extends ValidationOutput {
+  isUncertain?: boolean;
+}
+
+/**
+ * Validates custom "Others" degree program entries against selected College Department.
+ * Prevents garbage, numbers-only, or malicious input while safely accepting related or interdisciplinary custom programs (e.g. "Sanitary Engineering" under Civil Engineering / Engineering).
+ */
+export function validateCustomCourse(customCourse: string, departmentName: string): CustomCourseValidationOutput {
+  if (!customCourse || typeof customCourse !== "string") {
+    return { isValid: false, message: "Custom degree program name is required." };
+  }
+
+  const trimmed = customCourse.trim().replace(/\s+/g, " ");
+
+  if (trimmed.length < 3) {
+    return { isValid: false, message: "Degree program name is too short. Please enter at least 3 characters." };
+  }
+
+  if (trimmed.length > 80) {
+    return { isValid: false, message: "Degree program name must not exceed 80 characters." };
+  }
+
+  // Reject numbers-only or symbol-only input
+  if (/^\d+$/.test(trimmed)) {
+    return { isValid: false, message: "Degree program name cannot consist only of numbers." };
+  }
+
+  if (/^[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+$/.test(trimmed)) {
+    return { isValid: false, message: "Degree program name cannot consist only of special characters." };
+  }
+
+  // Check for invalid control characters or script injection tokens
+  if (/[<>{}\\]/.test(trimmed)) {
+    return { isValid: false, message: "Degree program name contains invalid characters." };
+  }
+
+  // Department token matching using canonical catalog
+  const collegeData = tipManilaPrograms.find(
+    (c) => c.name.toLowerCase() === (departmentName || "").toLowerCase()
+  );
+
+  const deptTokens = (collegeData ? collegeData.name : departmentName)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .split(/\s+/)
+    .filter((t) => t !== "college" && t !== "of" && t !== "and" && t.length > 2);
+
+  const courseTokens = trimmed
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .split(/\s+/)
+    .filter((t) => t.length > 2);
+
+  let matchFound = false;
+  for (const cToken of courseTokens) {
+    if (deptTokens.some((dToken) => cToken.includes(dToken) || dToken.includes(cToken))) {
+      matchFound = true;
+      break;
+    }
+  }
+
+  // Also check if any existing canonical program in that college shares words with custom course
+  if (!matchFound && collegeData) {
+    for (const prog of collegeData.programs) {
+      const pTokens = prog.name.toLowerCase().split(/\s+/);
+      if (courseTokens.some((ct) => pTokens.includes(ct))) {
+        matchFound = true;
+        break;
+      }
+    }
+  }
+
+  if (matchFound) {
+    return { isValid: true, normalizedValue: trimmed };
+  }
+
+  // If no direct domain token overlap, flag as uncertain warning rather than hard rejection
+  return {
+    isValid: true,
+    isUncertain: true,
+    normalizedValue: trimmed,
+    message: `"${trimmed}" differs from typical ${departmentName} programs. If this is your official degree, you may proceed.`,
+  };
+}

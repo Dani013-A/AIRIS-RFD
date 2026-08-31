@@ -10,6 +10,7 @@ import { useResumeStore } from "../../store/resumeStore";
 import { getAiRecommendationsForResume } from "../../data/learningRecommendations";
 import { getGrowthPathRecommendations } from "../../services/learning/learningCatalogService";
 import { SkeletonScoreCard, SkeletonResourceCard } from "../../components/ui";
+import { ProductTourOverlay } from "../../components/ui/ProductTourOverlay";
 import SkillSelfAssessmentModal, { type SkillAssessmentTarget } from "../../components/resume/SkillSelfAssessmentModal";
 import {
   getStoredSelfAssessments,
@@ -195,6 +196,7 @@ export default function DashboardScreen() {
             <Ionicons name="arrow-forward" size={18} color="white" />
           </TouchableOpacity>
         </View>
+        <ProductTourOverlay />
       </SafeAreaView>
     );
   }
@@ -1082,6 +1084,7 @@ export default function DashboardScreen() {
           setShowSelfAssessmentModal(false);
         }}
       />
+      <ProductTourOverlay />
     </SafeAreaView>
   );
 }

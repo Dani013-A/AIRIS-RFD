@@ -5,11 +5,14 @@ import {
   signOut,
   sendPasswordResetEmail,
   updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 
 import { auth, db } from "../../config/firebase";
 import type { AppUser } from "../../types/user.types";
+import { validatePassword } from "../../utils/passwordPolicy";
 
 const USERS_COLLECTION = "users";
 
@@ -106,11 +109,32 @@ export const loginUser = async (email: string, password: string): Promise<AppUse
     throw new Error("Only TIP email addresses are allowed.");
   }
 
-  const userDoc = await getDoc(doc(db, USERS_COLLECTION, user.uid));
+  const userDocRef = doc(db, USERS_COLLECTION, user.uid);
+  const userDoc = await getDoc(userDocRef);
 
   if (!userDoc.exists()) {
-    await signOut(auth);
-    throw new Error("User record not found.");
+    console.warn(`[AUTH][AUTO_HEAL] Recovering missing Firestore profile document for authenticated UID: ${user.uid}`);
+    const recoveredProfile: AppUser = {
+      uid: user.uid,
+      email: normalizedEmail,
+      fullName: user.displayName || (normalizedEmail.split("@")[0]),
+      role: "student",
+      isProfileComplete: false,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      hasCompletedOnboarding: false,
+      hasCompletedInitialSetup: false,
+      college: "",
+      degreeProgram: "",
+      targetPosition: "",
+      acceptedTerms: false,
+      acceptedPrivacy: false,
+      termsVersion: "",
+      privacyVersion: "",
+      activeResumeId: null,
+    };
+    await setDoc(userDocRef, recoveredProfile);
+    return recoveredProfile;
   }
 
   return userDoc.data() as AppUser;
@@ -147,10 +171,25 @@ export const resetUserPassword = async (email: string): Promise<void> => {
   await sendPasswordResetEmail(auth, normalizedEmail);
 };
 
-export const changePassword = async (newPassword: string): Promise<void> => {
+export const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
   const user = auth.currentUser;
-  if (!user) {
-    throw new Error("No authenticated user found.");
+  if (!user || !user.email) {
+    throw new Error("No authenticated user session found.");
   }
+
+  const valResult = validatePassword(newPassword);
+  if (!valResult.isValid) {
+    throw new Error(valResult.message);
+  }
+
+  // Reauthenticate with current credential before changing password
+  try {
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
+    await reauthenticateWithCredential(user, credential);
+  } catch (reauthErr: any) {
+    console.error("[AUTH][PASSWORD_CHANGE][REAUTH_FAILED]", reauthErr?.code || reauthErr);
+    throw new Error("Incorrect current password. Please verify your current password and try again.");
+  }
+
   await updatePassword(user, newPassword);
 };

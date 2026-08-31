@@ -24,4 +24,5 @@ export interface AppUser {
   hasUploadedResume?: boolean;
   activeResumeId?: string | null;
   resumeVersionCounter?: number;
+  photoURL?: string | null;
 }

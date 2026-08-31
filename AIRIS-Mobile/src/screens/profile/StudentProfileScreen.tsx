@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   Modal,
   ScrollView,
   Text,
@@ -16,15 +17,22 @@ import { useAuthStore } from "../../store/authStore";
 import { useResumeStore } from "../../store/resumeStore";
 import { PrimaryButton } from "../../components/ui";
 import { fetchUserActivities, UserActivity } from "../../services/firebase/activityService";
+import { Image } from "expo-image";
 import { tipManilaPrograms } from "../../data/tipManilaPrograms";
+import { PasswordRequirementsView } from "../../components/ui/PasswordRequirementsView";
+import { validatePassword } from "../../utils/passwordPolicy";
 import { validatePersonName, validateAcademicSelection } from "../../utils/inputValidator";
+import { mapAuthError } from "../../utils/errorMapper";
+import { resolveProfilePhoto, DEFAULT_PROFILE_FALLBACK } from "../../services/firebase/profilePhotoService";
 
 export default function StudentProfileScreen() {
   const router = useRouter();
   const logout = useAuthStore((state) => state.logout);
   const currentUser = useAuthStore((state) => state.currentUser);
   const updateProfile = useAuthStore((state) => state.updateProfile);
+  const updateProfilePhotoAction = useAuthStore((state) => state.updateProfilePhotoAction);
   const updatePasswordAction = useAuthStore((state) => state.updatePasswordAction);
+  const deleteAccountAction = useAuthStore((state) => state.deleteAccountAction);
   const loading = useAuthStore((state) => state.loading);
   const authError = useAuthStore((state) => state.error);
   const clearError = useAuthStore((state) => state.clearError);
@@ -47,13 +55,35 @@ export default function StudentProfileScreen() {
   const [isRetargeting, setIsRetargeting] = useState(false);
   const [retargetStatusText, setRetargetStatusText] = useState("");
 
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [currentPassVisible, setCurrentPassVisible] = useState(false);
   const [passVisible, setPassVisible] = useState(false);
   const [confirmPassVisible, setConfirmPassVisible] = useState(false);
 
+  const [showReauthModal, setShowReauthModal] = useState(false);
+  const [reauthPassword, setReauthPassword] = useState("");
+  const [reauthPassVisible, setReauthPassVisible] = useState(false);
+  const [reauthError, setReauthError] = useState("");
+  const [reauthLoading, setReauthLoading] = useState(false);
+
   const [activities, setActivities] = useState<UserActivity[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
+
+  const [photoSource, setPhotoSource] = useState<{ uri?: string; defaultAsset?: any }>({ defaultAsset: DEFAULT_PROFILE_FALLBACK });
+
+  useEffect(() => {
+    let isMounted = true;
+    if (currentUser?.uid) {
+      resolveProfilePhoto(currentUser.uid).then((res) => {
+        if (isMounted) setPhotoSource(res);
+      });
+    } else {
+      setPhotoSource({ defaultAsset: DEFAULT_PROFILE_FALLBACK });
+    }
+    return () => { isMounted = false; };
+  }, [currentUser?.uid, currentUser?.photoURL]);
 
   useEffect(() => {
     if (currentUser) {
@@ -88,6 +118,7 @@ export default function StudentProfileScreen() {
   };
 
   const handleSaveProfile = async () => {
+    Keyboard.dismiss();
     const nameVal = validatePersonName(editName);
     if (!nameVal.isValid) {
       Alert.alert("Invalid Name", nameVal.message);
@@ -165,38 +196,96 @@ export default function StudentProfileScreen() {
   };
 
   const handleUpdatePassword = async () => {
-    if (newPassword.length < 8) {
-      Alert.alert("Weak Password", "New password must be at least 8 characters long.");
+    if (!currentPassword) {
+      Alert.alert("Current Password Required", "Please enter your current password to authorize this security change.");
       return;
     }
+
+    const valResult = validatePassword(newPassword);
+    if (!valResult.isValid) {
+      Alert.alert("Password Requirements Not Met", valResult.message);
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
-      Alert.alert("Mismatch", "Confirm password does not match new password.");
+      Alert.alert("Password Mismatch", "Confirm password does not match the new password.");
       return;
     }
 
     clearError();
     try {
-      await updatePasswordAction(newPassword);
-      Alert.alert("Success", "Account password updated successfully.");
+      await updatePasswordAction(currentPassword, newPassword);
+      Alert.alert("Password Changed", "Your account password has been updated successfully.");
+      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
       setExpandedPanel(null);
     } catch (err) {
       Alert.alert(
-        "Update Error",
-        err instanceof Error ? err.message : "Failed to update password. You may need to sign out and log back in to perform security actions."
+        "Update Failed",
+        err instanceof Error ? err.message : "Failed to update password. Please check your credentials and try again."
       );
     }
+  };
+
+  const performDeleteCascade = async (passwordToUse?: string) => {
+    try {
+      setReauthLoading(true);
+      setReauthError("");
+      await deleteAccountAction(passwordToUse);
+      setReauthPassword("");
+      setReauthLoading(false);
+      setShowReauthModal(false);
+      Alert.alert("Account Deleted", "Your account and associated data have been permanently removed.");
+      router.replace("/(auth)/login");
+    } catch (err: any) {
+      setReauthLoading(false);
+      const errCode = err?.code || "";
+      const errStr = String(err);
+
+      if (errCode === "auth/requires-recent-login" || errStr.includes("requires-recent-login") || errStr.includes("recent login")) {
+        console.warn("[AUTH][ACCOUNT_DELETE][REAUTH_REQUIRED] Identity verification required. Prompting for credential reauthentication.");
+        setShowReauthModal(true);
+      } else {
+        const msg = mapAuthError(err);
+        if (showReauthModal) {
+          setReauthError(msg);
+        } else {
+          Alert.alert("Deletion Error", msg);
+        }
+      }
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account Permanently?",
+      "This action cannot be undone. All your profile information, resume analysis records, and interview histories will be permanently removed.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete Account",
+          style: "destructive",
+          onPress: () => performDeleteCascade(currentPassword.trim() || undefined),
+        },
+      ]
+    );
   };
 
   const resumeScans = activities.filter(a => a.type === "Resume Analysis").length;
   const mockPracticed = activities.filter(a => a.type === "Mock Interview").length;
 
+  const handleUpdatePhoto = async () => {
+    const success = await updateProfilePhotoAction();
+    if (success) {
+      Alert.alert("Success", "Profile photo updated successfully.");
+    }
+  };
+
   return (
-    <SafeAreaView className="flex-1 bg-[#F4F8FB] px-6" edges={["top", "left", "right"]}>
-      <View className="flex-row items-center justify-between py-4">
-        <View>
-          <Text className="text-sm font-bold text-[#4F6B82] uppercase tracking-wider">User Settings</Text>
+    <SafeAreaView className="flex-1 bg-[#F4F8FB] px-5" edges={["top", "left", "right"]}>
+      <View className="flex-row items-center justify-between py-4 mb-2">
+        <View className="flex-row items-center">
           <Text className="text-2xl font-extrabold text-[#1F3A5F]">My Profile</Text>
         </View>
         <TouchableOpacity
@@ -211,9 +300,24 @@ export default function StudentProfileScreen() {
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
 
         <View className="rounded-3xl bg-white p-6 border border-[#BFD6EA] items-center" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-          <View className="h-20 w-20 items-center justify-center rounded-full bg-[#79D5C8] mb-4 shadow-sm border-2 border-white">
-            <Ionicons name="person" size={42} color="white" />
-          </View>
+          <TouchableOpacity
+            onPress={handleUpdatePhoto}
+            disabled={loading}
+            activeOpacity={0.8}
+            className="relative mb-4"
+          >
+            <View className="h-24 w-24 items-center justify-center rounded-full bg-[#79D5C8] shadow-sm border-2 border-white overflow-hidden">
+              <Image
+                source={photoSource.uri ? { uri: photoSource.uri } : (photoSource.defaultAsset || DEFAULT_PROFILE_FALLBACK)}
+                style={{ width: "100%", height: "100%" }}
+                contentFit="cover"
+                transition={200}
+              />
+            </View>
+            <View className="absolute bottom-0 right-0 bg-[#CA5D25] rounded-full p-2 border-2 border-white shadow-sm">
+              <Ionicons name="camera" size={14} color="white" />
+            </View>
+          </TouchableOpacity>
 
           <Text className="text-2xl font-extrabold text-[#1F3A5F] text-center">
             {currentUser?.fullName || "TIP Student"}
@@ -498,6 +602,33 @@ export default function StudentProfileScreen() {
                   <Text className="text-sm font-bold text-[#CA5D25] uppercase tracking-wider">Change Password</Text>
 
                   <View className="gap-2">
+                    <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">Current Password</Text>
+                    <View className="flex-row items-center rounded-xl border border-[#BFD6EA] px-4 bg-[#F4F8FB] h-12">
+                      <TextInput
+                        className="flex-1 text-base text-[#1F3A5F]"
+                        style={{ paddingVertical: 0 }}
+                        placeholder="Current Password"
+                        placeholderTextColor="#94A3B8"
+                        value={currentPassword}
+                        onChangeText={setCurrentPassword}
+                        secureTextEntry={!currentPassVisible}
+                        editable={!loading}
+                      />
+                      <TouchableOpacity
+                        onPress={() => setCurrentPassVisible((v) => !v)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        className="p-2 -mr-2 items-center justify-center"
+                      >
+                        <Ionicons
+                          name={currentPassVisible ? "eye-off-outline" : "eye-outline"}
+                          size={20}
+                          color="#8B95A5"
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View className="gap-2">
                     <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">New Password</Text>
                     <View className="flex-row items-center rounded-xl border border-[#BFD6EA] px-4 bg-[#F4F8FB] h-12">
                       <TextInput
@@ -522,6 +653,8 @@ export default function StudentProfileScreen() {
                         />
                       </TouchableOpacity>
                     </View>
+
+                    {newPassword ? <PasswordRequirementsView password={newPassword} /> : null}
                   </View>
 
                   <View className="gap-2">
@@ -570,6 +703,18 @@ export default function StudentProfileScreen() {
                     <Text className="text-xs leading-5 text-[#4F6B82]">
                       AIRIS complies with the Data Privacy Act of 2012. We collect profile details and resume content for mock interview prep and resume correlation tracking. We secure your information and do not share any record profiles with third-party vendors.
                     </Text>
+                  </View>
+
+                  <View className="border-t border-[#FEE2E2] pt-4">
+                    <Text className="text-xs font-bold text-[#DC2626] uppercase tracking-wider mb-2">Danger Zone</Text>
+                    <TouchableOpacity
+                      onPress={handleDeleteAccount}
+                      disabled={loading}
+                      className="rounded-xl bg-[#FEF2F2] border border-[#FCA5A5] py-3.5 items-center justify-center flex-row gap-2"
+                    >
+                      <Ionicons name="trash-outline" size={18} color="#DC2626" />
+                      <Text className="text-sm font-bold text-[#DC2626]">Delete Account & Data</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               )}
@@ -685,6 +830,110 @@ export default function StudentProfileScreen() {
                 });
               })()}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Account Deletion Reauthentication Modal */}
+      <Modal
+        visible={showReauthModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => {
+          if (!reauthLoading) {
+            setShowReauthModal(false);
+            setReauthPassword("");
+            setReauthError("");
+          }
+        }}
+      >
+        <View className="flex-1 bg-black/60 justify-center px-5">
+          <View className="bg-white rounded-3xl p-6 border border-[#BFD6EA] shadow-xl">
+            <View className="flex-row items-center justify-between pb-4 border-b border-[#EAF2F7] mb-4">
+              <View className="flex-row items-center gap-2">
+                <View className="h-10 w-10 items-center justify-center rounded-full bg-[#FEF2F2]">
+                  <Ionicons name="lock-closed-outline" size={20} color="#DC2626" />
+                </View>
+                <Text className="text-lg font-extrabold text-[#1F3A5F]">Security Verification</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowReauthModal(false);
+                  setReauthPassword("");
+                  setReauthError("");
+                }}
+                disabled={reauthLoading}
+                className="p-1"
+              >
+                <Ionicons name="close" size={22} color="#8B95A5" />
+              </TouchableOpacity>
+            </View>
+
+            <Text className="text-sm leading-6 text-[#4F6B82] mb-4">
+              Please confirm your current password to continue deleting your account.
+            </Text>
+
+            <View className="gap-2 mb-4">
+              <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">Current Password</Text>
+              <View className="flex-row items-center rounded-xl border border-[#BFD6EA] px-4 bg-[#F4F8FB] h-12">
+                <TextInput
+                  className="flex-1 text-base text-[#1F3A5F]"
+                  style={{ paddingVertical: 0 }}
+                  placeholder="Enter current password"
+                  placeholderTextColor="#94A3B8"
+                  value={reauthPassword}
+                  onChangeText={setReauthPassword}
+                  secureTextEntry={!reauthPassVisible}
+                  editable={!reauthLoading}
+                />
+                <TouchableOpacity
+                  onPress={() => setReauthPassVisible((v) => !v)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  className="p-2 -mr-2 items-center justify-center"
+                >
+                  <Ionicons
+                    name={reauthPassVisible ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color="#8B95A5"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {reauthError ? (
+              <Text className="text-center text-sm font-bold text-[#DC2626] mb-4 px-2">{reauthError}</Text>
+            ) : null}
+
+            <View className="flex-row items-center gap-3">
+              <TouchableOpacity
+                onPress={() => {
+                  setShowReauthModal(false);
+                  setReauthPassword("");
+                  setReauthError("");
+                }}
+                disabled={reauthLoading}
+                className="flex-1 h-12 rounded-xl bg-[#F4F8FB] border border-[#BFD6EA] items-center justify-center"
+              >
+                <Text className="text-sm font-bold text-[#1F3A5F]">Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => performDeleteCascade(reauthPassword.trim())}
+                disabled={reauthLoading || !reauthPassword.trim()}
+                className={`flex-1 h-12 rounded-xl bg-[#DC2626] items-center justify-center flex-row gap-2 ${
+                  reauthLoading || !reauthPassword.trim() ? "opacity-60" : ""
+                }`}
+              >
+                {reauthLoading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <>
+                    <Ionicons name="trash-outline" size={16} color="white" />
+                    <Text className="text-sm font-bold text-white">Confirm Delete</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

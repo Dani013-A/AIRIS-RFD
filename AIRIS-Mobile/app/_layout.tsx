@@ -136,8 +136,7 @@ export default function RootLayout() {
     }
 
     if (currentUser.hasCompletedOnboarding !== true) {
-      const allowedOnboardingPages = ["onboarding", "resume-upload"];
-      if (!inStudentGroup || !allowedOnboardingPages.includes(currentSegment)) {
+      if (!inStudentGroup || currentSegment !== "onboarding") {
         router.replace("/(student)/onboarding");
       }
       return;

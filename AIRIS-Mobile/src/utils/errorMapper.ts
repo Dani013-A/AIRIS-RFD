@@ -47,11 +47,11 @@ export function mapAuthError(error: unknown): string {
   if (testString.includes("auth/account-exists-with-different-credential") || testString.includes("account-exists-with-different-credential")) {
     return "An AIRIS account already exists for this TIP email using another sign-in method. Please log in using your original method first.";
   }
-  if (testString.includes("auth/invalid-credential")) {
-    return "Incorrect email or password.";
+  if (testString.includes("auth/requires-recent-login") || testString.includes("requires-recent-login") || testString.includes("recent login")) {
+    return "Please verify your current password before deleting your account.";
   }
-  if (testString.includes("auth/wrong-password")) {
-    return "Incorrect email or password.";
+  if (testString.includes("auth/wrong-password") || testString.includes("auth/invalid-credential")) {
+    return "That password is incorrect. Please try again.";
   }
   if (testString.includes("auth/user-not-found")) {
     return "Incorrect email or password.";
@@ -140,6 +140,47 @@ export function normalizeApiError(error: unknown, defaultFallbackMsg: string = "
       userMessage: "The uploaded file does not appear to be a valid resume. Please upload a document containing your education, skills, and background.",
       statusCode: 400,
       code: "INVALID_RESUME",
+    };
+  }
+
+  // Firebase Storage Error Code Mapping
+  if (str.includes("storage/unknown") || str.includes("storage/object-not-found") || str.includes("storage/bucket-not-found") || str.includes("bucket not found")) {
+    return {
+      userMessage: "Profile photos are temporarily unavailable. Please try again later.",
+      statusCode: 404,
+      code: "STORAGE_UNAVAILABLE",
+    };
+  }
+
+  if (str.includes("storage/unauthorized")) {
+    return {
+      userMessage: "You don't have permission to update your profile photo.",
+      statusCode: 403,
+      code: "STORAGE_UNAUTHORIZED",
+    };
+  }
+
+  if (str.includes("storage/unauthenticated")) {
+    return {
+      userMessage: "Your session has expired. Please sign in again.",
+      statusCode: 401,
+      code: "STORAGE_UNAUTHENTICATED",
+    };
+  }
+
+  if (str.includes("storage/retry-limit-exceeded") || str.includes("storage/canceled")) {
+    return {
+      userMessage: "Unable to upload your photo. Please check your connection and try again.",
+      statusCode: 408,
+      code: "STORAGE_RETRY_EXCEEDED",
+    };
+  }
+
+  if (str.includes("storage/invalid-checksum") || str.includes("cannot-slice-blob")) {
+    return {
+      userMessage: "That image couldn't be used. Please choose another photo.",
+      statusCode: 400,
+      code: "STORAGE_INVALID_IMAGE",
     };
   }
 

@@ -8,6 +8,10 @@ export interface College {
   programs: DegreeProgram[];
 }
 
+/**
+ * Official T.I.P. Manila Baseline Academic Catalog (20 Undergraduate Programs + Senior High Strands)
+ * Single Source of Truth for onboarding, profile selection, academic validation, and career target alignment.
+ */
 export const tipManilaPrograms: College[] = [
   {
     name: "College of Computer Studies",
@@ -15,40 +19,31 @@ export const tipManilaPrograms: College[] = [
       {
         name: "BS Information Technology",
         suggestedPositions: [
+          "Information Technology Specialist",
           "Frontend Developer",
           "Backend Developer",
           "Full Stack Developer",
-          "Mobile Developer",
-          "UI Designer",
-          "QA Engineer",
-          "System Analyst",
+          "Mobile Application Developer",
+          "UI/UX Designer",
+          "QA / Software Tester",
+          "System Administrator",
           "Cloud Engineer",
-          "DevOps Engineer",
-          "Network Administrator",
+          "DevOps Specialist",
+          "Network Engineer",
+          "IT Support Specialist",
         ],
       },
       {
         name: "BS Computer Science",
         suggestedPositions: [
           "Software Engineer",
-          "AI Engineer",
+          "AI / Machine Learning Engineer",
           "Data Scientist",
-          "Machine Learning Engineer",
+          "Systems Software Developer",
           "Database Administrator",
-          "Systems Programmer",
           "Cybersecurity Analyst",
+          "Algorithms Engineer",
           "Research Scientist",
-        ],
-      },
-      {
-        name: "BS Information Systems",
-        suggestedPositions: [
-          "System Analyst",
-          "Business Intelligence Analyst",
-          "ERP Implementation Specialist",
-          "Database Administrator",
-          "IT Project Coordinator",
-          "Systems Integration Analyst",
         ],
       },
       {
@@ -73,11 +68,7 @@ export const tipManilaPrograms: College[] = [
           "VFX Artist",
           "AR/VR Developer",
           "Motion Graphics Artist",
-          "Unity Developer",
-          "Unreal Engine Developer",
-          "Character Animator",
-          "Level Designer",
-          "Technical Artist",
+          "Unity / Unreal Engine Developer",
         ],
       },
     ],
@@ -88,6 +79,7 @@ export const tipManilaPrograms: College[] = [
       {
         name: "BS Architecture",
         suggestedPositions: [
+          "Architect",
           "Design Architect",
           "Project Architect",
           "CAD/BIM Specialist",
@@ -99,28 +91,31 @@ export const tipManilaPrograms: College[] = [
       {
         name: "BS Chemical Engineering",
         suggestedPositions: [
+          "Chemical Engineer",
           "Process Engineer",
           "Plant Engineer",
           "Quality Control Engineer",
           "Production Engineer",
-          "Environmental Engineer",
+          "Environmental Compliance Engineer",
           "Materials Engineer",
         ],
       },
       {
         name: "BS Civil Engineering",
         suggestedPositions: [
+          "Civil Engineer",
           "Structural Engineer",
           "Site Engineer",
           "Project Engineer",
           "Geotechnical Engineer",
           "Construction Manager",
-          "Estimator",
+          "Cost Estimator",
         ],
       },
       {
         name: "BS Computer Engineering",
         suggestedPositions: [
+          "Computer Engineer",
           "Embedded Software Engineer",
           "Hardware Engineer",
           "Firmware Engineer",
@@ -132,6 +127,7 @@ export const tipManilaPrograms: College[] = [
       {
         name: "BS Electrical Engineering",
         suggestedPositions: [
+          "Electrical Engineer",
           "Electrical Design Engineer",
           "Power Systems Engineer",
           "Control Systems Engineer",
@@ -151,21 +147,12 @@ export const tipManilaPrograms: College[] = [
         ],
       },
       {
-        name: "BS Environmental and Sanitary Engineering",
-        suggestedPositions: [
-          "Sanitary Engineer",
-          "Wastewater Treatment Engineer",
-          "Environmental Compliance Officer",
-          "Solid Waste Management Engineer",
-          "Environmental Engineer",
-        ],
-      },
-      {
         name: "BS Industrial Engineering",
         suggestedPositions: [
+          "Industrial Engineer",
           "Process Improvement Engineer",
           "Production Planner",
-          "Quality Engineer",
+          "Quality Assurance Engineer",
           "Supply Chain Analyst",
           "Operations Manager",
           "Manufacturing Engineer",
@@ -174,6 +161,7 @@ export const tipManilaPrograms: College[] = [
       {
         name: "BS Mechanical Engineering",
         suggestedPositions: [
+          "Mechanical Engineer",
           "Mechanical Design Engineer",
           "HVAC Engineer",
           "Automotive Engineer",
@@ -190,12 +178,13 @@ export const tipManilaPrograms: College[] = [
       {
         name: "BS Accountancy",
         suggestedPositions: [
+          "Accountant",
           "Certified Public Accountant",
           "Auditor",
           "Financial Analyst",
           "Tax Consultant",
           "Bookkeeper",
-          "Controller",
+          "Financial Controller",
         ],
       },
       {
@@ -205,7 +194,7 @@ export const tipManilaPrograms: College[] = [
           "Financial Systems Consultant",
           "Internal Auditor",
           "ERP Implementation Specialist",
-          "Bookkeeper",
+          "Accounting Specialist",
         ],
       },
       {
@@ -216,11 +205,13 @@ export const tipManilaPrograms: College[] = [
           "Credit Analyst",
           "Banking Associate",
           "Treasury Analyst",
+          "Risk Analyst",
         ],
       },
       {
         name: "BS Business Administration major in Human Resource Management",
         suggestedPositions: [
+          "HR Specialist",
           "HR Generalist",
           "Talent Acquisition Specialist",
           "Compensation and Benefits Analyst",
@@ -246,48 +237,17 @@ export const tipManilaPrograms: College[] = [
           "Digital Marketing Officer",
           "Market Research Analyst",
           "Sales and Marketing Coordinator",
-        ],
-      },
-    ],
-  },
-  {
-    name: "College of Education",
-    programs: [
-      {
-        name: "BSEd major in English",
-        suggestedPositions: [
-          "Secondary School Teacher",
-          "English Teacher",
-          "Curriculum Developer",
-          "Guidance Counselor",
-          "Content Editor",
+          "Social Media Strategist",
         ],
       },
       {
-        name: "BSEd major in Mathematics",
+        name: "BS Business Administration",
         suggestedPositions: [
-          "Secondary School Teacher",
-          "Mathematics Teacher",
-          "Curriculum Developer",
-          "Academic Tutor",
-        ],
-      },
-      {
-        name: "BSEd major in Sciences",
-        suggestedPositions: [
-          "Secondary School Teacher",
-          "Science Teacher",
-          "Curriculum Developer",
-          "Laboratory Instructor",
-        ],
-      },
-      {
-        name: "Bachelor of Special Needs Education",
-        suggestedPositions: [
-          "Special Education Teacher",
-          "Elementary School Teacher",
-          "Guidance Counselor",
-          "Learning Support Specialist",
+          "Business Analyst",
+          "Business Operations Specialist",
+          "Administrative Manager",
+          "Project Coordinator",
+          "Account Manager",
         ],
       },
     ],
@@ -296,30 +256,15 @@ export const tipManilaPrograms: College[] = [
     name: "College of Arts",
     programs: [
       {
-        name: "AB English Language",
+        name: "Bachelor of Arts in Psychology",
         suggestedPositions: [
-          "Technical Writer",
-          "Copywriter",
-          "Content Editor",
-          "Public Relations Specialist",
-          "Communications Officer",
-          "Teacher/Instructor",
-          "Broadcast Journalist",
-          "Editorial Assistant",
-        ],
-      },
-      {
-        name: "AB Political Science",
-        suggestedPositions: [
-          "Legislative Staff",
-          "Policy Analyst",
-          "Paralegal",
-          "Public Administration Officer",
-          "Foreign Service Aide",
-          "Local Government Associate",
-          "Political Science Researcher",
-          "Diplomat",
-          "Legislative Aide",
+          "Psychometrician",
+          "HR / Recruitment Associate",
+          "Guidance Associate",
+          "Behavioral Research Assistant",
+          "Community Relations Officer",
+          "Organizational Development Specialist",
+          "Counseling Assistant",
         ],
       },
     ],
@@ -330,37 +275,34 @@ export const tipManilaPrograms: College[] = [
       {
         name: "STEM Strand (Science, Technology, Engineering, and Mathematics)",
         suggestedPositions: [
-          "Software Developer",
-          "Civil Engineer",
-          "Data Analyst",
-          "Mechanical Engineer",
-          "Web Designer",
+          "Engineering Student Assistant",
+          "Junior Software Developer",
+          "Data Analyst Intern",
+          "CAD Trainee",
         ],
       },
       {
         name: "ABM Strand (Accountancy, Business, and Management)",
         suggestedPositions: [
-          "Accountant",
+          "Junior Bookkeeper",
           "Marketing Assistant",
-          "HR Coordinator",
-          "Business Analyst",
+          "Administrative Assistant",
+          "HR Assistant",
         ],
       },
       {
         name: "HUMSS Strand (Humanities and Social Sciences)",
         suggestedPositions: [
           "Content Writer",
-          "Public Relations Specialist",
-          "Legal Assistant",
-          "Communications Officer",
+          "Public Relations Assistant",
+          "Communications Assistant",
         ],
       },
       {
         name: "GAS Strand (General Academic Strand)",
         suggestedPositions: [
-          "Business Assistant",
-          "Administrative Officer",
-          "Customer Support Associate",
+          "Administrative Associate",
+          "Customer Service Representative",
         ],
       },
       {
@@ -368,7 +310,6 @@ export const tipManilaPrograms: College[] = [
         suggestedPositions: [
           "IT Support Technician",
           "Multimedia Assistant",
-          "System Support Specialist",
         ],
       },
     ],
