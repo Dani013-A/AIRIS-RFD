@@ -414,7 +414,7 @@ def sanitize_and_validate_learning_snapshot(snapshot: Dict[str, Any], target_pos
             misplaced_courses.append({
                 "title": title,
                 "provider": issuer or "Online Guide",
-                "url": cert.get("url") or f"https://www.google.com/search?q={title.replace(' ', '+')}",
+                "url": cert.get("url") if (cert.get("url") and "google.com/search" not in cert.get("url")) else "",
                 "type": "course" if item_type != "documentation" else "documentation",
                 "description": desc or f"Learning resource for {title}"
             })
@@ -446,7 +446,7 @@ def sanitize_and_validate_learning_snapshot(snapshot: Dict[str, Any], target_pos
                 "issuer": issuer or "Recognized Certification Body",
                 "importance": cert.get("importance", "recommended"),
                 "description": desc or f"Industry certification for {target_position}",
-                "url": cert.get("url") or f"https://www.google.com/search?q={title.replace(' ', '+')}+certification",
+                "url": cert.get("url") if (cert.get("url") and "google.com/search" not in cert.get("url")) else "",
                 "type": "certification"
             })
 
@@ -464,10 +464,15 @@ def sanitize_and_validate_learning_snapshot(snapshot: Dict[str, Any], target_pos
         if not isinstance(course, dict):
             continue
         ctitle = str(course.get("title", "")).strip()
-        curl = str(course.get("url", "")).strip() or f"https://www.google.com/search?q={ctitle.replace(' ', '+')}"
-        if not ctitle or curl in seen_urls:
+        curl = str(course.get("url", "")).strip()
+        if "google.com/search" in curl:
+            curl = ""
+        if not ctitle:
             continue
-        seen_urls.add(curl)
+        if curl and curl in seen_urls:
+            continue
+        if curl:
+            seen_urls.add(curl)
         cleaned_courses.append({
             "title": ctitle,
             "provider": str(course.get("provider", "Educational Platform")).strip(),
@@ -571,24 +576,9 @@ def generate_learning_snapshot(
                     break
 
         if not matched_certs:
-            matched_certs.append({
-                "title": f"Professional Certification in {target_position}",
-                "issuer": "Recognized Certification Body",
-                "importance": "recommended",
-                "description": f"Recognized credential validating expertise as a {target_position}.",
-                "url": f"https://www.google.com/search?q={target_position.replace(' ', '+')}+certification",
-                "type": "certification"
-            })
+            matched_certs = []
 
-        courses = [
-            {
-                "title": f"Professional Guide to {target_position}",
-                "provider": "Online Learning Platform",
-                "url": f"https://www.google.com/search?q={target_position.replace(' ', '+')}+courses",
-                "type": "course",
-                "description": f"Comprehensive online course covering essential skills and methodologies for a {target_position}."
-            }
-        ]
+        courses = []
 
         interview_prep = [
             {
@@ -696,7 +686,6 @@ def generate_learning_snapshot(
         {{
           "title": "<Course/Resource Title>",
           "provider": "<Provider Name>",
-          "url": "<Valid URL>",
           "type": "course|tutorial|video|documentation",
           "description": "<short description>"
         }}
@@ -707,7 +696,6 @@ def generate_learning_snapshot(
           "issuer": "<Issuing Body e.g. AWS, Microsoft, CompTIA>",
           "importance": "essential|recommended|optional",
           "description": "<why valuable for target role>",
-          "url": "<Direct URL>",
           "type": "certification"
         }}
       ],
@@ -734,3 +722,144 @@ def generate_learning_snapshot(
         print("AI Learning Snapshot generation failed, using dynamic deterministic fallback:", e)
 
     return _create_deterministic_fallback()
+
+
+def evaluate_career_compatibility(academic_program: str, target_career: str, resume_skills: list = None) -> dict:
+    """
+    Deterministic Career Target Compatibility Assessment.
+    Evaluates alignment between academic degree, target career, and resume evidence.
+    Classifications: ALIGNED (80-100), PIVOT (50-79), DISTANT (<50).
+    """
+    prog_lower = (academic_program or "").lower().strip()
+    target_lower = (target_career or "").lower().strip()
+    skills_lower = [s.lower().strip() for s in (resume_skills or [])]
+
+    if not target_lower:
+        return {
+            "classification": "ALIGNED",
+            "score": 100,
+            "academicProgram": academic_program,
+            "targetCareer": target_career,
+            "targetDomain": "General Track",
+            "reason": "No target career specified.",
+            "relevantCompetencies": [],
+            "missingPrerequisites": [],
+            "requiresExplicitConfirmation": False
+        }
+
+    domain_mappings = {
+        "software_engineering": {
+            "roles": ["software engineer", "software developer", "backend developer", "frontend developer", "full stack", "programmer", "coder", "application developer"],
+            "programs": ["information technology", "computer science", "information systems", "software engineering", "computer engineering", "it", "cs"],
+            "adjacent_programs": ["secondary education"],
+            "prereqs": ["Object-Oriented Programming", "Software Architecture", "Data Structures & Algorithms"]
+        },
+        "data_analytics": {
+            "roles": ["data analyst", "data analytics", "business intelligence", "bi analyst", "bi developer", "data scientist", "data engineer"],
+            "programs": ["information technology", "computer science", "information systems", "accountancy", "accounting", "mathematics", "statistics"],
+            "adjacent_programs": ["business administration"],
+            "prereqs": ["Relational Database Querying (SQL)", "Statistical Analysis", "Data Visualization Standards"]
+        },
+        "cybersecurity": {
+            "roles": ["cybersecurity", "security analyst", "soc analyst", "information security", "penetration tester", "security engineer"],
+            "programs": ["information technology", "computer science", "computer engineering", "cybersecurity"],
+            "adjacent_programs": [],
+            "prereqs": ["Computer Networks & Protocols", "Operating System Security", "Vulnerability Management"]
+        },
+        "ui_ux": {
+            "roles": ["ui/ux", "ux designer", "ui designer", "product designer", "interaction designer", "visual designer"],
+            "programs": ["architecture", "fine arts", "multimedia"],
+            "adjacent_programs": ["information technology", "computer science", "information systems", "marketing"],
+            "prereqs": ["Human-Computer Interaction (HCI)", "User Research Methods", "Wireframing & Prototyping"]
+        },
+        "accountancy": {
+            "roles": ["accountant", "auditor", "certified public accountant", "cpa", "financial accountant", "bookkeeper", "tax consultant"],
+            "programs": ["accountancy", "accounting", "finance", "management accounting", "business administration"],
+            "adjacent_programs": [],
+            "prereqs": ["Financial Reporting Standards (IFRS/GAAP)", "Taxation Law & Auditing Principles", "Cost Accounting"]
+        },
+        "civil_engineering": {
+            "roles": ["civil engineer", "structural engineer", "site engineer", "construction engineer", "environmental engineer", "civil engineering", "quantity surveyor"],
+            "programs": ["civil engineering", "civil"],
+            "adjacent_programs": ["architecture", "environmental science"],
+            "prereqs": ["Engineering Mechanics & Statics", "Structural Analysis & Steel Design", "Concrete Code Standards"]
+        },
+        "architecture": {
+            "roles": ["architect", "architectural designer", "bim specialist", "draftsman", "architecture"],
+            "programs": ["architecture", "building design"],
+            "adjacent_programs": ["civil engineering"],
+            "prereqs": ["Architectural Design History & Theory", "Building Code & Safety Standards", "3D Spatial Modeling"]
+        },
+        "education_instructional_design": {
+            "roles": ["instructional designer", "educator", "teacher", "e-learning specialist", "curriculum developer", "learning designer"],
+            "programs": ["secondary education", "elementary education", "education", "teacher education"],
+            "adjacent_programs": ["psychology", "information technology"],
+            "prereqs": ["Educational Psychology & Learning Theories", "Instructional Design Models (ADDIE/SAM)", "Curriculum Evaluation"]
+        },
+        "psychology": {
+            "roles": ["psychologist", "psychometrician", "human behavior specialist", "counselor", "psychology"],
+            "programs": ["psychology", "behavioral science"],
+            "adjacent_programs": ["education"],
+            "prereqs": ["Psychological Assessment & Testing", "Developmental Psychology", "Abnormal Psychology & Ethics"]
+        },
+        "natural_sciences": {
+            "roles": ["chemist", "biologist", "physicist", "lab technician", "chemical analyst", "research scientist"],
+            "programs": ["chemistry", "biology", "applied physics", "biochemistry"],
+            "adjacent_programs": [],
+            "prereqs": ["Organic & Inorganic Chemistry", "Laboratory Safety & Instrumentation", "Quantitative Chemical Analysis"]
+        }
+    }
+
+    matched_domain_id = None
+    matched_domain = None
+    for dom_id, dom_data in domain_mappings.items():
+        if any(role in target_lower for role in dom_data["roles"]):
+            matched_domain_id = dom_id
+            matched_domain = dom_data
+            break
+
+    if not matched_domain:
+        matched_domain_id = "general"
+        matched_domain = {
+            "roles": [target_lower],
+            "programs": [],
+            "adjacent_programs": [],
+            "prereqs": ["Core Domain Knowledge", "Specialized Professional Training"]
+        }
+
+    is_primary_program = any(p in prog_lower for p in matched_domain["programs"])
+    is_adjacent_program = any(p in prog_lower for p in matched_domain["adjacent_programs"])
+
+    # Resume evidence overlap
+    demonstrated_skills = []
+    for s in skills_lower:
+        if any(w in s for w in matched_domain["roles"]) or any(pr.lower() in s for pr in matched_domain["prereqs"]):
+            demonstrated_skills.append(s)
+
+    if is_primary_program:
+        classification = "ALIGNED"
+        score = 95
+        reason = f"Strong academic background alignment between {academic_program} and {target_career}."
+        missing_prereqs = []
+    elif is_adjacent_program or len(demonstrated_skills) >= 2:
+        classification = "PIVOT"
+        score = 70
+        reason = f"{target_career} is a related career pivot from your {academic_program} background. Additional background competencies may be required."
+        missing_prereqs = matched_domain["prereqs"][:2]
+    else:
+        classification = "DISTANT"
+        score = 25
+        reason = f"{target_career} has low direct academic alignment with {academic_program} and requires substantial domain-specific education and prerequisite training."
+        missing_prereqs = matched_domain["prereqs"]
+
+    return {
+        "classification": classification,
+        "score": score,
+        "academicProgram": academic_program,
+        "targetCareer": target_career,
+        "targetDomain": matched_domain_id,
+        "reason": reason,
+        "relevantCompetencies": demonstrated_skills if demonstrated_skills else matched_domain["prereqs"][:2],
+        "missingPrerequisites": missing_prereqs,
+        "requiresExplicitConfirmation": classification == "DISTANT"
+    }

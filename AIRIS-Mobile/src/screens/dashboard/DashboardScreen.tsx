@@ -57,11 +57,8 @@ export default function DashboardScreen() {
   }, [activeAnalysis]);
 
   // REQUIREMENT 3: HARD ROUTE GUARD
-  // A newly analyzed resume must NEVER expose ATS score or Dashboard content before self-assessment is completed.
-  if (
-    processingStatus === "awaiting_self_assessment" ||
-    (activeAnalysis && currentAnalysisSessionId && activeAnalysis.analysisSessionId !== currentAnalysisSessionId)
-  ) {
+  // Renders self-assessment guard ONLY when target skills genuinely require completion.
+  if (processingStatus === "awaiting_self_assessment") {
     return (
       <SafeAreaView className="flex-1 bg-[#F4F8FB] px-6 justify-center items-center" edges={["top", "left", "right"]}>
         <View className="bg-white p-6 rounded-3xl border border-[#BFD6EA] items-center w-full max-w-sm">

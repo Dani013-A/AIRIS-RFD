@@ -101,6 +101,7 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
       set({
         activeResume: resume,
         activeAnalysis: analysisResult,
+        currentAnalysisSessionId: analysisResult?.analysisSessionId || (resume.latestAnalysisId ? `session_${resume.latestAnalysisId}` : null),
         processingStatus: "completed",
         error: null,
       });
@@ -159,18 +160,22 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
       };
 
       // REQUIREMENT 1: If zero target skills exist for the role, finalize automatically without an empty assessment screen
-      if (targetSkills.length === 0) {
+      const existingRatings = await getStoredSelfAssessments();
+      const hasAllRatings = targetSkills.every((t) => {
+        const normKey = t.name.toLowerCase().trim();
+        return existingRatings[normKey] && existingRatings[normKey] !== undefined;
+      });
+
+      if (targetSkills.length === 0 || hasAllRatings) {
         set({
           pendingAnalysisData: pendingData,
-          pendingTargetSkills: [],
+          pendingTargetSkills: targetSkills,
           currentAnalysisSessionId: sessionId,
         });
-        await get().completeSelfAssessmentAndFinalize({});
+        await get().completeSelfAssessmentAndFinalize(existingRatings);
         return;
       }
 
-      // REQUIREMENT 4: Session Identity - Fresh upload ALWAYS transitions to awaiting_self_assessment
-      // so old ratings from a previous analysis session cannot silently finalize a new upload.
       set({
         pendingAnalysisData: pendingData,
         pendingTargetSkills: targetSkills,
@@ -227,13 +232,19 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
         analysisResult: newAnalysisResult,
       };
 
-      if (targetSkills.length === 0) {
+      const existingRatings = await getStoredSelfAssessments();
+      const hasAllRatings = targetSkills.every((t) => {
+        const normKey = t.name.toLowerCase().trim();
+        return existingRatings[normKey] && existingRatings[normKey] !== undefined;
+      });
+
+      if (targetSkills.length === 0 || hasAllRatings) {
         set({
           pendingAnalysisData: pendingData,
-          pendingTargetSkills: [],
+          pendingTargetSkills: targetSkills,
           currentAnalysisSessionId: sessionId,
         });
-        await get().completeSelfAssessmentAndFinalize({});
+        await get().completeSelfAssessmentAndFinalize(existingRatings);
         return;
       }
 

@@ -25,6 +25,8 @@ import { validateCareerRole } from "../../services/ai/careerValidator";
 import { useAuthStore } from "../../store/authStore";
 import { useOnboardingStore } from "../../store/onboardingStore";
 import { fuzzyMatchRole } from "../../utils/fuzzyMatcher";
+import { evaluateCareerTargetCompatibility, CareerCompatibilityResult } from "../../services/ai/careerCompatibilityGuardrail";
+import { CareerCompatibilityModal } from "../../components/ui/CareerCompatibilityModal";
 
 const BACKEND_ENDPOINT = `${process.env.EXPO_PUBLIC_API_URL || (Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000')}/normalize`;
 
@@ -34,6 +36,9 @@ export default function JobSelectionScreen() {
   const [search, setSearch] = useState("");
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState("");
+
+  const [compatibilityResult, setCompatibilityResult] = useState<CareerCompatibilityResult | null>(null);
+  const [showCompatibilityModal, setShowCompatibilityModal] = useState(false);
 
   const { college, degreeProgram, targetPosition, setTargetPosition } = useOnboardingStore();
   const completeInitialSetup = useAuthStore((state) => state.completeInitialSetup);
@@ -126,6 +131,13 @@ export default function JobSelectionScreen() {
     }
   };
 
+  async function executeCompleteSetup() {
+    setShowCompatibilityModal(false);
+    setCompatibilityResult(null);
+    await completeInitialSetup(college, degreeProgram, targetPosition);
+    router.replace("/(student)/onboarding");
+  }
+
   async function handleContinue() {
     if (!targetPosition) {
       Alert.alert("Selection Required", "Please select a target position to continue.");
@@ -138,22 +150,27 @@ export default function JobSelectionScreen() {
       return;
     }
 
-    if (valResult.isUnrelatedWarning) {
-      const proceed = await new Promise<boolean>((resolve) => {
-        Alert.alert(
-          "Target Career Alignment Warning",
-          valResult.reason || `"${targetPosition}" differs from your academic background (${degreeProgram}). Your resume analysis and recommendations may be less aligned. Do you want to continue?`,
-          [
-            { text: "Select Different Target", style: "cancel", onPress: () => resolve(false) },
-            { text: "Continue Anyway", style: "default", onPress: () => resolve(true) },
-          ]
-        );
-      });
-      if (!proceed) return;
+    const compResult = evaluateCareerTargetCompatibility(degreeProgram || "", targetPosition);
+
+    if (compResult.classification === "DISTANT") {
+      setCompatibilityResult(compResult);
+      setShowCompatibilityModal(true);
+      return; // Require explicit modal confirmation before completing setup
     }
 
-    await completeInitialSetup(college, degreeProgram, targetPosition);
-    router.replace("/(student)/onboarding");
+    if (compResult.classification === "PIVOT") {
+      Alert.alert(
+        "Career Transition Notice",
+        compResult.reason,
+        [
+          { text: "Select Different Target", style: "cancel" },
+          { text: "Continue Transition", onPress: () => executeCompleteSetup() }
+        ]
+      );
+      return;
+    }
+
+    await executeCompleteSetup();
   }
 
   return (
@@ -266,6 +283,17 @@ export default function JobSelectionScreen() {
           />
         </View>
       </ScrollView>
+
+      <CareerCompatibilityModal
+        visible={showCompatibilityModal}
+        compatibilityResult={compatibilityResult}
+        onCancel={() => {
+          setShowCompatibilityModal(false);
+          setCompatibilityResult(null);
+        }}
+        onConfirm={executeCompleteSetup}
+        isProcessing={loading}
+      />
     </SafeAreaView>
   );
 }

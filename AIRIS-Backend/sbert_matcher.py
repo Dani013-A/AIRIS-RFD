@@ -75,6 +75,54 @@ CAREER_BENCHMARKS: Dict[str, Dict[str, List[str]]] = {
         "recommended_skills": ["Google Analytics", "Campaign Planning", "Customer Personas"],
         "education_benchmarks": ["Bachelor of Science in Business Administration", "Marketing Management", "Business Administration"],
         "certification_benchmarks": ["Google Analytics Certificate", "HubSpot Marketing Certified"]
+    },
+    "psychometrician": {
+        "required_skills": ["Psychological Assessment & Testing", "Psychometrics", "Test Construction", "Statistical Analysis", "Developmental Psychology"],
+        "recommended_skills": ["Cognitive Psychology", "Research Methods", "Data Analysis"],
+        "education_benchmarks": ["Bachelor of Science in Psychology", "Psychology Discipline", "Behavioral Sciences"],
+        "certification_benchmarks": ["Board Licensure Examination for Psychometricians (BLEP)", "Certified Psychometrician"]
+    },
+    "psychologist": {
+        "required_skills": ["Psychological Assessment", "Abnormal Psychology", "Clinical Psychology", "Psychometrics", "Counseling Techniques"],
+        "recommended_skills": ["Research Methods", "Ethics in Psychology", "Behavioral Analysis"],
+        "education_benchmarks": ["Bachelor of Science in Psychology", "Master of Arts in Psychology", "Clinical Psychology Discipline"],
+        "certification_benchmarks": ["Licensed Psychologist", "Registered Psychologist"]
+    },
+    "instructional designer": {
+        "required_skills": ["E-Learning Authoring Tools", "Articulate Storyline", "ADDIE Model", "Universal Design for Learning (UDL)", "Curriculum Development"],
+        "recommended_skills": ["Multimedia Development", "Learning Analytics", "Instructional Systems"],
+        "education_benchmarks": ["Bachelor of Secondary Education", "Instructional Design Degree", "Education Discipline"],
+        "certification_benchmarks": ["Certified Instructional Designer", "E-Learning Professional Certification"]
+    },
+    "cybersecurity analyst": {
+        "required_skills": ["Network Security", "Information Security", "Threat Analysis", "SIEM", "Incident Response"],
+        "recommended_skills": ["Cryptography", "Vulnerability Management", "Penetration Testing"],
+        "education_benchmarks": ["Bachelor of Science in Information Technology", "Cybersecurity Discipline", "Computer Science"],
+        "certification_benchmarks": ["CompTIA Security+", "Certified Information Systems Security Professional (CISSP)"]
+    },
+    "ux designer": {
+        "required_skills": ["Figma", "UX Design", "User Research", "Wireframing", "Prototyping"],
+        "recommended_skills": ["Human-Computer Interaction", "Information Architecture", "Visual Design"],
+        "education_benchmarks": ["Bachelor of Science in Information Technology", "Multimedia Arts", "User Experience Design"],
+        "certification_benchmarks": ["Google UX Design Professional Certificate", "Nielsen Norman Group UX Certification"]
+    },
+    "auditor": {
+        "required_skills": ["Internal Audit", "Internal Controls", "Financial Auditing", "IFRS/GAAP Standards", "Risk Assessment"],
+        "recommended_skills": ["Bookkeeping", "Advanced Excel", "Fraud Examination"],
+        "education_benchmarks": ["Bachelor of Science in Accountancy", "Auditing Discipline", "Accounting"],
+        "certification_benchmarks": ["Certified Internal Auditor (CIA)", "Certified Public Accountant (CPA)"]
+    },
+    "structural engineer": {
+        "required_skills": ["STAAD.Pro", "Structural Analysis", "Concrete Structure Design", "Autodesk Revit Structural", "Building Information Modeling (BIM)"],
+        "recommended_skills": ["Steel Structure Design", "AutoCAD", "Structural Dynamics"],
+        "education_benchmarks": ["Bachelor of Science in Civil Engineering", "Structural Engineering Discipline"],
+        "certification_benchmarks": ["Licensed Structural Engineer", "Professional Engineer (PE)"]
+    },
+    "chemist": {
+        "required_skills": ["Organic Chemistry", "Laboratory Safety & Analysis", "Chemical Kinetics", "Quantitative Chemical Analysis", "Spectroscopy"],
+        "recommended_skills": ["Inorganic Chemistry", "Analytical Instrumentation", "Quality Control"],
+        "education_benchmarks": ["Bachelor of Science in Chemistry", "Chemical Science Discipline"],
+        "certification_benchmarks": ["Licensed Chemist", "Chemical Laboratory Analyst"]
     }
 }
 
@@ -84,17 +132,51 @@ CAREER_CONCEPTS: Dict[str, List[str]] = {
     for role, data in CAREER_BENCHMARKS.items()
 }
 
+GENERIC_DISALLOWED_TOKENS = {
+    "core competency", "technical skills", "problem solving", "execution",
+    "domain knowledge", "industry best practices", "tools", "relevant academic discipline"
+}
+
+def validate_dynamic_profile(profile: Dict[str, List[str]], target_position: str) -> bool:
+    """Verifies that an AI-generated dynamic profile contains substantive, domain-specific competencies."""
+    if not isinstance(profile, dict):
+        return False
+    req_skills = profile.get("required_skills", [])
+    if not req_skills or not isinstance(req_skills, list) or len(req_skills) == 0:
+        return False
+
+    substantive_count = 0
+    norm_pos = target_position.lower()
+
+    for skill in req_skills:
+        skill_str = str(skill).strip().lower()
+        if not skill_str:
+            continue
+        # Reject generic string templates or exact matches with disallowed generic terms
+        if any(token in skill_str for token in GENERIC_DISALLOWED_TOKENS) or skill_str == f"{norm_pos} core competency":
+            continue
+        if len(skill_str) >= 3:
+            substantive_count += 1
+
+    return substantive_count >= 2
+
 def fetch_dynamic_profile_from_ai(target_position: str) -> Dict[str, List[str]]:
-    """Uses LLM to retrieve data-driven benchmark profiles for unlisted roles."""
+    """Uses LLM to dynamically resolve benchmark profiles for arbitrary professional roles."""
     prompt = f"""
-    You are an expert technical recruiter. Provide benchmark competencies for a professional working as '{target_position}'.
+    You are an expert technical recruiter and occupational domain specialist.
+    Provide authentic, industry-standard benchmark competencies for a professional working as '{target_position}'.
+
     Return ONLY a JSON object with this exact structure:
     {{
-        "required_skills": ["Skill 1", "Skill 2", "Skill 3", "Skill 4", "Skill 5"],
-        "recommended_skills": ["Skill 6", "Skill 7"],
-        "education_benchmarks": ["Degree in relevant field", "Academic discipline"],
-        "certification_benchmarks": ["Relevant Certification Title"]
+        "required_skills": ["Substantive Technical/Domain Skill 1", "Substantive Skill 2", "Substantive Skill 3", "Substantive Skill 4", "Substantive Skill 5"],
+        "recommended_skills": ["Recommended Skill 1", "Recommended Skill 2"],
+        "education_benchmarks": ["Bachelor of Science in Relevant Field", "Specific Academic Discipline"],
+        "certification_benchmarks": ["Official Professional Certification Title"]
     }}
+
+    IMPORTANT:
+    Do NOT return generic terms like "Technical Skills", "Problem Solving", "Domain Knowledge", or "Core Competency".
+    Provide specific, professional tools, methods, frameworks, and domain knowledge required for '{target_position}'.
     Do not include markdown formatting or extra text.
     """
     try:
@@ -104,17 +186,19 @@ def fetch_dynamic_profile_from_ai(target_position: str) -> Dict[str, List[str]]:
             if lines[0].startswith("```json") or lines[0].startswith("```"):
                 response_text = "\n".join(lines[1:-1]).strip()
         parsed = json.loads(response_text)
-        if isinstance(parsed, dict) and "required_skills" in parsed:
+        if validate_dynamic_profile(parsed, target_position):
             return parsed
+        else:
+            print(f"Dynamic profile validation failed for '{target_position}': Generic or insufficient skills returned.")
     except Exception as e:
         print(f"Dynamic profile fetch failed for '{target_position}': {e}")
 
-    norm = target_position.replace(" ", "+")
+    # Safe-fail: Return empty benchmark profile rather than emitting fabricated generic filler
     return {
-        "required_skills": [f"{target_position} Core Competency", "Domain Knowledge", "Technical Skills", "Problem Solving", "Execution"],
-        "recommended_skills": ["Industry Best Practices", "Tools"],
-        "education_benchmarks": [f"Degree in {target_position} or related field", "Relevant Academic Discipline"],
-        "certification_benchmarks": [f"Professional Certification in {target_position}"]
+        "required_skills": [],
+        "recommended_skills": [],
+        "education_benchmarks": [],
+        "certification_benchmarks": []
     }
 
 def get_target_benchmark_profile(target_position: str) -> Dict[str, List[str]]:

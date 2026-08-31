@@ -8,7 +8,7 @@ export function isValidUrl(urlString: string): boolean {
   if (!urlString || typeof urlString !== "string") return false;
   try {
     const url = new URL(urlString);
-    return url.protocol === "https:" && url.hostname.includes(".");
+    return (url.protocol === "https:" || url.protocol === "http:") && url.hostname.includes(".");
   } catch {
     return false;
   }
@@ -30,11 +30,19 @@ export function validateLearningResource(resource: Partial<LearningResource>): b
   if (!isValidUrl(resource.url)) {
     return false;
   }
-  // Reject search query fallbacks
-  if (resource.url.includes("google.com/search") || resource.url.includes("example.com")) {
+  // Reject search query fallbacks or dummy domains
+  if (
+    resource.url.includes("google.com/search") ||
+    resource.url.includes("example.com") ||
+    resource.url.includes("placeholder.com")
+  ) {
     return false;
   }
-  // If thumbnail exists, validate it's HTTPS
+  // Reject explicitly broken links
+  if (resource.verification?.status === "broken") {
+    return false;
+  }
+  // If thumbnail exists, validate it's a valid URL
   if (resource.thumbnailUrl && !isValidUrl(resource.thumbnailUrl)) {
     return false;
   }
@@ -50,8 +58,11 @@ export function sanitizeLearningResource(resource: LearningResource): LearningRe
     ...resource,
     thumbnailUrl: cleanThumb,
     skills: Array.isArray(resource.skills) ? resource.skills.map((s) => s.toLowerCase().trim()) : [],
+    subskills: Array.isArray(resource.subskills) ? resource.subskills.map((s) => s.toLowerCase().trim()) : [],
     careerPaths: Array.isArray(resource.careerPaths) ? resource.careerPaths.map((c) => c.toLowerCase().trim()) : [],
+    academicPrograms: Array.isArray(resource.academicPrograms) ? resource.academicPrograms.map((a) => a.trim()) : [],
     tags: Array.isArray(resource.tags) ? resource.tags.map((t) => t.toLowerCase().trim()) : [],
+    trustScore: typeof resource.trustScore === "number" ? Math.max(1, Math.min(100, resource.trustScore)) : 80,
   };
 }
 

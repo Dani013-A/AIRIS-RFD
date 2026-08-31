@@ -24,6 +24,8 @@ import { validatePassword } from "../../utils/passwordPolicy";
 import { validatePersonName, validateAcademicSelection } from "../../utils/inputValidator";
 import { mapAuthError } from "../../utils/errorMapper";
 import { resolveProfilePhoto, DEFAULT_PROFILE_FALLBACK } from "../../services/firebase/profilePhotoService";
+import { evaluateCareerTargetCompatibility, CareerCompatibilityResult } from "../../services/ai/careerCompatibilityGuardrail";
+import { CareerCompatibilityModal } from "../../components/ui/CareerCompatibilityModal";
 
 export default function StudentProfileScreen() {
   const router = useRouter();
@@ -54,6 +56,9 @@ export default function StudentProfileScreen() {
 
   const [isRetargeting, setIsRetargeting] = useState(false);
   const [retargetStatusText, setRetargetStatusText] = useState("");
+
+  const [compatibilityResult, setCompatibilityResult] = useState<CareerCompatibilityResult | null>(null);
+  const [showCompatibilityModal, setShowCompatibilityModal] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -117,26 +122,8 @@ export default function StudentProfileScreen() {
     setExpandedPanel(expandedPanel === panel ? null : panel);
   };
 
-  const handleSaveProfile = async () => {
-    Keyboard.dismiss();
+  const executeSaveProfile = async (confirmed: boolean = false) => {
     const nameVal = validatePersonName(editName);
-    if (!nameVal.isValid) {
-      Alert.alert("Invalid Name", nameVal.message);
-      return;
-    }
-
-    const academicVal = validateAcademicSelection(editCollege, editProgram);
-    if (!academicVal.isValid) {
-      Alert.alert("Invalid Academic Selection", academicVal.message);
-      return;
-    }
-
-    if (!editCareer.trim()) {
-      Alert.alert("Required Field", "Preferred career target cannot be empty.");
-      return;
-    }
-
-    clearError();
     const targetChanged = editCareer.trim().toLowerCase() !== (currentUser?.targetPosition || "").trim().toLowerCase();
     const academicChanged = editCollege.trim().toLowerCase() !== (currentUser?.college || "").trim().toLowerCase() ||
                             editProgram.trim().toLowerCase() !== (currentUser?.degreeProgram || "").trim().toLowerCase();
@@ -178,10 +165,77 @@ export default function StudentProfileScreen() {
         }
       }
       setExpandedPanel(null);
+      setShowCompatibilityModal(false);
+      setCompatibilityResult(null);
     } catch (err) {
       setIsRetargeting(false);
       setRetargetStatusText("");
       Alert.alert("Save Error", err instanceof Error ? err.message : "Failed to update profile.");
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    Keyboard.dismiss();
+    const nameVal = validatePersonName(editName);
+    if (!nameVal.isValid) {
+      Alert.alert("Invalid Name", nameVal.message);
+      return;
+    }
+
+    const academicVal = validateAcademicSelection(editCollege, editProgram);
+    if (!academicVal.isValid) {
+      Alert.alert("Invalid Academic Selection", academicVal.message);
+      return;
+    }
+
+    if (!editCareer.trim()) {
+      Alert.alert("Required Field", "Preferred career target cannot be empty.");
+      return;
+    }
+
+    clearError();
+    const targetChanged = editCareer.trim().toLowerCase() !== (currentUser?.targetPosition || "").trim().toLowerCase();
+    const academicChanged = editCollege.trim().toLowerCase() !== (currentUser?.college || "").trim().toLowerCase() ||
+                            editProgram.trim().toLowerCase() !== (currentUser?.degreeProgram || "").trim().toLowerCase();
+    const profileChanged = targetChanged || academicChanged;
+
+    if (profileChanged) {
+      const compResult = evaluateCareerTargetCompatibility(
+        editProgram,
+        editCareer.trim(),
+        (activeAnalysis as any)?.detectedSkills || activeAnalysis?.learningSnapshot?.careerContext?.detectedSkills || [],
+        activeResume?.rawText || ""
+      );
+
+      if (compResult.classification === "DISTANT") {
+        setCompatibilityResult(compResult);
+        setShowCompatibilityModal(true);
+        return; // Require explicit user confirmation modal before activating
+      }
+
+      if (compResult.classification === "PIVOT") {
+        Alert.alert(
+          "Career Transition Notice",
+          compResult.reason,
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Continue Transition", onPress: () => executeSaveProfile(true) }
+          ]
+        );
+        return;
+      }
+    }
+
+    await executeSaveProfile(false);
+  };
+
+  const handleCancelCompatibilityModal = () => {
+    setShowCompatibilityModal(false);
+    setCompatibilityResult(null);
+    if (currentUser) {
+      setEditCollege(currentUser.college || "");
+      setEditProgram(currentUser.degreeProgram || "");
+      setEditCareer(currentUser.targetPosition || "");
     }
   };
 
@@ -937,6 +991,14 @@ export default function StudentProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      <CareerCompatibilityModal
+        visible={showCompatibilityModal}
+        compatibilityResult={compatibilityResult}
+        onCancel={handleCancelCompatibilityModal}
+        onConfirm={() => executeSaveProfile(true)}
+        isProcessing={isRetargeting}
+      />
     </SafeAreaView>
   );
 }

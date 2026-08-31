@@ -52,9 +52,19 @@ class NormalizationRequest(BaseModel):
     type: str  # "job" | "skill" | "certification" | "program"
     input: str
 
+class CareerCompatibilityRequest(BaseModel):
+    academicProgram: str
+    targetCareer: str
+    resumeSkills: Optional[List[str]] = []
+
 @app.get("/")
 def read_root():
     return {"status": "running", "service": "AIRIS SBERT Evaluator API"}
+
+@app.post("/career/compatibility")
+def check_career_compatibility(req: CareerCompatibilityRequest):
+    from ai_service import evaluate_career_compatibility
+    return evaluate_career_compatibility(req.academicProgram, req.targetCareer, req.resumeSkills or [])
 
 def verify_admin_token(authorization: str = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):

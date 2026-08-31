@@ -16,6 +16,29 @@ export type EventStatus = "upcoming" | "ongoing" | "completed" | "archived" | "o
 
 export type PrimaryLearnCategory = "for_you" | "interviews" | "resume" | "communication";
 
+export type VerificationStatus =
+  | "verified"
+  | "unverified"
+  | "broken"
+  | "redirected"
+  | "review_required";
+
+export interface VerificationMetadata {
+  status: VerificationStatus;
+  checkedAt: string;
+  finalUrl?: string;
+  statusCode?: number;
+  contentType?: string;
+  providerDomain?: string;
+  verificationMethod?: "http" | "manual";
+}
+
+export interface AccreditationMetadata {
+  bodyName: string;
+  isOfficialCredential: boolean;
+  accreditationLevel?: string;
+}
+
 export interface SeminarMetadata {
   startDate?: string;
   endDate?: string;
@@ -35,18 +58,27 @@ export interface LearningResource {
   category: PrimaryLearnCategory | string;
   careerPaths: string[];
   skills: string[];
+  subskills?: string[];
+  academicPrograms?: string[];
+  prerequisites?: string[];
   url: string;
   thumbnailUrl?: string;
   isVerified: boolean;
   isActive: boolean;
   priority: number;
+  trustScore?: number;
   level?: DifficultyLevel;
   tags: string[];
   estimatedTime?: string;
   seminarMetadata?: SeminarMetadata;
+  accreditation?: AccreditationMetadata;
+  verification?: VerificationMetadata;
   credentialCode?: string;
   aliases?: string[];
+  source?: string;
   lastVerifiedAt?: string;
+  lastReviewedAt?: string;
+  reviewNotes?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -75,10 +107,14 @@ export type RecommendationTier =
 
 export interface MatchEvidence {
   gapSubjectOverlap: boolean;
+  subskillOverlap?: boolean;
   competencyOverlap: boolean;
   roleRelevance: boolean;
+  academicRelevance?: boolean;
   genericKeywordOnly: boolean;
   matchedConcept?: string;
+  matchedGapName?: string;
+  gapImportance?: "high" | "medium" | "low";
 }
 
 export interface MatchedResourceItem extends LearningResource {

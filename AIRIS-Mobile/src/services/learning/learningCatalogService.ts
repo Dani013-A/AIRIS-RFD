@@ -205,8 +205,19 @@ export async function refreshCatalog(): Promise<{ resources: LearningResource[];
       }
     });
 
-    // 4. Fall back to seed catalog if Firestore returned 0 valid items
-    const finalResources = firestoreResources.length > 0 ? firestoreResources : VERIFIED_LEARNING_CATALOG;
+    // 4. Canonical Merge: Firestore is authoritative over local seed catalog
+    const resourceMap = new Map<string, LearningResource>();
+    for (const seedItem of VERIFIED_LEARNING_CATALOG) {
+      resourceMap.set(seedItem.id, seedItem);
+    }
+    for (const fsItem of firestoreResources) {
+      if (fsItem.isActive === false) {
+        resourceMap.delete(fsItem.id); // Firestore explicitly deactivated item
+      } else {
+        resourceMap.set(fsItem.id, fsItem); // Firestore overwrites local seed
+      }
+    }
+    const finalResources = Array.from(resourceMap.values());
     const finalCategories = firestoreCategories.length > 0 ? firestoreCategories : DEFAULT_LEARNING_CATEGORIES;
 
     // 5. Validate, sanitize, and cache
@@ -516,6 +527,151 @@ export const CAREER_DOMAINS: CareerDomainProfile[] = [
     ],
     supportingDomains: ["data_analytics", "software_engineering", "general_tech"],
   },
+  {
+    id: "civil_engineering",
+    name: "Civil & Structural Engineering",
+    roleKeywords: [
+      "civil engineer",
+      "structural engineer",
+      "site engineer",
+      "construction engineer",
+      "civil engineering",
+      "civil",
+    ],
+    coreCompetencies: [
+      "staad.pro",
+      "structural analysis",
+      "autocad",
+      "concrete structure design",
+      "bim",
+      "building information modeling",
+      "quantity surveying",
+      "construction management",
+      "site inspection",
+    ],
+    supportingDomains: ["architecture", "general_tech"],
+  },
+  {
+    id: "accountancy",
+    name: "Accountancy, Audit & Financial Accounting",
+    roleKeywords: [
+      "accountant",
+      "auditor",
+      "certified public accountant",
+      "cpa",
+      "financial accountant",
+      "accounting assistant",
+      "bookkeeper",
+      "accountancy",
+    ],
+    coreCompetencies: [
+      "bookkeeping",
+      "internal controls",
+      "financial accounting",
+      "internal audit",
+      "ifrs",
+      "gaap",
+      "bank reconciliation",
+      "journal entries",
+      "tax compliance",
+      "financial modeling",
+      "advanced excel",
+    ],
+    supportingDomains: ["data_analytics", "general_tech"],
+  },
+  {
+    id: "education_instructional_design",
+    name: "Education, Pedagogy & Instructional Design",
+    roleKeywords: [
+      "instructional designer",
+      "educator",
+      "teacher",
+      "e-learning specialist",
+      "curriculum developer",
+      "learning designer",
+      "education",
+    ],
+    coreCompetencies: [
+      "e-learning authoring tools",
+      "articulate storyline",
+      "addie",
+      "instructional design",
+      "curriculum design",
+      "multimedia development",
+      "learning analytics",
+      "accessibility standards",
+      "udl",
+      "universal design for learning",
+      "lesson planning",
+    ],
+    supportingDomains: ["ui_ux", "general_tech"],
+  },
+  {
+    id: "architecture",
+    name: "Architecture & Environmental Design",
+    roleKeywords: [
+      "architect",
+      "architectural designer",
+      "bim specialist",
+      "draftsman",
+      "architecture",
+    ],
+    coreCompetencies: [
+      "revit",
+      "autodesk revit",
+      "architectural drafting",
+      "cad",
+      "bim",
+      "spatial planning",
+      "sustainable building design",
+      "leed",
+    ],
+    supportingDomains: ["civil_engineering", "ui_ux"],
+  },
+  {
+    id: "psychology",
+    name: "Psychology & Behavioral Sciences",
+    roleKeywords: [
+      "psychologist",
+      "psychometrician",
+      "human behavior specialist",
+      "counselor",
+      "psychology",
+    ],
+    coreCompetencies: [
+      "psychometrics",
+      "psychological assessment",
+      "test construction",
+      "psychometrician core competency",
+      "research methods",
+      "statistical analysis",
+      "behavioral assessment",
+      "cognitive psychology",
+    ],
+    supportingDomains: ["data_analytics", "general_tech"],
+  },
+  {
+    id: "marketing",
+    name: "Marketing & Digital Communications",
+    roleKeywords: [
+      "marketing specialist",
+      "digital marketer",
+      "content strategist",
+      "seo specialist",
+      "social media manager",
+      "marketing",
+    ],
+    coreCompetencies: [
+      "digital marketing",
+      "seo",
+      "content marketing",
+      "social media strategy",
+      "google analytics",
+      "brand management",
+      "email marketing",
+    ],
+    supportingDomains: ["data_analytics", "ui_ux"],
+  },
 ];
 
 /**
@@ -542,7 +698,21 @@ export function resolveCareerDomains(targetRole: string): CareerDomainProfile[] 
   }
 
   matchedDomains.sort((a, b) => b.score - a.score);
-  return matchedDomains.map((m) => m.domain);
+  if (matchedDomains.length > 0) {
+    return matchedDomains.map((m) => m.domain);
+  }
+
+  // Dynamic domain profile resolution for unindexed valid professional roles
+  const cleanTokens = targetLower.split(" ").filter((t) => t.length >= 3 && !GENERIC_TECHNOLOGY_WORDS.has(t));
+  return [
+    {
+      id: targetLower.replace(/[^a-z0-9_]/g, "_"),
+      name: targetRole.trim(),
+      roleKeywords: [targetLower, ...cleanTokens],
+      coreCompetencies: cleanTokens,
+      supportingDomains: ["general_tech"],
+    },
+  ];
 }
 
 export const GENERIC_TECHNOLOGY_WORDS = new Set([
@@ -626,6 +796,41 @@ export const GENERIC_TECHNOLOGY_WORDS = new Set([
   "standards",
   "statistical",
   "statistics",
+  "learning",
+  "authoring",
+  "pro",
+  "control",
+  "controls",
+  "structure",
+  "structures",
+  "computer",
+  "science",
+  "general",
+  "digital",
+  "media",
+  "multimedia",
+  "content",
+  "compliance",
+  "assessment",
+  "evaluation",
+  "governance",
+  "strategy",
+  "strategies",
+  "practice",
+  "practices",
+  "training",
+  "trainings",
+  "course",
+  "courses",
+  "certification",
+  "certifications",
+  "foundation",
+  "foundations",
+  "intro",
+  "handbook",
+  "cs50",
+  "talks",
+  "summit",
 ]);
 
 /**
@@ -688,6 +893,39 @@ export function normalizeGap(
   if (normalized.includes("network security") || normalized.includes("threat") || normalized.includes("siem") || normalized.includes("soc") || normalized.includes("cryptography")) {
     substantiveConcepts.push("network security", "threat analysis", "siem", "incident response", "cryptography");
   }
+  if (normalized.includes("staad") || normalized.includes("structural analysis") || normalized.includes("structural engineering")) {
+    substantiveConcepts.push("staad.pro", "structural analysis", "bentley staad", "structural engineering");
+  }
+  if (normalized.includes("concrete") || normalized.includes("structure design") || normalized.includes("reinforced concrete")) {
+    substantiveConcepts.push("concrete structure design", "reinforced concrete", "structural design");
+  }
+  if (normalized.includes("bim") || normalized.includes("revit") || normalized.includes("building information")) {
+    substantiveConcepts.push("bim", "building information modeling", "revit");
+  }
+  if (normalized.includes("bookkeeping") || normalized.includes("ledger") || normalized.includes("double entry")) {
+    substantiveConcepts.push("bookkeeping", "financial accounting", "journal entries");
+  }
+  if (normalized.includes("internal control") || normalized.includes("internal audit") || normalized.includes("coso")) {
+    substantiveConcepts.push("internal controls", "internal audit", "financial controls");
+  }
+  if (normalized.includes("advanced excel") || normalized.includes("financial modeling") || normalized.includes("pivot table")) {
+    substantiveConcepts.push("advanced excel", "financial modeling", "excel");
+  }
+  if (normalized.includes("authoring tool") || normalized.includes("articulate") || normalized.includes("storyline") || normalized.includes("elearning")) {
+    substantiveConcepts.push("e-learning authoring tools", "articulate storyline", "e-learning development");
+  }
+  if (normalized.includes("addie") || normalized.includes("instructional design") || normalized.includes("curriculum")) {
+    substantiveConcepts.push("instructional design", "addie", "curriculum design");
+  }
+  if (normalized.includes("accessibility") || normalized.includes("udl") || normalized.includes("universal design")) {
+    substantiveConcepts.push("accessibility standards", "udl", "universal design for learning");
+  }
+  if (normalized.includes("multimedia") || normalized.includes("video production") || normalized.includes("content creation")) {
+    substantiveConcepts.push("multimedia development", "digital media", "educational video");
+  }
+  if (normalized.includes("psychometric") || normalized.includes("testing") || normalized.includes("assessment") || normalized.includes("blep") || normalized.includes("psychology")) {
+    substantiveConcepts.push("psychometrics", "psychological assessment", "test construction", "statistical analysis", "psychometrician core competency");
+  }
 
   // 2. Add full phrase if substantive
   if (tokens.some((t) => !GENERIC_TECHNOLOGY_WORDS.has(t))) {
@@ -740,10 +978,13 @@ export function evaluateGapMatch(
   const resourceDomains = getResourceDomains(resource);
   const resourceDomainIds = resourceDomains.map((d) => d.id);
 
-  const isRoleRelevant =
+  const isDomainDirectMatch =
     !userPrimaryDomain ||
     resourceDomainIds.includes(userPrimaryDomain.id) ||
-    resourceDomainIds.some((id) => userPrimaryDomain.supportingDomains.includes(id)) ||
+    resourceDomainIds.some((id) => userPrimaryDomain.supportingDomains.includes(id));
+
+  const isRoleRelevant =
+    isDomainDirectMatch ||
     resourceCareerPaths.includes("all tech roles") ||
     resourceCareerPaths.includes("all career paths");
 
@@ -763,18 +1004,22 @@ export function evaluateGapMatch(
         (concept === "cloud data warehousing" && (skill === "cloud data warehousing" || skill === "data warehouse" || skill === "bigquery" || skill === "snowflake")) ||
         (concept === "predictive modeling" && (skill === "predictive modeling" || skill === "scikit-learn" || skill === "machine learning")) ||
         (concept === "data visualization" && (skill === "data visualization" || skill === "power bi" || skill === "tableau")) ||
-        (concept === "network security" && (skill === "network security" || skill === "threat analysis" || skill === "siem" || skill === "splunk" || skill === "wireshark"));
+        (concept === "network security" && (skill === "network security" || skill === "threat analysis" || skill === "siem" || skill === "splunk" || skill === "wireshark")) ||
+        (concept.includes("psychometric") && (skill.includes("psychometrics") || skill.includes("psychological assessment") || skill.includes("test construction"))) ||
+        (concept.includes("staad") && (skill.includes("structural analysis") || skill.includes("staad.pro") || skill.includes("concrete"))) ||
+        (concept.includes("authoring") && (skill.includes("e-learning authoring tools") || skill.includes("articulate storyline"))) ||
+        (concept.includes("audit") && (skill.includes("internal audit") || skill.includes("internal controls") || skill.includes("bookkeeping")));
 
       if (isExactMatch || isCompoundMatch) {
         return {
           isMatch: true,
-          isDirectGap: isRoleRelevant,
-          matchScore: 500,
+          isDirectGap: isDomainDirectMatch,
+          matchScore: isDomainDirectMatch ? 500 : 250,
           matchedConcept: skill,
           evidence: {
             gapSubjectOverlap: true,
             competencyOverlap: true,
-            roleRelevance: isRoleRelevant,
+            roleRelevance: isDomainDirectMatch,
             genericKeywordOnly: false,
             matchedConcept: skill,
           },
@@ -782,17 +1027,41 @@ export function evaluateGapMatch(
       }
     }
 
-    // Check title
-    if (resourceTitleLower.includes(concept) && concept.length >= 6) {
+    // Check subskills
+    const resourceSubskills = (resource.subskills || []).map((s) => s.toLowerCase().trim());
+    if (resourceSubskills.some((s) => !GENERIC_TECHNOLOGY_WORDS.has(s) && (s === concept || (concept.length >= 6 && (concept.includes(s) || s.includes(concept)))))) {
       return {
         isMatch: true,
-        isDirectGap: isRoleRelevant,
-        matchScore: 450,
+        isDirectGap: isDomainDirectMatch,
+        matchScore: isDomainDirectMatch ? 450 : 220,
+        matchedConcept: concept,
+        evidence: {
+          gapSubjectOverlap: true,
+          subskillOverlap: true,
+          competencyOverlap: true,
+          roleRelevance: isDomainDirectMatch,
+          genericKeywordOnly: false,
+          matchedConcept: concept,
+        },
+      };
+    }
+
+    // Check title (Requires exact phrase match or non-generic concept >= 8 chars)
+    if (
+      !GENERIC_TECHNOLOGY_WORDS.has(concept) &&
+      concept.length >= 8 &&
+      concept.includes(" ") &&
+      resourceTitleLower.includes(concept)
+    ) {
+      return {
+        isMatch: true,
+        isDirectGap: isDomainDirectMatch,
+        matchScore: isDomainDirectMatch ? 450 : 200,
         matchedConcept: concept,
         evidence: {
           gapSubjectOverlap: true,
           competencyOverlap: true,
-          roleRelevance: isRoleRelevant,
+          roleRelevance: isDomainDirectMatch,
           genericKeywordOnly: false,
           matchedConcept: concept,
         },
@@ -803,13 +1072,13 @@ export function evaluateGapMatch(
     if (resourceTags.some((t) => !GENERIC_TECHNOLOGY_WORDS.has(t) && t === concept)) {
       return {
         isMatch: true,
-        isDirectGap: isRoleRelevant,
-        matchScore: 400,
+        isDirectGap: isDomainDirectMatch,
+        matchScore: isDomainDirectMatch ? 400 : 180,
         matchedConcept: concept,
         evidence: {
           gapSubjectOverlap: true,
           competencyOverlap: true,
-          roleRelevance: isRoleRelevant,
+          roleRelevance: isDomainDirectMatch,
           genericKeywordOnly: false,
           matchedConcept: concept,
         },
@@ -1115,6 +1384,8 @@ export function isResourceDemotedForSkillDepth(
 export interface RecommendationMatchParams {
   targetPosition?: string;
   degreeProgram?: string;
+  collegeDomain?: string;
+  compatibilityClassification?: "ALIGNED" | "PIVOT" | "DISTANT";
   skillGaps?: Array<{ skill: string; importance?: string; reason?: string }>;
   skillsToLearn?: Array<{ title: string; priority?: string; description?: string }>;
   detectedSkills?: string[];
@@ -1341,18 +1612,36 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
           matchedConcept: matchedComp,
         };
       } else if (resourceCareerPaths.includes("all tech roles") || resourceCareerPaths.includes("all career paths")) {
-        // Universal tech conferences / seminars
-        tier = "TIER_3_SUPPORTING";
-        score += 85;
-        matchedComp = resourceSkills[0] || "tech trends & networking";
-        reason = `Industry seminar covering emerging tech trends and professional networking for ${params.targetPosition || "tech professionals"}.`;
-        itemEvidence = {
-          gapSubjectOverlap: false,
-          competencyOverlap: true,
-          roleRelevance: true,
-          genericKeywordOnly: false,
-          matchedConcept: matchedComp,
-        };
+        // Universal resources are ONLY eligible if they have demonstrable target domain relevance,
+        // or if the candidate has no defined target position and zero gaps (general readiness fallback).
+        const hasNoUserContext = !targetPos && normalizedGaps.length === 0;
+        const isDomainRelevant = primaryDomain
+          ? resourceDomainIds.includes(primaryDomain.id) ||
+            resourceSkills.some((s) => primaryDomain.coreCompetencies.includes(s))
+          : true;
+
+        if (hasNoUserContext || isDomainRelevant) {
+          tier = "TIER_3_SUPPORTING";
+          score += 85;
+          matchedComp = resourceSkills[0] || "professional readiness";
+          reason = `Supporting professional resource covering ${matchedComp} for ${params.targetPosition || "your career track"}.`;
+          itemEvidence = {
+            gapSubjectOverlap: false,
+            competencyOverlap: true,
+            roleRelevance: true,
+            genericKeywordOnly: false,
+            matchedConcept: matchedComp,
+          };
+        } else {
+          tier = "TIER_5_IRRELEVANT";
+          score = -100;
+          itemEvidence = {
+            gapSubjectOverlap: false,
+            competencyOverlap: false,
+            roleRelevance: false,
+            genericKeywordOnly: false,
+          };
+        }
       } else {
         // ----------------------------------------------------
         // TIER 5: IRRELEVANT / DISJOINT DOMAIN
@@ -1454,10 +1743,28 @@ export function getGrowthPathRecommendations(params: GrowthPathParams): GrowthPa
   const certifications: MatchedResourceItem[] = [];
   const courses: MatchedResourceItem[] = [];
   const practicalLearning: MatchedResourceItem[] = [];
+  const globalSeenIds = new Set<string>();
+
+  const gapsCount = Math.max(skillGaps.length, skillsToLearn.length);
+  const maxCerts = gapsCount === 0 ? 2 : Math.min(gapsCount + 1, 5);
+  const maxCourses = gapsCount === 0 ? 2 : Math.min(gapsCount + 2, 5);
+  const maxPractice = gapsCount === 0 ? 2 : Math.min(gapsCount + 1, 5);
+
+  const certProviders = new Map<string, number>();
+  const courseProviders = new Map<string, number>();
+  const practiceProviders = new Map<string, number>();
 
   for (const item of allMatched) {
+    if (globalSeenIds.has(item.id)) continue;
+    if (item.relevanceTier === "TIER_5_IRRELEVANT") continue;
+
+    const providerNorm = (item.provider || "unknown").toLowerCase().trim();
+
     if (item.type === "certification") {
-      if (certifications.length < 5) {
+      const pCount = certProviders.get(providerNorm) || 0;
+      if (certifications.length < maxCerts && pCount < 2) {
+        globalSeenIds.add(item.id);
+        certProviders.set(providerNorm, pCount + 1);
         certifications.push({
           ...item,
           gapRationale:
@@ -1466,7 +1773,10 @@ export function getGrowthPathRecommendations(params: GrowthPathParams): GrowthPa
         });
       }
     } else if (item.type === "course") {
-      if (courses.length < 5) {
+      const pCount = courseProviders.get(providerNorm) || 0;
+      if (courses.length < maxCourses && pCount < 2) {
+        globalSeenIds.add(item.id);
+        courseProviders.set(providerNorm, pCount + 1);
         courses.push({
           ...item,
           gapRationale:
@@ -1484,7 +1794,10 @@ export function getGrowthPathRecommendations(params: GrowthPathParams): GrowthPa
       item.type === "example" ||
       item.type === "module"
     ) {
-      if (practicalLearning.length < 3) {
+      const pCount = practiceProviders.get(providerNorm) || 0;
+      if (practicalLearning.length < maxPractice && pCount < 2) {
+        globalSeenIds.add(item.id);
+        practiceProviders.set(providerNorm, pCount + 1);
         practicalLearning.push({
           ...item,
           gapRationale:
