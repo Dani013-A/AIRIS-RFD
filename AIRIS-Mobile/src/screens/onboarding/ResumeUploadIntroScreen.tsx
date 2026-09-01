@@ -167,7 +167,12 @@ export default function ResumeUploadIntroScreen() {
         precomputedAnalysis = uploadResult.analysisResult;
       } catch (backendError) {
         const normErr = normalizeApiError(backendError);
-        if (normErr.code === "EXCEEDED_PAGE_LIMIT" || normErr.code === "INVALID_RESUME") {
+        if (
+          normErr.code === "EXCEEDED_PAGE_LIMIT" ||
+          normErr.code === "INVALID_RESUME" ||
+          normErr.userMessage.includes("doesn't appear to be a resume") ||
+          normErr.userMessage.includes("valid resume")
+        ) {
           throw new Error(normErr.userMessage);
         }
         console.log("Backend upload fallback to client parser:", backendError);

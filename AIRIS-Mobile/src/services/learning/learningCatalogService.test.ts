@@ -610,5 +610,54 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
       expect(cyberCertTitles).not.toContain("Microsoft Certified: Power BI Data Analyst Associate (PL-300)");
     });
   });
+
+  describe("8. Universal Personalized Learning Engine (Multi-Context & Slot Allocation)", () => {
+    it("Resolves academic domain metadata accurately from College, Department, and Degree Program inputs", () => {
+      const { resolveAcademicDomain } = require("./learningCatalogService");
+      const csIt = resolveAcademicDomain("College of Information Technology", "BSIT");
+      expect(csIt).toBeDefined();
+      expect(csIt?.id).toBe("cs_it");
+
+      const civil = resolveAcademicDomain("College of Engineering", "BS Civil Engineering");
+      expect(civil).toBeDefined();
+      expect(civil?.id).toBe("civil_eng");
+
+      const psych = resolveAcademicDomain("College of Arts and Sciences", "BS Psychology");
+      expect(psych).toBeDefined();
+      expect(psych?.id).toBe("arts_psychology");
+    });
+
+    it("Synthesizes multi-context PersonalizedLearningProfile including transition status", () => {
+      const { buildPersonalizedLearningProfile } = require("./learningCatalogService");
+      const profile = buildPersonalizedLearningProfile({
+        targetPosition: "UX Designer",
+        degreeProgram: "BS Information Technology",
+        collegeDomain: "College of Information Technology",
+        compatibilityClassification: "PIVOT",
+      });
+
+      expect(profile.academicDomain?.id).toBe("cs_it");
+      expect(profile.compatibility).toBe("PIVOT");
+    });
+
+    it("Enforces multi-competency slot allocation when student has 5 distinct skill gaps", () => {
+      const { matchLearningRecommendations } = require("./learningCatalogService");
+      const recs = matchLearningRecommendations({
+        targetPosition: "Software Engineer",
+        degreeProgram: "BS Information Technology",
+        skillGaps: [
+          { skill: "Python", importance: "high" },
+          { skill: "SQL", importance: "high" },
+          { skill: "Testing", importance: "high" },
+          { skill: "Docker", importance: "high" },
+          { skill: "System Design", importance: "high" },
+        ],
+        categoryId: "for_you",
+      });
+
+      const matchedGaps = new Set(recs.map((i: any) => i.matchedSkillGap).filter((g: any) => g && g !== "NONE"));
+      expect(matchedGaps.size).toBeGreaterThanOrEqual(2);
+    });
+  });
 });
 

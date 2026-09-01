@@ -60,6 +60,8 @@ export interface LearningResource {
   skills: string[];
   subskills?: string[];
   academicPrograms?: string[];
+  departments?: string[];
+  careerDomains?: string[];
   prerequisites?: string[];
   url: string;
   thumbnailUrl?: string;
@@ -126,6 +128,26 @@ export interface MatchedResourceItem extends LearningResource {
   relevanceTier?: RecommendationTier;
   matchEvidence?: MatchEvidence;
   isPersonalizedGap?: boolean;
+}
+
+export interface AcademicDomainProfile {
+  id: string;
+  name: string;
+  domainKeywords: string[];
+  coreCompetencies: string[];
+  primaryCareers: string[];
+}
+
+export interface PersonalizedLearningProfile {
+  academicDomain: AcademicDomainProfile | null;
+  careerDomain: any | null;
+  compatibility: "ALIGNED" | "PIVOT" | "DISTANT";
+  targetPosition: string;
+  degreeProgram: string;
+  collegeDomain: string;
+  department: string;
+  resumeProfile: any;
+  normalizedGaps: any[];
 }
 
 export interface LearningCatalogCache {

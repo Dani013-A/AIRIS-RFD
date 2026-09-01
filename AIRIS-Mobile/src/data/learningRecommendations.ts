@@ -16,10 +16,12 @@ export interface LearningRecommendation {
  * Returns a list of verified learning recommendations for the student's program and target job.
  * Driven entirely by normalized metadata from the verified catalog.
  */
-export function getLearningRecommendations(program: string, job: string): LearningRecommendation[] {
+export function getLearningRecommendations(program: string, job: string, college?: string, department?: string): LearningRecommendation[] {
   const matched = matchLearningRecommendations({
     targetPosition: job,
     degreeProgram: program,
+    collegeDomain: college,
+    department: department,
   });
 
   return matched.map((item) => ({
@@ -41,13 +43,17 @@ export function getLearningRecommendations(program: string, job: string): Learni
 export function getAiRecommendationsForResume(
   activeAnalysis: ResumeAnalysisResult | null,
   program: string,
-  job: string
+  job: string,
+  college?: string,
+  department?: string
 ): LearningRecommendation[] {
   const learningSnap = activeAnalysis?.learningSnapshot;
 
   const matched = matchLearningRecommendations({
     targetPosition: job,
     degreeProgram: program,
+    collegeDomain: college,
+    department: department,
     skillGaps: learningSnap?.skillGaps,
     skillsToLearn: learningSnap?.skillsToLearn,
     detectedSkills: learningSnap?.careerContext?.detectedSkills,

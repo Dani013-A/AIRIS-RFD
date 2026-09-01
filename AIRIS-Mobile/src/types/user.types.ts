@@ -13,6 +13,7 @@ export interface AppUser {
   hasCompletedOnboarding: boolean;
   hasCompletedInitialSetup?: boolean;
   college?: string;
+  department?: string;
   degreeProgram?: string;
   targetPosition?: string;
   acceptedTerms?: boolean;

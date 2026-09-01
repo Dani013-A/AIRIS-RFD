@@ -6,11 +6,12 @@ from output_validator import validate_ai_response, AuditedFinding
 from deterministic_scorer import calculate_official_ats_score
 from sbert_matcher import evaluate_semantic_alignment
 
-def is_resume_valid(parsed_sections: Dict[str, str], raw_text: str) -> bool:
+from ai_service import generate_text_with_fallback, _extract_json
+
+def is_resume_valid_structural(parsed_sections: Dict[str, str], raw_text: str) -> bool:
     """
-    Multidisciplinary Composite Evidence Matrix validator.
-    Determines if a document contains sufficient evidence of being a resume
-    without imposing IT-specific or single-field keywords.
+    Offline structural fallback validator.
+    Used ONLY as a fallback if AI API keys are unavailable.
     """
     if not raw_text or len(raw_text.strip()) < 50:
         return False
@@ -18,7 +19,7 @@ def is_resume_valid(parsed_sections: Dict[str, str], raw_text: str) -> bool:
     raw_lower = raw_text.lower()
     top_5_lines = " ".join([line.strip().lower() for line in raw_text.splitlines()[:5] if line.strip()])
 
-    # Reject upfront non-resume document types
+    # Reject upfront non-resume document headers
     is_cover_letter = ("dear hiring manager" in raw_lower or "dear recruiter" in raw_lower or "application for the position of" in top_5_lines)
     is_job_opening = ("job title:" in raw_lower or "salary range:" in raw_lower or "job responsibilities:" in raw_lower or "how to apply:" in raw_lower)
     is_memo_or_announcement = ("subject:" in top_5_lines and "date:" in top_5_lines)
@@ -48,23 +49,136 @@ def is_resume_valid(parsed_sections: Dict[str, str], raw_text: str) -> bool:
     ]
     matched_terms = sum(1 for term in universal_terms if term in raw_lower)
 
-    # Path A: >= 2 recognized career sections
     if career_section_count >= 2:
         return True
-
-    # Path B: 1 career section + (contact info OR >= 2 universal terms)
     if career_section_count >= 1 and (has_contact or matched_terms >= 2):
         return True
-
-    # Path C: Contact Info + Strong Universal Resume Vocabulary (>= 3 terms)
     if has_contact and matched_terms >= 3:
         return True
-
-    # Path D: Explicit Resume/CV header in top lines + (contact info OR >= 1 career section)
     if ("resume" in top_5_lines or "curriculum vitae" in top_5_lines or "cv" in top_5_lines) and (has_contact or career_section_count >= 1):
         return True
 
     return False
+
+def validate_resume_validity_with_llm(raw_text: str, parsed_sections: Dict[str, str] = None) -> Dict[str, Any]:
+    """
+    Universal LLM Resume / CV Validity Gate.
+    Determines if an uploaded document represents an individual's genuine resume/CV or candidate profile,
+    or a non-resume document (e.g. quotation, invoice, contract, essay, business proposal, technical manual, assignment).
+
+    Domain-neutral, career-neutral, college-neutral, industry-neutral.
+    Does NOT use hardcoded document-type keyword lists.
+    """
+    default_reject_msg = "This document doesn't appear to be a resume or CV. Please upload a document containing your academic, professional, or career information."
+
+    if not raw_text or len(raw_text.strip()) < 30:
+        return {
+            "is_resume": False,
+            "confidence": 1.0,
+            "document_type": "non_resume",
+            "reason": default_reject_msg
+        }
+
+    sample_text = raw_text[:3500].strip()
+
+    prompt = f"""
+You are an expert ATS document classifier and occupational domain specialist.
+Analyze the following document text and determine whether it represents an individual person's resume, CV, academic background, or professional career profile.
+
+DOCUMENT TEXT SAMPLE:
+\"\"\"
+{sample_text}
+\"\"\"
+
+CRITICAL CLASSIFICATION INSTRUCTIONS:
+
+1. FUNDAMENTAL QUESTION:
+Does this document represent an individual PERSON'S resume/CV or professional/academic career profile?
+
+2. VALID RESUME CHARACTERISTICS:
+A valid resume/CV describes an individual candidate's personal background, including any combination of:
+- Personal name, contact details (email, phone, location, online profile)
+- Education, academic program, degree, coursework, school/university background
+- Work experience, employment history, internships, or On-the-Job Training (OJT)
+- Projects, technical/academic capstones, or practical deliverables
+- Skills (technical skills, soft skills, domain expertise)
+- Certifications, licenses, trainings, workshops, or seminars
+- Organizations, student leadership, volunteer work, awards, or achievements
+Note: Fresh-graduate or student resumes may contain primarily education, projects, skills, and activities with little or no formal work history. Experienced professional resumes may contain extensive work history with minimal coursework. ALL of these are VALID resumes.
+
+3. REJECTED NON-RESUME DOCUMENTS:
+Reject ANY document whose primary purpose is NOT an individual candidate's resume/CV.
+Examples of non-resume documents include:
+- Commercial, financial, or business paperwork (quotations, cost estimates, invoices, receipts, purchase orders, financial statements)
+- Legal, contractual, or organizational documents (contracts, terms of service, meeting minutes, company policies, brochures)
+- Business or project proposals (documents describing project scopes, vendor proposals, or company capabilities)
+- Academic assignments, essays, research papers, exams, lecture notes, textbooks, or course syllabi
+- Technical documentation, user manuals, system specifications, or product documentation
+- Random text, articles, news, fiction, stories, or correspondence
+Note: A non-resume document (such as a business proposal or quotation) might contain words like "project", "experience", "skills", or "requirements". You MUST NOT mistake commercial or organizational documents for a candidate's resume. Evaluate the document's overall semantic purpose.
+
+4. REQUIRED OUTPUT FORMAT:
+Return STRICT JSON ONLY with the exact following structure:
+{{
+  "is_resume": true or false,
+  "confidence": 0.0 to 1.0,
+  "document_type": "resume" or "non_resume",
+  "reason": "Clear explanation of why this document is or is not an individual's resume/CV."
+}}
+
+Do NOT include markdown fences, extra text, or preamble outside the JSON.
+"""
+
+    try:
+        raw_response = generate_text_with_fallback(prompt)
+        parsed = _extract_json(raw_response)
+
+        if isinstance(parsed, dict) and "is_resume" in parsed:
+            is_resume = bool(parsed.get("is_resume"))
+            confidence = float(parsed.get("confidence", 0.95))
+            reason = str(parsed.get("reason", "")).strip()
+
+            if not is_resume or confidence < 0.70:
+                return {
+                    "is_resume": False,
+                    "confidence": confidence,
+                    "document_type": "non_resume",
+                    "reason": reason or default_reject_msg
+                }
+
+            return {
+                "is_resume": True,
+                "confidence": confidence,
+                "document_type": "resume",
+                "reason": reason or "The document represents an individual's academic and professional profile."
+            }
+    except Exception as err:
+        print(f"[LLM Validity Gate Exception]: {err}")
+
+    # Fallback if LLM fails: Check structural signals; fail safely if uncertain
+    structural_valid = is_resume_valid_structural(parsed_sections or {}, raw_text)
+    if not structural_valid:
+        return {
+            "is_resume": False,
+            "confidence": 0.90,
+            "document_type": "non_resume",
+            "reason": default_reject_msg
+        }
+
+    return {
+        "is_resume": True,
+        "confidence": 0.80,
+        "document_type": "resume",
+        "reason": "Document contains structure consistent with a candidate profile."
+    }
+
+def is_resume_valid(parsed_sections: Dict[str, str], raw_text: str) -> bool:
+    """
+    Public entry point for resume validity check.
+    Delegates to the LLM Resume Validity Gate.
+    """
+    res = validate_resume_validity_with_llm(raw_text, parsed_sections)
+    return res.get("is_resume", False)
 
 CANONICAL_SECTIONS = [
     "ContactInformation", "ProfessionalSummary", "Education", "Skills",

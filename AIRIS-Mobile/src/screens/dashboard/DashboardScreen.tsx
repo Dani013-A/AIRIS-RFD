@@ -235,10 +235,12 @@ export default function DashboardScreen() {
     return getGrowthPathRecommendations({
       targetPosition: currentUser?.targetPosition || "",
       degreeProgram: currentUser?.degreeProgram || "",
+      collegeDomain: currentUser?.college || "",
+      department: currentUser?.department || "",
       activeResume,
       activeAnalysis,
     });
-  }, [currentUser?.targetPosition, currentUser?.degreeProgram, activeResume, activeAnalysis]);
+  }, [currentUser?.targetPosition, currentUser?.degreeProgram, currentUser?.college, currentUser?.department, activeResume, activeAnalysis]);
 
   let filteredRecommendations: any[] = [];
   if (activeTab === "certification") {

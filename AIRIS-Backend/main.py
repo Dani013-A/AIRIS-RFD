@@ -9,7 +9,7 @@ logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-from ai_validator import is_resume_valid
+from ai_validator import is_resume_valid, validate_resume_validity_with_llm
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
 from file_utils import extract_text
 from fastapi.middleware.cors import CORSMiddleware
@@ -112,11 +112,12 @@ async def analyze_resume(request: Request):
         if not target_pos:
             raise HTTPException(status_code=400, detail="Target position is required for resume analysis.")
 
-        # Validate resume content BEFORE expensive SBERT / LLM analysis
-        if not is_resume_valid(parsed_sections, raw_text):
+        # Validate resume content BEFORE expensive SBERT / LLM analysis via Universal LLM Resume Validity Gate
+        validity_res = validate_resume_validity_with_llm(raw_text, parsed_sections)
+        if not validity_res.get("is_resume"):
             return {
                 "valid": False,
-                "message": "The provided data does not appear to be a valid resume.",
+                "message": validity_res.get("reason") or "This document doesn't appear to be a resume or CV. Please upload a document containing your academic, professional, or career information.",
                 "analysisId": None,
             }
 
@@ -212,10 +213,12 @@ async def upload_resume(
         from resume_parser import parse_resume
         parsed_sections = parse_resume(raw_text)
 
-        if not is_resume_valid(parsed_sections, raw_text):
+        # Validate resume content BEFORE expensive SBERT / LLM analysis via Universal LLM Resume Validity Gate
+        validity_res = validate_resume_validity_with_llm(raw_text, parsed_sections)
+        if not validity_res.get("is_resume"):
             return {
                 "valid": False,
-                "message": "The provided file does not appear to be a valid resume.",
+                "message": validity_res.get("reason") or "This document doesn't appear to be a resume or CV. Please upload a document containing your academic, professional, or career information.",
                 "analysisId": None,
             }
 
@@ -330,7 +333,9 @@ def evaluate_interview_answer(req: InterviewAnswerRequest):
             current_question_type=req.currentQuestionType,
             total_questions=req.totalQuestions
         )
-        print(f"[{timestamp}] [INTERVIEW] Evaluation complete. Score: {result.get('evaluation', {}).get('overall', 'N/A')}")
+        eval_dict = result.get("evaluation") if isinstance(result, dict) and isinstance(result.get("evaluation"), dict) else {}
+        score_val = eval_dict.get("overall", "N/A")
+        print(f"[{timestamp}] [INTERVIEW] Evaluation complete. Score: {score_val}")
         return result
     except Exception as e:
         print(f"[{timestamp}] [INTERVIEW ERROR] Answer Error:", e)

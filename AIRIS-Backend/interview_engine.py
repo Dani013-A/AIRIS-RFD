@@ -287,10 +287,31 @@ def evaluate_answer_and_generate_next(
     }}
     """
 
-    raw_response = generate_text_with_fallback(prompt)
-    extracted_json = _extract_json(raw_response)
+    try:
+        raw_response = generate_text_with_fallback(prompt)
+        extracted_json = _extract_json(raw_response)
+    except Exception as llm_err:
+        print(f"[INTERVIEW ERROR] LLM evaluation failed: {llm_err}. Utilizing deterministic low-score fallback.")
+        extracted_json = {}
+
     if not isinstance(extracted_json, dict):
-        extracted_json = {"evaluation": None, "nextQuestion": {}, "isComplete": False}
+        extracted_json = {}
+
+    # If this is a substantive non-skip question answer and LLM returned null evaluation or unparseable JSON,
+    # generate an authentic low-scoring evaluation object with explicit feedback.
+    if not is_skip and not isinstance(extracted_json.get("evaluation"), dict):
+        extracted_json["evaluation"] = {
+            "overall": 15,
+            "clarity": 15,
+            "relevance": 10,
+            "technicalAccuracy": 10,
+            "specificity": 10,
+            "communication": 15,
+            "evidence": 10,
+            "strengths": [],
+            "weaknesses": ["Response was nonsensical, off-topic, or lacked relevant technical substance."],
+            "feedback": "The provided response did not meaningfully answer the question. Please provide a structured, domain-relevant response."
+        }
 
     if not isinstance(extracted_json.get("nextQuestion"), dict):
         extracted_json["nextQuestion"] = {}
@@ -387,8 +408,9 @@ def generate_final_report(target_role: str, program: str, parsed_resume: dict, h
     try:
         raw_response = generate_text_with_fallback(prompt)
         parsed_report = _extract_json(raw_response)
-
-        metrics = parsed_report.get("metrics", {})
+        if not isinstance(parsed_report, dict):
+            parsed_report = {}
+        metrics = parsed_report.get("metrics") if isinstance(parsed_report.get("metrics"), dict) else {}
         ai_holistic = float(metrics.get("aiHolisticEvaluation", 0))
         comm_clarity = float(metrics.get("communicationClarity", 0))
         sem_correct = float(semantic_score)

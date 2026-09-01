@@ -4,16 +4,19 @@ import { db } from "../../config/firebase";
 import { DEFAULT_LEARNING_CATEGORIES } from "../../data/learningCategories";
 import { VERIFIED_LEARNING_CATALOG } from "../../data/verifiedLearningCatalog";
 import {
+  AcademicDomainProfile,
   LearningCategory,
   LearningCatalogCache,
   LearningResource,
   MatchedResourceItem,
   MatchEvidence,
+  PersonalizedLearningProfile,
   PrimaryLearnCategory,
   RecommendationTier,
   ResourceType,
 } from "../../types/learning.types";
 import { validateAndSanitizeCatalog, validateLearningResource } from "./catalogValidator";
+import { evaluateCareerTargetCompatibility } from "../ai/careerCompatibilityGuardrail";
 
 const CACHE_STORAGE_KEY = "@airis_learning_catalog_v4";
 const CACHE_VERSION = 4;
@@ -674,6 +677,356 @@ export const CAREER_DOMAINS: CareerDomainProfile[] = [
   },
 ];
 
+
+export const ACADEMIC_DOMAINS: AcademicDomainProfile[] = [
+  {
+    id: "cs_it",
+    name: "Computer Science & Information Technology",
+    domainKeywords: [
+      "college of information technology",
+      "college of computer studies",
+      "college of computing",
+      "bsit",
+      "bscs",
+      "bs data science",
+      "bs entertainment and multimedia",
+      "information technology",
+      "computer science",
+      "data science",
+      "entertainment and multimedia computing",
+      "software engineering",
+      "cybersecurity",
+    ],
+    coreCompetencies: ["programming", "software development", "database management", "web development", "networking", "system administration", "data analysis"],
+    primaryCareers: ["software engineer", "full stack developer", "backend developer", "frontend developer", "data analyst", "cybersecurity analyst", "system administrator", "mobile developer", "qa engineer", "game developer"],
+  },
+  {
+    id: "computer_eng",
+    name: "Computer Engineering & Hardware Systems",
+    domainKeywords: [
+      "bs computer engineering",
+      "computer engineering",
+      "bscpe",
+      "embedded systems",
+      "microcontrollers",
+    ],
+    coreCompetencies: ["embedded systems", "microcontrollers", "c++", "hardware interfacing", "computer architecture", "digital logic", "circuit design"],
+    primaryCareers: ["computer engineer", "embedded software engineer", "hardware engineer", "firmware engineer", "network architect", "iot solutions architect"],
+  },
+  {
+    id: "civil_eng",
+    name: "Civil & Structural Engineering",
+    domainKeywords: [
+      "bs civil engineering",
+      "bsce",
+      "civil engineering",
+      "structural engineering",
+      "construction engineering",
+      "geotechnical engineering",
+      "sanitary engineering",
+      "transportation engineering",
+    ],
+    coreCompetencies: ["structural analysis", "autocad", "staad.pro", "construction management", "quantity surveying", "materials engineering", "fluid mechanics", "geotechnical analysis", "reinforced concrete design", "steel design"],
+    primaryCareers: ["civil engineer", "structural engineer", "construction manager", "site engineer", "quantity surveyor", "geotechnical engineer"],
+  },
+  {
+    id: "mechanical_eng",
+    name: "Mechanical Engineering & Energy Systems",
+    domainKeywords: [
+      "bs mechanical engineering",
+      "bsme",
+      "mechanical engineering",
+      "thermodynamics",
+      "hvac",
+      "machine design",
+      "robotics",
+    ],
+    coreCompetencies: ["thermodynamics", "fluid mechanics", "machine design", "hvac", "solidworks", "cad", "manufacturing processes", "heat transfer", "plc automation"],
+    primaryCareers: ["mechanical engineer", "mechanical design engineer", "hvac engineer", "automotive engineer", "manufacturing engineer", "power plant engineer"],
+  },
+  {
+    id: "electrical_eng",
+    name: "Electrical Engineering & Power Systems",
+    domainKeywords: [
+      "bs electrical engineering",
+      "bsee",
+      "electrical engineering",
+      "power systems",
+      "high voltage",
+      "substation",
+    ],
+    coreCompetencies: ["circuit analysis", "power systems", "etap", "electrical design", "control systems", "philippine electrical code", "matlab", "substation design"],
+    primaryCareers: ["electrical engineer", "electrical design engineer", "power systems engineer", "control systems engineer", "substation engineer"],
+  },
+  {
+    id: "electronics_eng",
+    name: "Electronics & Communications Engineering",
+    domainKeywords: [
+      "bs electronics engineering",
+      "bsece",
+      "electronics engineering",
+      "telecommunications",
+      "rf engineering",
+      "signal processing",
+    ],
+    coreCompetencies: ["electronics", "telecommunications", "networking", "ccna", "embedded systems", "signal processing", "microelectronics", "pcb design"],
+    primaryCareers: ["electronics engineer", "telecommunications engineer", "network engineer", "embedded systems engineer", "signal processing engineer"],
+  },
+  {
+    id: "industrial_eng",
+    name: "Industrial Engineering & Operations Research",
+    domainKeywords: [
+      "bs industrial engineering",
+      "bsie",
+      "industrial engineering",
+      "ergonomics",
+      "operations research",
+      "quality engineering",
+    ],
+    coreCompetencies: ["process optimization", "lean six sigma", "ergonomics", "operations research", "supply chain analytics", "statistical quality control", "simio simulation"],
+    primaryCareers: ["industrial engineer", "process improvement engineer", "production planner", "quality assurance engineer", "supply chain analyst"],
+  },
+  {
+    id: "chemical_eng",
+    name: "Chemical Engineering & Process Design",
+    domainKeywords: [
+      "bs chemical engineering",
+      "bsche",
+      "chemical engineering",
+      "unit operations",
+      "reaction engineering",
+      "process safety",
+    ],
+    coreCompetencies: ["chemical reaction engineering", "unit operations", "mass transfer", "process safety", "aspen plus", "analytical chemistry", "quality control"],
+    primaryCareers: ["chemical engineer", "process engineer", "plant engineer", "quality control engineer", "materials engineer"],
+  },
+  {
+    id: "architecture",
+    name: "Architecture & Built Environment",
+    domainKeywords: [
+      "bs architecture",
+      "bsarch",
+      "architecture",
+      "building design",
+      "urban planning",
+      "interior design",
+    ],
+    coreCompetencies: ["architectural design", "building information modeling", "revit", "autocad", "building codes", "sketchup", "lumion", "spatial planning", "leed"],
+    primaryCareers: ["architect", "design architect", "project architect", "cad/bim specialist", "urban planner", "interior designer"],
+  },
+  {
+    id: "cba_accounting",
+    name: "Accountancy & Accounting Information Systems",
+    domainKeywords: [
+      "bs accountancy",
+      "bs accounting information system",
+      "bsa",
+      "bsais",
+      "accountancy",
+      "auditing",
+      "taxation",
+    ],
+    coreCompetencies: ["financial accounting", "financial audit", "taxation", "ifrs", "pfrs", "internal controls", "quickbooks", "cost accounting", "bookkeeping"],
+    primaryCareers: ["accountant", "certified public accountant", "auditor", "tax consultant", "accounting systems analyst", "financial controller"],
+  },
+  {
+    id: "business_finance",
+    name: "Financial Management & Corporate Finance",
+    domainKeywords: [
+      "bsba major in financial management",
+      "financial management",
+      "corporate finance",
+      "investment analysis",
+      "treasury",
+    ],
+    coreCompetencies: ["financial modeling", "investment analysis", "corporate finance", "excel", "credit analysis", "risk management", "dcf valuation"],
+    primaryCareers: ["financial analyst", "investment analyst", "credit analyst", "banking associate", "treasury analyst", "risk analyst"],
+  },
+  {
+    id: "business_mgmt",
+    name: "Business Administration & Management",
+    domainKeywords: [
+      "bsba major in human resource management",
+      "bsba major in logistics and supply chain management",
+      "bsba major in marketing management",
+      "bs business administration",
+      "bsba",
+      "human resource management",
+      "logistics",
+      "marketing management",
+    ],
+    coreCompetencies: ["talent acquisition", "hr analytics", "supply chain management", "logistics", "digital marketing", "seo", "brand management", "business analytics"],
+    primaryCareers: ["hr specialist", "talent acquisition specialist", "supply chain analyst", "logistics coordinator", "marketing specialist", "brand associate", "business analyst"],
+  },
+  {
+    id: "arts_psychology",
+    name: "Psychology & Behavioral Sciences",
+    domainKeywords: [
+      "bachelor of arts in psychology",
+      "bs psychology",
+      "ba psychology",
+      "psychology",
+      "behavioral science",
+      "psychometrics",
+    ],
+    coreCompetencies: ["psychological testing", "psychometrics", "test construction", "spss", "statistical analysis", "counseling", "abnormal psychology", "behavioral assessment"],
+    primaryCareers: ["psychometrician", "psychologist", "hr recruitment associate", "guidance associate", "behavioral research assistant"],
+  },
+  {
+    id: "education",
+    name: "Education & Instructional Design",
+    domainKeywords: [
+      "college of education",
+      "bsed",
+      "beed",
+      "education",
+      "instructional design",
+      "pedagogy",
+      "curriculum development",
+    ],
+    coreCompetencies: ["learning pedagogy", "instructional design", "curriculum development", "educational assessment", "classroom management", "addie model", "e-learning development"],
+    primaryCareers: ["teacher", "educator", "instructional designer", "curriculum developer", "e-learning specialist", "educational consultant"],
+  },
+  {
+    id: "shs_stem",
+    name: "STEM Senior High Strand",
+    domainKeywords: [
+      "stem strand",
+      "science, technology, engineering, and mathematics",
+      "shs stem",
+    ],
+    coreCompetencies: ["pre-calculus", "general physics", "general chemistry", "engineering fundamentals", "basic programming", "scientific inquiry"],
+    primaryCareers: ["engineering student assistant", "junior software developer", "data analyst intern", "cad trainee"],
+  },
+  {
+    id: "shs_abm",
+    name: "ABM Senior High Strand",
+    domainKeywords: [
+      "abm strand",
+      "accountancy, business, and management",
+      "shs abm",
+    ],
+    coreCompetencies: ["basic bookkeeping", "business math", "organization and management", "principles of marketing", "excel fundamentals"],
+    primaryCareers: ["junior bookkeeper", "marketing assistant", "administrative assistant", "hr assistant"],
+  },
+  {
+    id: "shs_humss",
+    name: "HUMSS Senior High Strand",
+    domainKeywords: [
+      "humss strand",
+      "humanities and social sciences",
+      "shs humss",
+    ],
+    coreCompetencies: ["academic writing", "creative writing", "public speaking", "media literacy", "social sciences", "community engagement"],
+    primaryCareers: ["content writer", "public relations assistant", "communications assistant"],
+  },
+  {
+    id: "shs_gas_tvl",
+    name: "GAS & TVL Senior High Strands",
+    domainKeywords: [
+      "gas strand",
+      "tvl strand",
+      "general academic strand",
+      "technical-vocational-livelihood",
+      "shs gas",
+      "shs tvl",
+    ],
+    coreCompetencies: ["it support fundamentals", "pc assembly", "administrative support", "customer service", "technical skills"],
+    primaryCareers: ["it support technician", "multimedia assistant", "administrative associate", "customer service representative"],
+  },
+];
+
+/**
+ * Resolves academic domain metadata from student College, Department, and Degree Program inputs.
+ */
+export function resolveAcademicDomain(
+  collegeDomain?: string,
+  degreeProgram?: string,
+  department?: string
+): AcademicDomainProfile | null {
+  const combined = `${collegeDomain || ""} ${degreeProgram || ""} ${department || ""}`.toLowerCase().trim();
+  if (!combined) return null;
+
+  let bestMatch: AcademicDomainProfile | null = null;
+  let bestScore = 0;
+
+  for (const domain of ACADEMIC_DOMAINS) {
+    let score = 0;
+    for (const kw of domain.domainKeywords) {
+      if (combined.includes(kw)) {
+        score += kw.length > 5 ? 50 : 20;
+      }
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = domain;
+    }
+  }
+
+  if (bestMatch && bestScore > 0) return bestMatch;
+
+  const tokens = combined.split(/\s+/).filter((t) => t.length >= 3 && !GENERIC_TECHNOLOGY_WORDS.has(t));
+  if (tokens.length === 0) return null;
+
+  return {
+    id: tokens[0],
+    name: degreeProgram || collegeDomain || "Academic Program",
+    domainKeywords: tokens,
+    coreCompetencies: tokens,
+    primaryCareers: [],
+  };
+}
+
+/**
+ * Synthesizes complete user learning context into a unified PersonalizedLearningProfile.
+ */
+export function buildPersonalizedLearningProfile(params: RecommendationMatchParams): PersonalizedLearningProfile {
+  const targetPos = (params.targetPosition || "").trim();
+  const degreeProg = (params.degreeProgram || "").trim();
+  const colDomain = (params.collegeDomain || "").trim();
+  const dept = (params.department || "").trim();
+
+  const academicDomain = resolveAcademicDomain(colDomain, degreeProg, dept);
+  const userDomains = resolveCareerDomains(targetPos);
+  const careerDomain = userDomains.length > 0 ? userDomains[0] : null;
+
+  let compatibility: "ALIGNED" | "PIVOT" | "DISTANT" = params.compatibilityClassification || "ALIGNED";
+  if (!params.compatibilityClassification && degreeProg && targetPos) {
+    const compRes = evaluateCareerTargetCompatibility(degreeProg, targetPos);
+    compatibility = compRes.classification;
+  }
+
+  const resumeProfile = extractResumeCredentialProfile(
+    params.rawResumeText,
+    params.structuredResumeData,
+    params.detectedSkills
+  );
+
+  const normalizedGaps: NormalizedGap[] = [];
+  const rawGapsList = [
+    ...(params.skillGaps || []).map((g) => ({ skill: g.skill, importance: g.importance, reason: g.reason })),
+    ...(params.skillsToLearn || []).map((s) => ({ skill: s.title, importance: s.priority, reason: s.description })),
+  ];
+
+  for (const g of rawGapsList) {
+    if (g.skill && g.skill.trim()) {
+      normalizedGaps.push(normalizeGap(g.skill, g.importance || "high", g.reason));
+    }
+  }
+
+  return {
+    academicDomain,
+    careerDomain,
+    compatibility,
+    targetPosition: targetPos,
+    degreeProgram: degreeProg,
+    collegeDomain: colDomain,
+    department: dept,
+    resumeProfile,
+    normalizedGaps,
+  };
+}
+
 /**
  * Dynamically resolves career domain profiles for a given target role string.
  */
@@ -981,7 +1334,7 @@ export function evaluateGapMatch(
   const isDomainDirectMatch =
     !userPrimaryDomain ||
     resourceDomainIds.includes(userPrimaryDomain.id) ||
-    resourceDomainIds.some((id) => userPrimaryDomain.supportingDomains.includes(id));
+    resourceDomainIds.some((id) => (userPrimaryDomain.supportingDomains || []).includes(id));
 
   const isRoleRelevant =
     isDomainDirectMatch ||
@@ -989,12 +1342,13 @@ export function evaluateGapMatch(
     resourceCareerPaths.includes("all career paths");
 
   // Check 1: Substantive Domain Concept Match
-  for (const concept of gap.substantiveConcepts) {
+  const substantiveConcepts = gap.substantiveConcepts || [gap.raw.toLowerCase()];
+  for (const concept of substantiveConcepts) {
     if (GENERIC_TECHNOLOGY_WORDS.has(concept) || concept.length < 4) continue;
 
     // Check resource declared skills with exact equality or robust compound inclusion
     for (const skill of resourceSkills) {
-      if (GENERIC_TECHNOLOGY_WORDS.has(skill)) continue;
+      if (GENERIC_TECHNOLOGY_WORDS.has(skill) && !(concept.includes(skill) || skill.includes(concept))) continue;
 
       const isExactMatch = skill === concept;
       const isCompoundMatch =
@@ -1008,7 +1362,8 @@ export function evaluateGapMatch(
         (concept.includes("psychometric") && (skill.includes("psychometrics") || skill.includes("psychological assessment") || skill.includes("test construction"))) ||
         (concept.includes("staad") && (skill.includes("structural analysis") || skill.includes("staad.pro") || skill.includes("concrete"))) ||
         (concept.includes("authoring") && (skill.includes("e-learning authoring tools") || skill.includes("articulate storyline"))) ||
-        (concept.includes("audit") && (skill.includes("internal audit") || skill.includes("internal controls") || skill.includes("bookkeeping")));
+        (concept.includes("audit") && (skill.includes("internal audit") || skill.includes("internal controls") || skill.includes("bookkeeping"))) ||
+        ((concept.includes("python") || concept === "programming in python") && (skill === "python" || skill === "python programming" || skill === "python development"));
 
       if (isExactMatch || isCompoundMatch) {
         return {
@@ -1385,6 +1740,7 @@ export interface RecommendationMatchParams {
   targetPosition?: string;
   degreeProgram?: string;
   collegeDomain?: string;
+  department?: string;
   compatibilityClassification?: "ALIGNED" | "PIVOT" | "DISTANT";
   skillGaps?: Array<{ skill: string; importance?: string; reason?: string }>;
   skillsToLearn?: Array<{ title: string; priority?: string; description?: string }>;
@@ -1410,12 +1766,12 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
   const categoryId = (params.categoryId || "for_you").toLowerCase();
   const resourceType = params.resourceType || "all";
 
-  // Build resume credential and demonstrated skill profile for deduplication
-  const resumeProfile = extractResumeCredentialProfile(
-    params.rawResumeText,
-    params.structuredResumeData,
-    params.detectedSkills
-  );
+  // Build unified multi-context Personalized Learning Profile
+  const userProfile = buildPersonalizedLearningProfile(params);
+  const { academicDomain, careerDomain, compatibility, normalizedGaps, resumeProfile } = userProfile;
+  const primaryDomain = careerDomain;
+  const primaryDomainId = primaryDomain ? primaryDomain.id : null;
+  const supportingDomainIds = primaryDomain ? primaryDomain.supportingDomains : [];
 
   // 1. GENERIC EVERGREEN CATEGORIES (Interviews, Resume, Communication)
   if (categoryId === "interviews" || categoryId === "resume" || categoryId === "communication") {
@@ -1459,25 +1815,7 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
     return genericItems;
   }
 
-  // 2. FOR YOU CATEGORY (Strict Role + Gap Personalization)
-  const userDomains = resolveCareerDomains(targetPos);
-  const primaryDomain = userDomains.length > 0 ? userDomains[0] : null;
-  const primaryDomainId = primaryDomain ? primaryDomain.id : null;
-  const supportingDomainIds = primaryDomain ? primaryDomain.supportingDomains : [];
-
-  // Parse and normalize identified gaps with substantive concept analysis
-  const normalizedGaps: NormalizedGap[] = [];
-  const rawGapsList = [
-    ...(params.skillGaps || []).map((g) => ({ skill: g.skill, importance: g.importance, reason: g.reason })),
-    ...(params.skillsToLearn || []).map((s) => ({ skill: s.title, importance: s.priority, reason: s.description })),
-  ];
-
-  for (const g of rawGapsList) {
-    if (g.skill && g.skill.trim()) {
-      normalizedGaps.push(normalizeGap(g.skill, g.importance || "high", g.reason));
-    }
-  }
-
+  // 2. PERSONALIZED CATEGORIES (For You, Certifications, Courses, Practical Learning)
   const seenUrls = new Set<string>();
   const scoredItems: MatchedResourceItem[] = [];
 
@@ -1485,13 +1823,12 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
     if (!resource.isActive) continue;
     if (!validateLearningResource(resource)) continue;
 
-    // If specific category is requested, filter accordingly
+    // Filter by specific category if requested
     if (params.categoryId && params.categoryId !== "for_you") {
       if (resource.category !== params.categoryId) {
         continue;
       }
     } else if (params.categoryId === "for_you" || !params.categoryId) {
-      // Exclude evergreen category items (interviews, resume, communication) from For You feed
       if (
         resource.category === "interviews" ||
         resource.category === "resume" ||
@@ -1506,13 +1843,13 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
       continue;
     }
 
-    // Check resume deduplication
+    // Deduplicate credentials/courses already present in resume
     const dedupeCheck = isResourceAlreadyInResume(resource, resumeProfile);
     if (dedupeCheck.isDuplicate) {
-      continue; // Exclude already-completed credential or course
+      continue;
     }
 
-    // Check skill depth (demote basic beginner tutorial if skill is already demonstrated without a gap)
+    // Demote basic tutorials if skill is already demonstrated without a gap
     const isDemotedForDepth = isResourceDemotedForSkillDepth(resource, resumeProfile, normalizedGaps);
 
     const normUrl = resource.url.toLowerCase().trim();
@@ -1520,7 +1857,6 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
 
     const resourceSkills = (resource.skills || []).map((s) => s.toLowerCase().trim());
     const resourceCareerPaths = (resource.careerPaths || []).map((c) => c.toLowerCase());
-
     const resourceDomains = getResourceDomains(resource);
     const resourceDomainIds = resourceDomains.map((d) => d.id);
 
@@ -1528,9 +1864,16 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
     let matchedGapName: string | undefined;
     let matchedComp: string | undefined;
     let score = resource.priority || 50;
+
     if (isDemotedForDepth) {
-      score -= 50; // Demote beginner tutorial for demonstrated skill
+      score -= 50;
     }
+
+    // Academic Domain Boost: If resource matches candidate's academic degree/domain
+    if (academicDomain && resourceDomains.some((d) => d.id === academicDomain.id)) {
+      score += 15;
+    }
+
     let reason = "";
     let itemEvidence: MatchEvidence = {
       gapSubjectOverlap: false,
@@ -1539,9 +1882,7 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
       genericKeywordOnly: false,
     };
 
-    // ----------------------------------------------------
-    // TIER 1: DIRECT RESUME SKILL GAP MATCH (Highest Priority)
-    // ----------------------------------------------------
+    // TIER 1: DIRECT RESUME SKILL GAP MATCH
     let bestGapScore = 0;
     let directGapEvaluated = false;
 
@@ -1559,26 +1900,51 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
     if (directGapEvaluated && bestGapScore > 0) {
       tier = "TIER_1_DIRECT_GAP";
       score += 400 + bestGapScore;
-      reason = `Directly addresses your identified gap in "${matchedGapName}" by developing ${matchedComp} for ${params.targetPosition || "your target role"}.`;
+
+      if (compatibility === "PIVOT" && params.degreeProgram) {
+        reason = `As a ${params.degreeProgram} student pivoting to ${params.targetPosition || "your target role"}, directly addresses your gap in "${matchedGapName}".`;
+      } else if (compatibility === "DISTANT" && params.degreeProgram) {
+        reason = `Essential foundational course in "${matchedGapName}" for transitioning from ${params.degreeProgram} to ${params.targetPosition || "your target role"}.`;
+      } else {
+        reason = `Directly addresses your identified gap in "${matchedGapName}" by developing ${matchedComp} for ${params.targetPosition || "your target role"}.`;
+      }
     } else {
-      // ----------------------------------------------------
-      // TIER 2: DIRECT TARGET ROLE CORE COMPETENCY
-      // ----------------------------------------------------
+      // TIER 2: DIRECT TARGET ROLE CORE COMPETENCY OR ACADEMIC PROGRAM MATCH
       const isDirectCareerPathMatch = targetPos && resourceCareerPaths.some(
-        (cp) => cp === targetPos || cp.includes(targetPos) || targetPos.includes(cp)
+        (cp) => {
+          const cpLower = cp.toLowerCase().trim();
+          const targetLower = targetPos.toLowerCase().trim();
+          if (cpLower === targetLower) return true;
+          
+          // Ambiguous career path disambiguation: "architect" for BS Architecture should NOT match cloud/software/solutions architect
+          if (targetLower === "architect" || targetLower === "architectural designer") {
+            if (cpLower.includes("cloud") || cpLower.includes("software") || cpLower.includes("systems") || cpLower.includes("solutions") || cpLower.includes("enterprise") || cpLower.includes("devops")) {
+              return false;
+            }
+          }
+          return cpLower.includes(targetLower) || targetLower.includes(cpLower);
+        }
       );
+      const isAcademicProgramMatch = !!(params.degreeProgram && (resource.academicPrograms || []).some(
+        (ap) => {
+          const apLower = ap.toLowerCase().trim();
+          const degLower = (params.degreeProgram || "").toLowerCase().trim();
+          return apLower === degLower || apLower.includes(degLower) || degLower.includes(apLower);
+        }
+      ));
+      const isDomainMatch = (primaryDomainId && resourceDomainIds.includes(primaryDomainId)) || (academicDomain && resourceDomainIds.includes(academicDomain.id));
+      const hasCoreCompetencyOverlap = (primaryDomain && resourceSkills.some((s) => primaryDomain.coreCompetencies.includes(s))) || (academicDomain && resourceSkills.some((s) => academicDomain.coreCompetencies.includes(s)));
 
-      const isDomainMatch = primaryDomainId && resourceDomainIds.includes(primaryDomainId);
-
-      const hasCoreCompetencyOverlap = primaryDomain && resourceSkills.some((s) =>
-        primaryDomain.coreCompetencies.includes(s)
-      );
-
-      if (isDirectCareerPathMatch || (isDomainMatch && hasCoreCompetencyOverlap)) {
+      if (isDirectCareerPathMatch || isAcademicProgramMatch || (isDomainMatch && hasCoreCompetencyOverlap)) {
         tier = "TIER_2_ROLE_COMPETENCY";
         score += 200;
         matchedComp = resourceSkills.find((s) => primaryDomain?.coreCompetencies.includes(s)) || resourceSkills[0] || "core technical";
-        reason = `Develops core ${matchedComp} competencies essential for ${params.targetPosition || "your target role"} roles.`;
+        
+        if (compatibility === "PIVOT" && params.degreeProgram) {
+          reason = `Builds core ${matchedComp} competencies for ${params.targetPosition || "your target role"}, bridging your ${params.degreeProgram} background.`;
+        } else {
+          reason = `Develops core ${matchedComp} competencies essential for ${params.targetPosition || "your target role"} roles.`;
+        }
         itemEvidence = {
           gapSubjectOverlap: false,
           competencyOverlap: true,
@@ -1587,9 +1953,7 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
           matchedConcept: matchedComp,
         };
       } else if (
-        // ----------------------------------------------------
         // TIER 3: SUPPORTING COMPETENCY / OVERLAPPING DOMAIN
-        // ----------------------------------------------------
         primaryDomainId &&
         resourceDomainIds.some((id) => supportingDomainIds.includes(id)) &&
         !resourceDomainIds.includes("data_analytics") &&
@@ -1612,8 +1976,6 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
           matchedConcept: matchedComp,
         };
       } else if (resourceCareerPaths.includes("all tech roles") || resourceCareerPaths.includes("all career paths")) {
-        // Universal resources are ONLY eligible if they have demonstrable target domain relevance,
-        // or if the candidate has no defined target position and zero gaps (general readiness fallback).
         const hasNoUserContext = !targetPos && normalizedGaps.length === 0;
         const isDomainRelevant = primaryDomain
           ? resourceDomainIds.includes(primaryDomain.id) ||
@@ -1635,25 +1997,10 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
         } else {
           tier = "TIER_5_IRRELEVANT";
           score = -100;
-          itemEvidence = {
-            gapSubjectOverlap: false,
-            competencyOverlap: false,
-            roleRelevance: false,
-            genericKeywordOnly: false,
-          };
         }
       } else {
-        // ----------------------------------------------------
-        // TIER 5: IRRELEVANT / DISJOINT DOMAIN
-        // ----------------------------------------------------
         tier = "TIER_5_IRRELEVANT";
         score = -100;
-        itemEvidence = {
-          gapSubjectOverlap: false,
-          competencyOverlap: false,
-          roleRelevance: false,
-          genericKeywordOnly: false,
-        };
       }
     }
 
@@ -1661,13 +2008,7 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
     if (isCategoryTab || tier === "TIER_1_DIRECT_GAP" || tier === "TIER_2_ROLE_COMPETENCY" || tier === "TIER_3_SUPPORTING") {
       if (!reason && isCategoryTab) {
         const firstSkill = (resource.skills && resource.skills[0]) || resource.title;
-        if (params.categoryId === "interviews") {
-          reason = `Prepares for ${params.targetPosition || "technical"} interview questions by covering ${firstSkill}.`;
-        } else if (params.categoryId === "communication") {
-          reason = `Develops targeted ${firstSkill} competencies for professional workplace collaboration and presentations.`;
-        } else if (params.categoryId === "resume") {
-          reason = `Helps structure ${firstSkill} accomplishments to maximize resume alignment for ${params.targetPosition || "target role applications"}.`;
-        }
+        reason = `Prepares for ${params.targetPosition || "target role"} competencies by covering ${firstSkill}.`;
       }
 
       seenUrls.add(normUrl);
@@ -1684,8 +2025,49 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
     }
   }
 
-  // Sort descending by relevance score (Tier 1 > Tier 2 > Tier 3)
+  // Sort raw items by relevance score
   scoredItems.sort((a, b) => b.relevanceScore - a.relevanceScore);
+
+  // MULTI-COMPETENCY SLOT ALLOCATION (Prevent Single-Gap Dominance)
+  if (normalizedGaps.length >= 2) {
+    const tier1Items = scoredItems.filter((i) => i.relevanceTier === "TIER_1_DIRECT_GAP");
+    const otherItems = scoredItems.filter((i) => i.relevanceTier !== "TIER_1_DIRECT_GAP");
+
+    if (tier1Items.length > 0) {
+      const gapBuckets = new Map<string, MatchedResourceItem[]>();
+      for (const item of tier1Items) {
+        const gapKey = (item.matchedSkillGap || "DEFAULT").toLowerCase().trim();
+        if (!gapBuckets.has(gapKey)) {
+          gapBuckets.set(gapKey, []);
+        }
+        gapBuckets.get(gapKey)!.push(item);
+      }
+
+      const balancedTier1: MatchedResourceItem[] = [];
+      const MAX_PER_GAP = 2; // Cap per gap to guarantee multi-gap distribution
+
+      // Round-robin selection across distinct gaps
+      let addedInRound = true;
+      let roundCount = 0;
+      while (addedInRound && roundCount < MAX_PER_GAP) {
+        addedInRound = false;
+        roundCount++;
+        for (const [_, items] of gapBuckets) {
+          if (items.length >= roundCount) {
+            balancedTier1.push(items[roundCount - 1]);
+            addedInRound = true;
+          }
+        }
+      }
+
+      // Add remaining Tier 1 items that were capped
+      const balancedIds = new Set(balancedTier1.map((i) => i.id));
+      const remainingTier1 = tier1Items.filter((i) => !balancedIds.has(i.id));
+
+      return [...balancedTier1, ...otherItems, ...remainingTier1];
+    }
+  }
+
   return scoredItems;
 }
 
@@ -1695,6 +2077,9 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
 export interface GrowthPathParams {
   targetPosition?: string;
   degreeProgram?: string;
+  collegeDomain?: string;
+  department?: string;
+  compatibilityClassification?: "ALIGNED" | "PIVOT" | "DISTANT";
   activeResume?: any;
   activeAnalysis?: any;
   customCatalog?: LearningResource[];
@@ -1731,6 +2116,9 @@ export function getGrowthPathRecommendations(params: GrowthPathParams): GrowthPa
   const allMatched = matchLearningRecommendations({
     targetPosition: targetPos,
     degreeProgram: params.degreeProgram,
+    collegeDomain: params.collegeDomain,
+    department: params.department,
+    compatibilityClassification: params.compatibilityClassification,
     skillGaps,
     skillsToLearn,
     detectedSkills,
@@ -1746,9 +2134,9 @@ export function getGrowthPathRecommendations(params: GrowthPathParams): GrowthPa
   const globalSeenIds = new Set<string>();
 
   const gapsCount = Math.max(skillGaps.length, skillsToLearn.length);
-  const maxCerts = gapsCount === 0 ? 2 : Math.min(gapsCount + 1, 5);
-  const maxCourses = gapsCount === 0 ? 2 : Math.min(gapsCount + 2, 5);
-  const maxPractice = gapsCount === 0 ? 2 : Math.min(gapsCount + 1, 5);
+  const maxCerts = gapsCount === 0 ? 3 : Math.min(gapsCount + 1, 5);
+  const maxCourses = gapsCount === 0 ? 3 : Math.min(gapsCount + 2, 5);
+  const maxPractice = gapsCount === 0 ? 3 : Math.min(gapsCount + 1, 5);
 
   const certProviders = new Map<string, number>();
   const courseProviders = new Map<string, number>();

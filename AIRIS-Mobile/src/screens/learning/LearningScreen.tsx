@@ -138,6 +138,7 @@ export default function LearningScreen({ initialCategory = "interviews" }: Learn
   const targetPosition = currentUser?.targetPosition || "";
 
   const activeAnalysis = useResumeStore((state) => state.activeAnalysis);
+  const activeResume = useResumeStore((state) => state.activeResume);
   const fetchActiveResume = useResumeStore((state) => state.fetchActiveResume);
 
   // State for search query
@@ -205,8 +206,10 @@ export default function LearningScreen({ initialCategory = "interviews" }: Learn
   const rawMatchedRecommendations = useMemo(() => {
     const learningSnap = activeAnalysis?.learningSnapshot;
     const items = matchLearningRecommendations({
-      targetPosition,
-      degreeProgram,
+      targetPosition: targetPosition || currentUser?.targetPosition || "",
+      degreeProgram: degreeProgram || currentUser?.degreeProgram || "",
+      collegeDomain: currentUser?.college || "",
+      department: currentUser?.department || "",
       skillGaps: learningSnap?.skillGaps,
       skillsToLearn: learningSnap?.skillsToLearn,
       detectedSkills: learningSnap?.careerContext?.detectedSkills,
@@ -215,6 +218,8 @@ export default function LearningScreen({ initialCategory = "interviews" }: Learn
       categoryId: selectedCategoryId,
       resourceType: "all",
       customCatalog: catalogResources,
+      rawResumeText: activeResume?.rawText,
+      structuredResumeData: activeResume?.structuredData,
     });
 
     if (selectedCategoryId === "for_you" && items && items.length > 0) {
@@ -232,8 +237,10 @@ export default function LearningScreen({ initialCategory = "interviews" }: Learn
     selectedCategoryId,
     targetPosition,
     degreeProgram,
+    currentUser?.college,
+    currentUser?.department,
     activeAnalysis,
-    currentUser,
+    activeResume,
   ]);
 
   // Apply search filtering on the matched recommendations

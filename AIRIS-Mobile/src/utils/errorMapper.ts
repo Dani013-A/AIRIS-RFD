@@ -135,9 +135,17 @@ export function normalizeApiError(error: unknown, defaultFallbackMsg: string = "
   }
 
   // Non-resume file rejection
-  if (str.includes("does not appear to be a valid resume") || str.includes("invalid resume")) {
+  if (
+    str.includes("does not appear to be a valid resume") ||
+    str.includes("invalid resume") ||
+    str.includes("doesn't appear to be a resume") ||
+    str.includes("resume or cv") ||
+    code === "INVALID_RESUME"
+  ) {
     return {
-      userMessage: "The uploaded file does not appear to be a valid resume. Please upload a document containing your education, skills, and background.",
+      userMessage: rawMsg && (rawMsg.includes("doesn't appear to be a resume") || rawMsg.includes("valid resume"))
+        ? rawMsg
+        : "This document doesn't appear to be a resume or CV. Please upload a document containing your academic, professional, or career information.",
       statusCode: 400,
       code: "INVALID_RESUME",
     };

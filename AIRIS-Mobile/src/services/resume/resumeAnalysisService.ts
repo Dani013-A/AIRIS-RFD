@@ -105,7 +105,14 @@ export async function uploadResumeFileWithProgress(
         xhr.send(formData);
       });
 
-      if (result && result.valid !== false) {
+      if (result) {
+        if (result.valid === false) {
+          const rejectMsg = result.message || "This document doesn't appear to be a resume or CV. Please upload a document containing your academic, professional, or career information.";
+          const invalidErr = new Error(rejectMsg);
+          (invalidErr as any).code = "INVALID_RESUME";
+          throw invalidErr;
+        }
+
         onProgress?.({
           loaded: knownSize,
           total: knownSize,
@@ -131,6 +138,9 @@ export async function uploadResumeFileWithProgress(
         };
       }
     } catch (e) {
+      if (e instanceof Error && ((e as any).code === "INVALID_RESUME" || (e as any).code === "EXCEEDED_PAGE_LIMIT" || e.message.includes("resume") || e.message.includes("page limit"))) {
+        throw e;
+      }
       if (__DEV__) {
         console.log(`Connection attempt to ${baseUrl} unfulfilled, trying fallback...`);
       }
@@ -206,7 +216,10 @@ export async function calculateAtsCompatibility(
         const result = await response.json();
         // Handle backend validation response
         if (result && result.valid === false) {
-          throw new Error(result.message || 'Invalid resume according to backend validation.');
+          const rejectMsg = result.message || "This document doesn't appear to be a resume or CV. Please upload a document containing your academic, professional, or career information.";
+          const invalidErr = new Error(rejectMsg);
+          (invalidErr as any).code = "INVALID_RESUME";
+          throw invalidErr;
         }
 
         // Ensure array properties exist and derive detectedSections if empty
@@ -221,6 +234,9 @@ export async function calculateAtsCompatibility(
         return result as ResumeAnalysisResult;
       }
     } catch (e) {
+      if (e instanceof Error && ((e as any).code === "INVALID_RESUME" || (e as any).code === "EXCEEDED_PAGE_LIMIT" || e.message.includes("resume") || e.message.includes("page limit"))) {
+        throw e;
+      }
       console.log(`Backend endpoint connection failed at ${url}:`, e);
     }
   }
