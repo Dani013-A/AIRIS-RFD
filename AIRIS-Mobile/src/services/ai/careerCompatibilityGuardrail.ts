@@ -34,11 +34,25 @@ export const DOMAIN_PROFILES: DomainProfile[] = [
     roleKeywords: [
       "software engineer", "software developer", "full stack", "backend developer",
       "frontend developer", "web developer", "programmer", "coder", "software",
-      "application developer"
+      "application developer", "game developer", "mobile developer"
     ],
     coreCompetencies: ["programming", "data structures", "algorithms", "git", "rest apis", "databases"],
     prerequisiteKnowledge: ["Object-Oriented Programming", "Software Architecture", "Version Control Systems"],
-    adjacentDomains: ["data_analytics", "cybersecurity", "cloud_devops", "ui_ux", "mobile_development", "qa_testing"]
+    adjacentDomains: ["it_infrastructure", "data_analytics", "cybersecurity", "cloud_devops", "ui_ux", "mobile_development", "qa_testing"]
+  },
+  {
+    id: "it_infrastructure",
+    name: "IT Infrastructure & Technical Support",
+    roleKeywords: [
+      "information technology specialist", "it specialist", "it support specialist",
+      "it technician", "it support technician", "systems administrator", "sysadmin",
+      "network administrator", "it operations", "it support", "technical support",
+      "helpdesk technician", "it associate", "database administrator", "system analyst",
+      "accounting systems analyst"
+    ],
+    coreCompetencies: ["it support fundamentals", "pc assembly", "networking", "operating systems", "active directory", "troubleshooting", "system administration"],
+    prerequisiteKnowledge: ["Computer Hardware & OS Architecture", "Network Protocol Fundamentals", "IT Operations & Helpdesk Support"],
+    adjacentDomains: ["software_engineering", "cybersecurity", "cloud_devops", "data_analytics"]
   },
   {
     id: "data_analytics",
@@ -49,7 +63,7 @@ export const DOMAIN_PROFILES: DomainProfile[] = [
     ],
     coreCompetencies: ["sql", "power bi", "tableau", "excel", "pandas", "python", "statistics"],
     prerequisiteKnowledge: ["Relational Algebra", "Statistical Analysis", "Data Visualization Standards"],
-    adjacentDomains: ["software_engineering", "accountancy", "database_administration"]
+    adjacentDomains: ["software_engineering", "it_infrastructure", "accountancy", "database_administration"]
   },
   {
     id: "cybersecurity",
@@ -60,7 +74,7 @@ export const DOMAIN_PROFILES: DomainProfile[] = [
     ],
     coreCompetencies: ["network security", "cryptography", "threat analysis", "siem", "incident response"],
     prerequisiteKnowledge: ["Computer Networks", "Operating System Security", "Vulnerability Assessment"],
-    adjacentDomains: ["software_engineering", "cloud_devops"]
+    adjacentDomains: ["software_engineering", "it_infrastructure", "cloud_devops"]
   },
   {
     id: "ui_ux",
@@ -74,15 +88,47 @@ export const DOMAIN_PROFILES: DomainProfile[] = [
     adjacentDomains: ["software_engineering", "architecture", "marketing"]
   },
   {
-    id: "accountancy",
-    name: "Accountancy, Audit & Finance",
+    id: "mechanical_engineering",
+    name: "Mechanical & Systems Engineering",
     roleKeywords: [
-      "accountant", "auditor", "certified public accountant", "cpa", "financial accountant",
-      "bookkeeper", "accounting assistant", "tax consultant"
+      "mechanical engineer", "hvac engineer", "cad designer", "mechanical design engineer",
+      "robotics engineer", "automotive engineer", "cad trainee"
     ],
-    coreCompetencies: ["bookkeeping", "internal controls", "financial accounting", "internal audit", "ifrs", "gaap", "advanced excel"],
-    prerequisiteKnowledge: ["Financial Reporting Standards (IFRS/GAAP)", "Taxation Law & Auditing Principles", "Cost Accounting"],
-    adjacentDomains: ["data_analytics", "marketing"]
+    coreCompetencies: ["solidworks", "cad", "machine design", "thermodynamics", "hvac"],
+    prerequisiteKnowledge: ["Engineering Mechanics & Thermodynamics", "Machine Element Design", "CAD & 3D Modeling"],
+    adjacentDomains: ["electrical_electronics_eng", "industrial_engineering"]
+  },
+  {
+    id: "electrical_electronics_eng",
+    name: "Electrical & Electronics Engineering",
+    roleKeywords: [
+      "electrical engineer", "electronics engineer", "power engineer", "control systems engineer",
+      "embedded systems engineer", "telecom engineer", "computer engineer", "hardware engineer"
+    ],
+    coreCompetencies: ["circuit design", "matlab", "simulink", "embedded systems", "pcb design", "power systems"],
+    prerequisiteKnowledge: ["Electric Circuit Analysis", "Digital Electronics & Microcontrollers", "Signal Processing"],
+    adjacentDomains: ["software_engineering", "it_infrastructure", "mechanical_engineering"]
+  },
+  {
+    id: "chemical_engineering",
+    name: "Chemical & Process Engineering",
+    roleKeywords: [
+      "chemical engineer", "process engineer", "plant engineer", "process safety engineer"
+    ],
+    coreCompetencies: ["aspen plus", "process simulation", "reaction kinetics", "unit operations", "mass transfer"],
+    prerequisiteKnowledge: ["Chemical Reaction Engineering", "Thermodynamics & Heat Transfer", "Process Control & Safety"],
+    adjacentDomains: ["industrial_engineering", "natural_sciences"]
+  },
+  {
+    id: "industrial_engineering",
+    name: "Industrial Engineering & Operations Research",
+    roleKeywords: [
+      "industrial engineer", "operations analyst", "process improvement engineer",
+      "quality engineer", "lean six sigma practitioner"
+    ],
+    coreCompetencies: ["lean six sigma", "process optimization", "operations research", "ergonomics", "vsm"],
+    prerequisiteKnowledge: ["Work Measurement & Ergonomics", "Operations Research & Optimization", "Statistical Quality Control"],
+    adjacentDomains: ["business_marketing_supplychain", "mechanical_engineering"]
   },
   {
     id: "civil_engineering",
@@ -99,11 +145,35 @@ export const DOMAIN_PROFILES: DomainProfile[] = [
     id: "architecture",
     name: "Architecture & Environmental Design",
     roleKeywords: [
-      "architect", "architectural designer", "bim specialist", "draftsman", "architecture"
+      "architect", "architectural designer", "bim specialist", "draftsman", "architecture", "project architect"
     ],
     coreCompetencies: ["revit", "autodesk revit", "architectural drafting", "cad", "bim", "spatial planning"],
     prerequisiteKnowledge: ["Architectural Design History & Theory", "Building Code & Safety Standards", "3D Spatial Modeling"],
     adjacentDomains: ["civil_engineering", "ui_ux"]
+  },
+  {
+    id: "accountancy",
+    name: "Accountancy, Audit & Financial Accounting",
+    roleKeywords: [
+      "accountant", "auditor", "certified public accountant", "cpa", "financial accountant",
+      "bookkeeper", "accounting assistant", "tax consultant", "accounting systems analyst"
+    ],
+    coreCompetencies: ["bookkeeping", "internal controls", "financial accounting", "internal audit", "ifrs", "gaap", "advanced excel"],
+    prerequisiteKnowledge: ["Financial Reporting Standards (IFRS/GAAP)", "Taxation Law & Auditing Principles", "Cost Accounting"],
+    adjacentDomains: ["data_analytics", "business_marketing_supplychain"]
+  },
+  {
+    id: "business_marketing_supplychain",
+    name: "Business, Finance, HR, Marketing & Supply Chain",
+    roleKeywords: [
+      "business analyst", "financial analyst", "marketing specialist", "digital marketer",
+      "hr specialist", "talent acquisition specialist", "hr generalist", "supply chain analyst",
+      "logistics coordinator", "junior bookkeeper", "administrative assistant", "administrative associate",
+      "content writer"
+    ],
+    coreCompetencies: ["business math", "financial modeling", "talent acquisition", "supply chain management", "digital marketing"],
+    prerequisiteKnowledge: ["Business Communications & Management Principles", "Financial Analysis & Planning", "Marketing & Supply Operations"],
+    adjacentDomains: ["accountancy", "data_analytics"]
   },
   {
     id: "education_instructional_design",
@@ -124,7 +194,7 @@ export const DOMAIN_PROFILES: DomainProfile[] = [
     ],
     coreCompetencies: ["psychometrics", "psychological assessment", "research methods", "statistical analysis", "cognitive psychology"],
     prerequisiteKnowledge: ["Psychological Assessment & Testing", "Developmental Psychology", "Abnormal Psychology & Ethics"],
-    adjacentDomains: ["education_instructional_design", "data_analytics"]
+    adjacentDomains: ["education_instructional_design", "data_analytics", "business_marketing_supplychain"]
   },
   {
     id: "natural_sciences",
@@ -141,14 +211,27 @@ export const DOMAIN_PROFILES: DomainProfile[] = [
 
 export const PROGRAM_DOMAIN_MAPPINGS: Array<{ programKeywords: string[]; primaryDomains: string[]; adjacentDomains: string[] }> = [
   {
-    programKeywords: ["information technology", "computer science", "information systems", "software engineering", "computer engineering", "it", "cs"],
-    primaryDomains: ["software_engineering", "data_analytics", "cybersecurity"],
-    adjacentDomains: ["ui_ux", "education_instructional_design"]
+    programKeywords: [
+      "information technology", "computer science", "data science", "multimedia", "entertainment",
+      "software engineering", "computer engineering", "it", "cs", "stem", "tvl"
+    ],
+    primaryDomains: ["software_engineering", "it_infrastructure", "data_analytics", "cybersecurity"],
+    adjacentDomains: ["ui_ux", "education_instructional_design", "electrical_electronics_eng"]
   },
   {
-    programKeywords: ["accountancy", "accounting", "finance", "business administration", "management accounting"],
-    primaryDomains: ["accountancy", "data_analytics"],
-    adjacentDomains: ["marketing"]
+    programKeywords: ["computer engineering"],
+    primaryDomains: ["electrical_electronics_eng", "software_engineering", "it_infrastructure", "cybersecurity"],
+    adjacentDomains: ["mechanical_engineering"]
+  },
+  {
+    programKeywords: ["accountancy", "accounting", "accounting information system", "finance", "financial management", "abm"],
+    primaryDomains: ["accountancy", "business_marketing_supplychain", "data_analytics"],
+    adjacentDomains: ["it_infrastructure"]
+  },
+  {
+    programKeywords: ["business administration", "human resource", "logistics", "supply chain", "marketing", "gas"],
+    primaryDomains: ["business_marketing_supplychain", "accountancy"],
+    adjacentDomains: ["data_analytics", "psychology"]
   },
   {
     programKeywords: ["civil engineering", "civil"],
@@ -156,19 +239,39 @@ export const PROGRAM_DOMAIN_MAPPINGS: Array<{ programKeywords: string[]; primary
     adjacentDomains: ["architecture"]
   },
   {
+    programKeywords: ["mechanical engineering", "mechanical"],
+    primaryDomains: ["mechanical_engineering"],
+    adjacentDomains: ["electrical_electronics_eng", "industrial_engineering"]
+  },
+  {
+    programKeywords: ["electrical engineering", "electronics engineering", "electrical", "electronics"],
+    primaryDomains: ["electrical_electronics_eng"],
+    adjacentDomains: ["software_engineering", "it_infrastructure", "mechanical_engineering"]
+  },
+  {
+    programKeywords: ["chemical engineering", "chemical"],
+    primaryDomains: ["chemical_engineering"],
+    adjacentDomains: ["industrial_engineering", "natural_sciences"]
+  },
+  {
+    programKeywords: ["industrial engineering", "industrial"],
+    primaryDomains: ["industrial_engineering", "business_marketing_supplychain"],
+    adjacentDomains: ["mechanical_engineering"]
+  },
+  {
     programKeywords: ["architecture", "building design"],
     primaryDomains: ["architecture"],
     adjacentDomains: ["civil_engineering", "ui_ux"]
   },
   {
-    programKeywords: ["secondary education", "elementary education", "education", "teacher education"],
-    primaryDomains: ["education_instructional_design"],
-    adjacentDomains: ["psychology"]
+    programKeywords: ["secondary education", "elementary education", "education", "teacher education", "humss"],
+    primaryDomains: ["education_instructional_design", "psychology"],
+    adjacentDomains: ["business_marketing_supplychain"]
   },
   {
     programKeywords: ["psychology", "behavioral science"],
     primaryDomains: ["psychology"],
-    adjacentDomains: ["education_instructional_design"]
+    adjacentDomains: ["education_instructional_design", "business_marketing_supplychain"]
   },
   {
     programKeywords: ["chemistry", "biology", "applied physics", "biochemistry"],

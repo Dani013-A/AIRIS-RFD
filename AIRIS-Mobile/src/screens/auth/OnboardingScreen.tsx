@@ -110,35 +110,49 @@ export default function OnboardingScreen() {
 
           {/* Consents & Agreements */}
           <View className="mt-4 p-4 rounded-2xl bg-white border border-[#BFD6EA] gap-3" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-            <View className="flex-row items-start">
-              <TouchableOpacity
-                onPress={() => setAgreeTerms(!agreeTerms)}
-                className="mt-0.5 mr-3 h-6 w-6 items-center justify-center rounded-lg border border-[#BFD6EA] bg-[#F4F8FB]"
-              >
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => setAgreeTerms(!agreeTerms)}
+              className="flex-row items-center py-1"
+            >
+              <View className="mr-3 h-6 w-6 items-center justify-center rounded-lg border border-[#BFD6EA] bg-[#F4F8FB]">
                 {agreeTerms && <Ionicons name="checkmark" size={16} color="#CA5D25" />}
-              </TouchableOpacity>
-              <View className="flex-1 flex-row flex-wrap items-center">
-                <Text className="text-sm text-[#4F6B82]">I agree to the </Text>
-                <TouchableOpacity onPress={() => setShowTermsModal(true)}>
-                  <Text className="text-sm font-bold text-[#CA5D25] underline">Terms of Service</Text>
-                </TouchableOpacity>
               </View>
-            </View>
+              <Text className="text-sm text-[#4F6B82] flex-1">
+                I agree to the{" "}
+                <Text
+                  className="font-bold text-[#CA5D25] underline"
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    setShowTermsModal(true);
+                  }}
+                >
+                  Terms of Service
+                </Text>
+              </Text>
+            </TouchableOpacity>
 
-            <View className="flex-row items-start">
-              <TouchableOpacity
-                onPress={() => setAgreePrivacy(!agreePrivacy)}
-                className="mt-0.5 mr-3 h-6 w-6 items-center justify-center rounded-lg border border-[#BFD6EA] bg-[#F4F8FB]"
-              >
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => setAgreePrivacy(!agreePrivacy)}
+              className="flex-row items-center py-1"
+            >
+              <View className="mr-3 h-6 w-6 items-center justify-center rounded-lg border border-[#BFD6EA] bg-[#F4F8FB]">
                 {agreePrivacy && <Ionicons name="checkmark" size={16} color="#CA5D25" />}
-              </TouchableOpacity>
-              <View className="flex-1 flex-row flex-wrap items-center">
-                <Text className="text-sm text-[#4F6B82]">I agree to the </Text>
-                <TouchableOpacity onPress={() => setShowPrivacyModal(true)}>
-                  <Text className="text-sm font-bold text-[#CA5D25] underline">Privacy Policy</Text>
-                </TouchableOpacity>
               </View>
-            </View>
+              <Text className="text-sm text-[#4F6B82] flex-1">
+                I agree to the{" "}
+                <Text
+                  className="font-bold text-[#CA5D25] underline"
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    setShowPrivacyModal(true);
+                  }}
+                >
+                  Privacy Policy
+                </Text>
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Action button in scroll flow */}

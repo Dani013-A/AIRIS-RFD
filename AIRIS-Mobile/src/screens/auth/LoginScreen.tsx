@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -33,6 +33,15 @@ export default function LoginScreen() {
   const emailNotVerified = useAuthStore((state) => state.emailNotVerified);
   const clearEmailNotVerified = useAuthStore((state) => state.clearEmailNotVerified);
   const resendVerification = useAuthStore((state) => state.resendVerification);
+
+  useEffect(() => {
+    clearError();
+    clearEmailNotVerified();
+    return () => {
+      clearError();
+      clearEmailNotVerified();
+    };
+  }, [clearError, clearEmailNotVerified]);
 
   const [passwordVisible, setPasswordVisible] = useState(false);
   const handleBlur = (field: string) => {
@@ -139,7 +148,11 @@ export default function LoginScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-1 rounded-lg py-2.5 items-center justify-center"
-            onPress={() => router.push("/register")}
+            onPress={() => {
+              clearError();
+              clearEmailNotVerified();
+              router.push("/register");
+            }}
           >
             <Text className="text-center text-sm font-semibold text-[#4F6B82]">Sign Up</Text>
           </TouchableOpacity>

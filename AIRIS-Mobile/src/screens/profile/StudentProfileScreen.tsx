@@ -72,6 +72,7 @@ export default function StudentProfileScreen() {
   const [reauthPassVisible, setReauthPassVisible] = useState(false);
   const [reauthError, setReauthError] = useState("");
   const [reauthLoading, setReauthLoading] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const [activities, setActivities] = useState<UserActivity[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
@@ -282,48 +283,35 @@ export default function StudentProfileScreen() {
     }
   };
 
-  const performDeleteCascade = async (passwordToUse?: string) => {
-    try {
-      setReauthLoading(true);
-      setReauthError("");
-      await deleteAccountAction(passwordToUse);
-      setReauthPassword("");
-      setReauthLoading(false);
-      setShowReauthModal(false);
-      Alert.alert("Account Deleted", "Your account and associated data have been permanently removed.");
-      router.replace("/(auth)/login");
-    } catch (err: any) {
-      setReauthLoading(false);
-      const errCode = err?.code || "";
-      const errStr = String(err);
+  const performDeleteCascade = async (passwordToUse: string) => {
+    if (!passwordToUse || !passwordToUse.trim()) {
+      setReauthError("Please enter your current password to confirm account deletion.");
+      return;
+    }
 
-      if (errCode === "auth/requires-recent-login" || errStr.includes("requires-recent-login") || errStr.includes("recent login")) {
-        console.warn("[AUTH][ACCOUNT_DELETE][REAUTH_REQUIRED] Identity verification required. Prompting for credential reauthentication.");
-        setShowReauthModal(true);
-      } else {
-        const msg = mapAuthError(err);
-        if (showReauthModal) {
-          setReauthError(msg);
-        } else {
-          Alert.alert("Deletion Error", msg);
-        }
-      }
+    setReauthError("");
+    setShowReauthModal(false);
+    setIsDeletingAccount(true);
+
+    try {
+      await deleteAccountAction(passwordToUse.trim());
+      setTimeout(() => {
+        setIsDeletingAccount(false);
+        setReauthPassword("");
+        router.replace("/(auth)/login");
+      }, 400);
+    } catch (err: any) {
+      setIsDeletingAccount(false);
+      setShowReauthModal(true);
+      const msg = mapAuthError(err);
+      setReauthError(msg || "Account deletion failed. Please verify your password and try again.");
     }
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      "Delete Account Permanently?",
-      "This action cannot be undone. All your profile information, resume analysis records, and interview histories will be permanently removed.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete Account",
-          style: "destructive",
-          onPress: () => performDeleteCascade(currentPassword.trim() || undefined),
-        },
-      ]
-    );
+    setReauthPassword("");
+    setReauthError("");
+    setShowReauthModal(true);
   };
 
   const resumeScans = activities.filter(a => a.type === "Resume Analysis").length;
@@ -988,6 +976,24 @@ export default function StudentProfileScreen() {
                 )}
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Dedicated Quick Account Deletion Loading Screen */}
+      <Modal visible={isDeletingAccount} animationType="fade" transparent={true}>
+        <View className="flex-1 bg-black/75 justify-center items-center px-6">
+          <View className="bg-white rounded-3xl p-8 items-center w-full max-w-sm border border-[#BFD6EA] shadow-2xl">
+            <View className="h-16 w-16 items-center justify-center rounded-full bg-[#FEF2F2] mb-5 border border-[#FCA5A5]">
+              <Ionicons name="trash-outline" size={32} color="#DC2626" />
+            </View>
+            <ActivityIndicator size="large" color="#DC2626" />
+            <Text className="text-lg font-extrabold text-[#1F3A5F] text-center mt-5 mb-2">
+              Ensuring all data is deleted from our system
+            </Text>
+            <Text className="text-xs text-center text-[#64748B] leading-5">
+              Wiping profile records, resume analysis data, and security credentials...
+            </Text>
           </View>
         </View>
       </Modal>

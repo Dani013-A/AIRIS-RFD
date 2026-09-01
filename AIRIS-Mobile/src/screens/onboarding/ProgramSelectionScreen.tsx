@@ -50,6 +50,7 @@ export default function ProgramSelectionScreen() {
     setErrorText(null);
     setSaving(true);
     try {
+      useOnboardingStore.getState().setTargetPosition("");
       await saveProgramSelection(selectedProgram);
       router.push("/(student)/position-selection");
     } catch (err) {

@@ -38,6 +38,15 @@ export default function RegisterScreen() {
   const loginWithGoogle = useAuthStore((state) => state.loginWithGoogle);
   const isGoogleLoading = useAuthStore((state) => state.isGoogleLoading);
 
+  React.useEffect(() => {
+    clearError();
+    clearRegistrationSuccess();
+    return () => {
+      clearError();
+      clearRegistrationSuccess();
+    };
+  }, [clearError, clearRegistrationSuccess]);
+
   const handleBlur = (field: string) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
   };
@@ -60,7 +69,7 @@ export default function RegisterScreen() {
   const passwordWarning = (() => {
     if (!touched.password) return "";
     if (!password) return "Password is required.";
-    if (!isPasswordSecure) return passwordVal.message || "Password does not meet requirements.";
+    if (!isPasswordSecure) return "Password does not meet security requirements.";
     return "";
   })();
 
@@ -72,8 +81,8 @@ export default function RegisterScreen() {
   })();
 
   const isFormValid =
-    firstName.trim() !== "" &&
-    lastName.trim() !== "" &&
+    firstName.trim().length > 0 &&
+    lastName.trim().length > 0 &&
     email.trim().toLowerCase().endsWith("@tip.edu.ph") &&
     isPasswordSecure &&
     password === passwordConfirm;
@@ -90,37 +99,27 @@ export default function RegisterScreen() {
     if (!isFormValid) return;
 
     clearError();
+    clearRegistrationSuccess();
 
-    const normalizedEmail = email.trim().toLowerCase();
-    const fullName = `${firstName.trim()} ${lastName.trim()}`;
-
-    await register(normalizedEmail, password, fullName);
+    await register(email.trim().toLowerCase(), password, `${firstName.trim()} ${lastName.trim()}`);
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleRegister = async () => {
     clearError();
+    clearRegistrationSuccess();
+
     try {
       await loginWithGoogle();
     } catch {
-      console.warn("Google authentication process complete with error outcome.");
+      console.warn("Google registration complete with non-standard status.");
     }
   };
 
-  const handleGoToLogin = () => {
+  const handleDismissSuccessModal = () => {
     clearRegistrationSuccess();
+    clearError();
     router.replace("/(auth)/login");
   };
-
-  React.useEffect(() => {
-    if (registrationSuccess) {
-      setEmail("");
-      setPassword("");
-      setPasswordConfirm("");
-      setFirstName("");
-      setLastName("");
-      setTouched({});
-    }
-  }, [registrationSuccess]);
 
   return (
     <KeyboardAwareScrollView
@@ -160,7 +159,11 @@ export default function RegisterScreen() {
       <View className="mb-8 flex-row rounded-xl bg-[#EAF2F7] p-1 border border-[#BFD6EA]">
         <TouchableOpacity
           className="flex-1 rounded-lg py-2.5 items-center justify-center"
-          onPress={() => router.replace("/login")}
+          onPress={() => {
+            clearError();
+            clearRegistrationSuccess();
+            router.replace("/(auth)/login");
+          }}
         >
           <Text className="text-center text-sm font-semibold text-[#4F6B82]">Log In</Text>
         </TouchableOpacity>
@@ -317,7 +320,7 @@ export default function RegisterScreen() {
 
       <TouchableOpacity
         className={`flex-row items-center justify-center rounded-xl bg-white h-14 border border-[#BFD6EA] ${(isGoogleLoading || loading) ? "opacity-50" : ""}`}
-        onPress={handleGoogleLogin}
+        onPress={handleGoogleRegister}
         disabled={isGoogleLoading || loading}
         style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}
       >
@@ -335,7 +338,7 @@ export default function RegisterScreen() {
         visible={registrationSuccess}
         transparent
         animationType="fade"
-        onRequestClose={handleGoToLogin}
+        onRequestClose={handleDismissSuccessModal}
       >
         <View className="flex-1 items-center justify-center bg-black/60 px-6" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
           <View className="w-full rounded-3xl bg-white p-8">
@@ -357,7 +360,7 @@ export default function RegisterScreen() {
             <PrimaryButton
               title="Go to Login"
               variant="orange"
-              onPress={handleGoToLogin}
+              onPress={handleDismissSuccessModal}
             />
           </View>
         </View>

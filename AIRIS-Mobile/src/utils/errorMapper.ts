@@ -50,11 +50,11 @@ export function mapAuthError(error: unknown): string {
   if (testString.includes("auth/requires-recent-login") || testString.includes("requires-recent-login") || testString.includes("recent login")) {
     return "Please verify your current password before deleting your account.";
   }
-  if (testString.includes("auth/wrong-password") || testString.includes("auth/invalid-credential")) {
-    return "That password is incorrect. Please try again.";
-  }
   if (testString.includes("auth/user-not-found")) {
-    return "Incorrect email or password.";
+    return "No account found with this email. Please check your email address or sign up to create a new account.";
+  }
+  if (testString.includes("auth/invalid-credential") || testString.includes("auth/wrong-password")) {
+    return "No account found with this email, or the password entered is incorrect. Please check your credentials or sign up.";
   }
   if (testString.includes("auth/email-already-in-use") || testString.includes("email-already-in-use")) {
     return "This TIP email is already registered.";

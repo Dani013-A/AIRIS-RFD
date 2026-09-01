@@ -1,3 +1,5 @@
+import { tipManilaPrograms } from "../../data/tipManilaPrograms";
+
 const COMMON_PROFESSIONAL_SUFFIXES = [
   "developer", "engineer", "designer", "programmer", "analyst",
   "consultant", "architect", "manager", "specialist", "officer",
@@ -27,8 +29,6 @@ export const validateCareerRole = async (
   role: string,
   degreeProgram: string
 ): Promise<ValidationResult> => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
   const cleanRole = role.trim().toLowerCase();
   if (cleanRole.length < 3) {
     return {
@@ -59,8 +59,6 @@ export const validateCareerRole = async (
   }
 
   // Generalized Dynamic Domain Compatibility Matching using canonical catalog
-  const { tipManilaPrograms } = await import("../../data/tipManilaPrograms");
-
   let targetCollege = tipManilaPrograms.find((c) =>
     c.programs.some((p) => p.name.toLowerCase() === degreeProgram.toLowerCase())
   );

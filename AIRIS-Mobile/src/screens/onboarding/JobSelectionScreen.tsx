@@ -50,15 +50,51 @@ export default function JobSelectionScreen() {
     return () => subscription.remove();
   }, []);
 
-  const collegeData = tipManilaPrograms.find((c) => c.name === college);
-  const programData = collegeData?.programs.find((p) => p.name === degreeProgram);
-  const suggestions = programData?.suggestedPositions ?? [];
+  // Robust program lookup across entire canonical catalog regardless of college string formatting
+  const programData = React.useMemo(() => {
+    const cleanProg = (degreeProgram || "").toLowerCase().trim();
+    if (!cleanProg) return null;
+    return tipManilaPrograms
+      .flatMap((c) => c.programs)
+      .find((p) => p.name.toLowerCase().trim() === cleanProg || p.name.toLowerCase().includes(cleanProg) || cleanProg.includes(p.name.toLowerCase()));
+  }, [degreeProgram]);
 
-  const filtered = suggestions.filter((job) => job.toLowerCase().includes(search.toLowerCase()));
+  const defaultSuggestions = React.useMemo(() => {
+    return programData?.suggestedPositions ?? tipManilaPrograms.flatMap((c) => c.programs.flatMap((p) => p.suggestedPositions)).slice(0, 12);
+  }, [programData]);
 
-  const isCustomQueryNew =
-    search.trim() !== "" &&
-    !suggestions.some((pos) => pos.toLowerCase() === search.trim().toLowerCase());
+  // Instant multi-level search filtering across program suggestions + all catalog roles
+  const filtered = React.useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) {
+      return defaultSuggestions;
+    }
+
+    const allCanonicalRoles = Array.from(
+      new Set(tipManilaPrograms.flatMap((c) => c.programs.flatMap((p) => p.suggestedPositions)))
+    );
+
+    // 1. First priority: program-specific suggestions matching query
+    const programMatches = (programData?.suggestedPositions || []).filter((job) =>
+      job.toLowerCase().includes(query)
+    );
+
+    // 2. Second priority: all catalog roles matching query
+    const allMatches = allCanonicalRoles.filter((job) => {
+      const jobLower = job.toLowerCase();
+      if (jobLower.includes(query)) return true;
+      const tokens = query.split(/\s+/).filter(Boolean);
+      return tokens.length > 1 && tokens.every((t) => jobLower.includes(t));
+    });
+
+    return Array.from(new Set([...programMatches, ...allMatches]));
+  }, [search, defaultSuggestions, programData]);
+
+  const isCustomQueryNew = React.useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return false;
+    return !filtered.some((pos) => pos.toLowerCase() === query);
+  }, [search, filtered]);
 
   const handleValidateCustomRole = async () => {
     const queryRole = search.trim();
@@ -67,50 +103,46 @@ export default function JobSelectionScreen() {
     setIsValidating(true);
     setValidationError("");
 
-    // Step 1: Attempt AI-powered normalization on the backend
-    let normalizedResult = null;
+    let normalizedResult: any = null;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+
     try {
       const response = await fetch(BACKEND_ENDPOINT, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type: "job",
-          input: queryRole,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "job", input: queryRole }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         normalizedResult = await response.json();
       }
     } catch (e) {
-      console.warn("Backend normalization failed, falling back to local:", e);
+      clearTimeout(timeoutId);
+      console.warn("Backend normalization offline or timed out, falling back to local:", e);
     }
 
-    // Step 2: Handle normalization output and fallback
-    if (normalizedResult && normalizedResult.normalizedValue) {
-      const resolvedValue = normalizedResult.normalizedValue;
-      setTargetPosition(resolvedValue);
-      setSearch("");
-      setValidationError("");
-
-      if (resolvedValue.toLowerCase() !== queryRole.toLowerCase()) {
-        Alert.alert(
-          "Role Normalized",
-          `We standardized your input "${queryRole}" to the industry-canonical title: "${resolvedValue}"`
-        );
-      }
-      setIsValidating(false);
-      return;
-    }
-
-    // Step 3: Local structural suffix validation if backend is offline or returned custom fallback
     try {
+      if (normalizedResult && normalizedResult.normalizedValue) {
+        const resolvedValue = normalizedResult.normalizedValue;
+        setTargetPosition(resolvedValue);
+        setSearch("");
+        setValidationError("");
+        if (resolvedValue.toLowerCase() !== queryRole.toLowerCase()) {
+          Alert.alert(
+            "Role Standardized",
+            `Mapped "${queryRole}" to industry title: "${resolvedValue}"`
+          );
+        }
+        return;
+      }
+
       const fuzzyMatched = fuzzyMatchRole(queryRole);
       const roleToValidate = fuzzyMatched || queryRole;
 
-      const validationResult = await validateCareerRole(roleToValidate, degreeProgram);
+      const validationResult = await validateCareerRole(roleToValidate, degreeProgram || "");
       if (validationResult.isValid) {
         setTargetPosition(roleToValidate);
         setSearch("");
@@ -118,14 +150,14 @@ export default function JobSelectionScreen() {
         if (fuzzyMatched && fuzzyMatched.toLowerCase() !== queryRole.toLowerCase()) {
           Alert.alert(
             "Role Resolved",
-            `We mapped "${queryRole}" to standard title "${fuzzyMatched}".`
+            `Mapped "${queryRole}" to standard title "${fuzzyMatched}".`
           );
         }
       } else {
         setValidationError(validationResult.reason || "Invalid career role.");
       }
     } catch {
-      setValidationError("Failed to execute validation. Please try again.");
+      setValidationError("Failed to validate custom role. Please select from suggested list.");
     } finally {
       setIsValidating(false);
     }
@@ -155,7 +187,7 @@ export default function JobSelectionScreen() {
     if (compResult.classification === "DISTANT") {
       setCompatibilityResult(compResult);
       setShowCompatibilityModal(true);
-      return; // Require explicit modal confirmation before completing setup
+      return;
     }
 
     if (compResult.classification === "PIVOT") {
@@ -180,7 +212,7 @@ export default function JobSelectionScreen() {
           Target Position
         </Text>
         <Text className="mt-2 text-center text-sm font-medium text-[#4F6B82] px-4">
-          Select or enter the specific career track you wish to prepare for.
+          Select or search the specific career track you wish to prepare for.
         </Text>
       </View>
 
@@ -192,10 +224,15 @@ export default function JobSelectionScreen() {
           placeholder="Search target position..."
           placeholderTextColor="#94A3B8"
           value={search}
-          onChangeText={setSearch}
+          onChangeText={(txt) => {
+            setSearch(txt);
+            if (validationError) setValidationError("");
+          }}
+          autoCapitalize="none"
+          autoCorrect={false}
         />
         {search ? (
-          <TouchableOpacity onPress={() => setSearch("")} className="p-2 -mr-2">
+          <TouchableOpacity onPress={() => { setSearch(""); setValidationError(""); }} className="p-2 -mr-2">
             <Ionicons name="close-circle" size={20} color="#8B95A5" />
           </TouchableOpacity>
         ) : null}
@@ -228,7 +265,10 @@ export default function JobSelectionScreen() {
               className="w-full rounded-2xl py-4 px-5 items-center justify-center border border-dashed border-[#F4A47A] bg-[#FEF5F1]"
             >
               {isValidating ? (
-                <ActivityIndicator color="#F4A47A" />
+                <View className="flex-row items-center gap-2">
+                  <ActivityIndicator size="small" color="#CA5D25" />
+                  <Text className="text-sm font-bold text-[#CA5D25]">Standardizing custom role...</Text>
+                </View>
               ) : (
                 <Text className="text-sm font-bold text-[#CA5D25] text-center">
                   Select Custom Role: "{search.trim()}"
@@ -245,8 +285,18 @@ export default function JobSelectionScreen() {
 
         {filtered.length > 0 && (
           <Text className="mb-3 text-xs font-bold uppercase tracking-wider text-[#4F6B82]">
-            Suggested Roles
+            {search.trim() ? "Search Results" : `Suggested Roles for ${degreeProgram || "Your Program"}`}
           </Text>
+        )}
+
+        {filtered.length === 0 && !isCustomQueryNew && (
+          <View className="py-8 items-center justify-center">
+            <Ionicons name="search-outline" size={36} color="#94A3B8" />
+            <Text className="mt-2 text-sm font-semibold text-[#64748B]">No matching standard roles found</Text>
+            <Text className="text-xs text-[#94A3B8] text-center mt-1 px-6">
+              Try searching with different keywords or type a custom role title above.
+            </Text>
+          </View>
         )}
 
         <View className="gap-3">

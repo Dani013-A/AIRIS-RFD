@@ -633,18 +633,13 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   deleteAccountAction: async (currentPassword) => {
     const currentUser = useAuthStore.getState().currentUser;
-    if (!currentUser) {
-      console.error(`[AUTH][ACCOUNT_DELETE][ERROR] No active authenticated user found in store.`);
-      const err = new Error("No authenticated user session found.");
-      set({ error: err.message });
-      throw err;
-    }
+    const activeUid = currentUser?.uid || auth.currentUser?.uid;
 
     try {
       set({ loading: true, error: null });
-      console.log(`[AUTH][ACCOUNT_DELETE][CONFIRM] User confirmed account deletion request for UID: ${currentUser.uid}`);
+      console.log(`[AUTH][ACCOUNT_DELETE][CONFIRM] User confirmed account deletion request for UID: ${activeUid}`);
 
-      // Reauthenticate if password is provided
+      // Reauthenticate FIRST if password is provided and Firebase Auth user exists
       if (auth.currentUser && auth.currentUser.email && currentPassword) {
         console.log(`[AUTH][ACCOUNT_DELETE][REAUTH_START] Attempting credential reauthentication...`);
         const { EmailAuthProvider, reauthenticateWithCredential } = await import("firebase/auth");
@@ -653,18 +648,22 @@ export const useAuthStore = create<AuthState>((set) => ({
         console.log(`[AUTH][ACCOUNT_DELETE][REAUTH_SUCCESS] Credential reauthentication succeeded.`);
       }
 
-      const { deleteUserAccountCascade } = await import("../services/firebase/userService");
-      await deleteUserAccountCascade(currentUser.uid);
+      if (activeUid) {
+        const { deleteUserAccountCascade } = await import("../services/firebase/userService");
+        await deleteUserAccountCascade(activeUid);
+      }
 
-      set({
-        currentUser: null,
-        loading: false,
-        error: null,
-      });
-      clearLearningMemoryCache();
+      // Execute full logout & store reset
+      await useAuthStore.getState().logout();
       console.log(`[AUTH][ACCOUNT_DELETE][SUCCESS] Account deletion complete and local session cleared.`);
     } catch (error: any) {
       const errCode = error?.code || "";
+      if (errCode === "auth/user-not-found" || errCode === "auth/null-user" || String(error).includes("user-not-found")) {
+        console.warn(`[AUTH][ACCOUNT_DELETE][INFO] Account already removed from server, forcing local logout.`);
+        await useAuthStore.getState().logout();
+        return;
+      }
+
       if (errCode === "auth/requires-recent-login" || String(error).includes("requires-recent-login")) {
         console.warn(`[AUTH][ACCOUNT_DELETE][REAUTH_REQUIRED] Reauthentication required for sensitive account deletion operation.`);
       } else {
@@ -694,13 +693,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       throw err;
     }
 
-    if (
-      acceptedTerms !== true ||
-      acceptedPrivacy !== true ||
-      currentUser.activeResumeId === null ||
-      currentUser.activeResumeId === undefined
-    ) {
-      const err = new Error("Onboarding conditions not met. Please accept both consents and upload a valid resume.");
+    if (acceptedTerms !== true || acceptedPrivacy !== true) {
+      const err = new Error("Please accept both Terms of Service and Privacy Policy to proceed.");
       set({ error: err.message });
       throw err;
     }

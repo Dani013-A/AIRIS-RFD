@@ -26,6 +26,15 @@ export default function ForgotPasswordScreen() {
   const passwordResetSuccess = useAuthStore((state) => state.passwordResetSuccess);
   const clearPasswordResetSuccess = useAuthStore((state) => state.clearPasswordResetSuccess);
 
+  React.useEffect(() => {
+    clearError();
+    clearPasswordResetSuccess();
+    return () => {
+      clearError();
+      clearPasswordResetSuccess();
+    };
+  }, [clearError, clearPasswordResetSuccess]);
+
   const handleBlur = () => {
     setTouched(true);
   };
