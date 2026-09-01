@@ -23,6 +23,14 @@ export interface InterviewStartRequest {
   parsedResume: Record<string, any>;
 }
 
+export interface PauseMetrics {
+  totalPauseDuration: number;
+  pauseCount: number;
+  pausePeriodEquivalent: number;
+  longestPause: number;
+  averagePauseDuration: number;
+}
+
 export interface InterviewAnswerRequest {
   targetRole: string;
   program: string;
@@ -32,6 +40,7 @@ export interface InterviewAnswerRequest {
   currentAnswer: string;
   currentQuestionType: string;
   totalQuestions: number;
+  pauseMetrics?: PauseMetrics;
 }
 
 export interface InterviewReportRequest {
@@ -125,7 +134,7 @@ export const generateInterviewReport = async (payload: InterviewReportRequest) =
 
 import * as FileSystem from 'expo-file-system/legacy';
 
-export const transcribeAudio = async (uri: string, mimeType: string) => {
+export const transcribeAudio = async (uri: string, mimeType: string): Promise<{ transcription: string; pauseMetrics?: PauseMetrics }> => {
   try {
     const BASE_URL = getBaseUrl();
     const response = await FileSystem.uploadAsync(`${BASE_URL}/interview/transcribe`, uri, {
@@ -140,7 +149,10 @@ export const transcribeAudio = async (uri: string, mimeType: string) => {
       throw new Error("Unable to transcribe audio response. Please try again.");
     }
     const data = JSON.parse(response.body);
-    return data.transcription;
+    return {
+      transcription: data.transcription || "",
+      pauseMetrics: data.pauseMetrics,
+    };
   } catch (error: any) {
     console.error('Failed to transcribe audio:', error.message || error);
     throw error;

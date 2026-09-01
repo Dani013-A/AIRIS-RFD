@@ -28,8 +28,16 @@ export default function ProgramSelectionScreen() {
   const [saving, setSaving] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
 
+  const handleGoBack = () => {
+    useOnboardingStore.getState().reset();
+    router.replace("/(student)/college-selection");
+  };
+
   React.useEffect(() => {
-    const onBackPress = () => true;
+    const onBackPress = () => {
+      handleGoBack();
+      return true;
+    };
     const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
     return () => subscription.remove();
   }, []);
@@ -62,7 +70,15 @@ export default function ProgramSelectionScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#F4F8FB] px-6" edges={["top", "left", "right"]}>
-      <View className="items-center mt-6 mb-2">
+      <View className="flex-row items-center justify-between mt-4 mb-2">
+        <TouchableOpacity onPress={handleGoBack} className="flex-row items-center">
+          <Ionicons name="arrow-back" size={24} color="#1F3A5F" />
+          <Text className="text-[#1F3A5F] font-bold ml-1 text-base">Colleges</Text>
+        </TouchableOpacity>
+        <Text className="text-xs font-bold text-[#4F6B82] uppercase tracking-wider">Step 2 of 3</Text>
+      </View>
+
+      <View className="items-center mt-2 mb-2">
         <Text className="text-center text-3xl font-extrabold text-[#1F3A5F]">
           Select Your Program
         </Text>

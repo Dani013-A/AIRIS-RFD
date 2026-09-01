@@ -44,8 +44,16 @@ export default function JobSelectionScreen() {
   const completeInitialSetup = useAuthStore((state) => state.completeInitialSetup);
   const loading = useAuthStore((state) => state.loading);
 
+  const handleGoBack = () => {
+    setTargetPosition("");
+    router.replace("/(student)/program-selection");
+  };
+
   React.useEffect(() => {
-    const onBackPress = () => true;
+    const onBackPress = () => {
+      handleGoBack();
+      return true;
+    };
     const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
     return () => subscription.remove();
   }, []);
@@ -207,7 +215,15 @@ export default function JobSelectionScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#F4F8FB] px-6" edges={["top", "left", "right"]}>
-      <View className="items-center mb-6 mt-6">
+      <View className="flex-row items-center justify-between mt-4 mb-2">
+        <TouchableOpacity onPress={handleGoBack} className="flex-row items-center">
+          <Ionicons name="arrow-back" size={24} color="#1F3A5F" />
+          <Text className="text-[#1F3A5F] font-bold ml-1 text-base">Programs</Text>
+        </TouchableOpacity>
+        <Text className="text-xs font-bold text-[#4F6B82] uppercase tracking-wider">Step 3 of 3</Text>
+      </View>
+
+      <View className="items-center mb-6 mt-2">
         <Text className="text-center text-3xl font-extrabold text-[#1F3A5F]">
           Target Position
         </Text>

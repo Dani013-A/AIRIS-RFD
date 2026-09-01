@@ -179,7 +179,8 @@ def evaluate_answer_and_generate_next(
     current_question: str,
     current_answer: str,
     current_question_type: str,
-    total_questions: int
+    total_questions: int,
+    pause_metrics: Optional[dict] = None
 ) -> Dict[str, Any]:
 
     # 1. Deterministic Validation for Empty/Corrupted Text
@@ -223,9 +224,6 @@ def evaluate_answer_and_generate_next(
     # For SKIP_REQUEST, we bypass evaluation but still generate a new substantive question.
     is_skip = (intent == "SKIP_REQUEST")
 
-    # Let's say if we have 3 strong technical answers, we can terminate early.
-    # We won't strictly enforce here to let Gemini decide, but we pass is_final_question flag.
-    # A hidden limit is defined by the frontend (totalQuestions, usually around 5-7).
     is_final_question = len(history) >= total_questions - 1
 
     next_cat = "technical"
@@ -235,6 +233,25 @@ def evaluate_answer_and_generate_next(
         next_cat = "behavioral"
 
     next_base = find_best_dataset_question(target_role, next_cat, history)
+
+    pause_info = ""
+    if pause_metrics and isinstance(pause_metrics, dict):
+        p_tot = pause_metrics.get("totalPauseDuration", 0.0)
+        p_cnt = pause_metrics.get("pauseCount", 0)
+        p_eq = pause_metrics.get("pausePeriodEquivalent", 0.0)
+        p_long = pause_metrics.get("longestPause", 0.0)
+        p_avg = pause_metrics.get("averagePauseDuration", 0.0)
+        pause_info = (
+            f"\nMEASURED AUDIO PAUSE METRICS (AUTHORITATIVE FROM AUDIO TIMESTAMPS):\n"
+            f"- Total Pause Duration: {p_tot}s\n"
+            f"- Pause Count: {p_cnt}\n"
+            f"- Pause Period Equivalent (1s = 1.00 period): {p_eq}\n"
+            f"- Longest Pause: {p_long}s\n"
+            f"- Average Pause Duration: {p_avg}s\n"
+            "EVALUATION INSTRUCTION: Interpret these measured audio values together with filler-word frequency for communication scoring. "
+            "Do NOT invent pause values. Do NOT automatically penalize every pause—natural short pauses (under 1.5s) are expected and natural, "
+            "whereas repeated long pauses (over 2.0s) indicate hesitation."
+        )
 
     prompt = f"""
     You are an expert, professional, and rigorous technical interviewer. You are conducting an interview for the role of '{target_role}'.
@@ -252,6 +269,7 @@ def evaluate_answer_and_generate_next(
     CURRENT INTERACTION:
     Question asked ({current_question_type}): "{current_question}"
     Candidate's Answer: "{current_answer}"
+    {pause_info}
 
     KNOWLEDGE BASE QUESTION FOR NEXT TOPIC:
     "{next_base.get("text")}"

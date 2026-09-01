@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../../store/authStore";
 import { useResumeStore } from "../../store/resumeStore";
 import { useInterviewStore } from "../../store/interviewStore";
-import { submitInterviewAnswer, transcribeAudio } from "../../services/api/interviewApi";
+import { submitInterviewAnswer, transcribeAudio, PauseMetrics } from "../../services/api/interviewApi";
 import { PrimaryButton } from "../../components/ui";
 import * as Speech from "expo-speech";
 import { Audio } from "expo-av";
@@ -58,6 +58,8 @@ export default function ActiveSimulationScreen() {
     }
   };
 
+  const [lastPauseMetrics, setLastPauseMetrics] = useState<PauseMetrics | undefined>(undefined);
+
   const stopRecording = async () => {
     if (!recording) return;
     setIsRecording(false);
@@ -66,9 +68,11 @@ export default function ActiveSimulationScreen() {
       await recording.stopAndUnloadAsync();
       const uri = recording.getURI();
       if (uri) {
-        // Assume iOS/Android m4a format
-        const text = await transcribeAudio(uri, "audio/m4a");
-        setAnswer((prev) => (prev ? prev + " " + text : text));
+        const { transcription, pauseMetrics } = await transcribeAudio(uri, "audio/m4a");
+        setAnswer((prev) => (prev ? prev + " " + transcription : transcription));
+        if (pauseMetrics) {
+          setLastPauseMetrics(pauseMetrics);
+        }
       }
     } catch (error) {
       console.error("Transcription failed", error);
@@ -112,6 +116,7 @@ export default function ActiveSimulationScreen() {
         currentAnswer: answer.trim(),
         currentQuestionType: session.currentQuestionType,
         totalQuestions: session.totalQuestions,
+        pauseMetrics: lastPauseMetrics,
       });
 
       if (isSpeaking) Speech.stop();
@@ -127,6 +132,7 @@ export default function ActiveSimulationScreen() {
       );
 
       setAnswer("");
+      setLastPauseMetrics(undefined);
       setIsSpeaking(false);
 
       if (response.isComplete) {

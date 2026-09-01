@@ -285,6 +285,7 @@ class InterviewAnswerRequest(BaseModel):
     currentAnswer: str
     currentQuestionType: str
     totalQuestions: int
+    pauseMetrics: Optional[Dict[str, Any]] = None
 
 class InterviewReportRequest(BaseModel):
     targetRole: Optional[str] = None
@@ -331,7 +332,8 @@ def evaluate_interview_answer(req: InterviewAnswerRequest):
             current_question=req.currentQuestion,
             current_answer=req.currentAnswer,
             current_question_type=req.currentQuestionType,
-            total_questions=req.totalQuestions
+            total_questions=req.totalQuestions,
+            pause_metrics=req.pauseMetrics
         )
         eval_dict = result.get("evaluation") if isinstance(result, dict) and isinstance(result.get("evaluation"), dict) else {}
         score_val = eval_dict.get("overall", "N/A")
@@ -360,9 +362,17 @@ async def transcribe_interview_audio(audio: UploadFile = File(...)):
         from transcriber import transcribe_audio
         # Default fallback mime type if not provided
         mime = audio.content_type if audio.content_type else "audio/m4a"
-        text = transcribe_audio(bytes(file_bytes), mime)
+        transcribe_res = transcribe_audio(bytes(file_bytes), mime)
+        
+        if isinstance(transcribe_res, dict):
+            text = transcribe_res.get("text", "")
+            pause_metrics = transcribe_res.get("pauseMetrics", {})
+        else:
+            text = str(transcribe_res)
+            pause_metrics = {}
+
         print(f"[{timestamp}] [INTERVIEW] Transcription complete: '{text[:50]}...'")
-        return {"transcription": text}
+        return {"transcription": text, "pauseMetrics": pause_metrics}
     except Exception as e:
         print(f"[{timestamp}] [INTERVIEW ERROR] Transcribe Error:", e)
         raise HTTPException(status_code=500, detail=str(e))
