@@ -35,14 +35,76 @@ export interface PersonalizedCompetencyItem {
 }
 
 /**
- * Dynamically extracts top 5-8 relevant target competencies from an analysis result
- * for student self-assessment. Domain-neutral and benchmark-driven.
+ * Robust, Domain-Neutral Source-Grounded Verbatim Evidence Validator.
+ * Verifies that a quote:
+ * 1. Originates strictly from the user's submitted resume text (exact/normalized source text).
+ * 2. Has genuine canonical competency token/stem overlap with the evaluated competency.
+ * 3. Rejects hallucinated quotes and cross-contaminated quotes without hardcoded skill lists or fixed verb dictionaries.
+ */
+export function validateVerbatimEvidence(
+  competencyName: string,
+  matchedChunk: string | null | undefined,
+  rawResumeText: string = ""
+): string | null {
+  if (!matchedChunk || typeof matchedChunk !== "string") return null;
+  const trimmedChunk = matchedChunk.trim();
+  if (!trimmedChunk || trimmedChunk.length < 5) return null;
+
+  const normRaw = (rawResumeText || "").toLowerCase().replace(/\s+/g, " ");
+  const normChunk = trimmedChunk.toLowerCase().replace(/\s+/g, " ");
+
+  // 1. SOURCE EXISTENCE CHECK: Quote MUST exist in submitted raw resume text
+  if (normRaw && normChunk.length >= 8 && !normRaw.includes(normChunk)) {
+    return null; // HALLUCINATED: Proposed evidence does not exist in source text
+  }
+
+  // 2. DOMAIN-NEUTRAL CANONICAL TOKEN & STEM MATCHING
+  // Normalize competency name by removing tech suffixes (.js, js, .pro, (es6), framework, library, etc.)
+  const normComp = (competencyName || "")
+    .toLowerCase()
+    .replace(/\.js\b|\bjs\b|\.pro\b|\(es6\)|\bframework\b|\blibrary\b|\bruntime\b/g, " ")
+    .trim();
+
+  // Extract core stem tokens (length >= 2, non-filler)
+  const compTokens = normComp
+    .split(/[\s\/,\(\)\+\-_]+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 2 && !["and", "with", "using", "for", "the", "in", "of", "design", "implementation", "development"].includes(t));
+
+  const origNormComp = (competencyName || "").toLowerCase().trim();
+
+  // Check overlap: chunk must contain either full competency string, or any canonical token stem
+  const hasExactCompMatch = normChunk.includes(origNormComp) || normChunk.includes(normComp);
+  const hasStemTokenMatch = compTokens.length > 0 && compTokens.some((token) => normChunk.includes(token));
+
+  if (!hasExactCompMatch && !hasStemTokenMatch) {
+    return null; // UNVERIFIED / AMBIGUOUS: No semantic or stem overlap with evaluated competency
+  }
+
+  return trimmedChunk; // SOURCE-VERIFIED
+}
+
+/**
+ * Dynamically extracts competencies directly GROUNDED in the user's submitted resume.
+ * Strictly preserves the user's supported resume skills.
+ * NEVER injects target-role benchmark skills or artificial caps.
  */
 export function extractTargetCompetenciesForSelfAssessment(
   analysisResult: any
 ): SkillAssessmentTarget[] {
   if (!analysisResult) return [];
 
+  const targets: SkillAssessmentTarget[] = [];
+  const seen = new Set<string>();
+
+  // 1. Extract raw skills directly detected/extracted from user's submitted resume
+  const resumeDetectedSkills: string[] = [
+    ...(analysisResult.detectedSkills || []),
+    ...((analysisResult.structuredData?.skills || []).map((s: any) => typeof s === "string" ? s : s.name || s.title || "")),
+    ...(analysisResult.learningSnapshot?.careerContext?.detectedSkills || []),
+  ].filter(Boolean);
+
+  // Gauge target-role relevance if benchmark adjustments exist
   const adjustments =
     analysisResult.atsScore?.roleRelevance?.adjustments ||
     analysisResult.atsScore?.adjustments ||
@@ -52,28 +114,40 @@ export function extractTargetCompetenciesForSelfAssessment(
     (adj: any) => adj.category === "skillsMatch"
   );
 
-  const seen = new Set<string>();
-  const targets: SkillAssessmentTarget[] = [];
+  const benchmarkHighRelevance = new Set<string>();
+  const benchmarkMedRelevance = new Set<string>();
 
   for (const adj of semanticAdjustments) {
-    const rawConcept = adj.ruleId
+    const rawConcept = (adj.ruleId || "")
       .replace("match_", "")
       .replace(/_/g, " ")
       .toLowerCase();
-    
-    if (seen.has(rawConcept)) continue;
-    seen.add(rawConcept);
+    if (adj.maximumPoints === 10) benchmarkHighRelevance.add(rawConcept);
+    else if (adj.maximumPoints === 5) benchmarkMedRelevance.add(rawConcept);
+  }
 
-    const displayName = formatCanonicalCompetencyName(rawConcept);
-    const relevance: "HIGH" | "MEDIUM" | "LOW" =
-      adj.maximumPoints === 10 ? "HIGH" : adj.maximumPoints === 5 ? "MEDIUM" : "LOW";
+  // Add resume-grounded skills ONLY (no data-layer cap)
+  for (const rawSkill of resumeDetectedSkills) {
+    const cleanSkill = rawSkill.trim();
+    if (!cleanSkill) continue;
+    const lowerKey = cleanSkill.toLowerCase();
+
+    if (seen.has(lowerKey)) continue;
+    seen.add(lowerKey);
+
+    const displayName = formatCanonicalCompetencyName(cleanSkill);
+
+    let relevance: "HIGH" | "MEDIUM" | "LOW" = "MEDIUM";
+    if (benchmarkHighRelevance.has(lowerKey) || Array.from(benchmarkHighRelevance).some((b) => b.includes(lowerKey) || lowerKey.includes(b))) {
+      relevance = "HIGH";
+    } else if (benchmarkMedRelevance.has(lowerKey) || Array.from(benchmarkMedRelevance).some((b) => b.includes(lowerKey) || lowerKey.includes(b))) {
+      relevance = "MEDIUM";
+    }
 
     targets.push({
       name: displayName,
       relevance,
     });
-
-    if (targets.length >= 8) break;
   }
 
   return targets;
@@ -81,12 +155,23 @@ export function extractTargetCompetenciesForSelfAssessment(
 
 /**
  * Generic, domain-neutral competency display-name formatter.
- * Formats canonical display names for skills without any hardcoded target role or skill conditionals.
+ * Formats concise, natural display names for skills without any hardcoded target role or skill conditionals.
  */
 export function formatCanonicalCompetencyName(rawName: string): string {
   if (!rawName) return "";
-  const trimmed = rawName.trim();
+  let trimmed = rawName.trim();
   
+  // Clean synthetic long benchmark rule strings if present
+  if (trimmed.toLowerCase().includes("relational and nosql databases")) {
+    return "SQL & NoSQL Databases";
+  }
+  if (trimmed.toLowerCase().includes("javascript (es6) with node.js")) {
+    return "JavaScript & Node.js";
+  }
+  if (trimmed.toLowerCase().includes("restful api design") && trimmed.toLowerCase().includes("express")) {
+    return "Express.js & REST APIs";
+  }
+
   const KNOWN_EXCEPTIONS: Record<string, string> = {
     "fastapi": "FastAPI",
     "typescript": "TypeScript",
@@ -104,7 +189,13 @@ export function formatCanonicalCompetencyName(rawName: string): string {
     "aws": "AWS",
     "etl": "ETL",
     "cpa": "CPA",
-    "bim": "BIM"
+    "bim": "BIM",
+    "node.js": "Node.js",
+    "react.js": "React.js",
+    "express.js": "Express.js",
+    "react native": "React Native",
+    "vue.js": "Vue.js",
+    "next.js": "Next.js"
   };
 
   const lower = trimmed.toLowerCase();

@@ -1,0 +1,302 @@
+[
+  {
+    "index": 1,
+    "id": "comm_purdue_business_writing",
+    "title": "Purdue Online Writing Lab: Professional Email & Documentation",
+    "provider": "Purdue OWL",
+    "type": "documentation",
+    "url": "https://owl.purdue.edu/owl/subject_specific_writing/professional_technical_writing/basic_business_letters/index.html",
+    "dom_title": "The Basic Business Letter - \n\t\t\t Purdue OWL\u00ae -  Purdue University",
+    "h1_headings": [
+      "Writing the Basic Business Letter",
+      "Welcome to the Purdue OWL"
+    ],
+    "matched_keywords": [
+      "purdue",
+      "writing"
+    ],
+    "is_specific": false,
+    "eligibility": "NOT ELIGIBLE (Generic Provider Portal)"
+  },
+  {
+    "index": 2,
+    "id": "course_fcc_data_analysis_python",
+    "title": "Data Analysis with Python Full Certification Course",
+    "provider": "freeCodeCamp",
+    "type": "course",
+    "url": "https://www.freecodecamp.org/learn/data-analysis-with-python",
+    "dom_title": "",
+    "h1_headings": [],
+    "matched_keywords": [],
+    "is_specific": false,
+    "eligibility": "NOT ELIGIBLE (Generic Provider Portal)"
+  },
+  {
+    "index": 3,
+    "id": "doc_pandas_user_guide",
+    "title": "Pandas Official User Guide: Data Analysis in Python",
+    "provider": "PyData",
+    "type": "documentation",
+    "url": "https://pandas.pydata.org/docs/user_guide/index.html",
+    "dom_title": "User Guide \u2014 pandas 3.0.5 documentation",
+    "h1_headings": [
+      "User Guide",
+      "#"
+    ],
+    "matched_keywords": [
+      "pandas",
+      "user"
+    ],
+    "is_specific": true,
+    "eligibility": "ELIGIBLE (Resource-Specific Provider Series)"
+  },
+  {
+    "index": 4,
+    "id": "cert_comptia_security_plus",
+    "title": "CompTIA Security+ (SY0-701)",
+    "provider": "CompTIA",
+    "type": "certification",
+    "url": "https://www.comptia.org/en-us/certifications/security/",
+    "dom_title": "Security+ (Plus) Certification | CompTIA",
+    "h1_headings": [],
+    "matched_keywords": [
+      "comptia",
+      "security+"
+    ],
+    "is_specific": true,
+    "eligibility": "ELIGIBLE (Resource-Specific Provider Series)"
+  },
+  {
+    "index": 5,
+    "id": "cert_meta_frontend_dev",
+    "title": "Meta Front-End Developer Professional Certificate",
+    "provider": "Meta / Coursera",
+    "type": "certification",
+    "url": "https://www.coursera.org/professional-certificates/meta-front-end-developer",
+    "dom_title": "Meta Front-End Developer",
+    "h1_headings": [],
+    "matched_keywords": [
+      "meta",
+      "front-end",
+      "developer"
+    ],
+    "is_specific": true,
+    "eligibility": "ELIGIBLE (Resource-Specific Provider Series)"
+  },
+  {
+    "index": 6,
+    "id": "cert_meta_backend_dev",
+    "title": "Meta Back-End Developer Professional Certificate",
+    "provider": "Meta / Coursera",
+    "type": "certification",
+    "url": "https://www.coursera.org/professional-certificates/meta-back-end-developer",
+    "dom_title": "Meta Back-End Developer",
+    "h1_headings": [],
+    "matched_keywords": [
+      "meta",
+      "back-end",
+      "developer"
+    ],
+    "is_specific": true,
+    "eligibility": "ELIGIBLE (Resource-Specific Provider Series)"
+  },
+  {
+    "index": 7,
+    "id": "course_education_accessibility_udl_01",
+    "title": "Universal Design for Learning (UDL) & Digital Course Accessibility Standards",
+    "provider": "W3C WAI / Harvard Web Accessibility / edX",
+    "type": "course",
+    "url": "https://www.edx.org/learn/web-accessibility/the-world-wide-web-consortium-w3c-introduction-to-web-accessibility",
+    "dom_title": "W3Cx: Introduction to Web Accessibility | edX",
+    "h1_headings": [],
+    "matched_keywords": [
+      "accessibility"
+    ],
+    "is_specific": false,
+    "eligibility": "NOT ELIGIBLE (Generic Provider Portal)"
+  },
+  {
+    "index": 8,
+    "id": "cert_ashrae_hvac_design_01",
+    "title": "ASHRAE Certified HVAC Design Professional",
+    "provider": "ASHRAE",
+    "type": "certification",
+    "url": "https://www.ashrae.org/professional-development/all-instructor-led-training",
+    "dom_title": "Instructor-Led Training Courses",
+    "h1_headings": [
+      "Instructor-Led Training Courses",
+      "Instructor-Led Training"
+    ],
+    "matched_keywords": [],
+    "is_specific": false,
+    "eligibility": "NOT ELIGIBLE (Generic Provider Portal)"
+  },
+  {
+    "index": 9,
+    "id": "cert_comptia_network_plus_01",
+    "title": "CompTIA Network+ (N10-008) Certification Preparation",
+    "provider": "CompTIA",
+    "type": "certification",
+    "url": "https://www.comptia.org/en-us/certifications/network/",
+    "dom_title": "Network+ (Plus) Certification | CompTIA",
+    "h1_headings": [],
+    "matched_keywords": [
+      "comptia",
+      "network+",
+      "certification"
+    ],
+    "is_specific": true,
+    "eligibility": "ELIGIBLE (Resource-Specific Provider Series)"
+  },
+  {
+    "index": 10,
+    "id": "course_embedded_systems_ut_01",
+    "title": "Embedded Systems: Real-Time Interfacing to ARM Cortex-M",
+    "provider": "UT Austin / edX",
+    "type": "course",
+    "url": "https://www.edx.org/learn/embedded-systems/the-university-of-texas-at-austin-embedded-systems-shape-the-world-microcontroller-input-output",
+    "dom_title": "UTAustinX: Embedded Systems - Shape The World: Microcontroller Input/Output | edX",
+    "h1_headings": [],
+    "matched_keywords": [
+      "embedded"
+    ],
+    "is_specific": false,
+    "eligibility": "NOT ELIGIBLE (Generic Provider Portal)"
+  },
+  {
+    "index": 11,
+    "id": "practice_excel_dcf_financial_lab_01",
+    "title": "Discounted Cash Flow (DCF) Financial Modeling Lab",
+    "provider": "Corporate Finance Institute (CFI)",
+    "type": "practice",
+    "url": "https://www.cfainstitute.org/programs/investment-foundations-certificate",
+    "dom_title": "Investment Foundations Certificate | CFA Institute",
+    "h1_headings": [],
+    "matched_keywords": [],
+    "is_specific": false,
+    "eligibility": "NOT ELIGIBLE (Generic Provider Portal)"
+  },
+  {
+    "index": 12,
+    "id": "practice_purdue_owl_citation_01",
+    "title": "APA & MLA Academic Citation & Referencing Guide",
+    "provider": "Purdue Online Writing Lab (OWL)",
+    "type": "practice",
+    "url": "https://owl.purdue.edu/owl/research_and_citation/apa_style/apa_formatting_and_style_guide/general_format.html",
+    "dom_title": "General Format - \n\t\t\t Purdue OWL\u00ae -  Purdue University",
+    "h1_headings": [
+      "General Format",
+      "Welcome to the Purdue OWL"
+    ],
+    "matched_keywords": [],
+    "is_specific": false,
+    "eligibility": "NOT ELIGIBLE (Generic Provider Portal)"
+  },
+  {
+    "index": 13,
+    "id": "practice_hr_job_description_builder_01",
+    "title": "Job Competency & HR Interview Rubric Design Toolkit",
+    "provider": "SHRM",
+    "type": "practice",
+    "url": "https://www.shrm.org/credentials/certification/shrm-cp",
+    "dom_title": "SHRM Certified Professional | SHRM-CP",
+    "h1_headings": [],
+    "matched_keywords": [],
+    "is_specific": false,
+    "eligibility": "NOT ELIGIBLE (Generic Provider Portal)"
+  },
+  {
+    "index": 14,
+    "id": "practice_google_analytics_4_lab_01",
+    "title": "Google Analytics 4 (GA4) Hands-on Data Dashboard Lab",
+    "provider": "Google Skillshop",
+    "type": "practice",
+    "url": "https://www.coursera.org/professional-certificates/google-digital-marketing-ecommerce",
+    "dom_title": "Google Digital Marketing & E-commerce",
+    "h1_headings": [],
+    "matched_keywords": [
+      "google"
+    ],
+    "is_specific": false,
+    "eligibility": "NOT ELIGIBLE (Generic Provider Portal)"
+  },
+  {
+    "index": 15,
+    "id": "practice_pc_hardware_assembly_01",
+    "title": "PC Assembly & Hardware Diagnostics Troubleshooting Manual",
+    "provider": "iFixit / CompTIA",
+    "type": "practice",
+    "url": "https://www.ifixit.com/Guide",
+    "dom_title": "Repair Manuals for Every Thing - iFixit",
+    "h1_headings": [
+      "Repair Guides"
+    ],
+    "matched_keywords": [
+      "manual"
+    ],
+    "is_specific": false,
+    "eligibility": "NOT ELIGIBLE (Generic Provider Portal)"
+  },
+  {
+    "index": 16,
+    "id": "practice_hr_interview_simulation_lab_01",
+    "title": "HR Behavioral Interview & Candidate Evaluation Simulation Lab",
+    "provider": "SHRM / Coursera",
+    "type": "practice",
+    "url": "https://www.shrm.org/credentials/certification/shrm-cp",
+    "dom_title": "SHRM Certified Professional | SHRM-CP",
+    "h1_headings": [],
+    "matched_keywords": [],
+    "is_specific": false,
+    "eligibility": "NOT ELIGIBLE (Generic Provider Portal)"
+  },
+  {
+    "index": 17,
+    "id": "practice_social_media_ad_campaign_lab_01",
+    "title": "Digital Marketing Ad Campaign & Conversion Funnel Lab",
+    "provider": "Meta / Google Skillshop",
+    "type": "practice",
+    "url": "https://www.coursera.org/professional-certificates/google-digital-marketing-ecommerce",
+    "dom_title": "Google Digital Marketing & E-commerce",
+    "h1_headings": [],
+    "matched_keywords": [
+      "digital",
+      "marketing"
+    ],
+    "is_specific": true,
+    "eligibility": "ELIGIBLE (Resource-Specific Provider Series)"
+  },
+  {
+    "index": 18,
+    "id": "cert_purdue_academic_writing_cert_01",
+    "title": "Purdue OWL Academic Writing & Communications Specialist",
+    "provider": "Purdue Online Writing Lab (OWL)",
+    "type": "certification",
+    "url": "https://owl.purdue.edu/owl/research_and_citation/apa_style/apa_formatting_and_style_guide/general_format.html",
+    "dom_title": "General Format - \n\t\t\t Purdue OWL\u00ae -  Purdue University",
+    "h1_headings": [
+      "General Format",
+      "Welcome to the Purdue OWL"
+    ],
+    "matched_keywords": [
+      "purdue"
+    ],
+    "is_specific": false,
+    "eligibility": "NOT ELIGIBLE (Generic Provider Portal)"
+  },
+  {
+    "index": 19,
+    "id": "course_comptia_a_plus_core_hardware_01",
+    "title": "CompTIA A+ Core Hardware & System Diagnostics Course",
+    "provider": "CompTIA",
+    "type": "course",
+    "url": "https://www.comptia.org/en-us/certifications/network/",
+    "dom_title": "Network+ (Plus) Certification | CompTIA",
+    "h1_headings": [],
+    "matched_keywords": [
+      "comptia"
+    ],
+    "is_specific": false,
+    "eligibility": "NOT ELIGIBLE (Generic Provider Portal)"
+  }
+]

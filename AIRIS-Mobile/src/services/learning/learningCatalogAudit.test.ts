@@ -247,4 +247,26 @@ describe("AIRIS — Comprehensive Audit-Quality Remediation Verification Suite",
       expect(redCount).toBe(3); // Source Expect #23
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // 7. CATALOG INTEGRITY & QUALITY GATE INVARIANTS (162 RECORDS)
+  // ---------------------------------------------------------------------------
+  describe("7. Catalog Integrity & Quality Gate Invariants", () => {
+    it("Validates 162 total catalog records and strict quality gate compliance", () => {
+      expect(VERIFIED_LEARNING_CATALOG.length).toBe(162);
+
+      const uniqueIds = new Set(VERIFIED_LEARNING_CATALOG.map((r) => r.id));
+      expect(uniqueIds.size).toBe(162);
+
+      for (const res of VERIFIED_LEARNING_CATALOG) {
+        expect(res.id).toBeDefined();
+        expect(res.title).toBeDefined();
+        expect(res.provider).toBeDefined();
+        expect(res.url).toBeDefined();
+        expect(res.url.trim().length).toBeGreaterThan(5);
+        expect(res.url).not.toContain("google.com/search");
+        expect(res.url).not.toContain("example.com");
+      }
+    });
+  });
 });

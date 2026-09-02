@@ -17,6 +17,7 @@ import {
   saveSelfAssessments,
   evaluatePersonalizedCompetency,
   formatCanonicalCompetencyName,
+  validateVerbatimEvidence,
   type SkillSelfAssessmentMap,
   type PersonalizedCompetencyItem
 } from "../../services/resume/selfAssessmentService";
@@ -490,12 +491,13 @@ export default function DashboardScreen() {
                     const conceptName = formatCanonicalCompetencyName(rawConcept);
                     const status = adj.points === 10 ? "STRONG_MATCH" : adj.points === 5 ? "PARTIAL_MATCH" : "NO_RELEVANT_EVIDENCE";
                     const userRating = selfRatings[rawConcept.toLowerCase()] || "SKIP";
+                    const verifiedChunk = validateVerbatimEvidence(conceptName, adj.matchedChunk, activeResume?.rawText);
 
                     return evaluatePersonalizedCompetency({
                       competency: conceptName,
                       targetRelevance: "HIGH",
                       resumeEvidenceStatus: status,
-                      matchedChunk: adj.matchedChunk,
+                      matchedChunk: verifiedChunk,
                       selfRating: userRating,
                     });
                   });

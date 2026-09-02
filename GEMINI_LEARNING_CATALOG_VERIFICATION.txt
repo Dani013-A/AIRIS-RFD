@@ -1,0 +1,2117 @@
+================================================================================
+ AIRIS LEARNING CATALOG — GEMINI INDEPENDENT VERIFICATION MANIFEST (162 RECORDS) 
+================================================================================
+Total Records Exported: 162
+Purpose: Independent human/LLM verification of every learning catalog resource.
+================================================================================
+
+=== RESOURCE 001 ===
+ID: interview_star_method_video
+Title: How to Master the STAR Method for Behavioral Interviews
+Provider: CareerVidz
+Type: video
+Context: interviewing, behavioral interviews, star method
+AIRIS Claim: Step-by-step video guide on answering behavioral interview questions using the Situation, Task, Action, and Result framework.
+Original URL: https://www.youtube.com/watch?v=uQEuo7woEEk 
+Current URL: https://www.youtube.com/watch?v=uQEuo7woEEk
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 002 ===
+ID: interview_tell_me_about_yourself
+Title: How to Answer 
+Provider: Linda Raynier
+Type: video
+Context: interviewing, self-introduction, first impressions
+AIRIS Claim: Proven formula for structuring your professional introduction, summarizing experience, and highlighting relevance.
+Original URL: https://www.youtube.com/watch?v=1mHjMNZZvFo 
+Current URL: https://www.youtube.com/watch?v=1mHjMNZZvFo
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 003 ===
+ID: interview_harvard_guide
+Title: Harvard Office of Career Services: Interviewing Master Portal
+Provider: Harvard University
+Type: guide
+Context: interviewing, etiquette, technical interviews
+AIRIS Claim: Official portal covering pre-interview preparation, standard question frameworks, handling stress questions, and post-interview follow-ups.
+Original URL: https://careerservices.fas.harvard.edu/
+Current URL: https://careerservices.fas.harvard.edu/
+Verification Status: FILTERED_GENERIC_LANDING_PAGE
+Recommendation Eligible: NO
+
+=== RESOURCE 004 ===
+ID: interview_mit_technical_prep
+Title: MIT Career Advising: Technical & Case Interview Guide
+Provider: MIT CAPD
+Type: documentation
+Context: technical interview, problem solving, case interview
+AIRIS Claim: Structured strategies for tackling algorithmic problem-solving, whiteboard architecture, and case interviews.
+Original URL: https://capd.mit.edu/resources/interviewing/
+Current URL: https://capd.mit.edu/resources/interviewing/
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 005 ===
+ID: resume_purdue_owl_handbook
+Title: Purdue Online Writing Lab: Resumes and Vitas Master Guide
+Provider: Purdue OWL
+Type: guide
+Context: resume writing, bullet points, ats formatting
+AIRIS Claim: Authoritative handbook with section-by-section breakdown, metric-driven bullet point formulas, and recruiter formatting standards.
+Original URL: https://owl.purdue.edu/owl/job_search_writing/resumes_and_vitas/resume_design/index.html
+Current URL: https://owl.purdue.edu/owl/job_search_writing/resumes_and_vitas/index.html
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 006 ===
+ID: resume_berkeley_career_guide
+Title: UC Berkeley Career Center: Resume & Job Application Guide
+Provider: UC Berkeley
+Type: documentation
+Context: resume writing, technical resumes, project descriptions
+AIRIS Claim: Guidelines on structuring technical projects, highlighting quantifiable impact, and tailoring your resume to modern applicant tracking systems.
+Original URL: https://career.berkeley.edu/
+Current URL: https://career.berkeley.edu/
+Verification Status: FILTERED_GENERIC_LANDING_PAGE
+Recommendation Eligible: NO
+
+=== RESOURCE 007 ===
+ID: resume_writing_tutorial_video
+Title: How to Write a Powerful Resume Step-by-Step
+Provider: CareerVidz
+Type: video
+Context: resume writing, formatting, ats optimization
+AIRIS Claim: Comprehensive tutorial breaking down summary sections, work experience formatting, and avoiding common ATS parser errors.
+Original URL: https://www.youtube.com/watch?v=Tt08KmFfIYQ
+Current URL: https://www.youtube.com/watch?v=Tt08KmFfIYQ
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 008 ===
+ID: resume_mit_action_verbs
+Title: MIT Action Verbs for High-Impact Resume Bullets
+Provider: MIT CAPD
+Type: guide
+Context: action verbs, resume bullets, impact writing
+AIRIS Claim: Categorized action verb dictionary to replace passive language and emphasize leadership, engineering, and analytical achievements.
+Original URL: https://capd.mit.edu/resources/resume-action-verbs/
+Current URL: https://capd.mit.edu/resources/resume-action-verbs/
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 009 ===
+ID: comm_stanford_think_fast
+Title: Think Fast, Talk Smart: Communication Techniques
+Provider: Stanford GSB
+Type: video
+Context: public speaking, workplace communication, impromptu speaking
+AIRIS Claim: Acclaimed Stanford Graduate School of Business lecture on spontaneous speaking, managing anxiety, and structuring clear impromptu messages.
+Original URL: https://www.youtube.com/watch?v=HAnw168huqA
+Current URL: https://www.youtube.com/watch?v=HAnw168huqA
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 010 ===
+ID: comm_business_writing_coursera
+Title: Effective Business Communication Specialization
+Provider: Coursera
+Type: course
+Context: active listening, feedback, collaboration
+AIRIS Claim: Interactive course exploring interpersonal workplace dynamics, constructive feedback delivery, and technical presentation best practices.
+Original URL: https://www.coursera.org/specializations/effective-business-communication
+Current URL: https://www.coursera.org/specializations/effective-business-communication
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 011 ===
+ID: comm_purdue_business_writing
+Title: Purdue Online Writing Lab: Professional Email & Documentation
+Provider: Purdue OWL
+Type: documentation
+Context: business writing, email etiquette, technical writing
+AIRIS Claim: Standard conventions for writing clear, concise, and professional business emails, memos, and technical updates.
+Original URL: https://owl.purdue.edu/owl/subject_specific_writing/professional_technical_writing/basic_business_letters/index.html
+Current URL: https://owl.purdue.edu/owl/subject_specific_writing/professional_technical_writing/basic_business_letters/index.html
+Verification Status: GENERIC_PROVIDER_PORTAL
+Recommendation Eligible: NO
+
+=== RESOURCE 012 ===
+ID: cert_ms_pl300_powerbi
+Title: Microsoft Certified: Power BI Data Analyst Associate (PL-300)
+Provider: Microsoft
+Type: certification
+Context: power bi, dax, power query
+AIRIS Claim: Official Microsoft certification validating enterprise data modeling, DAX calculations, Power Query transformations, and interactive dashboard design.
+Original URL: https://learn.microsoft.com/en-us/credentials/certifications/data-analyst-associate/
+Current URL: https://learn.microsoft.com/en-us/credentials/certifications/data-analyst-associate/
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 013 ===
+ID: cert_google_data_analytics
+Title: Google Data Analytics Professional Certificate
+Provider: Google / Coursera
+Type: certification
+Context: sql, data cleaning, tableau
+AIRIS Claim: Industry-standard credential covering structured data cleaning, SQL query development, Tableau dashboards, and R statistical analysis.
+Original URL: https://www.coursera.org/professional-certificates/google-data-analytics
+Current URL: https://www.coursera.org/professional-certificates/google-data-analytics
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 014 ===
+ID: cert_ibm_data_analyst
+Title: IBM Data Analyst Professional Certificate
+Provider: IBM / Coursera
+Type: certification
+Context: python, sql, data analysis
+AIRIS Claim: Professional credential demonstrating expertise in Python data analysis, SQL databases, Excel spreadsheets, Cognos analytics, and interactive dashboards.
+Original URL: https://www.coursera.org/professional-certificates/ibm-data-analyst
+Current URL: https://www.coursera.org/professional-certificates/ibm-data-analyst
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 015 ===
+ID: cert_tableau_desktop_specialist
+Title: Tableau Desktop Specialist Certification
+Provider: Tableau
+Type: certification
+Context: tableau, data visualization, business intelligence
+AIRIS Claim: Validates core Tableau Desktop capabilities including calculated fields, parameters, table calculations, chart formatting, and dashboard storytelling.
+Original URL: https://www.tableau.com/learn/certification/desktop-specialist
+Current URL: https://www.tableau.com/learn/certification/desktop-specialist
+Verification Status: WAF_BLOCKED_MANUAL_REVIEW
+Recommendation Eligible: NO
+
+=== RESOURCE 016 ===
+ID: cert_ms_dp900_azure_data
+Title: Microsoft Certified: Azure Data Fundamentals (DP-900)
+Provider: Microsoft
+Type: certification
+Context: data warehouse, cloud data warehousing, azure
+AIRIS Claim: Foundational credential covering relational and non-relational cloud data services, data warehousing with Azure Synapse, and real-time analytics.
+Original URL: https://learn.microsoft.com/en-us/credentials/certifications/azure-data-fundamentals/
+Current URL: https://learn.microsoft.com/en-us/credentials/certifications/azure-data-fundamentals/
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 017 ===
+ID: course_google_advanced_data_analytics
+Title: Google Advanced Data Analytics Professional Certificate
+Provider: Google / Coursera
+Type: course
+Context: predictive modeling, python, statistics
+AIRIS Claim: Advanced data curriculum covering statistical modeling, regression analysis, machine learning algorithms, and predictive analytics using Python and Jupyter.
+Original URL: https://www.coursera.org/professional-certificates/google-advanced-data-analytics
+Current URL: https://www.coursera.org/professional-certificates/google-advanced-data-analytics
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 018 ===
+ID: course_ucdavis_sql_data_science
+Title: SQL for Data Science
+Provider: UC Davis / Coursera
+Type: course
+Context: sql, database querying, aggregations
+AIRIS Claim: In-depth course on relational database querying, complex filtering, subqueries, aggregations, window functions, and data analysis in SQLite and PostgreSQL.
+Original URL: https://www.coursera.org/learn/sql-for-data-science
+Current URL: https://www.coursera.org/learn/sql-for-data-science
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 019 ===
+ID: course_umich_applied_data_science_python
+Title: Applied Data Science with Python Specialization
+Provider: University of Michigan / Coursera
+Type: course
+Context: pandas, python, data visualization
+AIRIS Claim: University course covering pandas manipulation, statistical distributions, data visualization with matplotlib/seaborn, and text mining.
+Original URL: https://www.coursera.org/specializations/data-science-python
+Current URL: https://www.coursera.org/specializations/data-science-python
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 020 ===
+ID: course_mitx_statistics_data_science
+Title: Statistics and Data Science MicroMasters
+Provider: MITx / edX
+Type: course
+Context: statistics, regression, probability
+AIRIS Claim: Rigorous academic curriculum covering probability theory, statistical inference, regression models, hypothesis testing, and big data analysis.
+Original URL: https://www.edx.org/micromasters/mitx-statistics-and-data-science
+Current URL: https://www.edx.org/micromasters/mitx-statistics-and-data-science
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 021 ===
+ID: course_fcc_data_analysis_python
+Title: Data Analysis with Python Full Certification Course
+Provider: freeCodeCamp
+Type: course
+Context: pandas, python, data analysis
+AIRIS Claim: Hands-on coding curriculum covering NumPy multidimensional arrays, Pandas DataFrames, data cleaning, and real-world data analysis projects.
+Original URL: https://www.freecodecamp.org/learn/data-analysis-with-python/
+Current URL: https://www.freecodecamp.org/learn/data-analysis-with-python/
+Verification Status: GENERIC_PROVIDER_PORTAL
+Recommendation Eligible: NO
+
+=== RESOURCE 022 ===
+ID: book_fpp_forecasting
+Title: Forecasting: Principles and Practice (3rd Edition)
+Provider: OTexts / Rob J Hyndman
+Type: guide
+Context: time series forecasting, forecasting, time series analysis
+AIRIS Claim: Authoritative handbook on time series forecasting, temporal data modeling, ARIMA models, exponential smoothing, and forecast evaluation.
+Original URL: https://otexts.com/fpp3/
+Current URL: https://otexts.com/fpp3/
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 023 ===
+ID: doc_use_the_index_luke
+Title: Use The Index, Luke! - SQL Indexing & Query Performance Tuning
+Provider: Markus Winand
+Type: guide
+Context: sql performance tuning, query optimization, database indexing
+AIRIS Claim: In-depth guide to database indexing, execution plan analysis, slow query optimization, and SQL performance tuning across PostgreSQL, MySQL, and Oracle.
+Original URL: https://use-the-index-luke.com/
+Current URL: https://use-the-index-luke.com/
+Verification Status: FILTERED_GENERIC_LANDING_PAGE
+Recommendation Eligible: NO
+
+=== RESOURCE 024 ===
+ID: practice_w3schools_sql
+Title: W3Schools Interactive SQL Data Analysis Tutorial
+Provider: W3Schools
+Type: practice
+Context: sql, database querying, data analysis
+AIRIS Claim: Hands-on interactive practice covering SQL queries, JOIN operations, aggregations, GROUP BY, subqueries, and database manipulation.
+Original URL: https://www.w3schools.com/sql/sql_intro.asp
+Current URL: https://www.w3schools.com/sql/
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 025 ===
+ID: doc_pandas_user_guide
+Title: Pandas Official User Guide: Data Analysis in Python
+Provider: PyData
+Type: documentation
+Context: pandas, python, data manipulation
+AIRIS Claim: Official documentation and reference guides for DataFrame manipulation, indexing, time-series operations, and statistical aggregations.
+Original URL: https://pandas.pydata.org/docs/user_guide/index.html
+Current URL: https://pandas.pydata.org/docs/user_guide/index.html
+Verification Status: RESOURCE_SPECIFIC_PROVIDER_SERIES
+Recommendation Eligible: YES
+
+=== RESOURCE 026 ===
+ID: guide_gdpr_data_governance
+Title: GDPR Compliance & Enterprise Data Privacy Standards Guide
+Provider: GDPR.eu
+Type: guide
+Context: data governance, data privacy, gdpr
+AIRIS Claim: Official standard guide covering GDPR regulatory compliance, data privacy principles, data protection impact assessments, and stewardship frameworks.
+Original URL: https://gdpr.eu/checklist/
+Current URL: https://gdpr.eu/what-is-gdpr/
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 027 ===
+ID: doc_google_dataplex_governance
+Title: Google Cloud Dataplex: Enterprise Data Governance & Quality Management
+Provider: Google Cloud
+Type: documentation
+Context: data governance, dataplex, data quality
+AIRIS Claim: Architecture guide for automated data discovery, data quality monitoring, metadata management, and centralized governance across cloud data lakes.
+Original URL: https://cloud.google.com/dataplex/docs/introduction
+Current URL: https://cloud.google.com/dataplex/docs/introduction
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 028 ===
+ID: doc_google_cloud_bigquery
+Title: Google Cloud BigQuery: Serverless Enterprise Data Warehousing & Analytics
+Provider: Google Cloud
+Type: documentation
+Context: data warehouse, cloud data warehousing, bigquery
+AIRIS Claim: Official guide for petabyte-scale data warehousing, SQL analytics, ETL pipelines, and business intelligence integrations.
+Original URL: https://cloud.google.com/bigquery/docs/introduction
+Current URL: https://cloud.google.com/bigquery/docs
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 029 ===
+ID: cert_comptia_security_plus
+Title: CompTIA Security+ (SY0-701)
+Provider: CompTIA
+Type: certification
+Context: cybersecurity, network security, cryptography
+AIRIS Claim: Globally recognized baseline credential covering threat detection, cryptography, network security architecture, vulnerability management, and incident response.
+Original URL: https://www.comptia.org/certifications/security
+Current URL: https://www.comptia.org/certifications/security
+Verification Status: RESOURCE_SPECIFIC_PROVIDER_SERIES
+Recommendation Eligible: YES
+
+=== RESOURCE 030 ===
+ID: cert_google_cybersecurity
+Title: Google Cybersecurity Professional Certificate
+Provider: Google / Coursera
+Type: certification
+Context: siem, splunk, wireshark
+AIRIS Claim: Hands-on program covering SIEM tools (Splunk, Chronicle), Linux command line, Python automation, and packet analysis with Wireshark.
+Original URL: https://www.coursera.org/professional-certificates/google-cybersecurity
+Current URL: https://www.coursera.org/professional-certificates/google-cybersecurity
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 031 ===
+ID: cert_comptia_cysa_plus
+Title: CompTIA CySA+ Cybersecurity Analyst (CS0-003)
+Provider: CompTIA
+Type: certification
+Context: threat analysis, siem, vulnerability assessment
+AIRIS Claim: Intermediate credential validating behavioral threat detection, security monitoring, vulnerability management, and automated incident response.
+Original URL: https://www.comptia.org/certifications/cybersecurity-analyst
+Current URL: https://www.comptia.org/certifications/cybersecurity-analyst
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 032 ===
+ID: cert_isc2_certified_in_cybersecurity
+Title: ISC2 Certified in Cybersecurity (CC)
+Provider: ISC2
+Type: certification
+Context: cybersecurity, iam, network security
+AIRIS Claim: Entry-level credential from ISC2 validating security principles, business continuity, disaster recovery, access controls, network security, and security operations.
+Original URL: https://www.isc2.org/certifications/cc
+Current URL: https://www.isc2.org/certifications/cc
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 033 ===
+ID: cert_eccouncil_ceh
+Title: Certified Ethical Hacker (CEH v12)
+Provider: EC-Council
+Type: certification
+Context: vulnerability assessment, penetration testing, network security
+AIRIS Claim: Industry-standard ethical hacking and penetration testing credential covering attack vectors, vulnerability scanning, malware analysis, and perimeter security.
+Original URL: https://www.eccouncil.org/train-certify/certified-ethical-hacker-ceh/
+Current URL: https://www.eccouncil.org/train-certify/certified-ethical-hacker-ceh/
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 034 ===
+ID: course_ibm_cybersecurity_analyst
+Title: IBM Cybersecurity Analyst Professional Certificate
+Provider: IBM / Coursera
+Type: course
+Context: siem, incident response, threat intelligence
+AIRIS Claim: Industry curriculum on cybersecurity tools (Wireshark, QRadar), attack types, endpoint protection, SIEM investigations, and incident response playbooks.
+Original URL: https://www.coursera.org/professional-certificates/ibm-cybersecurity-analyst
+Current URL: https://www.coursera.org/professional-certificates/ibm-cybersecurity-analyst
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 035 ===
+ID: course_ibm_network_security_db_vulnerabilities
+Title: Network Security & Database Vulnerabilities
+Provider: IBM / Coursera
+Type: course
+Context: network security, vulnerability assessment, firewalls
+AIRIS Claim: Comprehensive training on TCP/IP protocols, firewall architectures, intrusion detection/prevention systems (IDS/IPS), and SQL injection defenses.
+Original URL: https://www.coursera.org/learn/network-security-database-vulnerabilities
+Current URL: https://www.coursera.org/learn/network-security-database-vulnerabilities
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 036 ===
+ID: course_ritx_cybersecurity_fundamentals
+Title: Cybersecurity Fundamentals
+Provider: RITx / edX
+Type: course
+Context: cryptography, cybersecurity, threat analysis
+AIRIS Claim: University course covering computing security basics, secure system design, cryptography algorithms, authentication protocols, and threat modeling.
+Original URL: https://www.edx.org/course/cybersecurity-fundamentals
+Current URL: https://www.edx.org/course/cybersecurity-fundamentals
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 037 ===
+ID: course_threat_intel_incident_response
+Title: Threat Intelligence and Incident Response
+Provider: Coursera
+Type: course
+Context: incident response, threat intelligence, threat analysis
+AIRIS Claim: Practical course covering Cyber Kill Chain, MITRE ATT&CK framework, forensic artifact collection, threat hunting, and containment strategies.
+Original URL: https://www.coursera.org/learn/threat-intelligence-incident-response
+Current URL: https://www.coursera.org/learn/threat-intelligence-incident-response
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 038 ===
+ID: course_cybrary_intro_cybersecurity
+Title: Introduction to IT & Cybersecurity
+Provider: Cybrary
+Type: course
+Context: cybersecurity, linux, network security
+AIRIS Claim: Hands-on foundation exploring system administration, networking fundamentals, security operations centers, and ethical hacking workflows.
+Original URL: https://www.cybrary.it/course/introduction-to-it-and-cybersecurity
+Current URL: https://www.cybrary.it/course/introduction-to-it-and-cybersecurity
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 039 ===
+ID: practice_owasp_top_10
+Title: OWASP Top 10 Web Application Security Guide
+Provider: OWASP Foundation
+Type: documentation
+Context: web security, owasp, vulnerability assessment
+AIRIS Claim: Official interactive standard documentation detailing critical web vulnerabilities including Broken Access Control, Injection, and Cryptographic Failures.
+Original URL: https://owasp.org/www-project-top-ten/
+Current URL: https://owasp.org/www-project-top-ten/
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 040 ===
+ID: doc_wireshark_user_guide
+Title: Wireshark Network Traffic Analysis Official Guide
+Provider: Wireshark Foundation
+Type: documentation
+Context: wireshark, network security, packet analysis
+AIRIS Claim: Hands-on guide to packet capture, protocol dissection, filtering TCP/UDP streams, and investigating malicious network anomalies.
+Original URL: https://www.wireshark.org/docs/wsug_html_chunked/
+Current URL: https://www.wireshark.org/docs/wsug_html/
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 041 ===
+ID: practice_splunk_fundamentals
+Title: Splunk Interactive SIEM & Security Investigation Tutorial
+Provider: Splunk
+Type: practice
+Context: siem, splunk, security monitoring
+AIRIS Claim: Free guided hands-on tutorial on searching machine logs, creating security alerts, building dashboards, and analyzing security events in Splunk.
+Original URL: https://www.splunk.com/en_us/training/free-courses/splunk-fundamentals-1.html
+Current URL: https://www.splunk.com/en_us/training/free-courses/splunk-fundamentals-1.html
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 042 ===
+ID: guide_nist_incident_handling
+Title: NIST Computer Security Incident Handling Guide (SP 800-61)
+Provider: NIST
+Type: guide
+Context: incident response, security operations, threat analysis
+AIRIS Claim: Authoritative US federal standard covering incident handling lifecycle: preparation, detection & analysis, containment, eradication, and post-incident recovery.
+Original URL: https://csrc.nist.gov/publications/detail/sp/800-61/rev-2/final
+Current URL: https://csrc.nist.gov/publications/detail/sp/800-61/rev-2/final
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 043 ===
+ID: cert_aws_developer_associate
+Title: AWS Certified Developer – Associate (DVA-C02)
+Provider: Amazon Web Services (AWS)
+Type: certification
+Context: aws, backend development, serverless
+AIRIS Claim: Official Amazon credential validating core AWS services development, serverless applications with AWS Lambda, DynamoDB, API Gateway, and secure deployments.
+Original URL: https://aws.amazon.com/certification/certified-developer-associate/
+Current URL: https://aws.amazon.com/certification/certified-developer-associate/
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 044 ===
+ID: cert_meta_frontend_dev
+Title: Meta Front-End Developer Professional Certificate
+Provider: Meta / Coursera
+Type: certification
+Context: react, javascript, html
+AIRIS Claim: Industry curriculum from Meta covering React, JavaScript, responsive UI design, version control with Git, and frontend testing with Jest.
+Original URL: https://www.coursera.org/professional-certificates/meta-front-end-developer
+Current URL: https://www.coursera.org/professional-certificates/meta-front-end-developer
+Verification Status: RESOURCE_SPECIFIC_PROVIDER_SERIES
+Recommendation Eligible: YES
+
+=== RESOURCE 045 ===
+ID: cert_meta_backend_dev
+Title: Meta Back-End Developer Professional Certificate
+Provider: Meta / Coursera
+Type: certification
+Context: python, django, rest api
+AIRIS Claim: Comprehensive backend training on Python, Django, REST APIs, MySQL databases, authentication, and cloud application deployment.
+Original URL: https://www.coursera.org/professional-certificates/meta-back-end-developer
+Current URL: https://www.coursera.org/professional-certificates/meta-back-end-developer
+Verification Status: RESOURCE_SPECIFIC_PROVIDER_SERIES
+Recommendation Eligible: YES
+
+=== RESOURCE 046 ===
+ID: cert_ms_az204_azure_developer
+Title: Microsoft Certified: Azure Developer Associate (AZ-204)
+Provider: Microsoft
+Type: certification
+Context: azure, backend development, rest api
+AIRIS Claim: Validates ability to design, build, test, and maintain cloud applications and services using Azure Compute, Azure Functions, Cosmos DB, and API management.
+Original URL: https://learn.microsoft.com/en-us/credentials/certifications/azure-developer/
+Current URL: https://learn.microsoft.com/en-us/credentials/certifications/azure-developer/
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 047 ===
+ID: cert_oracle_java_programmer
+Title: Oracle Certified Associate, Java SE 8 Programmer (1Z0-808)
+Provider: Oracle
+Type: certification
+Context: java, programming, algorithms
+AIRIS Claim: Industry-standard credential proving proficiency in Java object-oriented programming, exception handling, data structures, and the Java standard library.
+Original URL: https://education.oracle.com/java-se-8-programmer-i/pexam_1Z0-808
+Current URL: https://education.oracle.com/java-se-8-programmer-i/pexam_1Z0-808
+Verification Status: WAF_BLOCKED_MANUAL_REVIEW
+Recommendation Eligible: NO
+
+=== RESOURCE 048 ===
+ID: course_harvard_cs50x
+Title: Harvard CS50: Introduction to Computer Science
+Provider: Harvard University / edX
+Type: course
+Context: algorithms, data structures, programming
+AIRIS Claim: Demanding university course covering computational thinking, memory management in C, algorithms, data structures, SQL, Python, and web development.
+Original URL: https://www.edx.org/course/introduction-computer-science-harvardx-cs50x
+Current URL: https://www.edx.org/course/introduction-computer-science-harvardx-cs50x
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 049 ===
+ID: course_princeton_algorithms_part1
+Title: Algorithms, Part I
+Provider: Princeton University / Coursera
+Type: course
+Context: algorithms, data structures, programming
+AIRIS Claim: World-class Princeton University course covering essential data structures, sorting algorithms, priority queues, binary search trees, and union-find in Java.
+Original URL: https://www.coursera.org/learn/algorithms-part1
+Current URL: https://www.coursera.org/learn/algorithms-part1
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 050 ===
+ID: course_full_stack_open
+Title: Full Stack Open: Deep Dive into Modern Web Development
+Provider: University of Helsinki
+Type: course
+Context: react, backend development, javascript
+AIRIS Claim: Renowned University of Helsinki course on single-page apps with React, Redux, Node.js REST APIs, MongoDB, TypeScript, GraphQL, and CI/CD.
+Original URL: https://fullstackopen.com/en/
+Current URL: https://fullstackopen.com/en/part1
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 051 ===
+ID: course_umich_python_everybody
+Title: Python for Everybody Specialization
+Provider: University of Michigan / Coursera
+Type: course
+Context: python, programming, databases
+AIRIS Claim: Foundational programming course covering data structures, networked application program interfaces (APIs), databases, and data processing.
+Original URL: https://www.coursera.org/specializations/python
+Current URL: https://www.coursera.org/specializations/python
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 052 ===
+ID: course_ualberta_software_design
+Title: Software Design and Architecture Specialization
+Provider: University of Alberta / Coursera
+Type: course
+Context: system design, software architecture, algorithms
+AIRIS Claim: Industry-aligned university program on software architecture patterns, object-oriented design principles (SOLID), and service-oriented architectures.
+Original URL: https://www.coursera.org/specializations/software-design-architecture
+Current URL: https://www.coursera.org/specializations/software-design-architecture
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 053 ===
+ID: practice_neetcode_roadmap
+Title: NeetCode Structured Data Structures & Algorithms Roadmap
+Provider: NeetCode.io
+Type: practice
+Context: algorithms, data structures, system design
+AIRIS Claim: Curated interactive coding roadmap covering Arrays, Two Pointers, Trees, Graphs, Dynamic Programming, and System Design with video walkthroughs.
+Original URL: https://neetcode.io/roadmap
+Current URL: https://neetcode.io/practice
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 054 ===
+ID: doc_mdn_javascript_guide
+Title: MDN Web Docs: Modern JavaScript Handbook
+Provider: Mozilla Developer Network (MDN)
+Type: documentation
+Context: javascript, es6, async/await
+AIRIS Claim: Authoritative reference for asynchronous JavaScript (Promises, async/await), ES6+ syntax, DOM APIs, event loop, and closures.
+Original URL: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide
+Current URL: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Introduction
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 055 ===
+ID: video_fcc_git_github
+Title: Git and GitHub for Beginners - Full Crash Course
+Provider: freeCodeCamp
+Type: video
+Context: git, github, version control
+AIRIS Claim: Complete hands-on guide covering repository setup, commit hygiene, feature branching, merge conflict resolution, pull requests, and Git workflows.
+Original URL: https://www.youtube.com/watch?v=RGOj5yH7evk
+Current URL: https://www.youtube.com/watch?v=RGOj5yH7evk
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 056 ===
+ID: guide_refactoring_guru_patterns
+Title: Refactoring.Guru: Design Patterns & Clean Code Guide
+Provider: Refactoring.Guru
+Type: guide
+Context: system design, design patterns, software architecture
+AIRIS Claim: Visual, interactive encyclopedia of Creational, Structural, and Behavioral design patterns with concrete code examples in TypeScript, Python, and Java.
+Original URL: https://refactoring.guru/design-patterns
+Current URL: https://refactoring.guru/design-patterns/catalog
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 057 ===
+ID: cert_aws_certified_cloud_practitioner
+Title: AWS Certified Cloud Practitioner (CLF-C02)
+Provider: Amazon Web Services (AWS)
+Type: certification
+Context: aws, cloud computing, iam
+AIRIS Claim: Official Amazon credential demonstrating fundamental understanding of AWS Cloud infrastructure, security, IAM, VPC, S3, and billing models.
+Original URL: https://aws.amazon.com/certification/certified-cloud-practitioner/
+Current URL: https://aws.amazon.com/certification/certified-cloud-practitioner/
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 058 ===
+ID: cert_aws_solutions_architect_associate
+Title: AWS Certified Solutions Architect – Associate (SAA-C03)
+Provider: Amazon Web Services (AWS)
+Type: certification
+Context: aws, cloud architecture, distributed systems
+AIRIS Claim: Industry-standard credential for designing resilient, high-performing, secure, and cost-optimized distributed cloud architectures on AWS.
+Original URL: https://aws.amazon.com/certification/certified-solutions-architect-associate/
+Current URL: https://aws.amazon.com/certification/certified-solutions-architect-associate/
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 059 ===
+ID: cert_ms_az900_azure_fundamentals
+Title: Microsoft Certified: Azure Fundamentals (AZ-900)
+Provider: Microsoft
+Type: certification
+Context: azure, cloud computing, cloud infrastructure
+AIRIS Claim: Validates foundational knowledge of cloud concepts, Azure core architectural components, management tools, and Azure governance.
+Original URL: https://learn.microsoft.com/en-us/credentials/certifications/azure-fundamentals/
+Current URL: https://learn.microsoft.com/en-us/credentials/certifications/azure-fundamentals/
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 060 ===
+ID: cert_gcp_associate_cloud_engineer
+Title: Google Cloud Associate Cloud Engineer
+Provider: Google Cloud
+Type: certification
+Context: google cloud, cloud computing, kubernetes
+AIRIS Claim: Validates ability to deploy applications, monitor operations, manage enterprise solutions, and configure access and security on Google Cloud Platform.
+Original URL: https://cloud.google.com/learn/certification/associate-cloud-engineer
+Current URL: https://cloud.google.com/learn/certification/associate-cloud-engineer
+Verification Status: FILTERED_DOM_UNVERIFIED
+Recommendation Eligible: NO
+
+=== RESOURCE 061 ===
+ID: cert_hashicorp_terraform_associate
+Title: HashiCorp Certified: Terraform Associate (003)
+Provider: HashiCorp
+Type: certification
+Context: terraform, infrastructure as code, devops
+AIRIS Claim: Validates Infrastructure as Code (IaC) principles, Terraform workflow, state management, module creation, and automated multi-cloud provisioning.
+Original URL: https://www.hashicorp.com/certification/terraform-associate
+Current URL: https://www.hashicorp.com/certification/terraform-associate
+Verification Status: WAF_BLOCKED_MANUAL_REVIEW
+Recommendation Eligible: NO
+
+=== RESOURCE 062 ===
+ID: course_coursera_gcp_architecting
+Title: Architecting with Google Compute Engine Specialization
+Provider: Google Cloud / Coursera
+Type: course
+Context: google cloud, cloud architecture, networking
+AIRIS Claim: Hands-on cloud architecture program on GCP Virtual Private Clouds (VPC), Compute Engine VMs, Load Balancing, Autoscaling, and IAM permissions.
+Original URL: https://www.coursera.org/specializations/gcp-architecture
+Current URL: https://www.coursera.org/specializations/gcp-architecture
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 063 ===
+ID: course_aws_devops_specialization
+Title: DevOps on AWS Specialization
+Provider: AWS / Coursera
+Type: course
+Context: aws, devops, ci/cd
+AIRIS Claim: Official AWS curriculum covering CodePipeline, CodeBuild, CodeDeploy, CloudFormation infrastructure automation, and observability with CloudWatch.
+Original URL: https://www.coursera.org/specializations/aws-devops
+Current URL: https://www.coursera.org/specializations/aws-devops
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 064 ===
+ID: course_linux_foundation_kubernetes_intro
+Title: Introduction to Kubernetes
+Provider: Linux Foundation / edX
+Type: course
+Context: kubernetes, containers, docker
+AIRIS Claim: Linux Foundation course covering container orchestration, Pods, Deployments, Services, ConfigMaps, and cluster networking with Kubernetes.
+Original URL: https://www.edx.org/course/introduction-to-kubernetes
+Current URL: https://www.edx.org/course/introduction-to-kubernetes
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 065 ===
+ID: video_fcc_docker_containers
+Title: Docker Tutorial for Beginners - Full Practical Course
+Provider: freeCodeCamp
+Type: video
+Context: docker, containers, devops
+AIRIS Claim: Hands-on tutorial covering containerization fundamentals, Dockerfiles, multi-stage builds, Docker Compose, and container networking.
+Original URL: https://www.youtube.com/watch?v=fqMOX6JJhGo
+Current URL: https://www.youtube.com/watch?v=fqMOX6JJhGo
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 066 ===
+ID: doc_kubernetes_official_docs
+Title: Kubernetes Core Architecture & Concepts Guide
+Provider: Cloud Native Computing Foundation (CNCF)
+Type: documentation
+Context: kubernetes, containers, cloud architecture
+AIRIS Claim: Official interactive documentation and architecture tutorials for cluster administration, declarative YAML configs, and production workload management.
+Original URL: https://kubernetes.io/docs/concepts/overview/what-is-kubernetes/
+Current URL: https://kubernetes.io/docs/concepts/
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 067 ===
+ID: doc_terraform_official_tutorials
+Title: HashiCorp Terraform Guided Tutorials & Architecture
+Provider: HashiCorp
+Type: practice
+Context: terraform, infrastructure as code, devops
+AIRIS Claim: Hands-on guided walkthroughs for provisioning cloud infrastructure across AWS, Azure, and Google Cloud using declarative Terraform configurations.
+Original URL: https://developer.hashicorp.com/terraform/tutorials
+Current URL: https://developer.hashicorp.com/terraform/tutorials
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 068 ===
+ID: cert_ms_ai900_azure_ai
+Title: Microsoft Certified: Azure AI Fundamentals (AI-900)
+Provider: Microsoft
+Type: certification
+Context: machine learning, artificial intelligence, azure
+AIRIS Claim: Foundational credential demonstrating understanding of machine learning workloads, computer vision, natural language processing, and conversational AI on Azure.
+Original URL: https://learn.microsoft.com/en-us/credentials/certifications/azure-ai-fundamentals/
+Current URL: https://learn.microsoft.com/en-us/credentials/certifications/azure-ai-fundamentals/
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 069 ===
+ID: cert_gcp_professional_ml_engineer
+Title: Google Cloud Professional Machine Learning Engineer
+Provider: Google Cloud
+Type: certification
+Context: machine learning, vertex ai, tensorflow
+AIRIS Claim: Industry-standard credential for designing, building, and productionizing scalable ML models with Vertex AI, TensorFlow, BigQuery ML, and Kubeflow Pipelines.
+Original URL: https://cloud.google.com/learn/certification/machine-learning-engineer
+Current URL: https://cloud.google.com/learn/certification/machine-learning-engineer
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 070 ===
+ID: cert_tensorflow_developer
+Title: TensorFlow Developer Certificate
+Provider: Google / TensorFlow
+Type: certification
+Context: tensorflow, deep learning, machine learning
+AIRIS Claim: Official Google credential proving expertise in building deep learning models, CNNs for image classification, and RNNs for natural language processing using TensorFlow.
+Original URL: https://www.tensorflow.org/certificate
+Current URL: https://www.tensorflow.org/certificate
+Verification Status: DEAD_RESOURCE_HTTP_FAILED
+Recommendation Eligible: NO
+
+=== RESOURCE 071 ===
+ID: course_andrewng_machine_learning
+Title: Machine Learning Specialization
+Provider: DeepLearning.AI / Stanford / Coursera
+Type: course
+Context: machine learning, supervised learning, regression
+AIRIS Claim: World-renowned curriculum by Andrew Ng covering supervised learning, linear/logistic regression, neural networks, decision trees, and reinforcement learning.
+Original URL: https://www.coursera.org/specializations/machine-learning-introduction
+Current URL: https://www.coursera.org/specializations/machine-learning-introduction
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 072 ===
+ID: course_deeplearning_specialization
+Title: Deep Learning Specialization
+Provider: DeepLearning.AI / Coursera
+Type: course
+Context: deep learning, neural networks, nlp
+AIRIS Claim: Mastery curriculum covering convolutional neural networks (CNN), sequence models (RNN/LSTM/Transformers), optimization algorithms, and hyperparameter tuning.
+Original URL: https://www.coursera.org/specializations/deep-learning
+Current URL: https://www.coursera.org/specializations/deep-learning
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 073 ===
+ID: doc_huggingface_nlp_course
+Title: Hugging Face NLP & Transformers Interactive Course
+Provider: Hugging Face
+Type: practice
+Context: nlp, transformers, pytorch
+AIRIS Claim: Practical hands-on course covering state-of-the-art Transformer architectures, BERT, GPT fine-tuning, tokenizers, and deployment with PyTorch.
+Original URL: https://huggingface.co/learn/nlp-course
+Current URL: https://huggingface.co/learn/nlp-course
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 074 ===
+ID: doc_pytorch_official_tutorials
+Title: PyTorch Deep Learning & Tensor Operations Official Guide
+Provider: PyTorch / Linux Foundation
+Type: documentation
+Context: pytorch, deep learning, neural networks
+AIRIS Claim: Official guide covering dynamic computational graphs, Autograd, custom model architectures, GPU acceleration, and distributed training.
+Original URL: https://pytorch.org/tutorials/
+Current URL: https://pytorch.org/tutorials/
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 075 ===
+ID: cert_meta_react_native_specialization
+Title: Meta React Native Specialization Certificate
+Provider: Meta / Coursera
+Type: certification
+Context: react native, mobile development, javascript
+AIRIS Claim: Curriculum from Meta validating cross-platform mobile development with React Native, native device APIs, state management, and app store deployment.
+Original URL: https://www.coursera.org/specializations/meta-react-native
+Current URL: https://www.coursera.org/specializations/meta-react-native
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 076 ===
+ID: doc_react_native_official
+Title: React Native Core Architecture & Component Guide
+Provider: Meta / React Native
+Type: documentation
+Context: react native, mobile development, typescript
+AIRIS Claim: Official documentation covering native components, performance optimization, state management, Expo workflows, and cross-platform navigation.
+Original URL: https://reactnative.dev/docs/getting-started
+Current URL: https://reactnative.dev/docs/tutorial
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 077 ===
+ID: cert_istqb_foundation
+Title: ISTQB Certified Tester Foundation Level (CTFL)
+Provider: ISTQB
+Type: certification
+Context: automated testing, unit testing, qa testing
+AIRIS Claim: Globally recognized standard certification for software testing principles, test design techniques, defect lifecycle, and automated test management.
+Original URL: https://www.istqb.org/certifications/certified-tester-foundation-level
+Current URL: https://www.istqb.org/certifications/certified-tester-foundation-level
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 078 ===
+ID: doc_cypress_testing_docs
+Title: Cypress Modern Automated End-to-End Testing Documentation
+Provider: Cypress.io
+Type: documentation
+Context: automated testing, cypress, e2e testing
+AIRIS Claim: Official guide and tutorials for writing robust component tests, API integration tests, and UI assertions in JavaScript/TypeScript.
+Original URL: https://docs.cypress.io/guides/overview/why-cypress
+Current URL: https://docs.cypress.io/guides/overview/why-cypress
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 079 ===
+ID: cert_google_ux_design
+Title: Google UX Design Professional Certificate
+Provider: Google / Coursera
+Type: certification
+Context: figma, ux design, user research
+AIRIS Claim: End-to-end design curriculum covering user research, wireframing, Figma prototyping, usability testing, and UX portfolio building.
+Original URL: https://www.coursera.org/professional-certificates/google-ux-design
+Current URL: https://www.coursera.org/professional-certificates/google-ux-design
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 080 ===
+ID: video_fcc_figma_tutorial
+Title: Figma UI/UX Design Essentials Full Tutorial
+Provider: freeCodeCamp
+Type: video
+Context: figma, ui design, design systems
+AIRIS Claim: Practical video course teaching auto-layout, design systems, interactive components, responsive design, and developer handoff in Figma.
+Original URL: https://www.youtube.com/watch?v=JwZX5bWc8Yw
+Current URL: https://www.youtube.com/watch?v=JwZX5bWc8Yw
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 081 ===
+ID: cert_cisco_ccna
+Title: Cisco Certified Network Associate (CCNA 200-301)
+Provider: Cisco
+Type: certification
+Context: network security, tcp/ip, routing
+AIRIS Claim: Industry-standard networking credential validating IP connectivity, network security fundamentals, routing protocols (OSPF), switching, and network automation.
+Original URL: https://www.cisco.com/c/en/us/training-events/training-certifications/certifications/associate/ccna.html
+Current URL: https://www.cisco.com/c/en/us/training-events/training-certifications/certifications/associate/ccna.html
+Verification Status: WAF_BLOCKED_MANUAL_REVIEW
+Recommendation Eligible: NO
+
+=== RESOURCE 082 ===
+ID: cert_ms_dp300_azure_dba
+Title: Microsoft Certified: Azure Database Administrator Associate (DP-300)
+Provider: Microsoft
+Type: certification
+Context: database administration, sql, performance tuning
+AIRIS Claim: Credential for implementing and managing operational database solutions with Azure SQL Database, high availability, disaster recovery, and query performance tuning.
+Original URL: https://learn.microsoft.com/en-us/credentials/certifications/azure-database-administrator-associate/
+Current URL: https://learn.microsoft.com/en-us/credentials/certifications/azure-database-administrator-associate/
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 083 ===
+ID: doc_postgresql_official_docs
+Title: PostgreSQL Official Documentation & Architecture Guide
+Provider: PostgreSQL Global Development Group
+Type: documentation
+Context: postgresql, sql, relational modeling
+AIRIS Claim: Comprehensive reference on PostgreSQL relational modeling, indexing, ACID transactions, complex queries, and performance tuning.
+Original URL: https://www.postgresql.org/docs/
+Current URL: https://www.postgresql.org/docs/
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 084 ===
+ID: seminar_devcon_ph_tech_talks
+Title: DevCon Summit & Developer Tech Talks
+Provider: Developers Connect (DevCon)
+Type: seminar
+Context: technology trends, software architecture, career growth
+AIRIS Claim: The Philippines
+Original URL: https://devcon.ph/
+Current URL: https://devcon.ph/
+Verification Status: FILTERED_GENERIC_LANDING_PAGE
+Recommendation Eligible: NO
+
+=== RESOURCE 085 ===
+ID: seminar_aws_innovate_online
+Title: AWS Innovate: Modern Applications & Cloud Architecture
+Provider: Amazon Web Services (AWS)
+Type: seminar
+Context: aws, cloud architecture, serverless
+AIRIS Claim: Free global online conference exploring microservices, serverless patterns on AWS Lambda, database modernization, and generative AI services.
+Original URL: https://aws.amazon.com/events/aws-innovate/
+Current URL: https://aws.amazon.com/events/aws-innovate/
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 086 ===
+ID: cert_civil_staadpro_01
+Title: Bentley STAAD.Pro Structural Analysis & Design Professional Certification
+Provider: Bentley Systems / edX
+Type: certification
+Context: staad.pro, structural analysis, bentley staad
+AIRIS Claim: Official credential validating proficiency in 3D structural analysis, steel and concrete design code compliance, and load calculations using STAAD.Pro.
+Original URL: https://www.edx.org/school/bentley
+Current URL: https://www.edx.org/school/bentley
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 087 ===
+ID: course_civil_concrete_01
+Title: Design of Reinforced Concrete Structures (ACI Code Standards)
+Provider: Structural Engineering Institute / NPTEL
+Type: course
+Context: concrete structure design, reinforced concrete, structural design
+AIRIS Claim: Comprehensive engineering course covering reinforced concrete beam design, slab design, column sizing, and foundation structural analysis.
+Original URL: https://nptel.ac.in/courses/105105105
+Current URL: https://nptel.ac.in/courses/105105105
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 088 ===
+ID: course_civil_revit_bim_01
+Title: Autodesk Revit Structural BIM & 3D Drafting
+Provider: Autodesk Official / Coursera
+Type: course
+Context: bim, building information modeling, revit
+AIRIS Claim: Hands-on building information modeling course focused on creating structural 3D Revit models, reinforcement detailing, and clash detection.
+Original URL: https://www.coursera.org/learn/autodesk-revit-structural-design
+Current URL: https://www.coursera.org/learn/autodesk-revit-structural-design
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 089 ===
+ID: cert_accountancy_audit_01
+Title: Certified Internal Auditor (CIA) & Internal Controls Certification
+Provider: Institute of Internal Auditors (IIA)
+Type: certification
+Context: internal controls, internal audit, financial controls
+AIRIS Claim: Official credential validating mastery of internal audit standards, COSO internal control frameworks, governance, and financial compliance.
+Original URL: https://www.theiia.org/en/products/certification/cia/
+Current URL: https://www.theiia.org/en/products/certification/cia/
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 090 ===
+ID: course_accountancy_bookkeeping_01
+Title: Bookkeeping & Financial Statement Preparation Mastery
+Provider: Association of Chartered Certified Accountants (ACCA) / edX
+Type: course
+Context: bookkeeping, financial accounting, journal entries
+AIRIS Claim: Comprehensive accounting course covering double-entry bookkeeping, general ledger management, trial balance verification, and balance sheet preparation.
+Original URL: https://www.edx.org/course/bookkeeping-building-blocks
+Current URL: https://www.edx.org/course/bookkeeping-building-blocks
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 091 ===
+ID: course_accountancy_excel_modeling_01
+Title: Wharton Financial Modeling & Advanced Corporate Excel
+Provider: Wharton School / University of Pennsylvania / Coursera
+Type: course
+Context: advanced excel, financial modeling, excel
+AIRIS Claim: Executive course on building dynamic financial models, cash flow forecasting, pivot table analysis, and Excel macro automation for accountants.
+Original URL: https://www.coursera.org/learn/wharton-financial-modeling
+Current URL: https://www.coursera.org/learn/wharton-financial-modeling
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 092 ===
+ID: course_education_elearning_storyline_01
+Title: E-Learning Development with Articulate Storyline & Authoring Tools
+Provider: Instructional Design Central / edX
+Type: course
+Context: e-learning authoring tools, articulate storyline, e-learning development
+AIRIS Claim: Professional training on creating interactive e-learning modules, SCORM compliance, quiz creation, and digital authoring using Articulate Storyline.
+Original URL: https://www.edx.org/course/e-learning-ecourses
+Current URL: https://www.edx.org/course/e-learning-ecourses
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 093 ===
+ID: course_education_addie_model_01
+Title: Instructional Design Principles & Curriculum Development (ADDIE Model)
+Provider: Purdue University / edX
+Type: course
+Context: instructional design, addie, curriculum design
+AIRIS Claim: Mastery of curriculum design frameworks, the ADDIE process, learning objectives formulation, and formative assessment strategy.
+Original URL: https://www.edx.org/course/instructional-design-models
+Current URL: https://www.edx.org/course/instructional-design-models
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 094 ===
+ID: course_education_accessibility_udl_01
+Title: Universal Design for Learning (UDL) & Digital Course Accessibility Standards
+Provider: W3C WAI / Harvard Web Accessibility / edX
+Type: course
+Context: accessibility standards, udl, universal design for learning
+AIRIS Claim: Practical guide to designing accessible digital courseware, meeting WCAG standards, and implementing inclusive learning frameworks.
+Original URL: https://www.edx.org/course/web-accessibility-introduction
+Current URL: https://www.edx.org/course/web-accessibility-introduction
+Verification Status: GENERIC_PROVIDER_PORTAL
+Recommendation Eligible: NO
+
+=== RESOURCE 095 ===
+ID: course_education_multimedia_01
+Title: Multimedia Development & Digital Content Creation for Learners
+Provider: University of Maryland / edX
+Type: course
+Context: multimedia development, digital media, educational video
+AIRIS Claim: Hands-on guide to creating engaging instructional video, screencasts, interactive infographics, and digital learning assets.
+Original URL: https://www.edx.org/course/multimedia-learning-design
+Current URL: https://www.edx.org/course/multimedia-learning-design
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 096 ===
+ID: cert_psychometrics_blep_01
+Title: Board Licensure Examination for Psychometricians (BLEP) Review & Psychometric Certification
+Provider: Psychological Association of the Philippines (PAP) / BLEP
+Type: certification
+Context: psychometrics, psychological assessment, test construction
+AIRIS Claim: Official licensure preparation covering psychological assessment, industrial psychology, abnormal psychology, and test construction standards.
+Original URL: https://www.pap.ph/
+Current URL: https://www.pap.ph/blep
+Verification Status: FILTERED_GENERIC_LANDING_PAGE
+Recommendation Eligible: NO
+
+=== RESOURCE 097 ===
+ID: course_psychometrics_testing_01
+Title: Psychological Testing & Assessment Fundamentals
+Provider: University of Queensland / edX
+Type: course
+Context: psychometrics, psychological assessment, cognitive psychology
+AIRIS Claim: In-depth course on psychometric theory, standardized testing, cognitive evaluation, and psychological measurement techniques.
+Original URL: https://www.edx.org/learn/psychology
+Current URL: https://www.edx.org/learn/psychology
+Verification Status: FILTERED_GENERIC_LANDING_PAGE
+Recommendation Eligible: NO
+
+=== RESOURCE 098 ===
+ID: course_psychology_statistics_01
+Title: Statistical Methods in Psychology & Research Design
+Provider: Stanford University / Coursera
+Type: course
+Context: statistical analysis, research methods, psychometrics
+AIRIS Claim: Comprehensive introduction to statistical analysis, hypothesis testing, correlation, and quantitative research design for behavioral scientists.
+Original URL: https://www.coursera.org/learn/statistical-reasoning
+Current URL: https://www.coursera.org/learn/statistical-reasoning
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 099 ===
+ID: cert_ncees_fe_mechanical_01
+Title: NCEES Fundamentals of Engineering (FE) Mechanical Exam Review
+Provider: NCEES
+Type: certification
+Context: thermodynamics, fluid mechanics, machine design
+AIRIS Claim: Official NCEES preparation guide for the Fundamentals of Engineering Mechanical Exam covering thermodynamics, machine design, fluid mechanics, and materials.
+Original URL: https://ncees.org/engineering/fe/
+Current URL: https://ncees.org/exams/fe-exam/
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 100 ===
+ID: cert_solidworks_cswa_01
+Title: Certified SOLIDWORKS Associate (CSWA) Mechanical Design
+Provider: Dassault Systèmes
+Type: certification
+Context: solidworks, cad, machine design
+AIRIS Claim: Official Dassault Systèmes certification verifying competency in 3D CAD modeling, mechanical part design, and assembly design.
+Original URL: https://www.solidworks.com/certifications/mechanical-design-cswa
+Current URL: https://www.solidworks.com/certifications/mechanical-design-cswa
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 101 ===
+ID: cert_ashrae_hvac_design_01
+Title: ASHRAE Certified HVAC Design Professional
+Provider: ASHRAE
+Type: certification
+Context: hvac, thermodynamics, psychrometrics
+AIRIS Claim: Professional certification covering heating, ventilation, air conditioning design, psychrometrics, and energy efficiency standards.
+Original URL: https://www.ashrae.org/professional-development/learning-portal
+Current URL: https://www.ashrae.org/professional-development/learning-portal
+Verification Status: GENERIC_PROVIDER_PORTAL
+Recommendation Eligible: NO
+
+=== RESOURCE 102 ===
+ID: course_thermodynamics_mit_01
+Title: Fundamentals of Engineering Thermodynamics & Heat Transfer
+Provider: MIT OpenCourseWare
+Type: course
+Context: thermodynamics, heat transfer, fluid mechanics
+AIRIS Claim: University-level course covering laws of thermodynamics, energy conservation, power cycles, and conductive/convective heat transfer.
+Original URL: https://ocw.mit.edu/courses/2-051-introduction-to-thermodynamics-fall-2006/
+Current URL: https://ocw.mit.edu/courses/2-051-introduction-to-thermodynamics-fall-2006/
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 103 ===
+ID: course_machine_design_georgia_01
+Title: Machine Element Design & Kinematics
+Provider: Georgia Tech / Coursera
+Type: course
+Context: machine design, kinematics, stress analysis
+AIRIS Claim: Comprehensive course on stress analysis, fatigue failure, shafts, gears, bearings, and kinematic linkages in mechanical systems.
+Original URL: https://www.coursera.org/learn/machine-design1
+Current URL: https://www.coursera.org/learn/machine-design1
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 104 ===
+ID: practice_solidworks_3d_lab_01
+Title: SOLIDWORKS Mechanical Parts & Assembly Hands-on Lab
+Provider: SOLIDWORKS Tutorials
+Type: practice
+Context: solidworks, cad, machine design
+AIRIS Claim: Practical step-by-step tutorial lab for building parametric 3D models, engineering drawings, and exploded assemblies in SOLIDWORKS.
+Original URL: https://www.solidworks.com/certifications/mechanical-design-cswa
+Current URL: https://www.solidworks.com/certifications/mechanical-design-cswa
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 105 ===
+ID: cert_ncees_fe_electrical_01
+Title: NCEES FE Electrical and Computer Exam Certification Guide
+Provider: NCEES
+Type: certification
+Context: circuit analysis, power systems, control systems
+AIRIS Claim: Official NCEES exam preparation covering circuit analysis, power systems, electromagnetics, control systems, and digital systems.
+Original URL: https://ncees.org/engineering/fe/
+Current URL: https://ncees.org/exams/fe-exam/
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 106 ===
+ID: cert_etap_power_system_01
+Title: Certified ETAP Power System Analysis Specialist
+Provider: ETAP
+Type: certification
+Context: etap, power systems, load flow analysis
+AIRIS Claim: Industry-standard certification in power system modeling, load flow analysis, short circuit calculations, and protection coordination using ETAP.
+Original URL: https://etap.com/training
+Current URL: https://etap.com/training
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 107 ===
+ID: course_electric_power_systems_01
+Title: Electric Power Systems Analysis & Smart Grid Technology
+Provider: University of Buffalo / Coursera
+Type: course
+Context: power systems, circuit analysis, transformers
+AIRIS Claim: University course on three-phase AC circuits, transformers, synchronous generators, transmission lines, and smart grid operation.
+Original URL: https://www.coursera.org/learn/electric-power-systems
+Current URL: https://www.coursera.org/learn/electric-power-systems
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 108 ===
+ID: course_philippine_electrical_code_01
+Title: Philippine Electrical Code (PEC) & Substation Design Standards
+Provider: IIEE
+Type: course
+Context: philippine electrical code, electrical design, substation design
+AIRIS Claim: Comprehensive guide to Philippine Electrical Code compliance, grounding systems, wire sizing, and high-voltage substation layout.
+Original URL: https://iiee.org.ph/
+Current URL: https://iiee.org.ph/
+Verification Status: FILTERED_GENERIC_LANDING_PAGE
+Recommendation Eligible: NO
+
+=== RESOURCE 109 ===
+ID: practice_matlab_simulink_circuit_01
+Title: MATLAB Simulink Power Systems Simulation Lab
+Provider: MathWorks
+Type: practice
+Context: matlab, simulink, circuit analysis
+AIRIS Claim: Interactive online simulation lab for modeling electric circuits, power electronic converters, and feedback control loops.
+Original URL: https://www.mathworks.com/learn/tutorials/simulink-onramp.html
+Current URL: https://www.mathworks.com/learn/tutorials/simulink-onramp.html
+Verification Status: WAF_BLOCKED_MANUAL_REVIEW
+Recommendation Eligible: NO
+
+=== RESOURCE 110 ===
+ID: cert_cisco_ccna_networking_01
+Title: Cisco Certified Network Associate (CCNA 200-301)
+Provider: Cisco Networking Academy
+Type: certification
+Context: networking, ccna, cisco
+AIRIS Claim: Industry-standard networking certification covering IP routing, switching, wireless access, network security, and automation.
+Original URL: https://www.netacad.com/courses/networking/ccna-introduction-networks
+Current URL: https://www.netacad.com/courses/networking/ccna-introduction-networks
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 111 ===
+ID: cert_comptia_network_plus_01
+Title: CompTIA Network+ (N10-008) Certification Preparation
+Provider: CompTIA
+Type: certification
+Context: networking, comptia network+, network security
+AIRIS Claim: Vendor-neutral certification validating core network architecture, security protocols, troubleshooting, and infrastructure management.
+Original URL: https://www.comptia.org/certifications/network
+Current URL: https://www.comptia.org/certifications/network
+Verification Status: RESOURCE_SPECIFIC_PROVIDER_SERIES
+Recommendation Eligible: YES
+
+=== RESOURCE 112 ===
+ID: course_embedded_systems_ut_01
+Title: Embedded Systems: Real-Time Interfacing to ARM Cortex-M
+Provider: UT Austin / edX
+Type: course
+Context: embedded systems, microcontrollers, arm cortex-m
+AIRIS Claim: Hands-on engineering course on microcontroller C programming, I/O interrupts, analog-to-digital conversion, and real-time operating systems.
+Original URL: https://www.edx.org/learn/embedded-systems/the-university-of-texas-at-austin-embedded-systems-shape-the-world-microcontroller-input-output
+Current URL: https://www.edx.org/learn/embedded-systems/the-university-of-texas-at-austin-embedded-systems-shape-the-world-microcontroller-input-output
+Verification Status: GENERIC_PROVIDER_PORTAL
+Recommendation Eligible: NO
+
+=== RESOURCE 113 ===
+ID: practice_kicad_pcb_design_01
+Title: KiCad Printed Circuit Board (PCB) Design Tutorial Lab
+Provider: KiCad EDA
+Type: practice
+Context: pcb design, kicad, circuit design
+AIRIS Claim: Step-by-step practical guide to schematic capture, PCB layout routing, component footprints, and Gerber file generation for manufacturing.
+Original URL: https://www.kicad.org/help/tutorials/
+Current URL: https://www.kicad.org/help/tutorials/
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 114 ===
+ID: cert_lean_six_sigma_green_belt_01
+Title: Lean Six Sigma Green Belt (CSSGB) Certification
+Provider: ASQ / IASSC
+Type: certification
+Context: lean six sigma, dmaic, statistical process control
+AIRIS Claim: Globally recognized credential in process improvement, DMAIC framework, statistical quality control, and waste reduction.
+Original URL: https://asq.org/cert/six-sigma-green-belt
+Current URL: https://asq.org/cert/six-sigma-green-belt
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 115 ===
+ID: cert_ascm_cscp_01
+Title: Certified Supply Chain Professional (CSCP)
+Provider: ASCM / APICS
+Type: certification
+Context: supply chain management, logistics, demand planning
+AIRIS Claim: APICS benchmark certification covering end-to-end supply chain strategy, demand planning, logistics, and supplier relationships.
+Original URL: https://www.ascm.org/learning-development/certifications-credentials/cscp/
+Current URL: https://www.ascm.org/learning-development/certifications-credentials/cscp/
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 116 ===
+ID: course_operations_research_01
+Title: Operations Research & Industrial Optimization Modeling
+Provider: Northwestern / Coursera
+Type: course
+Context: operations research, linear programming, process optimization
+AIRIS Claim: Mathematical modeling course covering linear programming, network flows, integer optimization, and inventory queueing models.
+Original URL: https://www.coursera.org/learn/operations-research-modeling
+Current URL: https://www.coursera.org/learn/operations-research-modeling
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 117 ===
+ID: course_chemical_reaction_eng_01
+Title: Chemical Reaction Engineering & Reactor Design
+Provider: MIT OpenCourseWare
+Type: course
+Context: chemical reaction engineering, unit operations, mass transfer
+AIRIS Claim: Core chemical engineering course covering reaction kinetics, isothermal and non-isothermal reactor design, and catalysis.
+Original URL: https://ocw.mit.edu/courses/10-37-chemical-and-biological-reaction-engineering-spring-2007/
+Current URL: https://ocw.mit.edu/courses/10-37-chemical-and-biological-reaction-engineering-spring-2007/
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 118 ===
+ID: practice_aspen_plus_simulation_01
+Title: Aspen Plus Process Modeling & Distillation Column Simulation
+Provider: AspenTech
+Type: practice
+Context: aspen plus, process simulation, unit operations
+AIRIS Claim: Hands-on software lab for steady-state chemical process simulation, mass/energy balances, and distillation column design.
+Original URL: https://www.aspentech.com/en/products/engineering/aspen-plus
+Current URL: https://www.aspentech.com/en/products/engineering/aspen-plus
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 119 ===
+ID: cert_autodesk_revit_arch_01
+Title: Autodesk Certified Professional: Revit Architecture for BIM
+Provider: Autodesk
+Type: certification
+Context: revit, bim, architectural design
+AIRIS Claim: Official Autodesk credential validating advanced Building Information Modeling (BIM), parametric family creation, and architectural documentation.
+Original URL: https://www.autodesk.com/certification/all-certifications/revit-architectural-design-professional
+Current URL: https://www.autodesk.com/certification/all-certifications/revit-architectural-design-professional
+Verification Status: WAF_BLOCKED_MANUAL_REVIEW
+Recommendation Eligible: NO
+
+=== RESOURCE 120 ===
+ID: cert_leed_green_associate_01
+Title: LEED Green Associate Sustainable Design Credential
+Provider: USGBC
+Type: certification
+Context: leed, sustainable building design, green building
+AIRIS Claim: Core credential in sustainable building principles, green construction standards, energy conservation, and environmental site design.
+Original URL: https://www.usgbc.org/credentials/leed-green-associate
+Current URL: https://www.usgbc.org/credentials/leed-green-associate
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 121 ===
+ID: course_architectural_design_mit_01
+Title: Architectural Design Methodology & Spatial Analysis
+Provider: MIT OpenCourseWare
+Type: course
+Context: architectural design, spatial planning, architectural drafting
+AIRIS Claim: University studio course exploring spatial relationships, architectural graphics, structural form, and environmental adaptation.
+Original URL: https://ocw.mit.edu/courses/4-205-analysis-of-historic-architecture-spring-2006/
+Current URL: https://ocw.mit.edu/courses/4-205-analysis-of-historic-architecture-spring-2006/
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 122 ===
+ID: practice_revit_bim_lab_01
+Title: Revit Building Information Modeling (BIM) Step-by-Step Lab
+Provider: Autodesk Design Academy
+Type: practice
+Context: revit, bim, architectural design
+AIRIS Claim: Practical hands-on lab tutorial for modeling multi-story structures, wall sections, schedules, and 3D perspectives in Revit.
+Original URL: https://www.autodesk.com/certification/all-certifications/revit-architectural-design-professional
+Current URL: https://www.autodesk.com/certification/all-certifications/revit-architectural-design-professional
+Verification Status: WAF_BLOCKED_MANUAL_REVIEW
+Recommendation Eligible: NO
+
+=== RESOURCE 123 ===
+ID: cert_cpa_board_prep_01
+Title: Certified Public Accountant (CPA) Board Exam Official Preparation
+Provider: AICPA / Becker Review
+Type: certification
+Context: financial accounting, financial audit, taxation
+AIRIS Claim: Comprehensive CPA licensure exam preparation covering financial accounting and reporting (FAR), auditing, taxation, and regulatory frameworks.
+Original URL: https://www.aicpa-cima.com/resources/landing/cpa-exam
+Current URL: https://www.aicpa-cima.com/resources/landing/cpa-exam
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 124 ===
+ID: cert_ima_cma_01
+Title: Certified Management Accountant (CMA) Credential
+Provider: Institute of Management Accountants (IMA)
+Type: certification
+Context: management accounting, cost accounting, financial analysis
+AIRIS Claim: Global credential validating mastery of financial planning, performance analysis, cost management, and internal control decisions.
+Original URL: https://www.imanet.org/cma-certification
+Current URL: https://www.imanet.org/cma-certification
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 125 ===
+ID: cert_quickbooks_certified_user_01
+Title: QuickBooks Certified User & Cloud Accounting Specialist
+Provider: Intuit Academy
+Type: certification
+Context: quickbooks, bookkeeping, bank reconciliation
+AIRIS Claim: Industry certification validating proficiency in QuickBooks Online, bookkeeping, bank reconciliations, invoicing, and financial reporting.
+Original URL: https://quickbooks.intuit.com/accountants/training-certification/
+Current URL: https://quickbooks.intuit.com/accountants/training-certification/
+Verification Status: DEAD_RESOURCE_HTTP_FAILED
+Recommendation Eligible: NO
+
+=== RESOURCE 126 ===
+ID: course_wharton_financial_accounting_01
+Title: Introduction to Financial Accounting & IFRS/PFRS
+Provider: Wharton / Coursera
+Type: course
+Context: financial accounting, ifrs, journal entries
+AIRIS Claim: Wharton course on double-entry bookkeeping, balance sheet structure, income statement preparation, and international financial reporting standards.
+Original URL: https://www.coursera.org/learn/wharton-accounting
+Current URL: https://www.coursera.org/learn/wharton-accounting
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 127 ===
+ID: practice_bank_reconciliation_lab_01
+Title: Bank Reconciliation & Journal Entry Financial Lab
+Provider: AccountingCoach
+Type: practice
+Context: bank reconciliation, journal entries, bookkeeping
+AIRIS Claim: Practical accounting workbook with real-world scenarios for performing monthly bank reconciliations, adjusting entries, and trial balance checks.
+Original URL: https://www.accountingcoach.com/bank-reconciliation/explanation
+Current URL: https://www.accountingcoach.com/bank-reconciliation/explanation
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 128 ===
+ID: cert_cfa_investment_foundations_01
+Title: CFA Institute Investment Foundations Certificate
+Provider: CFA Institute
+Type: certification
+Context: financial modeling, investment analysis, corporate finance
+AIRIS Claim: Global credential covering investment industry fundamentals, financial markets, valuation, ethics, and portfolio management.
+Original URL: https://www.cfainstitute.org/en/programs/investment-foundations
+Current URL: https://www.cfainstitute.org/en/programs/investment-foundations
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 129 ===
+ID: cert_shrm_cp_hr_01
+Title: SHRM Certified Professional (SHRM-CP) Exam Prep
+Provider: SHRM
+Type: certification
+Context: talent acquisition, hr analytics, employee relations
+AIRIS Claim: Premier global certification in strategic HR management, talent acquisition, employee relations, and employment law.
+Original URL: https://www.shrm.org/credentials/certification/shrm-cp
+Current URL: https://www.shrm.org/credentials/certification/shrm-cp
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 130 ===
+ID: cert_google_digital_marketing_01
+Title: Google Digital Marketing & E-Commerce Professional Certificate
+Provider: Google / Coursera
+Type: certification
+Context: digital marketing, seo, google analytics
+AIRIS Claim: Google professional certificate covering search engine optimization (SEO), social media marketing, Google Analytics 4, and email campaigns.
+Original URL: https://www.coursera.org/professional-certificates/google-digital-marketing-ecommerce
+Current URL: https://www.coursera.org/professional-certificates/google-digital-marketing-ecommerce
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 131 ===
+ID: course_corporate_finance_nyu_01
+Title: Corporate Finance & Capital Budgeting Essentials
+Provider: Coursera
+Type: course
+Context: corporate finance, financial modeling, excel
+AIRIS Claim: University course covering time value of money, capital budgeting, cost of capital (WACC), and financial statement forecasting.
+Original URL: https://www.coursera.org/learn/corporate-finance-essentials
+Current URL: https://www.coursera.org/learn/corporate-finance-essentials
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 132 ===
+ID: practice_excel_dcf_financial_lab_01
+Title: Discounted Cash Flow (DCF) Financial Modeling Lab
+Provider: Corporate Finance Institute (CFI)
+Type: practice
+Context: excel, financial modeling, dcf valuation
+AIRIS Claim: Hands-on Excel model building tutorial for performing company valuation, cash flow projections, and sensitivity analysis.
+Original URL: https://www.cfainstitute.org/en/programs/investment-foundations
+Current URL: https://www.cfainstitute.org/en/programs/investment-foundations
+Verification Status: GENERIC_PROVIDER_PORTAL
+Recommendation Eligible: NO
+
+=== RESOURCE 133 ===
+ID: cert_blep_psychometrician_review_01
+Title: Board Licensure Examination for Psychometricians (BLEP) Review
+Provider: PAP Philippines
+Type: certification
+Context: psychometrics, psychological testing, test construction
+AIRIS Claim: Official board licensure examination review for registered psychometricians covering psychological assessment, theories of personality, abnormal psychology, and industrial psychology.
+Original URL: https://www.pap.ph/
+Current URL: https://www.pap.ph/blep
+Verification Status: FILTERED_GENERIC_LANDING_PAGE
+Recommendation Eligible: NO
+
+=== RESOURCE 134 ===
+ID: course_psychological_testing_queensland_01
+Title: Psychological Testing & Psychometric Norms
+Provider: University of Queensland / Coursera
+Type: course
+Context: psychometrics, psychological testing, test construction
+AIRIS Claim: University course on test standardization, validity, reliability, item response theory, and clinical test interpretation.
+Original URL: https://www.coursera.org/learn/psychological-assessment
+Current URL: https://www.coursera.org/learn/psychological-assessment
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 135 ===
+ID: practice_spss_item_analysis_lab_01
+Title: SPSS Item Discrimination & Reliability Analysis Practice Lab
+Provider: IBM SPSS Tutorials
+Type: practice
+Context: spss, psychometrics, statistical analysis
+AIRIS Claim: Hands-on statistical computing lab for calculating Cronbach
+Original URL: https://www.ibm.com/docs/en/spss-statistics
+Current URL: https://www.ibm.com/docs/en/spss-statistics
+Verification Status: WAF_BLOCKED_MANUAL_REVIEW
+Recommendation Eligible: NO
+
+=== RESOURCE 136 ===
+ID: cert_deped_let_review_01
+Title: Licensure Examination for Teachers (LET) Official Review
+Provider: DepEd Philippines
+Type: certification
+Context: learning pedagogy, curriculum development, educational assessment
+AIRIS Claim: Official board review for professional education teachers covering child and adolescent development, principles of teaching, educational technology, and curriculum development.
+Original URL: https://www.deped.gov.ph/
+Current URL: https://www.deped.gov.ph/
+Verification Status: FILTERED_GENERIC_LANDING_PAGE
+Recommendation Eligible: NO
+
+=== RESOURCE 137 ===
+ID: cert_edx_instructional_design_01
+Title: Instructional Design & ADDIE Model Professional Certification
+Provider: University of Maryland / edX
+Type: certification
+Context: instructional design, addie model, e-learning development
+AIRIS Claim: Professional program on analyzing learner needs, designing instructional objectives, developing e-learning media, and evaluating learning outcomes using ADDIE.
+Original URL: https://www.edx.org/learn/instructional-design
+Current URL: https://www.edx.org/learn/instructional-design
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 138 ===
+ID: practice_deped_lesson_plan_guide_01
+Title: DepEd K-12 Detailed Lesson Plan (DLP) Writing Guide
+Provider: DepEd Official
+Type: practice
+Context: learning pedagogy, curriculum development, classroom management
+AIRIS Claim: Official DepEd practical guide for constructing daily lesson logs, formative assessments, and differentiated learning activities.
+Original URL: https://www.deped.gov.ph/
+Current URL: https://www.deped.gov.ph/
+Verification Status: FILTERED_GENERIC_LANDING_PAGE
+Recommendation Eligible: NO
+
+=== RESOURCE 139 ===
+ID: cert_comptia_itf_01
+Title: CompTIA IT Fundamentals (ITF+) Certification
+Provider: CompTIA
+Type: certification
+Context: it support fundamentals, basic programming, pc assembly
+AIRIS Claim: Foundation certification covering hardware basics, software applications, database concepts, networking, and security hygiene for SHS tech students.
+Original URL: https://www.comptia.org/certifications/network
+Current URL: https://www.comptia.org/certifications/network
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 140 ===
+ID: cert_tesda_bookkeeping_nc3_01
+Title: TESDA National Certificate (NC III) in Bookkeeping
+Provider: TESDA Philippines
+Type: certification
+Context: basic bookkeeping, business math, excel fundamentals
+AIRIS Claim: Philippine TESDA national certification validating competency in posting journal entries, preparing trial balances, and computing payroll.
+Original URL: https://www.tesda.gov.ph/
+Current URL: https://www.tesda.gov.ph/
+Verification Status: FILTERED_GENERIC_LANDING_PAGE
+Recommendation Eligible: NO
+
+=== RESOURCE 141 ===
+ID: course_khan_precalculus_stem_01
+Title: Pre-Calculus & Physics Fundamentals for STEM Students
+Provider: Khan Academy
+Type: course
+Context: pre-calculus, general physics, scientific inquiry
+AIRIS Claim: Self-paced foundational course in trigonometry, vectors, kinematics, and algebraic functions designed for incoming engineering students.
+Original URL: https://www.khanacademy.org/math/precalculus
+Current URL: https://www.khanacademy.org/math/precalculus
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 142 ===
+ID: practice_purdue_owl_citation_01
+Title: APA & MLA Academic Citation & Referencing Guide
+Provider: Purdue Online Writing Lab (OWL)
+Type: practice
+Context: academic writing, public speaking, media literacy
+AIRIS Claim: Authoritative Purdue OWL reference guide for structuring research papers, formatting citations, and avoiding plagiarism.
+Original URL: https://owl.purdue.edu/owl/research_and_citation/resources.html
+Current URL: https://owl.purdue.edu/owl/research_and_citation/apa_style/apa_formatting_and_style_guide/general_format.html
+Verification Status: GENERIC_PROVIDER_PORTAL
+Recommendation Eligible: NO
+
+=== RESOURCE 143 ===
+ID: course_building_codes_architects_01
+Title: Structural Systems & National Building Code for Architects
+Provider: Coursera / UAP
+Type: course
+Context: building codes, architectural design, spatial planning
+AIRIS Claim: Architectural engineering course covering structural load paths, seismic design fundamentals, PD 1096 compliance, and fire safety integration.
+Original URL: https://www.coursera.org/learn/matrix-methods-structural-analysis
+Current URL: https://www.coursera.org/learn/matrix-methods-structural-analysis
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 144 ===
+ID: course_work_measurement_ergonomics_01
+Title: Occupational Ergonomics & Work Measurement Engineering
+Provider: University of Michigan / edX
+Type: course
+Context: ergonomics, process optimization, operations research
+AIRIS Claim: Industrial engineering course on time-motion study, workstation design, human factors engineering, and physical risk evaluation.
+Original URL: https://www.edx.org/learn/ergonomics
+Current URL: https://www.edx.org/learn/ergonomics
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 145 ===
+ID: practice_value_stream_mapping_01
+Title: Value Stream Mapping (VSM) Process Improvement Toolkit
+Provider: Lean Enterprise Institute
+Type: practice
+Context: lean six sigma, process optimization, supply chain analytics
+AIRIS Claim: Practical step-by-step lab for mapping current and future state manufacturing and service processes to eliminate waste.
+Original URL: https://asq.org/cert/six-sigma-green-belt
+Current URL: https://asq.org/cert/six-sigma-green-belt
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 146 ===
+ID: cert_ncees_fe_chemical_01
+Title: NCEES FE Chemical Exam Preparation & Practice Review
+Provider: NCEES
+Type: certification
+Context: chemical reaction engineering, unit operations, mass transfer
+AIRIS Claim: Official NCEES exam guide covering chemical reaction kinetics, thermodynamics, fluid flow, heat transfer, and process safety.
+Original URL: https://ncees.org/engineering/fe/
+Current URL: https://ncees.org/exams/fe-exam/
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 147 ===
+ID: course_auditing_internal_controls_01
+Title: Auditing Standards & COSO Internal Control Framework
+Provider: University of Illinois / edX
+Type: course
+Context: financial audit, internal controls, ifrs
+AIRIS Claim: Comprehensive accounting course covering audit risk assessment, substantive testing, internal control evaluation, and audit reports.
+Original URL: https://www.edx.org/learn/auditing
+Current URL: https://www.edx.org/learn/auditing
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 148 ===
+ID: course_talent_acquisition_hr_01
+Title: Strategic Talent Acquisition & People Analytics
+Provider: Wharton / edX
+Type: course
+Context: talent acquisition, hr analytics, strategic hr
+AIRIS Claim: HR management course on recruitment pipeline design, structured interviewing, behavioral scoring, and HR data metrics.
+Original URL: https://www.edx.org/learn/human-resources
+Current URL: https://www.edx.org/learn/human-resources
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 149 ===
+ID: practice_hr_job_description_builder_01
+Title: Job Competency & HR Interview Rubric Design Toolkit
+Provider: SHRM
+Type: practice
+Context: talent acquisition, hr analytics, strategic hr
+AIRIS Claim: Practical HR guide for developing competency frameworks, job descriptions, and structured interview evaluation rubrics.
+Original URL: https://www.shrm.org/credentials/certification/shrm-cp
+Current URL: https://www.shrm.org/credentials/certification/shrm-cp
+Verification Status: GENERIC_PROVIDER_PORTAL
+Recommendation Eligible: NO
+
+=== RESOURCE 150 ===
+ID: course_supply_chain_logistics_01
+Title: Supply Chain Logistics & Inventory Management Specialization
+Provider: Rutgers / Coursera
+Type: course
+Context: supply chain management, logistics, demand planning
+AIRIS Claim: Operations course covering warehouse optimization, transportation routing, inventory forecasting, and ERP integration.
+Original URL: https://www.coursera.org/learn/supply-chain-logistics
+Current URL: https://www.coursera.org/learn/supply-chain-logistics
+Verification Status: FULLY_VERIFIED
+Recommendation Eligible: YES
+
+=== RESOURCE 151 ===
+ID: course_seo_digital_content_01
+Title: Search Engine Optimization (SEO) & Digital Content Strategy
+Provider: UC Davis / Coursera
+Type: course
+Context: digital marketing, seo, google analytics
+AIRIS Claim: Marketing course covering keyword research, on-page optimization, Google Search Console, and content marketing funnels.
+Original URL: https://www.coursera.org/learn/seo-search-engine-optimization
+Current URL: https://www.coursera.org/learn/seo-search-engine-optimization
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 152 ===
+ID: practice_google_analytics_4_lab_01
+Title: Google Analytics 4 (GA4) Hands-on Data Dashboard Lab
+Provider: Google Skillshop
+Type: practice
+Context: google analytics, digital marketing, business analytics
+AIRIS Claim: Interactive laboratory for setting up GA4 event tracking, conversion goals, e-commerce reports, and custom exploration dashboards.
+Original URL: https://www.coursera.org/professional-certificates/google-digital-marketing-ecommerce
+Current URL: https://www.coursera.org/professional-certificates/google-digital-marketing-ecommerce
+Verification Status: GENERIC_PROVIDER_PORTAL
+Recommendation Eligible: NO
+
+=== RESOURCE 153 ===
+ID: course_curriculum_development_01
+Title: Curriculum Design & Pedagogical Assessment Strategies
+Provider: University of Colorado / edX
+Type: course
+Context: learning pedagogy, curriculum development, educational assessment
+AIRIS Claim: Education course on backward design, learning objectives, formative vs summative assessment, and differentiated instruction.
+Original URL: https://www.edx.org/learn/curriculum-development
+Current URL: https://www.edx.org/learn/curriculum-development
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 154 ===
+ID: course_academic_writing_01
+Title: Academic Research Writing & Public Speaking Mastery
+Provider: Purdue OWL / Coursera
+Type: course
+Context: academic writing, public speaking, media literacy
+AIRIS Claim: Humanities course on structuring argumentative research essays, rhetoric, evidence synthesis, and oral presentation delivery.
+Original URL: https://www.coursera.org/learn/academic-writing
+Current URL: https://www.coursera.org/learn/academic-writing
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 155 ===
+ID: course_business_math_abm_01
+Title: Business Mathematics & Introductory Accounting Principles
+Provider: ACCA / edX
+Type: course
+Context: basic bookkeeping, business math, excel fundamentals
+AIRIS Claim: Foundation course covering compound interest, profit margins, break-even analysis, financial statements, and ledger posting.
+Original URL: https://www.edx.org/learn/business-math
+Current URL: https://www.edx.org/learn/business-math
+Verification Status: DEAD_RESOURCE_DEAD_RESOURCE
+Recommendation Eligible: NO
+
+=== RESOURCE 156 ===
+ID: practice_pc_hardware_assembly_01
+Title: PC Assembly & Hardware Diagnostics Troubleshooting Manual
+Provider: iFixit / CompTIA
+Type: practice
+Context: it support fundamentals, pc assembly, technical skills
+AIRIS Claim: Step-by-step hands-on guide for assembling motherboard components, installing RAM, configuring BIOS/UEFI, and diagnosing POST codes.
+Original URL: https://www.ifixit.com/Guide
+Current URL: https://www.ifixit.com/Guide
+Verification Status: GENERIC_PROVIDER_PORTAL
+Recommendation Eligible: NO
+
+=== RESOURCE 157 ===
+ID: practice_hr_interview_simulation_lab_01
+Title: HR Behavioral Interview & Candidate Evaluation Simulation Lab
+Provider: SHRM / Coursera
+Type: practice
+Context: talent acquisition, hr analytics, employee relations
+AIRIS Claim: Interactive simulation for conducting structured job interviews, scoring candidate responses, and managing HR onboarding workflows.
+Original URL: https://www.shrm.org/credentials/certification/shrm-cp
+Current URL: https://www.shrm.org/credentials/certification/shrm-cp
+Verification Status: GENERIC_PROVIDER_PORTAL
+Recommendation Eligible: NO
+
+=== RESOURCE 158 ===
+ID: practice_inventory_routing_excel_lab_01
+Title: Logistics Warehouse & Vehicle Routing Optimization Spreadsheet Lab
+Provider: ASCM / Rutgers
+Type: practice
+Context: supply chain management, logistics, demand planning
+AIRIS Claim: Hands-on Excel model building lab for optimizing warehouse inventory reorder points and vehicle distribution routes.
+Original URL: https://www.ascm.org/learning-development/certifications-credentials/cscp/
+Current URL: https://www.ascm.org/learning-development/certifications-credentials/cscp/
+Verification Status: FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC
+Recommendation Eligible: NO
+
+=== RESOURCE 159 ===
+ID: practice_social_media_ad_campaign_lab_01
+Title: Digital Marketing Ad Campaign & Conversion Funnel Lab
+Provider: Meta / Google Skillshop
+Type: practice
+Context: digital marketing, seo, google analytics
+AIRIS Claim: Practical tutorial lab for creating Meta/Google ad campaigns, setting up target demographics, and measuring return on ad spend (ROAS).
+Original URL: https://www.coursera.org/professional-certificates/google-digital-marketing-ecommerce
+Current URL: https://www.coursera.org/professional-certificates/google-digital-marketing-ecommerce
+Verification Status: RESOURCE_SPECIFIC_PROVIDER_SERIES
+Recommendation Eligible: YES
+
+=== RESOURCE 160 ===
+ID: cert_purdue_academic_writing_cert_01
+Title: Purdue OWL Academic Writing & Communications Specialist
+Provider: Purdue Online Writing Lab (OWL)
+Type: certification
+Context: academic writing, public speaking, media literacy
+AIRIS Claim: Recognized foundational certificate validating advanced essay structure, citation accuracy, public speaking, and technical writing.
+Original URL: https://owl.purdue.edu/owl/research_and_citation/resources.html
+Current URL: https://owl.purdue.edu/owl/research_and_citation/apa_style/apa_formatting_and_style_guide/general_format.html
+Verification Status: GENERIC_PROVIDER_PORTAL
+Recommendation Eligible: NO
+
+=== RESOURCE 161 ===
+ID: course_comptia_a_plus_core_hardware_01
+Title: CompTIA A+ Core Hardware & System Diagnostics Course
+Provider: CompTIA
+Type: course
+Context: it support fundamentals, pc assembly, technical skills
+AIRIS Claim: Structured technical course covering PC hardware assembly, BIOS configuration, peripheral troubleshooting, and OS deployment.
+Original URL: https://www.comptia.org/certifications/network
+Current URL: https://www.comptia.org/certifications/network
+Verification Status: GENERIC_PROVIDER_PORTAL
+Recommendation Eligible: NO
+
+=== RESOURCE 162 ===
+ID: cert_autodesk_cad_certified_user_01
+Title: Autodesk Certified User: Computer-Aided Design (CAD) Fundamentals
+Provider: Autodesk
+Type: certification
+Context: pre-calculus, general physics, engineering fundamentals
+AIRIS Claim: Official Autodesk entry-level certification validating 2D drafting, geometric modeling, and engineering drawing standards for STEM students.
+Original URL: https://www.autodesk.com/certification/all-certifications/revit-architectural-design-professional
+Current URL: https://www.autodesk.com/certification/all-certifications/revit-architectural-design-professional
+Verification Status: WAF_BLOCKED_MANUAL_REVIEW
+Recommendation Eligible: NO
+
+================================================================================
+ COMPACT TAB-DELIMITED SUMMARY TABLE 
+================================================================================
+ID	Title	Provider	Type	Context	Original URL	Current URL	Status	Eligible
+interview_star_method_video	How to Master the STAR Method for Behavioral Interviews	CareerVidz	video	interviewing, behavioral interviews, star method	https://www.youtube.com/watch?v=uQEuo7woEEk 	https://www.youtube.com/watch?v=uQEuo7woEEk	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+interview_tell_me_about_yourself	How to Answer 	Linda Raynier	video	interviewing, self-introduction, first impressions	https://www.youtube.com/watch?v=1mHjMNZZvFo 	https://www.youtube.com/watch?v=1mHjMNZZvFo	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+interview_harvard_guide	Harvard Office of Career Services: Interviewing Master Portal	Harvard University	guide	interviewing, etiquette, technical interviews	https://careerservices.fas.harvard.edu/	https://careerservices.fas.harvard.edu/	FILTERED_GENERIC_LANDING_PAGE	NO
+interview_mit_technical_prep	MIT Career Advising: Technical & Case Interview Guide	MIT CAPD	documentation	technical interview, problem solving, case interview	https://capd.mit.edu/resources/interviewing/	https://capd.mit.edu/resources/interviewing/	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+resume_purdue_owl_handbook	Purdue Online Writing Lab: Resumes and Vitas Master Guide	Purdue OWL	guide	resume writing, bullet points, ats formatting	https://owl.purdue.edu/owl/job_search_writing/resumes_and_vitas/resume_design/index.html	https://owl.purdue.edu/owl/job_search_writing/resumes_and_vitas/index.html	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+resume_berkeley_career_guide	UC Berkeley Career Center: Resume & Job Application Guide	UC Berkeley	documentation	resume writing, technical resumes, project descriptions	https://career.berkeley.edu/	https://career.berkeley.edu/	FILTERED_GENERIC_LANDING_PAGE	NO
+resume_writing_tutorial_video	How to Write a Powerful Resume Step-by-Step	CareerVidz	video	resume writing, formatting, ats optimization	https://www.youtube.com/watch?v=Tt08KmFfIYQ	https://www.youtube.com/watch?v=Tt08KmFfIYQ	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+resume_mit_action_verbs	MIT Action Verbs for High-Impact Resume Bullets	MIT CAPD	guide	action verbs, resume bullets, impact writing	https://capd.mit.edu/resources/resume-action-verbs/	https://capd.mit.edu/resources/resume-action-verbs/	FULLY_VERIFIED	YES
+comm_stanford_think_fast	Think Fast, Talk Smart: Communication Techniques	Stanford GSB	video	public speaking, workplace communication, impromptu speaking	https://www.youtube.com/watch?v=HAnw168huqA	https://www.youtube.com/watch?v=HAnw168huqA	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+comm_business_writing_coursera	Effective Business Communication Specialization	Coursera	course	active listening, feedback, collaboration	https://www.coursera.org/specializations/effective-business-communication	https://www.coursera.org/specializations/effective-business-communication	FULLY_VERIFIED	YES
+comm_purdue_business_writing	Purdue Online Writing Lab: Professional Email & Documentation	Purdue OWL	documentation	business writing, email etiquette, technical writing	https://owl.purdue.edu/owl/subject_specific_writing/professional_technical_writing/basic_business_letters/index.html	https://owl.purdue.edu/owl/subject_specific_writing/professional_technical_writing/basic_business_letters/index.html	GENERIC_PROVIDER_PORTAL	NO
+cert_ms_pl300_powerbi	Microsoft Certified: Power BI Data Analyst Associate (PL-300)	Microsoft	certification	power bi, dax, power query	https://learn.microsoft.com/en-us/credentials/certifications/data-analyst-associate/	https://learn.microsoft.com/en-us/credentials/certifications/data-analyst-associate/	FULLY_VERIFIED	YES
+cert_google_data_analytics	Google Data Analytics Professional Certificate	Google / Coursera	certification	sql, data cleaning, tableau	https://www.coursera.org/professional-certificates/google-data-analytics	https://www.coursera.org/professional-certificates/google-data-analytics	FULLY_VERIFIED	YES
+cert_ibm_data_analyst	IBM Data Analyst Professional Certificate	IBM / Coursera	certification	python, sql, data analysis	https://www.coursera.org/professional-certificates/ibm-data-analyst	https://www.coursera.org/professional-certificates/ibm-data-analyst	FULLY_VERIFIED	YES
+cert_tableau_desktop_specialist	Tableau Desktop Specialist Certification	Tableau	certification	tableau, data visualization, business intelligence	https://www.tableau.com/learn/certification/desktop-specialist	https://www.tableau.com/learn/certification/desktop-specialist	WAF_BLOCKED_MANUAL_REVIEW	NO
+cert_ms_dp900_azure_data	Microsoft Certified: Azure Data Fundamentals (DP-900)	Microsoft	certification	data warehouse, cloud data warehousing, azure	https://learn.microsoft.com/en-us/credentials/certifications/azure-data-fundamentals/	https://learn.microsoft.com/en-us/credentials/certifications/azure-data-fundamentals/	FULLY_VERIFIED	YES
+course_google_advanced_data_analytics	Google Advanced Data Analytics Professional Certificate	Google / Coursera	course	predictive modeling, python, statistics	https://www.coursera.org/professional-certificates/google-advanced-data-analytics	https://www.coursera.org/professional-certificates/google-advanced-data-analytics	FULLY_VERIFIED	YES
+course_ucdavis_sql_data_science	SQL for Data Science	UC Davis / Coursera	course	sql, database querying, aggregations	https://www.coursera.org/learn/sql-for-data-science	https://www.coursera.org/learn/sql-for-data-science	FULLY_VERIFIED	YES
+course_umich_applied_data_science_python	Applied Data Science with Python Specialization	University of Michigan / Coursera	course	pandas, python, data visualization	https://www.coursera.org/specializations/data-science-python	https://www.coursera.org/specializations/data-science-python	FULLY_VERIFIED	YES
+course_mitx_statistics_data_science	Statistics and Data Science MicroMasters	MITx / edX	course	statistics, regression, probability	https://www.edx.org/micromasters/mitx-statistics-and-data-science	https://www.edx.org/micromasters/mitx-statistics-and-data-science	FULLY_VERIFIED	YES
+course_fcc_data_analysis_python	Data Analysis with Python Full Certification Course	freeCodeCamp	course	pandas, python, data analysis	https://www.freecodecamp.org/learn/data-analysis-with-python/	https://www.freecodecamp.org/learn/data-analysis-with-python/	GENERIC_PROVIDER_PORTAL	NO
+book_fpp_forecasting	Forecasting: Principles and Practice (3rd Edition)	OTexts / Rob J Hyndman	guide	time series forecasting, forecasting, time series analysis	https://otexts.com/fpp3/	https://otexts.com/fpp3/	FULLY_VERIFIED	YES
+doc_use_the_index_luke	Use The Index, Luke! - SQL Indexing & Query Performance Tuning	Markus Winand	guide	sql performance tuning, query optimization, database indexing	https://use-the-index-luke.com/	https://use-the-index-luke.com/	FILTERED_GENERIC_LANDING_PAGE	NO
+practice_w3schools_sql	W3Schools Interactive SQL Data Analysis Tutorial	W3Schools	practice	sql, database querying, data analysis	https://www.w3schools.com/sql/sql_intro.asp	https://www.w3schools.com/sql/	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+doc_pandas_user_guide	Pandas Official User Guide: Data Analysis in Python	PyData	documentation	pandas, python, data manipulation	https://pandas.pydata.org/docs/user_guide/index.html	https://pandas.pydata.org/docs/user_guide/index.html	RESOURCE_SPECIFIC_PROVIDER_SERIES	YES
+guide_gdpr_data_governance	GDPR Compliance & Enterprise Data Privacy Standards Guide	GDPR.eu	guide	data governance, data privacy, gdpr	https://gdpr.eu/checklist/	https://gdpr.eu/what-is-gdpr/	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+doc_google_dataplex_governance	Google Cloud Dataplex: Enterprise Data Governance & Quality Management	Google Cloud	documentation	data governance, dataplex, data quality	https://cloud.google.com/dataplex/docs/introduction	https://cloud.google.com/dataplex/docs/introduction	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+doc_google_cloud_bigquery	Google Cloud BigQuery: Serverless Enterprise Data Warehousing & Analytics	Google Cloud	documentation	data warehouse, cloud data warehousing, bigquery	https://cloud.google.com/bigquery/docs/introduction	https://cloud.google.com/bigquery/docs	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+cert_comptia_security_plus	CompTIA Security+ (SY0-701)	CompTIA	certification	cybersecurity, network security, cryptography	https://www.comptia.org/certifications/security	https://www.comptia.org/certifications/security	RESOURCE_SPECIFIC_PROVIDER_SERIES	YES
+cert_google_cybersecurity	Google Cybersecurity Professional Certificate	Google / Coursera	certification	siem, splunk, wireshark	https://www.coursera.org/professional-certificates/google-cybersecurity	https://www.coursera.org/professional-certificates/google-cybersecurity	FULLY_VERIFIED	YES
+cert_comptia_cysa_plus	CompTIA CySA+ Cybersecurity Analyst (CS0-003)	CompTIA	certification	threat analysis, siem, vulnerability assessment	https://www.comptia.org/certifications/cybersecurity-analyst	https://www.comptia.org/certifications/cybersecurity-analyst	FULLY_VERIFIED	YES
+cert_isc2_certified_in_cybersecurity	ISC2 Certified in Cybersecurity (CC)	ISC2	certification	cybersecurity, iam, network security	https://www.isc2.org/certifications/cc	https://www.isc2.org/certifications/cc	FULLY_VERIFIED	YES
+cert_eccouncil_ceh	Certified Ethical Hacker (CEH v12)	EC-Council	certification	vulnerability assessment, penetration testing, network security	https://www.eccouncil.org/train-certify/certified-ethical-hacker-ceh/	https://www.eccouncil.org/train-certify/certified-ethical-hacker-ceh/	FULLY_VERIFIED	YES
+course_ibm_cybersecurity_analyst	IBM Cybersecurity Analyst Professional Certificate	IBM / Coursera	course	siem, incident response, threat intelligence	https://www.coursera.org/professional-certificates/ibm-cybersecurity-analyst	https://www.coursera.org/professional-certificates/ibm-cybersecurity-analyst	FULLY_VERIFIED	YES
+course_ibm_network_security_db_vulnerabilities	Network Security & Database Vulnerabilities	IBM / Coursera	course	network security, vulnerability assessment, firewalls	https://www.coursera.org/learn/network-security-database-vulnerabilities	https://www.coursera.org/learn/network-security-database-vulnerabilities	FULLY_VERIFIED	YES
+course_ritx_cybersecurity_fundamentals	Cybersecurity Fundamentals	RITx / edX	course	cryptography, cybersecurity, threat analysis	https://www.edx.org/course/cybersecurity-fundamentals	https://www.edx.org/course/cybersecurity-fundamentals	FULLY_VERIFIED	YES
+course_threat_intel_incident_response	Threat Intelligence and Incident Response	Coursera	course	incident response, threat intelligence, threat analysis	https://www.coursera.org/learn/threat-intelligence-incident-response	https://www.coursera.org/learn/threat-intelligence-incident-response	DEAD_RESOURCE_DEAD_RESOURCE	NO
+course_cybrary_intro_cybersecurity	Introduction to IT & Cybersecurity	Cybrary	course	cybersecurity, linux, network security	https://www.cybrary.it/course/introduction-to-it-and-cybersecurity	https://www.cybrary.it/course/introduction-to-it-and-cybersecurity	FULLY_VERIFIED	YES
+practice_owasp_top_10	OWASP Top 10 Web Application Security Guide	OWASP Foundation	documentation	web security, owasp, vulnerability assessment	https://owasp.org/www-project-top-ten/	https://owasp.org/www-project-top-ten/	FULLY_VERIFIED	YES
+doc_wireshark_user_guide	Wireshark Network Traffic Analysis Official Guide	Wireshark Foundation	documentation	wireshark, network security, packet analysis	https://www.wireshark.org/docs/wsug_html_chunked/	https://www.wireshark.org/docs/wsug_html/	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+practice_splunk_fundamentals	Splunk Interactive SIEM & Security Investigation Tutorial	Splunk	practice	siem, splunk, security monitoring	https://www.splunk.com/en_us/training/free-courses/splunk-fundamentals-1.html	https://www.splunk.com/en_us/training/free-courses/splunk-fundamentals-1.html	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+guide_nist_incident_handling	NIST Computer Security Incident Handling Guide (SP 800-61)	NIST	guide	incident response, security operations, threat analysis	https://csrc.nist.gov/publications/detail/sp/800-61/rev-2/final	https://csrc.nist.gov/publications/detail/sp/800-61/rev-2/final	FULLY_VERIFIED	YES
+cert_aws_developer_associate	AWS Certified Developer – Associate (DVA-C02)	Amazon Web Services (AWS)	certification	aws, backend development, serverless	https://aws.amazon.com/certification/certified-developer-associate/	https://aws.amazon.com/certification/certified-developer-associate/	FULLY_VERIFIED	YES
+cert_meta_frontend_dev	Meta Front-End Developer Professional Certificate	Meta / Coursera	certification	react, javascript, html	https://www.coursera.org/professional-certificates/meta-front-end-developer	https://www.coursera.org/professional-certificates/meta-front-end-developer	RESOURCE_SPECIFIC_PROVIDER_SERIES	YES
+cert_meta_backend_dev	Meta Back-End Developer Professional Certificate	Meta / Coursera	certification	python, django, rest api	https://www.coursera.org/professional-certificates/meta-back-end-developer	https://www.coursera.org/professional-certificates/meta-back-end-developer	RESOURCE_SPECIFIC_PROVIDER_SERIES	YES
+cert_ms_az204_azure_developer	Microsoft Certified: Azure Developer Associate (AZ-204)	Microsoft	certification	azure, backend development, rest api	https://learn.microsoft.com/en-us/credentials/certifications/azure-developer/	https://learn.microsoft.com/en-us/credentials/certifications/azure-developer/	FULLY_VERIFIED	YES
+cert_oracle_java_programmer	Oracle Certified Associate, Java SE 8 Programmer (1Z0-808)	Oracle	certification	java, programming, algorithms	https://education.oracle.com/java-se-8-programmer-i/pexam_1Z0-808	https://education.oracle.com/java-se-8-programmer-i/pexam_1Z0-808	WAF_BLOCKED_MANUAL_REVIEW	NO
+course_harvard_cs50x	Harvard CS50: Introduction to Computer Science	Harvard University / edX	course	algorithms, data structures, programming	https://www.edx.org/course/introduction-computer-science-harvardx-cs50x	https://www.edx.org/course/introduction-computer-science-harvardx-cs50x	FULLY_VERIFIED	YES
+course_princeton_algorithms_part1	Algorithms, Part I	Princeton University / Coursera	course	algorithms, data structures, programming	https://www.coursera.org/learn/algorithms-part1	https://www.coursera.org/learn/algorithms-part1	FULLY_VERIFIED	YES
+course_full_stack_open	Full Stack Open: Deep Dive into Modern Web Development	University of Helsinki	course	react, backend development, javascript	https://fullstackopen.com/en/	https://fullstackopen.com/en/part1	FULLY_VERIFIED	YES
+course_umich_python_everybody	Python for Everybody Specialization	University of Michigan / Coursera	course	python, programming, databases	https://www.coursera.org/specializations/python	https://www.coursera.org/specializations/python	FULLY_VERIFIED	YES
+course_ualberta_software_design	Software Design and Architecture Specialization	University of Alberta / Coursera	course	system design, software architecture, algorithms	https://www.coursera.org/specializations/software-design-architecture	https://www.coursera.org/specializations/software-design-architecture	FULLY_VERIFIED	YES
+practice_neetcode_roadmap	NeetCode Structured Data Structures & Algorithms Roadmap	NeetCode.io	practice	algorithms, data structures, system design	https://neetcode.io/roadmap	https://neetcode.io/practice	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+doc_mdn_javascript_guide	MDN Web Docs: Modern JavaScript Handbook	Mozilla Developer Network (MDN)	documentation	javascript, es6, async/await	https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide	https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Introduction	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+video_fcc_git_github	Git and GitHub for Beginners - Full Crash Course	freeCodeCamp	video	git, github, version control	https://www.youtube.com/watch?v=RGOj5yH7evk	https://www.youtube.com/watch?v=RGOj5yH7evk	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+guide_refactoring_guru_patterns	Refactoring.Guru: Design Patterns & Clean Code Guide	Refactoring.Guru	guide	system design, design patterns, software architecture	https://refactoring.guru/design-patterns	https://refactoring.guru/design-patterns/catalog	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+cert_aws_certified_cloud_practitioner	AWS Certified Cloud Practitioner (CLF-C02)	Amazon Web Services (AWS)	certification	aws, cloud computing, iam	https://aws.amazon.com/certification/certified-cloud-practitioner/	https://aws.amazon.com/certification/certified-cloud-practitioner/	FULLY_VERIFIED	YES
+cert_aws_solutions_architect_associate	AWS Certified Solutions Architect – Associate (SAA-C03)	Amazon Web Services (AWS)	certification	aws, cloud architecture, distributed systems	https://aws.amazon.com/certification/certified-solutions-architect-associate/	https://aws.amazon.com/certification/certified-solutions-architect-associate/	FULLY_VERIFIED	YES
+cert_ms_az900_azure_fundamentals	Microsoft Certified: Azure Fundamentals (AZ-900)	Microsoft	certification	azure, cloud computing, cloud infrastructure	https://learn.microsoft.com/en-us/credentials/certifications/azure-fundamentals/	https://learn.microsoft.com/en-us/credentials/certifications/azure-fundamentals/	FULLY_VERIFIED	YES
+cert_gcp_associate_cloud_engineer	Google Cloud Associate Cloud Engineer	Google Cloud	certification	google cloud, cloud computing, kubernetes	https://cloud.google.com/learn/certification/associate-cloud-engineer	https://cloud.google.com/learn/certification/associate-cloud-engineer	FILTERED_DOM_UNVERIFIED	NO
+cert_hashicorp_terraform_associate	HashiCorp Certified: Terraform Associate (003)	HashiCorp	certification	terraform, infrastructure as code, devops	https://www.hashicorp.com/certification/terraform-associate	https://www.hashicorp.com/certification/terraform-associate	WAF_BLOCKED_MANUAL_REVIEW	NO
+course_coursera_gcp_architecting	Architecting with Google Compute Engine Specialization	Google Cloud / Coursera	course	google cloud, cloud architecture, networking	https://www.coursera.org/specializations/gcp-architecture	https://www.coursera.org/specializations/gcp-architecture	FULLY_VERIFIED	YES
+course_aws_devops_specialization	DevOps on AWS Specialization	AWS / Coursera	course	aws, devops, ci/cd	https://www.coursera.org/specializations/aws-devops	https://www.coursera.org/specializations/aws-devops	DEAD_RESOURCE_DEAD_RESOURCE	NO
+course_linux_foundation_kubernetes_intro	Introduction to Kubernetes	Linux Foundation / edX	course	kubernetes, containers, docker	https://www.edx.org/course/introduction-to-kubernetes	https://www.edx.org/course/introduction-to-kubernetes	FULLY_VERIFIED	YES
+video_fcc_docker_containers	Docker Tutorial for Beginners - Full Practical Course	freeCodeCamp	video	docker, containers, devops	https://www.youtube.com/watch?v=fqMOX6JJhGo	https://www.youtube.com/watch?v=fqMOX6JJhGo	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+doc_kubernetes_official_docs	Kubernetes Core Architecture & Concepts Guide	Cloud Native Computing Foundation (CNCF)	documentation	kubernetes, containers, cloud architecture	https://kubernetes.io/docs/concepts/overview/what-is-kubernetes/	https://kubernetes.io/docs/concepts/	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+doc_terraform_official_tutorials	HashiCorp Terraform Guided Tutorials & Architecture	HashiCorp	practice	terraform, infrastructure as code, devops	https://developer.hashicorp.com/terraform/tutorials	https://developer.hashicorp.com/terraform/tutorials	FULLY_VERIFIED	YES
+cert_ms_ai900_azure_ai	Microsoft Certified: Azure AI Fundamentals (AI-900)	Microsoft	certification	machine learning, artificial intelligence, azure	https://learn.microsoft.com/en-us/credentials/certifications/azure-ai-fundamentals/	https://learn.microsoft.com/en-us/credentials/certifications/azure-ai-fundamentals/	FULLY_VERIFIED	YES
+cert_gcp_professional_ml_engineer	Google Cloud Professional Machine Learning Engineer	Google Cloud	certification	machine learning, vertex ai, tensorflow	https://cloud.google.com/learn/certification/machine-learning-engineer	https://cloud.google.com/learn/certification/machine-learning-engineer	FULLY_VERIFIED	YES
+cert_tensorflow_developer	TensorFlow Developer Certificate	Google / TensorFlow	certification	tensorflow, deep learning, machine learning	https://www.tensorflow.org/certificate	https://www.tensorflow.org/certificate	DEAD_RESOURCE_HTTP_FAILED	NO
+course_andrewng_machine_learning	Machine Learning Specialization	DeepLearning.AI / Stanford / Coursera	course	machine learning, supervised learning, regression	https://www.coursera.org/specializations/machine-learning-introduction	https://www.coursera.org/specializations/machine-learning-introduction	FULLY_VERIFIED	YES
+course_deeplearning_specialization	Deep Learning Specialization	DeepLearning.AI / Coursera	course	deep learning, neural networks, nlp	https://www.coursera.org/specializations/deep-learning	https://www.coursera.org/specializations/deep-learning	FULLY_VERIFIED	YES
+doc_huggingface_nlp_course	Hugging Face NLP & Transformers Interactive Course	Hugging Face	practice	nlp, transformers, pytorch	https://huggingface.co/learn/nlp-course	https://huggingface.co/learn/nlp-course	FULLY_VERIFIED	YES
+doc_pytorch_official_tutorials	PyTorch Deep Learning & Tensor Operations Official Guide	PyTorch / Linux Foundation	documentation	pytorch, deep learning, neural networks	https://pytorch.org/tutorials/	https://pytorch.org/tutorials/	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+cert_meta_react_native_specialization	Meta React Native Specialization Certificate	Meta / Coursera	certification	react native, mobile development, javascript	https://www.coursera.org/specializations/meta-react-native	https://www.coursera.org/specializations/meta-react-native	FULLY_VERIFIED	YES
+doc_react_native_official	React Native Core Architecture & Component Guide	Meta / React Native	documentation	react native, mobile development, typescript	https://reactnative.dev/docs/getting-started	https://reactnative.dev/docs/tutorial	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+cert_istqb_foundation	ISTQB Certified Tester Foundation Level (CTFL)	ISTQB	certification	automated testing, unit testing, qa testing	https://www.istqb.org/certifications/certified-tester-foundation-level	https://www.istqb.org/certifications/certified-tester-foundation-level	FULLY_VERIFIED	YES
+doc_cypress_testing_docs	Cypress Modern Automated End-to-End Testing Documentation	Cypress.io	documentation	automated testing, cypress, e2e testing	https://docs.cypress.io/guides/overview/why-cypress	https://docs.cypress.io/guides/overview/why-cypress	FULLY_VERIFIED	YES
+cert_google_ux_design	Google UX Design Professional Certificate	Google / Coursera	certification	figma, ux design, user research	https://www.coursera.org/professional-certificates/google-ux-design	https://www.coursera.org/professional-certificates/google-ux-design	FULLY_VERIFIED	YES
+video_fcc_figma_tutorial	Figma UI/UX Design Essentials Full Tutorial	freeCodeCamp	video	figma, ui design, design systems	https://www.youtube.com/watch?v=JwZX5bWc8Yw	https://www.youtube.com/watch?v=JwZX5bWc8Yw	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+cert_cisco_ccna	Cisco Certified Network Associate (CCNA 200-301)	Cisco	certification	network security, tcp/ip, routing	https://www.cisco.com/c/en/us/training-events/training-certifications/certifications/associate/ccna.html	https://www.cisco.com/c/en/us/training-events/training-certifications/certifications/associate/ccna.html	WAF_BLOCKED_MANUAL_REVIEW	NO
+cert_ms_dp300_azure_dba	Microsoft Certified: Azure Database Administrator Associate (DP-300)	Microsoft	certification	database administration, sql, performance tuning	https://learn.microsoft.com/en-us/credentials/certifications/azure-database-administrator-associate/	https://learn.microsoft.com/en-us/credentials/certifications/azure-database-administrator-associate/	FULLY_VERIFIED	YES
+doc_postgresql_official_docs	PostgreSQL Official Documentation & Architecture Guide	PostgreSQL Global Development Group	documentation	postgresql, sql, relational modeling	https://www.postgresql.org/docs/	https://www.postgresql.org/docs/	FULLY_VERIFIED	YES
+seminar_devcon_ph_tech_talks	DevCon Summit & Developer Tech Talks	Developers Connect (DevCon)	seminar	technology trends, software architecture, career growth	https://devcon.ph/	https://devcon.ph/	FILTERED_GENERIC_LANDING_PAGE	NO
+seminar_aws_innovate_online	AWS Innovate: Modern Applications & Cloud Architecture	Amazon Web Services (AWS)	seminar	aws, cloud architecture, serverless	https://aws.amazon.com/events/aws-innovate/	https://aws.amazon.com/events/aws-innovate/	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+cert_civil_staadpro_01	Bentley STAAD.Pro Structural Analysis & Design Professional Certification	Bentley Systems / edX	certification	staad.pro, structural analysis, bentley staad	https://www.edx.org/school/bentley	https://www.edx.org/school/bentley	DEAD_RESOURCE_DEAD_RESOURCE	NO
+course_civil_concrete_01	Design of Reinforced Concrete Structures (ACI Code Standards)	Structural Engineering Institute / NPTEL	course	concrete structure design, reinforced concrete, structural design	https://nptel.ac.in/courses/105105105	https://nptel.ac.in/courses/105105105	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+course_civil_revit_bim_01	Autodesk Revit Structural BIM & 3D Drafting	Autodesk Official / Coursera	course	bim, building information modeling, revit	https://www.coursera.org/learn/autodesk-revit-structural-design	https://www.coursera.org/learn/autodesk-revit-structural-design	DEAD_RESOURCE_DEAD_RESOURCE	NO
+cert_accountancy_audit_01	Certified Internal Auditor (CIA) & Internal Controls Certification	Institute of Internal Auditors (IIA)	certification	internal controls, internal audit, financial controls	https://www.theiia.org/en/products/certification/cia/	https://www.theiia.org/en/products/certification/cia/	DEAD_RESOURCE_DEAD_RESOURCE	NO
+course_accountancy_bookkeeping_01	Bookkeeping & Financial Statement Preparation Mastery	Association of Chartered Certified Accountants (ACCA) / edX	course	bookkeeping, financial accounting, journal entries	https://www.edx.org/course/bookkeeping-building-blocks	https://www.edx.org/course/bookkeeping-building-blocks	DEAD_RESOURCE_DEAD_RESOURCE	NO
+course_accountancy_excel_modeling_01	Wharton Financial Modeling & Advanced Corporate Excel	Wharton School / University of Pennsylvania / Coursera	course	advanced excel, financial modeling, excel	https://www.coursera.org/learn/wharton-financial-modeling	https://www.coursera.org/learn/wharton-financial-modeling	DEAD_RESOURCE_DEAD_RESOURCE	NO
+course_education_elearning_storyline_01	E-Learning Development with Articulate Storyline & Authoring Tools	Instructional Design Central / edX	course	e-learning authoring tools, articulate storyline, e-learning development	https://www.edx.org/course/e-learning-ecourses	https://www.edx.org/course/e-learning-ecourses	DEAD_RESOURCE_DEAD_RESOURCE	NO
+course_education_addie_model_01	Instructional Design Principles & Curriculum Development (ADDIE Model)	Purdue University / edX	course	instructional design, addie, curriculum design	https://www.edx.org/course/instructional-design-models	https://www.edx.org/course/instructional-design-models	DEAD_RESOURCE_DEAD_RESOURCE	NO
+course_education_accessibility_udl_01	Universal Design for Learning (UDL) & Digital Course Accessibility Standards	W3C WAI / Harvard Web Accessibility / edX	course	accessibility standards, udl, universal design for learning	https://www.edx.org/course/web-accessibility-introduction	https://www.edx.org/course/web-accessibility-introduction	GENERIC_PROVIDER_PORTAL	NO
+course_education_multimedia_01	Multimedia Development & Digital Content Creation for Learners	University of Maryland / edX	course	multimedia development, digital media, educational video	https://www.edx.org/course/multimedia-learning-design	https://www.edx.org/course/multimedia-learning-design	DEAD_RESOURCE_DEAD_RESOURCE	NO
+cert_psychometrics_blep_01	Board Licensure Examination for Psychometricians (BLEP) Review & Psychometric Certification	Psychological Association of the Philippines (PAP) / BLEP	certification	psychometrics, psychological assessment, test construction	https://www.pap.ph/	https://www.pap.ph/blep	FILTERED_GENERIC_LANDING_PAGE	NO
+course_psychometrics_testing_01	Psychological Testing & Assessment Fundamentals	University of Queensland / edX	course	psychometrics, psychological assessment, cognitive psychology	https://www.edx.org/learn/psychology	https://www.edx.org/learn/psychology	FILTERED_GENERIC_LANDING_PAGE	NO
+course_psychology_statistics_01	Statistical Methods in Psychology & Research Design	Stanford University / Coursera	course	statistical analysis, research methods, psychometrics	https://www.coursera.org/learn/statistical-reasoning	https://www.coursera.org/learn/statistical-reasoning	DEAD_RESOURCE_DEAD_RESOURCE	NO
+cert_ncees_fe_mechanical_01	NCEES Fundamentals of Engineering (FE) Mechanical Exam Review	NCEES	certification	thermodynamics, fluid mechanics, machine design	https://ncees.org/engineering/fe/	https://ncees.org/exams/fe-exam/	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+cert_solidworks_cswa_01	Certified SOLIDWORKS Associate (CSWA) Mechanical Design	Dassault Systèmes	certification	solidworks, cad, machine design	https://www.solidworks.com/certifications/mechanical-design-cswa	https://www.solidworks.com/certifications/mechanical-design-cswa	DEAD_RESOURCE_DEAD_RESOURCE	NO
+cert_ashrae_hvac_design_01	ASHRAE Certified HVAC Design Professional	ASHRAE	certification	hvac, thermodynamics, psychrometrics	https://www.ashrae.org/professional-development/learning-portal	https://www.ashrae.org/professional-development/learning-portal	GENERIC_PROVIDER_PORTAL	NO
+course_thermodynamics_mit_01	Fundamentals of Engineering Thermodynamics & Heat Transfer	MIT OpenCourseWare	course	thermodynamics, heat transfer, fluid mechanics	https://ocw.mit.edu/courses/2-051-introduction-to-thermodynamics-fall-2006/	https://ocw.mit.edu/courses/2-051-introduction-to-thermodynamics-fall-2006/	DEAD_RESOURCE_DEAD_RESOURCE	NO
+course_machine_design_georgia_01	Machine Element Design & Kinematics	Georgia Tech / Coursera	course	machine design, kinematics, stress analysis	https://www.coursera.org/learn/machine-design1	https://www.coursera.org/learn/machine-design1	FULLY_VERIFIED	YES
+practice_solidworks_3d_lab_01	SOLIDWORKS Mechanical Parts & Assembly Hands-on Lab	SOLIDWORKS Tutorials	practice	solidworks, cad, machine design	https://www.solidworks.com/certifications/mechanical-design-cswa	https://www.solidworks.com/certifications/mechanical-design-cswa	DEAD_RESOURCE_DEAD_RESOURCE	NO
+cert_ncees_fe_electrical_01	NCEES FE Electrical and Computer Exam Certification Guide	NCEES	certification	circuit analysis, power systems, control systems	https://ncees.org/engineering/fe/	https://ncees.org/exams/fe-exam/	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+cert_etap_power_system_01	Certified ETAP Power System Analysis Specialist	ETAP	certification	etap, power systems, load flow analysis	https://etap.com/training	https://etap.com/training	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+course_electric_power_systems_01	Electric Power Systems Analysis & Smart Grid Technology	University of Buffalo / Coursera	course	power systems, circuit analysis, transformers	https://www.coursera.org/learn/electric-power-systems	https://www.coursera.org/learn/electric-power-systems	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+course_philippine_electrical_code_01	Philippine Electrical Code (PEC) & Substation Design Standards	IIEE	course	philippine electrical code, electrical design, substation design	https://iiee.org.ph/	https://iiee.org.ph/	FILTERED_GENERIC_LANDING_PAGE	NO
+practice_matlab_simulink_circuit_01	MATLAB Simulink Power Systems Simulation Lab	MathWorks	practice	matlab, simulink, circuit analysis	https://www.mathworks.com/learn/tutorials/simulink-onramp.html	https://www.mathworks.com/learn/tutorials/simulink-onramp.html	WAF_BLOCKED_MANUAL_REVIEW	NO
+cert_cisco_ccna_networking_01	Cisco Certified Network Associate (CCNA 200-301)	Cisco Networking Academy	certification	networking, ccna, cisco	https://www.netacad.com/courses/networking/ccna-introduction-networks	https://www.netacad.com/courses/networking/ccna-introduction-networks	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+cert_comptia_network_plus_01	CompTIA Network+ (N10-008) Certification Preparation	CompTIA	certification	networking, comptia network+, network security	https://www.comptia.org/certifications/network	https://www.comptia.org/certifications/network	RESOURCE_SPECIFIC_PROVIDER_SERIES	YES
+course_embedded_systems_ut_01	Embedded Systems: Real-Time Interfacing to ARM Cortex-M	UT Austin / edX	course	embedded systems, microcontrollers, arm cortex-m	https://www.edx.org/learn/embedded-systems/the-university-of-texas-at-austin-embedded-systems-shape-the-world-microcontroller-input-output	https://www.edx.org/learn/embedded-systems/the-university-of-texas-at-austin-embedded-systems-shape-the-world-microcontroller-input-output	GENERIC_PROVIDER_PORTAL	NO
+practice_kicad_pcb_design_01	KiCad Printed Circuit Board (PCB) Design Tutorial Lab	KiCad EDA	practice	pcb design, kicad, circuit design	https://www.kicad.org/help/tutorials/	https://www.kicad.org/help/tutorials/	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+cert_lean_six_sigma_green_belt_01	Lean Six Sigma Green Belt (CSSGB) Certification	ASQ / IASSC	certification	lean six sigma, dmaic, statistical process control	https://asq.org/cert/six-sigma-green-belt	https://asq.org/cert/six-sigma-green-belt	FULLY_VERIFIED	YES
+cert_ascm_cscp_01	Certified Supply Chain Professional (CSCP)	ASCM / APICS	certification	supply chain management, logistics, demand planning	https://www.ascm.org/learning-development/certifications-credentials/cscp/	https://www.ascm.org/learning-development/certifications-credentials/cscp/	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+course_operations_research_01	Operations Research & Industrial Optimization Modeling	Northwestern / Coursera	course	operations research, linear programming, process optimization	https://www.coursera.org/learn/operations-research-modeling	https://www.coursera.org/learn/operations-research-modeling	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+course_chemical_reaction_eng_01	Chemical Reaction Engineering & Reactor Design	MIT OpenCourseWare	course	chemical reaction engineering, unit operations, mass transfer	https://ocw.mit.edu/courses/10-37-chemical-and-biological-reaction-engineering-spring-2007/	https://ocw.mit.edu/courses/10-37-chemical-and-biological-reaction-engineering-spring-2007/	FULLY_VERIFIED	YES
+practice_aspen_plus_simulation_01	Aspen Plus Process Modeling & Distillation Column Simulation	AspenTech	practice	aspen plus, process simulation, unit operations	https://www.aspentech.com/en/products/engineering/aspen-plus	https://www.aspentech.com/en/products/engineering/aspen-plus	FULLY_VERIFIED	YES
+cert_autodesk_revit_arch_01	Autodesk Certified Professional: Revit Architecture for BIM	Autodesk	certification	revit, bim, architectural design	https://www.autodesk.com/certification/all-certifications/revit-architectural-design-professional	https://www.autodesk.com/certification/all-certifications/revit-architectural-design-professional	WAF_BLOCKED_MANUAL_REVIEW	NO
+cert_leed_green_associate_01	LEED Green Associate Sustainable Design Credential	USGBC	certification	leed, sustainable building design, green building	https://www.usgbc.org/credentials/leed-green-associate	https://www.usgbc.org/credentials/leed-green-associate	FULLY_VERIFIED	YES
+course_architectural_design_mit_01	Architectural Design Methodology & Spatial Analysis	MIT OpenCourseWare	course	architectural design, spatial planning, architectural drafting	https://ocw.mit.edu/courses/4-205-analysis-of-historic-architecture-spring-2006/	https://ocw.mit.edu/courses/4-205-analysis-of-historic-architecture-spring-2006/	DEAD_RESOURCE_DEAD_RESOURCE	NO
+practice_revit_bim_lab_01	Revit Building Information Modeling (BIM) Step-by-Step Lab	Autodesk Design Academy	practice	revit, bim, architectural design	https://www.autodesk.com/certification/all-certifications/revit-architectural-design-professional	https://www.autodesk.com/certification/all-certifications/revit-architectural-design-professional	WAF_BLOCKED_MANUAL_REVIEW	NO
+cert_cpa_board_prep_01	Certified Public Accountant (CPA) Board Exam Official Preparation	AICPA / Becker Review	certification	financial accounting, financial audit, taxation	https://www.aicpa-cima.com/resources/landing/cpa-exam	https://www.aicpa-cima.com/resources/landing/cpa-exam	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+cert_ima_cma_01	Certified Management Accountant (CMA) Credential	Institute of Management Accountants (IMA)	certification	management accounting, cost accounting, financial analysis	https://www.imanet.org/cma-certification	https://www.imanet.org/cma-certification	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+cert_quickbooks_certified_user_01	QuickBooks Certified User & Cloud Accounting Specialist	Intuit Academy	certification	quickbooks, bookkeeping, bank reconciliation	https://quickbooks.intuit.com/accountants/training-certification/	https://quickbooks.intuit.com/accountants/training-certification/	DEAD_RESOURCE_HTTP_FAILED	NO
+course_wharton_financial_accounting_01	Introduction to Financial Accounting & IFRS/PFRS	Wharton / Coursera	course	financial accounting, ifrs, journal entries	https://www.coursera.org/learn/wharton-accounting	https://www.coursera.org/learn/wharton-accounting	FULLY_VERIFIED	YES
+practice_bank_reconciliation_lab_01	Bank Reconciliation & Journal Entry Financial Lab	AccountingCoach	practice	bank reconciliation, journal entries, bookkeeping	https://www.accountingcoach.com/bank-reconciliation/explanation	https://www.accountingcoach.com/bank-reconciliation/explanation	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+cert_cfa_investment_foundations_01	CFA Institute Investment Foundations Certificate	CFA Institute	certification	financial modeling, investment analysis, corporate finance	https://www.cfainstitute.org/en/programs/investment-foundations	https://www.cfainstitute.org/en/programs/investment-foundations	FULLY_VERIFIED	YES
+cert_shrm_cp_hr_01	SHRM Certified Professional (SHRM-CP) Exam Prep	SHRM	certification	talent acquisition, hr analytics, employee relations	https://www.shrm.org/credentials/certification/shrm-cp	https://www.shrm.org/credentials/certification/shrm-cp	FULLY_VERIFIED	YES
+cert_google_digital_marketing_01	Google Digital Marketing & E-Commerce Professional Certificate	Google / Coursera	certification	digital marketing, seo, google analytics	https://www.coursera.org/professional-certificates/google-digital-marketing-ecommerce	https://www.coursera.org/professional-certificates/google-digital-marketing-ecommerce	FULLY_VERIFIED	YES
+course_corporate_finance_nyu_01	Corporate Finance & Capital Budgeting Essentials	Coursera	course	corporate finance, financial modeling, excel	https://www.coursera.org/learn/corporate-finance-essentials	https://www.coursera.org/learn/corporate-finance-essentials	FULLY_VERIFIED	YES
+practice_excel_dcf_financial_lab_01	Discounted Cash Flow (DCF) Financial Modeling Lab	Corporate Finance Institute (CFI)	practice	excel, financial modeling, dcf valuation	https://www.cfainstitute.org/en/programs/investment-foundations	https://www.cfainstitute.org/en/programs/investment-foundations	GENERIC_PROVIDER_PORTAL	NO
+cert_blep_psychometrician_review_01	Board Licensure Examination for Psychometricians (BLEP) Review	PAP Philippines	certification	psychometrics, psychological testing, test construction	https://www.pap.ph/	https://www.pap.ph/blep	FILTERED_GENERIC_LANDING_PAGE	NO
+course_psychological_testing_queensland_01	Psychological Testing & Psychometric Norms	University of Queensland / Coursera	course	psychometrics, psychological testing, test construction	https://www.coursera.org/learn/psychological-assessment	https://www.coursera.org/learn/psychological-assessment	DEAD_RESOURCE_DEAD_RESOURCE	NO
+practice_spss_item_analysis_lab_01	SPSS Item Discrimination & Reliability Analysis Practice Lab	IBM SPSS Tutorials	practice	spss, psychometrics, statistical analysis	https://www.ibm.com/docs/en/spss-statistics	https://www.ibm.com/docs/en/spss-statistics	WAF_BLOCKED_MANUAL_REVIEW	NO
+cert_deped_let_review_01	Licensure Examination for Teachers (LET) Official Review	DepEd Philippines	certification	learning pedagogy, curriculum development, educational assessment	https://www.deped.gov.ph/	https://www.deped.gov.ph/	FILTERED_GENERIC_LANDING_PAGE	NO
+cert_edx_instructional_design_01	Instructional Design & ADDIE Model Professional Certification	University of Maryland / edX	certification	instructional design, addie model, e-learning development	https://www.edx.org/learn/instructional-design	https://www.edx.org/learn/instructional-design	DEAD_RESOURCE_DEAD_RESOURCE	NO
+practice_deped_lesson_plan_guide_01	DepEd K-12 Detailed Lesson Plan (DLP) Writing Guide	DepEd Official	practice	learning pedagogy, curriculum development, classroom management	https://www.deped.gov.ph/	https://www.deped.gov.ph/	FILTERED_GENERIC_LANDING_PAGE	NO
+cert_comptia_itf_01	CompTIA IT Fundamentals (ITF+) Certification	CompTIA	certification	it support fundamentals, basic programming, pc assembly	https://www.comptia.org/certifications/network	https://www.comptia.org/certifications/network	FULLY_VERIFIED	YES
+cert_tesda_bookkeeping_nc3_01	TESDA National Certificate (NC III) in Bookkeeping	TESDA Philippines	certification	basic bookkeeping, business math, excel fundamentals	https://www.tesda.gov.ph/	https://www.tesda.gov.ph/	FILTERED_GENERIC_LANDING_PAGE	NO
+course_khan_precalculus_stem_01	Pre-Calculus & Physics Fundamentals for STEM Students	Khan Academy	course	pre-calculus, general physics, scientific inquiry	https://www.khanacademy.org/math/precalculus	https://www.khanacademy.org/math/precalculus	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+practice_purdue_owl_citation_01	APA & MLA Academic Citation & Referencing Guide	Purdue Online Writing Lab (OWL)	practice	academic writing, public speaking, media literacy	https://owl.purdue.edu/owl/research_and_citation/resources.html	https://owl.purdue.edu/owl/research_and_citation/apa_style/apa_formatting_and_style_guide/general_format.html	GENERIC_PROVIDER_PORTAL	NO
+course_building_codes_architects_01	Structural Systems & National Building Code for Architects	Coursera / UAP	course	building codes, architectural design, spatial planning	https://www.coursera.org/learn/matrix-methods-structural-analysis	https://www.coursera.org/learn/matrix-methods-structural-analysis	DEAD_RESOURCE_DEAD_RESOURCE	NO
+course_work_measurement_ergonomics_01	Occupational Ergonomics & Work Measurement Engineering	University of Michigan / edX	course	ergonomics, process optimization, operations research	https://www.edx.org/learn/ergonomics	https://www.edx.org/learn/ergonomics	DEAD_RESOURCE_DEAD_RESOURCE	NO
+practice_value_stream_mapping_01	Value Stream Mapping (VSM) Process Improvement Toolkit	Lean Enterprise Institute	practice	lean six sigma, process optimization, supply chain analytics	https://asq.org/cert/six-sigma-green-belt	https://asq.org/cert/six-sigma-green-belt	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+cert_ncees_fe_chemical_01	NCEES FE Chemical Exam Preparation & Practice Review	NCEES	certification	chemical reaction engineering, unit operations, mass transfer	https://ncees.org/engineering/fe/	https://ncees.org/exams/fe-exam/	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+course_auditing_internal_controls_01	Auditing Standards & COSO Internal Control Framework	University of Illinois / edX	course	financial audit, internal controls, ifrs	https://www.edx.org/learn/auditing	https://www.edx.org/learn/auditing	DEAD_RESOURCE_DEAD_RESOURCE	NO
+course_talent_acquisition_hr_01	Strategic Talent Acquisition & People Analytics	Wharton / edX	course	talent acquisition, hr analytics, strategic hr	https://www.edx.org/learn/human-resources	https://www.edx.org/learn/human-resources	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+practice_hr_job_description_builder_01	Job Competency & HR Interview Rubric Design Toolkit	SHRM	practice	talent acquisition, hr analytics, strategic hr	https://www.shrm.org/credentials/certification/shrm-cp	https://www.shrm.org/credentials/certification/shrm-cp	GENERIC_PROVIDER_PORTAL	NO
+course_supply_chain_logistics_01	Supply Chain Logistics & Inventory Management Specialization	Rutgers / Coursera	course	supply chain management, logistics, demand planning	https://www.coursera.org/learn/supply-chain-logistics	https://www.coursera.org/learn/supply-chain-logistics	FULLY_VERIFIED	YES
+course_seo_digital_content_01	Search Engine Optimization (SEO) & Digital Content Strategy	UC Davis / Coursera	course	digital marketing, seo, google analytics	https://www.coursera.org/learn/seo-search-engine-optimization	https://www.coursera.org/learn/seo-search-engine-optimization	DEAD_RESOURCE_DEAD_RESOURCE	NO
+practice_google_analytics_4_lab_01	Google Analytics 4 (GA4) Hands-on Data Dashboard Lab	Google Skillshop	practice	google analytics, digital marketing, business analytics	https://www.coursera.org/professional-certificates/google-digital-marketing-ecommerce	https://www.coursera.org/professional-certificates/google-digital-marketing-ecommerce	GENERIC_PROVIDER_PORTAL	NO
+course_curriculum_development_01	Curriculum Design & Pedagogical Assessment Strategies	University of Colorado / edX	course	learning pedagogy, curriculum development, educational assessment	https://www.edx.org/learn/curriculum-development	https://www.edx.org/learn/curriculum-development	DEAD_RESOURCE_DEAD_RESOURCE	NO
+course_academic_writing_01	Academic Research Writing & Public Speaking Mastery	Purdue OWL / Coursera	course	academic writing, public speaking, media literacy	https://www.coursera.org/learn/academic-writing	https://www.coursera.org/learn/academic-writing	DEAD_RESOURCE_DEAD_RESOURCE	NO
+course_business_math_abm_01	Business Mathematics & Introductory Accounting Principles	ACCA / edX	course	basic bookkeeping, business math, excel fundamentals	https://www.edx.org/learn/business-math	https://www.edx.org/learn/business-math	DEAD_RESOURCE_DEAD_RESOURCE	NO
+practice_pc_hardware_assembly_01	PC Assembly & Hardware Diagnostics Troubleshooting Manual	iFixit / CompTIA	practice	it support fundamentals, pc assembly, technical skills	https://www.ifixit.com/Guide	https://www.ifixit.com/Guide	GENERIC_PROVIDER_PORTAL	NO
+practice_hr_interview_simulation_lab_01	HR Behavioral Interview & Candidate Evaluation Simulation Lab	SHRM / Coursera	practice	talent acquisition, hr analytics, employee relations	https://www.shrm.org/credentials/certification/shrm-cp	https://www.shrm.org/credentials/certification/shrm-cp	GENERIC_PROVIDER_PORTAL	NO
+practice_inventory_routing_excel_lab_01	Logistics Warehouse & Vehicle Routing Optimization Spreadsheet Lab	ASCM / Rutgers	practice	supply chain management, logistics, demand planning	https://www.ascm.org/learning-development/certifications-credentials/cscp/	https://www.ascm.org/learning-development/certifications-credentials/cscp/	FILTERED_REACHABLE_BUT_NOT_RESOURCE_SPECIFIC	NO
+practice_social_media_ad_campaign_lab_01	Digital Marketing Ad Campaign & Conversion Funnel Lab	Meta / Google Skillshop	practice	digital marketing, seo, google analytics	https://www.coursera.org/professional-certificates/google-digital-marketing-ecommerce	https://www.coursera.org/professional-certificates/google-digital-marketing-ecommerce	RESOURCE_SPECIFIC_PROVIDER_SERIES	YES
+cert_purdue_academic_writing_cert_01	Purdue OWL Academic Writing & Communications Specialist	Purdue Online Writing Lab (OWL)	certification	academic writing, public speaking, media literacy	https://owl.purdue.edu/owl/research_and_citation/resources.html	https://owl.purdue.edu/owl/research_and_citation/apa_style/apa_formatting_and_style_guide/general_format.html	GENERIC_PROVIDER_PORTAL	NO
+course_comptia_a_plus_core_hardware_01	CompTIA A+ Core Hardware & System Diagnostics Course	CompTIA	course	it support fundamentals, pc assembly, technical skills	https://www.comptia.org/certifications/network	https://www.comptia.org/certifications/network	GENERIC_PROVIDER_PORTAL	NO
+cert_autodesk_cad_certified_user_01	Autodesk Certified User: Computer-Aided Design (CAD) Fundamentals	Autodesk	certification	pre-calculus, general physics, engineering fundamentals	https://www.autodesk.com/certification/all-certifications/revit-architectural-design-professional	https://www.autodesk.com/certification/all-certifications/revit-architectural-design-professional	WAF_BLOCKED_MANUAL_REVIEW	NO

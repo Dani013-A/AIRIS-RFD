@@ -24,10 +24,15 @@ export function isSeminarExpired(resource: LearningResource): boolean {
 }
 
 export function validateLearningResource(resource: Partial<LearningResource>): boolean {
+  if (!resource || typeof resource !== "object") return false;
   if (!resource.id || !resource.title || !resource.provider || !resource.url) {
     return false;
   }
   if (!isValidUrl(resource.url)) {
+    return false;
+  }
+  // Require active and verified flags
+  if (resource.isActive === false || resource.isVerified === false) {
     return false;
   }
   // Reject search query fallbacks or dummy domains
@@ -38,8 +43,21 @@ export function validateLearningResource(resource: Partial<LearningResource>): b
   ) {
     return false;
   }
-  // Reject explicitly broken links
-  if (resource.verification?.status === "broken") {
+  // Reject unverified, broken, blocked, or invalid status
+  const unverifiedStatuses = [
+    "broken",
+    "not_found",
+    "server_error",
+    "timeout",
+    "waf_blocked",
+    "generic_landing",
+    "insufficiently_specific",
+    "duplicate",
+    "domain_mismatch",
+    "type_mismatch",
+    "unverified",
+  ];
+  if (resource.verification?.status && unverifiedStatuses.includes(resource.verification.status)) {
     return false;
   }
   // If thumbnail exists, validate it's a valid URL

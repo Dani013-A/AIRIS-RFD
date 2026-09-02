@@ -5,19 +5,19 @@
   "unique_urls_count": 145,
   "duplicate_url_records_count": 17,
   "final_status_counts": {
-    "FULLY_VERIFIED": 57,
-    "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC": 58,
-    "GENERIC_LANDING_PAGE": 11,
+    "FULLY_VERIFIED": 56,
+    "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC": 59,
+    "GENERIC_LANDING_PAGE": 9,
     "SEARCH_RESULT_PAGE": 0,
-    "DEAD_RESOURCE": 22,
-    "HTTP_FAILED": 5,
-    "BLOCKED": 8,
+    "DEAD_RESOURCE": 24,
+    "HTTP_FAILED": 4,
+    "BLOCKED": 9,
     "DOM_UNVERIFIED": 1
   },
   "reachable_subclassification_counts": {
     "LEGITIMATE_PROVIDER_PAGE": 19,
     "GENERIC_CATEGORY_PAGE": 18,
-    "RESOURCE_SPECIFIC_UNAVAILABLE": 2,
+    "RESOURCE_SPECIFIC_UNAVAILABLE": 3,
     "UNRELATED_DESTINATION": 19
   },
   "waf_blocked_subclassification_counts": {
@@ -26,15 +26,15 @@
     "AUTOMATION_BLOCKED": 1
   },
   "quality_ratios": {
-    "FULLY_VERIFIED_RATIO": "35.2%",
-    "RESOURCE_SPECIFIC_FAILURES_RATIO": "35.8%",
-    "DEAD_RESOURCES_RATIO": "13.6%",
-    "BLOCKED_RESOURCES_RATIO": "4.9%",
-    "GENERIC_LANDING_PAGES_RATIO": "6.8%"
+    "FULLY_VERIFIED_RATIO": "34.6%",
+    "RESOURCE_SPECIFIC_FAILURES_RATIO": "36.4%",
+    "DEAD_RESOURCES_RATIO": "14.8%",
+    "BLOCKED_RESOURCES_RATIO": "5.6%",
+    "GENERIC_LANDING_PAGES_RATIO": "5.6%"
   },
   "duplicate_url_details": [
     {
-      "url": "https://www.pap.ph/",
+      "url": "https://www.pap.ph/blep",
       "shared_count": 2,
       "resource_ids": [
         "cert_psychometrics_blep_01",
@@ -54,7 +54,7 @@
       ]
     },
     {
-      "url": "https://ncees.org/engineering/fe/",
+      "url": "https://ncees.org/exams/fe-exam/",
       "shared_count": 3,
       "resource_ids": [
         "cert_ncees_fe_mechanical_01",
@@ -72,9 +72,9 @@
         "NCEES"
       ],
       "academicPrograms": [
-        "BS Chemical Engineering",
         "BS Mechanical Engineering",
-        "BS Electrical Engineering"
+        "BS Electrical Engineering",
+        "BS Chemical Engineering"
       ]
     },
     {
@@ -93,9 +93,9 @@
         "SOLIDWORKS Tutorials"
       ],
       "academicPrograms": [
-        "BS Industrial Engineering",
         "BS Mechanical Engineering",
-        "BS Architecture"
+        "BS Architecture",
+        "BS Industrial Engineering"
       ]
     },
     {
@@ -117,13 +117,13 @@
         "CompTIA"
       ],
       "academicPrograms": [
-        "GAS Strand (General Academic Strand)",
         "STEM Strand (Science",
-        "TVL Strand (Technical-Vocational-Livelihood)",
-        "Technology",
         "Engineering",
-        "BS Electronics Engineering",
+        "TVL Strand (Technical-Vocational-Livelihood)",
         "and Mathematics)",
+        "GAS Strand (General Academic Strand)",
+        "Technology",
+        "BS Electronics Engineering",
         "BS Computer Engineering"
       ]
     },
@@ -143,11 +143,11 @@
         "Lean Enterprise Institute"
       ],
       "academicPrograms": [
-        "BSBA major in Logistics and Supply Chain Management",
-        "BS Business Administration",
+        "BS Chemical Engineering",
         "BS Industrial Engineering",
         "BS Mechanical Engineering",
-        "BS Chemical Engineering"
+        "BSBA major in Logistics and Supply Chain Management",
+        "BS Business Administration"
       ]
     },
     {
@@ -166,10 +166,10 @@
         "ASCM / Rutgers"
       ],
       "academicPrograms": [
-        "BS Business Administration",
-        "BSBA major in Logistics and Supply Chain Management",
         "BS Accounting Information System",
-        "BS Industrial Engineering"
+        "BS Business Administration",
+        "BS Industrial Engineering",
+        "BSBA major in Logistics and Supply Chain Management"
       ]
     },
     {
@@ -191,11 +191,11 @@
         "Autodesk"
       ],
       "academicPrograms": [
-        "BS Architecture",
         "STEM Strand (Science",
+        "BS Architecture",
         "and Mathematics)",
-        "Engineering",
-        "Technology"
+        "Technology",
+        "Engineering"
       ]
     },
     {
@@ -214,8 +214,8 @@
         "Corporate Finance Institute (CFI)"
       ],
       "academicPrograms": [
-        "BS Accountancy",
-        "BSBA major in Financial Management"
+        "BSBA major in Financial Management",
+        "BS Accountancy"
       ]
     },
     {
@@ -237,8 +237,8 @@
         "SHRM / Coursera"
       ],
       "academicPrograms": [
-        "BS Business Administration",
         "BSBA major in Human Resource Management",
+        "BS Business Administration",
         "Bachelor of Arts in Psychology"
       ]
     },
@@ -261,8 +261,8 @@
         "Meta / Google Skillshop"
       ],
       "academicPrograms": [
-        "BSBA major in Marketing Management",
-        "BS Business Administration"
+        "BS Business Administration",
+        "BSBA major in Marketing Management"
       ]
     },
     {
@@ -281,9 +281,9 @@
         "DepEd Official"
       ],
       "academicPrograms": [
+        "BS Secondary Education",
         "HUMSS Strand (Humanities and Social Sciences)",
-        "GAS Strand (General Academic Strand)",
-        "BS Secondary Education"
+        "GAS Strand (General Academic Strand)"
       ]
     },
     {
@@ -332,7 +332,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "UNRELATED_DESTINATION",
       "verification_reason": "HTTP 200 reachable, but DOM title '...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
-      "latency_ms": 186
+      "latency_ms": 207
     },
     {
       "id": "interview_tell_me_about_yourself",
@@ -358,7 +358,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "UNRELATED_DESTINATION",
       "verification_reason": "HTTP 200 reachable, but DOM title '...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
-      "latency_ms": 133
+      "latency_ms": 146
     },
     {
       "id": "interview_harvard_guide",
@@ -384,7 +384,7 @@
       "FINAL_STATUS": "GENERIC_LANDING_PAGE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "Domain homepage without course path",
-      "latency_ms": 1751
+      "latency_ms": 1577
     },
     {
       "id": "interview_mit_technical_prep",
@@ -412,7 +412,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "UNRELATED_DESTINATION",
       "verification_reason": "HTTP 200 reachable, but DOM title '3 steps to be prepared for interviewing...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
-      "latency_ms": 1709
+      "latency_ms": 1630
     },
     {
       "id": "resume_purdue_owl_handbook",
@@ -441,7 +441,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "GENERIC_CATEGORY_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'R\u00e9sum\u00e9s and CVs Introduction - \n\t\t\t Purdue OW...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
-      "latency_ms": 1775
+      "latency_ms": 1060
     },
     {
       "id": "resume_berkeley_career_guide",
@@ -469,7 +469,7 @@
       "FINAL_STATUS": "GENERIC_LANDING_PAGE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "Domain homepage without course path",
-      "latency_ms": 1514
+      "latency_ms": 1731
     },
     {
       "id": "resume_writing_tutorial_video",
@@ -523,7 +523,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 1617
+      "latency_ms": 1570
     },
     {
       "id": "comm_stanford_think_fast",
@@ -549,7 +549,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "UNRELATED_DESTINATION",
       "verification_reason": "HTTP 200 reachable, but DOM title '...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
-      "latency_ms": 143
+      "latency_ms": 190
     },
     {
       "id": "comm_business_writing_coursera",
@@ -575,7 +575,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 1724
+      "latency_ms": 798
     },
     {
       "id": "comm_purdue_business_writing",
@@ -604,7 +604,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'The Basic Business Letter - \n\t\t\t Purdue OWL\u00ae ...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 1465
+      "latency_ms": 1359
     },
     {
       "id": "cert_ms_pl300_powerbi",
@@ -632,7 +632,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 356
+      "latency_ms": 177
     },
     {
       "id": "cert_google_data_analytics",
@@ -658,7 +658,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 942
+      "latency_ms": 2393
     },
     {
       "id": "cert_ibm_data_analyst",
@@ -684,7 +684,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 934
+      "latency_ms": 1374
     },
     {
       "id": "cert_tableau_desktop_specialist",
@@ -710,7 +710,7 @@
       "FINAL_STATUS": "BLOCKED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 403 WAF bot block / browser automation required",
-      "latency_ms": 169
+      "latency_ms": 143
     },
     {
       "id": "cert_ms_dp900_azure_data",
@@ -738,7 +738,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 342
+      "latency_ms": 141
     },
     {
       "id": "course_google_advanced_data_analytics",
@@ -764,7 +764,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 954
+      "latency_ms": 887
     },
     {
       "id": "course_ucdavis_sql_data_science",
@@ -790,7 +790,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 1302
+      "latency_ms": 1741
     },
     {
       "id": "course_umich_applied_data_science_python",
@@ -816,7 +816,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 1554
+      "latency_ms": 1590
     },
     {
       "id": "course_mitx_statistics_data_science",
@@ -844,7 +844,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 610
+      "latency_ms": 824
     },
     {
       "id": "course_fcc_data_analysis_python",
@@ -870,7 +870,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title '...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 964
+      "latency_ms": 943
     },
     {
       "id": "book_fpp_forecasting",
@@ -900,7 +900,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 1142
+      "latency_ms": 923
     },
     {
       "id": "doc_use_the_index_luke",
@@ -928,7 +928,7 @@
       "FINAL_STATUS": "GENERIC_LANDING_PAGE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "Domain homepage without course path",
-      "latency_ms": 1303
+      "latency_ms": 1081
     },
     {
       "id": "practice_w3schools_sql",
@@ -958,7 +958,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "GENERIC_CATEGORY_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'W3Schools.com...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
-      "latency_ms": 258
+      "latency_ms": 214
     },
     {
       "id": "doc_pandas_user_guide",
@@ -987,7 +987,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'User Guide \u2014 pandas 3.0.5 documentation...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 386
+      "latency_ms": 410
     },
     {
       "id": "guide_gdpr_data_governance",
@@ -1015,7 +1015,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "GENERIC_CATEGORY_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'What is GDPR, the EU\u2019s new data protection la...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
-      "latency_ms": 4170
+      "latency_ms": 1017
     },
     {
       "id": "doc_google_dataplex_governance",
@@ -1045,7 +1045,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "GENERIC_CATEGORY_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Knowledge Catalog overview \u00a0|\u00a0 Google Cloud D...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
-      "latency_ms": 1805
+      "latency_ms": 1404
     },
     {
       "id": "doc_google_cloud_bigquery",
@@ -1053,11 +1053,11 @@
       "provider": "Google Cloud",
       "type": "documentation",
       "academicPrograms": [],
-      "original_url": "https://cloud.google.com/bigquery/docs/introduction",
-      "final_url": "https://docs.cloud.google.com/bigquery/docs/introduction",
+      "original_url": "https://cloud.google.com/bigquery/docs",
+      "final_url": "https://docs.cloud.google.com/bigquery/docs",
       "http_status": 200,
       "redirect_count": 1,
-      "dom_page_title": "BigQuery overview \u00a0|\u00a0 Google Cloud Documentation",
+      "dom_page_title": "BigQuery documentation \u00a0|\u00a0 Google Cloud Documentation",
       "dom_h1_headings": [],
       "HTTP_REACHABLE": true,
       "DOM_RENDERED": true,
@@ -1070,8 +1070,8 @@
       "BROWSER_VERIFICATION_STATUS": "HTTP_LOADED",
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "GENERIC_CATEGORY_PAGE",
-      "verification_reason": "HTTP 200 reachable, but DOM title 'BigQuery overview \u00a0|\u00a0 Google Cloud Documentat...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
-      "latency_ms": 2636
+      "verification_reason": "HTTP 200 reachable, but DOM title 'BigQuery documentation \u00a0|\u00a0 Google Cloud Docum...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
+      "latency_ms": 3056
     },
     {
       "id": "cert_comptia_security_plus",
@@ -1097,7 +1097,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Security+ (Plus) Certification | CompTIA...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 2532
+      "latency_ms": 2736
     },
     {
       "id": "cert_google_cybersecurity",
@@ -1123,7 +1123,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 1779
+      "latency_ms": 872
     },
     {
       "id": "cert_comptia_cysa_plus",
@@ -1149,7 +1149,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 1321
+      "latency_ms": 1154
     },
     {
       "id": "cert_isc2_certified_in_cybersecurity",
@@ -1177,7 +1177,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 2820
+      "latency_ms": 2273
     },
     {
       "id": "cert_eccouncil_ceh",
@@ -1203,7 +1203,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 175
+      "latency_ms": 141
     },
     {
       "id": "course_ibm_cybersecurity_analyst",
@@ -1229,7 +1229,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 1753
+      "latency_ms": 864
     },
     {
       "id": "course_ibm_network_security_db_vulnerabilities",
@@ -1255,7 +1255,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 1401
+      "latency_ms": 1660
     },
     {
       "id": "course_ritx_cybersecurity_fundamentals",
@@ -1281,7 +1281,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 888
+      "latency_ms": 701
     },
     {
       "id": "course_threat_intel_incident_response",
@@ -1307,7 +1307,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 837
+      "latency_ms": 475
     },
     {
       "id": "course_cybrary_intro_cybersecurity",
@@ -1336,7 +1336,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 1017
+      "latency_ms": 602
     },
     {
       "id": "practice_owasp_top_10",
@@ -1366,7 +1366,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 233
+      "latency_ms": 354
     },
     {
       "id": "doc_wireshark_user_guide",
@@ -1374,13 +1374,15 @@
       "provider": "Wireshark Foundation",
       "type": "documentation",
       "academicPrograms": [],
-      "original_url": "https://www.wireshark.org/docs/wsug_html_chunked/",
-      "final_url": "https://www.wireshark.org/docs/wsug_html_chunked/",
+      "original_url": "https://www.wireshark.org/docs/wsug_html/",
+      "final_url": "https://www.wireshark.org/docs/wsug_html/",
       "http_status": 200,
       "redirect_count": 0,
       "dom_page_title": "Wireshark User\u2019s Guide",
       "dom_h1_headings": [
-        "Wireshark User\u2019s Guide"
+        "Wireshark User\u2019s Guide",
+        "Preface",
+        "Chapter\u00a01.\u00a0Introduction"
       ],
       "HTTP_REACHABLE": true,
       "DOM_RENDERED": true,
@@ -1394,7 +1396,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "GENERIC_CATEGORY_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Wireshark User\u2019s Guide...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
-      "latency_ms": 177
+      "latency_ms": 1342
     },
     {
       "id": "practice_splunk_fundamentals",
@@ -1422,7 +1424,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "GENERIC_CATEGORY_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Splunk Fundamentals 1, 2 & 3 | Splunk...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
-      "latency_ms": 359
+      "latency_ms": 355
     },
     {
       "id": "guide_nist_incident_handling",
@@ -1450,7 +1452,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 1757
+      "latency_ms": 1498
     },
     {
       "id": "cert_aws_developer_associate",
@@ -1476,7 +1478,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 455
+      "latency_ms": 439
     },
     {
       "id": "cert_meta_frontend_dev",
@@ -1502,7 +1504,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Meta Front-End Developer...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 1403
+      "latency_ms": 750
     },
     {
       "id": "cert_meta_backend_dev",
@@ -1528,7 +1530,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Meta Back-End Developer...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 895
+      "latency_ms": 794
     },
     {
       "id": "cert_ms_az204_azure_developer",
@@ -1556,7 +1558,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 365
+      "latency_ms": 173
     },
     {
       "id": "cert_oracle_java_programmer",
@@ -1566,7 +1568,7 @@
       "academicPrograms": [],
       "original_url": "https://education.oracle.com/java-se-8-programmer-i/pexam_1Z0-808",
       "final_url": "https://education.oracle.com/java-se-8-programmer-i/pexam_1Z0-808",
-      "http_status": 0,
+      "http_status": 403,
       "redirect_count": 0,
       "dom_page_title": "",
       "dom_h1_headings": [],
@@ -1578,11 +1580,11 @@
       "RESOURCE_TYPE_MATCH": true,
       "ACADEMIC_RELEVANCE": false,
       "CAREER_RELEVANCE": true,
-      "BROWSER_VERIFICATION_STATUS": "BROWSER_UNVERIFIED",
-      "FINAL_STATUS": "HTTP_FAILED",
+      "BROWSER_VERIFICATION_STATUS": "HTTP_BOT_WAF_BLOCKED (BROWSER_UNVERIFIED)",
+      "FINAL_STATUS": "BLOCKED",
       "SUB_CLASSIFICATION": null,
-      "verification_reason": "Connection error: The read operation timed out",
-      "latency_ms": 8142
+      "verification_reason": "HTTP 403 WAF bot block / browser automation required",
+      "latency_ms": 273
     },
     {
       "id": "course_harvard_cs50x",
@@ -1608,7 +1610,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 305
+      "latency_ms": 364
     },
     {
       "id": "course_princeton_algorithms_part1",
@@ -1634,7 +1636,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 993
+      "latency_ms": 2350
     },
     {
       "id": "course_full_stack_open",
@@ -1642,27 +1644,25 @@
       "provider": "University of Helsinki",
       "type": "course",
       "academicPrograms": [],
-      "original_url": "https://fullstackopen.com/en/",
-      "final_url": "https://fullstackopen.com/en/",
+      "original_url": "https://fullstackopen.com/en/part1",
+      "final_url": "https://fullstackopen.com/en/part1/",
       "http_status": 200,
-      "redirect_count": 0,
-      "dom_page_title": "Full stack open",
-      "dom_h1_headings": [
-        "Deep Dive Into Modern Web Development"
-      ],
+      "redirect_count": 1,
+      "dom_page_title": "Fullstack part1",
+      "dom_h1_headings": [],
       "HTTP_REACHABLE": true,
       "DOM_RENDERED": true,
-      "RESOURCE_SPECIFIC": true,
+      "RESOURCE_SPECIFIC": false,
       "PROVIDER_MATCH": false,
       "TITLE_MATCH": false,
       "RESOURCE_TYPE_MATCH": true,
       "ACADEMIC_RELEVANCE": false,
       "CAREER_RELEVANCE": true,
       "BROWSER_VERIFICATION_STATUS": "HTTP_LOADED",
-      "FINAL_STATUS": "FULLY_VERIFIED",
-      "SUB_CLASSIFICATION": null,
-      "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 8431
+      "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
+      "SUB_CLASSIFICATION": "RESOURCE_SPECIFIC_UNAVAILABLE",
+      "verification_reason": "HTTP 200 reachable, but DOM title 'Fullstack part1...' lacks exact title match -> Sub-classified as RESOURCE_SPECIFIC_UNAVAILABLE: Redirected to generic landing destination",
+      "latency_ms": 16693
     },
     {
       "id": "course_umich_python_everybody",
@@ -1688,7 +1688,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 1173
+      "latency_ms": 1975
     },
     {
       "id": "course_ualberta_software_design",
@@ -1714,7 +1714,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 811
+      "latency_ms": 784
     },
     {
       "id": "practice_neetcode_roadmap",
@@ -1722,8 +1722,8 @@
       "provider": "NeetCode.io",
       "type": "practice",
       "academicPrograms": [],
-      "original_url": "https://neetcode.io/roadmap",
-      "final_url": "https://neetcode.io/roadmap",
+      "original_url": "https://neetcode.io/practice",
+      "final_url": "https://neetcode.io/practice",
       "http_status": 200,
       "redirect_count": 0,
       "dom_page_title": "NeetCode | Coding Interview Prep, Courses, Versus Mode",
@@ -1740,7 +1740,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "UNRELATED_DESTINATION",
       "verification_reason": "HTTP 200 reachable, but DOM title 'NeetCode | Coding Interview Prep, Courses, Ve...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
-      "latency_ms": 57
+      "latency_ms": 120
     },
     {
       "id": "doc_mdn_javascript_guide",
@@ -1748,13 +1748,13 @@
       "provider": "Mozilla Developer Network (MDN)",
       "type": "documentation",
       "academicPrograms": [],
-      "original_url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide",
-      "final_url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide",
+      "original_url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Introduction",
+      "final_url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Introduction",
       "http_status": 200,
       "redirect_count": 0,
-      "dom_page_title": "JavaScript Guide - JavaScript | MDN MDN",
+      "dom_page_title": "Introduction - JavaScript | MDN MDN",
       "dom_h1_headings": [
-        "JavaScript Guide"
+        "Introduction"
       ],
       "HTTP_REACHABLE": true,
       "DOM_RENDERED": true,
@@ -1767,8 +1767,8 @@
       "BROWSER_VERIFICATION_STATUS": "HTTP_LOADED",
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "UNRELATED_DESTINATION",
-      "verification_reason": "HTTP 200 reachable, but DOM title 'JavaScript Guide - JavaScript | MDN MDN...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
-      "latency_ms": 85
+      "verification_reason": "HTTP 200 reachable, but DOM title 'Introduction - JavaScript | MDN MDN...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
+      "latency_ms": 148
     },
     {
       "id": "video_fcc_git_github",
@@ -1794,7 +1794,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "UNRELATED_DESTINATION",
       "verification_reason": "HTTP 200 reachable, but DOM title '...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
-      "latency_ms": 179
+      "latency_ms": 156
     },
     {
       "id": "guide_refactoring_guru_patterns",
@@ -1802,14 +1802,13 @@
       "provider": "Refactoring.Guru",
       "type": "guide",
       "academicPrograms": [],
-      "original_url": "https://refactoring.guru/design-patterns",
-      "final_url": "https://refactoring.guru/design-patterns",
+      "original_url": "https://refactoring.guru/design-patterns/catalog",
+      "final_url": "https://refactoring.guru/design-patterns/catalog",
       "http_status": 200,
       "redirect_count": 0,
-      "dom_page_title": "Design Patterns",
+      "dom_page_title": "The Catalog of Design Patterns",
       "dom_h1_headings": [
-        "Design",
-        "Patterns"
+        "The Catalog of Design Patterns"
       ],
       "HTTP_REACHABLE": true,
       "DOM_RENDERED": true,
@@ -1822,8 +1821,8 @@
       "BROWSER_VERIFICATION_STATUS": "HTTP_LOADED",
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "UNRELATED_DESTINATION",
-      "verification_reason": "HTTP 200 reachable, but DOM title 'Design Patterns...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
-      "latency_ms": 264
+      "verification_reason": "HTTP 200 reachable, but DOM title 'The Catalog of Design Patterns...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
+      "latency_ms": 400
     },
     {
       "id": "cert_aws_certified_cloud_practitioner",
@@ -1849,7 +1848,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 400
+      "latency_ms": 376
     },
     {
       "id": "cert_aws_solutions_architect_associate",
@@ -1875,7 +1874,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 306
+      "latency_ms": 317
     },
     {
       "id": "cert_ms_az900_azure_fundamentals",
@@ -1903,7 +1902,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 193
+      "latency_ms": 232
     },
     {
       "id": "cert_gcp_associate_cloud_engineer",
@@ -1931,7 +1930,7 @@
       "FINAL_STATUS": "DOM_UNVERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "DOM title indicates error page: '<!-- \"> '> --><title> 404. Page Not Found'",
-      "latency_ms": 392
+      "latency_ms": 480
     },
     {
       "id": "cert_hashicorp_terraform_associate",
@@ -1957,7 +1956,7 @@
       "FINAL_STATUS": "BLOCKED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 429 WAF bot block / browser automation required",
-      "latency_ms": 210
+      "latency_ms": 90
     },
     {
       "id": "course_coursera_gcp_architecting",
@@ -1983,7 +1982,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 955
+      "latency_ms": 1279
     },
     {
       "id": "course_aws_devops_specialization",
@@ -2009,7 +2008,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 428
+      "latency_ms": 457
     },
     {
       "id": "course_linux_foundation_kubernetes_intro",
@@ -2035,7 +2034,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 762
+      "latency_ms": 935
     },
     {
       "id": "video_fcc_docker_containers",
@@ -2061,7 +2060,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "UNRELATED_DESTINATION",
       "verification_reason": "HTTP 200 reachable, but DOM title '...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
-      "latency_ms": 159
+      "latency_ms": 182
     },
     {
       "id": "doc_kubernetes_official_docs",
@@ -2089,7 +2088,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "UNRELATED_DESTINATION",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Concepts...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
-      "latency_ms": 245
+      "latency_ms": 291
     },
     {
       "id": "doc_terraform_official_tutorials",
@@ -2117,7 +2116,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 267
+      "latency_ms": 213
     },
     {
       "id": "cert_ms_ai900_azure_ai",
@@ -2145,7 +2144,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 357
+      "latency_ms": 200
     },
     {
       "id": "cert_gcp_professional_ml_engineer",
@@ -2171,7 +2170,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 1093
+      "latency_ms": 3769
     },
     {
       "id": "cert_tensorflow_developer",
@@ -2180,7 +2179,7 @@
       "type": "certification",
       "academicPrograms": [],
       "original_url": "https://www.tensorflow.org/certificate",
-      "final_url": "https://www.tensorflow.org/oauth2callback?state=%7B%22csrf_token%22%3A+%221703501b7769ad2a0044e475d57a81396bd23d3892ab16dd851fbc8120b665c4%22%2C+%22return_url%22%3A+%22https%3A%2F%2Fwww.tensorflow.org%2Fcertificate%22%7D&error_subtype=access_denied&error=interaction_required",
+      "final_url": "https://www.tensorflow.org/oauth2callback?state=%7B%22csrf_token%22%3A+%22a7f813e978514adccef4f3e78fd129d2efc1c99eec3aada95e0f52d5b52c4592%22%2C+%22return_url%22%3A+%22https%3A%2F%2Fwww.tensorflow.org%2Fcertificate%22%7D&error_subtype=access_denied&error=interaction_required",
       "http_status": 302,
       "redirect_count": 0,
       "dom_page_title": "",
@@ -2197,7 +2196,7 @@
       "FINAL_STATUS": "HTTP_FAILED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP Error 302: The HTTP server returned a redirect error that would lead to an infinite loop.\nThe last 30x error message was:\nFound",
-      "latency_ms": 5988
+      "latency_ms": 5855
     },
     {
       "id": "course_andrewng_machine_learning",
@@ -2223,7 +2222,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 888
+      "latency_ms": 696
     },
     {
       "id": "course_deeplearning_specialization",
@@ -2249,7 +2248,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 812
+      "latency_ms": 775
     },
     {
       "id": "doc_huggingface_nlp_course",
@@ -2278,7 +2277,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 1216
+      "latency_ms": 1307
     },
     {
       "id": "doc_pytorch_official_tutorials",
@@ -2307,7 +2306,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "GENERIC_CATEGORY_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Welcome to PyTorch Tutorials \u2014 PyTorch Tutori...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
-      "latency_ms": 941
+      "latency_ms": 881
     },
     {
       "id": "cert_meta_react_native_specialization",
@@ -2333,7 +2332,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 979
+      "latency_ms": 1119
     },
     {
       "id": "doc_react_native_official",
@@ -2341,13 +2340,13 @@
       "provider": "Meta / React Native",
       "type": "documentation",
       "academicPrograms": [],
-      "original_url": "https://reactnative.dev/docs/getting-started",
-      "final_url": "https://reactnative.dev/docs/getting-started",
+      "original_url": "https://reactnative.dev/docs/tutorial",
+      "final_url": "https://reactnative.dev/docs/tutorial",
       "http_status": 200,
       "redirect_count": 0,
-      "dom_page_title": "Introduction \u00b7 React Native",
+      "dom_page_title": "Learn the Basics \u00b7 React Native",
       "dom_h1_headings": [
-        "Introduction"
+        "Learn the Basics"
       ],
       "HTTP_REACHABLE": true,
       "DOM_RENDERED": true,
@@ -2360,8 +2359,8 @@
       "BROWSER_VERIFICATION_STATUS": "HTTP_LOADED",
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "GENERIC_CATEGORY_PAGE",
-      "verification_reason": "HTTP 200 reachable, but DOM title 'Introduction \u00b7 React Native...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
-      "latency_ms": 839
+      "verification_reason": "HTTP 200 reachable, but DOM title 'Learn the Basics \u00b7 React Native...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
+      "latency_ms": 764
     },
     {
       "id": "cert_istqb_foundation",
@@ -2389,7 +2388,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 567
+      "latency_ms": 400
     },
     {
       "id": "doc_cypress_testing_docs",
@@ -2417,7 +2416,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 1631
+      "latency_ms": 1400
     },
     {
       "id": "cert_google_ux_design",
@@ -2443,7 +2442,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 2118
+      "latency_ms": 771
     },
     {
       "id": "video_fcc_figma_tutorial",
@@ -2469,7 +2468,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "UNRELATED_DESTINATION",
       "verification_reason": "HTTP 200 reachable, but DOM title '...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
-      "latency_ms": 166
+      "latency_ms": 150
     },
     {
       "id": "cert_cisco_ccna",
@@ -2495,7 +2494,7 @@
       "FINAL_STATUS": "BLOCKED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 403 WAF bot block / browser automation required",
-      "latency_ms": 223
+      "latency_ms": 180
     },
     {
       "id": "cert_ms_dp300_azure_dba",
@@ -2523,7 +2522,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 387
+      "latency_ms": 204
     },
     {
       "id": "doc_postgresql_official_docs",
@@ -2551,7 +2550,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 688
+      "latency_ms": 752
     },
     {
       "id": "seminar_devcon_ph_tech_talks",
@@ -2577,7 +2576,7 @@
       "FINAL_STATUS": "GENERIC_LANDING_PAGE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "Domain homepage without course path",
-      "latency_ms": 3141
+      "latency_ms": 3171
     },
     {
       "id": "seminar_aws_innovate_online",
@@ -2603,7 +2602,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "UNRELATED_DESTINATION",
       "verification_reason": "HTTP 200 reachable, but DOM title 'AWS Innovate...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
-      "latency_ms": 367
+      "latency_ms": 346
     },
     {
       "id": "cert_civil_staadpro_01",
@@ -2631,7 +2630,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 907
+      "latency_ms": 940
     },
     {
       "id": "course_civil_concrete_01",
@@ -2659,7 +2658,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "UNRELATED_DESTINATION",
       "verification_reason": "HTTP 200 reachable, but DOM title '...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
-      "latency_ms": 514
+      "latency_ms": 473
     },
     {
       "id": "course_civil_revit_bim_01",
@@ -2688,7 +2687,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 620
+      "latency_ms": 592
     },
     {
       "id": "cert_accountancy_audit_01",
@@ -2716,7 +2715,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 2911
+      "latency_ms": 677
     },
     {
       "id": "course_accountancy_bookkeeping_01",
@@ -2744,7 +2743,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 559
+      "latency_ms": 681
     },
     {
       "id": "course_accountancy_excel_modeling_01",
@@ -2773,7 +2772,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 394
+      "latency_ms": 420
     },
     {
       "id": "course_education_elearning_storyline_01",
@@ -2801,7 +2800,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 559
+      "latency_ms": 708
     },
     {
       "id": "course_education_addie_model_01",
@@ -2829,7 +2828,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 547
+      "latency_ms": 688
     },
     {
       "id": "course_education_accessibility_udl_01",
@@ -2857,7 +2856,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'W3Cx: Introduction to Web Accessibility | edX...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 647
+      "latency_ms": 695
     },
     {
       "id": "course_education_multimedia_01",
@@ -2885,7 +2884,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 640
+      "latency_ms": 742
     },
     {
       "id": "cert_psychometrics_blep_01",
@@ -2895,25 +2894,25 @@
       "academicPrograms": [
         "BS Psychology"
       ],
-      "original_url": "https://www.pap.ph/",
-      "final_url": "https://www.pap.ph/",
-      "http_status": 200,
+      "original_url": "https://www.pap.ph/blep",
+      "final_url": "https://www.pap.ph/blep",
+      "http_status": 404,
       "redirect_count": 0,
-      "dom_page_title": "Psychological Association of the Philippines",
+      "dom_page_title": "",
       "dom_h1_headings": [],
-      "HTTP_REACHABLE": true,
-      "DOM_RENDERED": true,
+      "HTTP_REACHABLE": false,
+      "DOM_RENDERED": false,
       "RESOURCE_SPECIFIC": false,
       "PROVIDER_MATCH": false,
       "TITLE_MATCH": false,
       "RESOURCE_TYPE_MATCH": true,
       "ACADEMIC_RELEVANCE": true,
       "CAREER_RELEVANCE": true,
-      "BROWSER_VERIFICATION_STATUS": "HTTP_LOADED",
-      "FINAL_STATUS": "GENERIC_LANDING_PAGE",
+      "BROWSER_VERIFICATION_STATUS": "BROWSER_UNVERIFIED",
+      "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
-      "verification_reason": "Domain homepage without course path",
-      "latency_ms": 1605
+      "verification_reason": "HTTP 404 permanent page not found",
+      "latency_ms": 3126
     },
     {
       "id": "course_psychometrics_testing_01",
@@ -2943,7 +2942,7 @@
       "FINAL_STATUS": "GENERIC_LANDING_PAGE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "Broad category landing page (https://www.edx.org/learn/psychology)",
-      "latency_ms": 248
+      "latency_ms": 228
     },
     {
       "id": "course_psychology_statistics_01",
@@ -2971,7 +2970,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 676
+      "latency_ms": 429
     },
     {
       "id": "cert_ncees_fe_mechanical_01",
@@ -2981,10 +2980,10 @@
       "academicPrograms": [
         "BS Mechanical Engineering"
       ],
-      "original_url": "https://ncees.org/engineering/fe/",
-      "final_url": "https://ncees.org/exams/fe-exam",
+      "original_url": "https://ncees.org/exams/fe-exam/",
+      "final_url": "https://ncees.org/exams/fe-exam/",
       "http_status": 200,
-      "redirect_count": 1,
+      "redirect_count": 0,
       "dom_page_title": "FE Exam | NCEES",
       "dom_h1_headings": [
         "FE Exam"
@@ -3001,7 +3000,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "GENERIC_CATEGORY_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'FE Exam | NCEES...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
-      "latency_ms": 2191
+      "latency_ms": 555
     },
     {
       "id": "cert_solidworks_cswa_01",
@@ -3030,7 +3029,7 @@
       "FINAL_STATUS": "HTTP_FAILED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "Connection error: The read operation timed out",
-      "latency_ms": 8121
+      "latency_ms": 8110
     },
     {
       "id": "cert_ashrae_hvac_design_01",
@@ -3061,7 +3060,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Instructor-Led Training Courses...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 2618
+      "latency_ms": 2364
     },
     {
       "id": "course_thermodynamics_mit_01",
@@ -3090,7 +3089,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 325
+      "latency_ms": 16272
     },
     {
       "id": "course_machine_design_georgia_01",
@@ -3118,7 +3117,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 985
+      "latency_ms": 1061
     },
     {
       "id": "practice_solidworks_3d_lab_01",
@@ -3147,7 +3146,7 @@
       "FINAL_STATUS": "HTTP_FAILED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "Connection error: The read operation timed out",
-      "latency_ms": 8065
+      "latency_ms": 8118
     },
     {
       "id": "cert_ncees_fe_electrical_01",
@@ -3157,10 +3156,10 @@
       "academicPrograms": [
         "BS Electrical Engineering"
       ],
-      "original_url": "https://ncees.org/engineering/fe/",
-      "final_url": "https://ncees.org/exams/fe-exam",
+      "original_url": "https://ncees.org/exams/fe-exam/",
+      "final_url": "https://ncees.org/exams/fe-exam/",
       "http_status": 200,
-      "redirect_count": 1,
+      "redirect_count": 0,
       "dom_page_title": "FE Exam | NCEES",
       "dom_h1_headings": [
         "FE Exam"
@@ -3177,7 +3176,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "GENERIC_CATEGORY_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'FE Exam | NCEES...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
-      "latency_ms": 1447
+      "latency_ms": 1019
     },
     {
       "id": "cert_etap_power_system_01",
@@ -3207,7 +3206,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "GENERIC_CATEGORY_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Events...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
-      "latency_ms": 2467
+      "latency_ms": 2828
     },
     {
       "id": "course_electric_power_systems_01",
@@ -3235,7 +3234,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "UNRELATED_DESTINATION",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Electric Power Systems...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
-      "latency_ms": 1993
+      "latency_ms": 848
     },
     {
       "id": "course_philippine_electrical_code_01",
@@ -3263,7 +3262,7 @@
       "FINAL_STATUS": "GENERIC_LANDING_PAGE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "Domain homepage without course path",
-      "latency_ms": 1871
+      "latency_ms": 1507
     },
     {
       "id": "practice_matlab_simulink_circuit_01",
@@ -3292,7 +3291,7 @@
       "FINAL_STATUS": "BLOCKED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 403 WAF bot block / browser automation required",
-      "latency_ms": 156
+      "latency_ms": 134
     },
     {
       "id": "cert_cisco_ccna_networking_01",
@@ -3322,7 +3321,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "RESOURCE_SPECIFIC_UNAVAILABLE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'CCNA: Introduction to Networks...' lacks exact title match -> Sub-classified as RESOURCE_SPECIFIC_UNAVAILABLE: Redirected to generic landing destination",
-      "latency_ms": 252
+      "latency_ms": 225
     },
     {
       "id": "cert_comptia_network_plus_01",
@@ -3352,7 +3351,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Network+ (Plus) Certification | CompTIA...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 2762
+      "latency_ms": 2636
     },
     {
       "id": "course_embedded_systems_ut_01",
@@ -3381,7 +3380,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'UTAustinX: Embedded Systems - Shape The World...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 298
+      "latency_ms": 272
     },
     {
       "id": "practice_kicad_pcb_design_01",
@@ -3411,7 +3410,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "GENERIC_CATEGORY_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'https://www.kicad.org/help/learning-resources...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
-      "latency_ms": 508
+      "latency_ms": 853
     },
     {
       "id": "cert_lean_six_sigma_green_belt_01",
@@ -3443,7 +3442,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 1550
+      "latency_ms": 2024
     },
     {
       "id": "cert_ascm_cscp_01",
@@ -3472,7 +3471,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "UNRELATED_DESTINATION",
       "verification_reason": "HTTP 200 reachable, but DOM title '...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
-      "latency_ms": 114
+      "latency_ms": 79
     },
     {
       "id": "course_operations_research_01",
@@ -3500,7 +3499,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "UNRELATED_DESTINATION",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Operations Research (1): Models and Applicati...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
-      "latency_ms": 1137
+      "latency_ms": 847
     },
     {
       "id": "course_chemical_reaction_eng_01",
@@ -3531,7 +3530,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 37
+      "latency_ms": 85
     },
     {
       "id": "practice_aspen_plus_simulation_01",
@@ -3562,7 +3561,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 419
+      "latency_ms": 241
     },
     {
       "id": "cert_autodesk_revit_arch_01",
@@ -3590,7 +3589,7 @@
       "FINAL_STATUS": "BLOCKED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 403 WAF bot block / browser automation required",
-      "latency_ms": 163
+      "latency_ms": 151
     },
     {
       "id": "cert_leed_green_associate_01",
@@ -3621,7 +3620,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 645
+      "latency_ms": 413
     },
     {
       "id": "course_architectural_design_mit_01",
@@ -3649,7 +3648,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 283
+      "latency_ms": 277
     },
     {
       "id": "practice_revit_bim_lab_01",
@@ -3677,7 +3676,7 @@
       "FINAL_STATUS": "BLOCKED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 403 WAF bot block / browser automation required",
-      "latency_ms": 109
+      "latency_ms": 108
     },
     {
       "id": "cert_cpa_board_prep_01",
@@ -3706,7 +3705,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "GENERIC_CATEGORY_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'AICPA & CIMA...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
-      "latency_ms": 2082
+      "latency_ms": 1862
     },
     {
       "id": "cert_ima_cma_01",
@@ -3739,7 +3738,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "GENERIC_CATEGORY_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'The Institute of Management Accountants and F...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
-      "latency_ms": 2621
+      "latency_ms": 2428
     },
     {
       "id": "cert_quickbooks_certified_user_01",
@@ -3803,7 +3802,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 2586
+      "latency_ms": 1261
     },
     {
       "id": "practice_bank_reconciliation_lab_01",
@@ -3837,7 +3836,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "GENERIC_CATEGORY_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Bank Reconciliation: In-Depth Explanation wit...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
-      "latency_ms": 299
+      "latency_ms": 516
     },
     {
       "id": "cert_cfa_investment_foundations_01",
@@ -3866,7 +3865,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 529
+      "latency_ms": 502
     },
     {
       "id": "cert_shrm_cp_hr_01",
@@ -3895,7 +3894,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 909
+      "latency_ms": 1070
     },
     {
       "id": "cert_google_digital_marketing_01",
@@ -3924,7 +3923,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 1074
+      "latency_ms": 752
     },
     {
       "id": "course_corporate_finance_nyu_01",
@@ -3953,7 +3952,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 1200
+      "latency_ms": 780
     },
     {
       "id": "practice_excel_dcf_financial_lab_01",
@@ -3981,7 +3980,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Investment Foundations Certificate | CFA Inst...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 457
+      "latency_ms": 499
     },
     {
       "id": "cert_blep_psychometrician_review_01",
@@ -3991,25 +3990,25 @@
       "academicPrograms": [
         "Bachelor of Arts in Psychology"
       ],
-      "original_url": "https://www.pap.ph/",
-      "final_url": "https://www.pap.ph/",
-      "http_status": 200,
+      "original_url": "https://www.pap.ph/blep",
+      "final_url": "https://www.pap.ph/blep",
+      "http_status": 404,
       "redirect_count": 0,
-      "dom_page_title": "Psychological Association of the Philippines",
+      "dom_page_title": "",
       "dom_h1_headings": [],
-      "HTTP_REACHABLE": true,
-      "DOM_RENDERED": true,
+      "HTTP_REACHABLE": false,
+      "DOM_RENDERED": false,
       "RESOURCE_SPECIFIC": false,
       "PROVIDER_MATCH": false,
       "TITLE_MATCH": false,
       "RESOURCE_TYPE_MATCH": true,
       "ACADEMIC_RELEVANCE": true,
       "CAREER_RELEVANCE": true,
-      "BROWSER_VERIFICATION_STATUS": "HTTP_LOADED",
-      "FINAL_STATUS": "GENERIC_LANDING_PAGE",
+      "BROWSER_VERIFICATION_STATUS": "BROWSER_UNVERIFIED",
+      "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
-      "verification_reason": "Domain homepage without course path",
-      "latency_ms": 893
+      "verification_reason": "HTTP 404 permanent page not found",
+      "latency_ms": 728
     },
     {
       "id": "course_psychological_testing_queensland_01",
@@ -4037,7 +4036,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 500
+      "latency_ms": 928
     },
     {
       "id": "practice_spss_item_analysis_lab_01",
@@ -4065,7 +4064,7 @@
       "FINAL_STATUS": "BLOCKED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 403 WAF bot block / browser automation required",
-      "latency_ms": 168
+      "latency_ms": 179
     },
     {
       "id": "cert_deped_let_review_01",
@@ -4094,7 +4093,7 @@
       "FINAL_STATUS": "GENERIC_LANDING_PAGE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "Domain homepage without course path",
-      "latency_ms": 2815
+      "latency_ms": 2856
     },
     {
       "id": "cert_edx_instructional_design_01",
@@ -4123,7 +4122,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 1013
+      "latency_ms": 1276
     },
     {
       "id": "practice_deped_lesson_plan_guide_01",
@@ -4151,7 +4150,7 @@
       "FINAL_STATUS": "GENERIC_LANDING_PAGE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "Domain homepage without course path",
-      "latency_ms": 2515
+      "latency_ms": 2637
     },
     {
       "id": "cert_comptia_itf_01",
@@ -4184,7 +4183,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 2442
+      "latency_ms": 2515
     },
     {
       "id": "cert_tesda_bookkeeping_nc3_01",
@@ -4218,7 +4217,7 @@
       "FINAL_STATUS": "GENERIC_LANDING_PAGE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "Domain homepage without course path",
-      "latency_ms": 253
+      "latency_ms": 249
     },
     {
       "id": "course_khan_precalculus_stem_01",
@@ -4249,7 +4248,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "GENERIC_CATEGORY_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Khan Academy...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
-      "latency_ms": 429
+      "latency_ms": 411
     },
     {
       "id": "practice_purdue_owl_citation_01",
@@ -4281,7 +4280,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'General Format - \n\t\t\t Purdue OWL\u00ae -  Purdue U...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 1347
+      "latency_ms": 1430
     },
     {
       "id": "course_building_codes_architects_01",
@@ -4309,7 +4308,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 1597
+      "latency_ms": 415
     },
     {
       "id": "course_work_measurement_ergonomics_01",
@@ -4337,7 +4336,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 977
+      "latency_ms": 686
     },
     {
       "id": "practice_value_stream_mapping_01",
@@ -4370,7 +4369,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "RESOURCE_SPECIFIC_UNAVAILABLE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Six Sigma Green Belt Certification | Apply & ...' lacks exact title match -> Sub-classified as RESOURCE_SPECIFIC_UNAVAILABLE: Redirected to generic landing destination",
-      "latency_ms": 1976
+      "latency_ms": 1978
     },
     {
       "id": "cert_ncees_fe_chemical_01",
@@ -4380,10 +4379,10 @@
       "academicPrograms": [
         "BS Chemical Engineering"
       ],
-      "original_url": "https://ncees.org/engineering/fe/",
-      "final_url": "https://ncees.org/exams/fe-exam",
+      "original_url": "https://ncees.org/exams/fe-exam/",
+      "final_url": "https://ncees.org/exams/fe-exam/",
       "http_status": 200,
-      "redirect_count": 1,
+      "redirect_count": 0,
       "dom_page_title": "FE Exam | NCEES",
       "dom_h1_headings": [
         "FE Exam"
@@ -4400,7 +4399,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "GENERIC_CATEGORY_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'FE Exam | NCEES...' lacks exact title match -> Sub-classified as GENERIC_CATEGORY_PAGE: Reachable provider portal or broad category page",
-      "latency_ms": 1520
+      "latency_ms": 484
     },
     {
       "id": "course_auditing_internal_controls_01",
@@ -4429,7 +4428,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 819
+      "latency_ms": 698
     },
     {
       "id": "course_talent_acquisition_hr_01",
@@ -4461,7 +4460,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "UNRELATED_DESTINATION",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Human resources courses online | edX...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
-      "latency_ms": 1339
+      "latency_ms": 1186
     },
     {
       "id": "practice_hr_job_description_builder_01",
@@ -4489,7 +4488,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'SHRM Certified Professional | SHRM-CP...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 1967
+      "latency_ms": 2020
     },
     {
       "id": "course_supply_chain_logistics_01",
@@ -4518,7 +4517,7 @@
       "FINAL_STATUS": "FULLY_VERIFIED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 200 + rendered DOM title matches catalog item",
-      "latency_ms": 942
+      "latency_ms": 839
     },
     {
       "id": "course_seo_digital_content_01",
@@ -4547,7 +4546,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 408
+      "latency_ms": 436
     },
     {
       "id": "practice_google_analytics_4_lab_01",
@@ -4576,7 +4575,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Google Digital Marketing & E-commerce...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 892
+      "latency_ms": 716
     },
     {
       "id": "course_curriculum_development_01",
@@ -4604,7 +4603,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 823
+      "latency_ms": 1662
     },
     {
       "id": "course_academic_writing_01",
@@ -4633,7 +4632,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 568
+      "latency_ms": 502
     },
     {
       "id": "course_business_math_abm_01",
@@ -4665,7 +4664,7 @@
       "FINAL_STATUS": "DEAD_RESOURCE",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 404 permanent page not found",
-      "latency_ms": 982
+      "latency_ms": 606
     },
     {
       "id": "practice_pc_hardware_assembly_01",
@@ -4703,7 +4702,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Repair Manuals for Every Thing - iFixit...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 545
+      "latency_ms": 546
     },
     {
       "id": "practice_hr_interview_simulation_lab_01",
@@ -4733,7 +4732,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'SHRM Certified Professional | SHRM-CP...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 2025
+      "latency_ms": 2108
     },
     {
       "id": "practice_inventory_routing_excel_lab_01",
@@ -4763,7 +4762,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "UNRELATED_DESTINATION",
       "verification_reason": "HTTP 200 reachable, but DOM title '...' lacks exact title match -> Sub-classified as UNRELATED_DESTINATION: Destination page lacks provider or course alignment",
-      "latency_ms": 64
+      "latency_ms": 112
     },
     {
       "id": "practice_social_media_ad_campaign_lab_01",
@@ -4792,7 +4791,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Google Digital Marketing & E-commerce...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 883
+      "latency_ms": 707
     },
     {
       "id": "cert_purdue_academic_writing_cert_01",
@@ -4824,7 +4823,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'General Format - \n\t\t\t Purdue OWL\u00ae -  Purdue U...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 1176
+      "latency_ms": 1309
     },
     {
       "id": "course_comptia_a_plus_core_hardware_01",
@@ -4857,7 +4856,7 @@
       "FINAL_STATUS": "REACHABLE_BUT_NOT_RESOURCE_SPECIFIC",
       "SUB_CLASSIFICATION": "LEGITIMATE_PROVIDER_PAGE",
       "verification_reason": "HTTP 200 reachable, but DOM title 'Network+ (Plus) Certification | CompTIA...' lacks exact title match -> Sub-classified as LEGITIMATE_PROVIDER_PAGE: Reachable provider page containing advertised resource course series",
-      "latency_ms": 2373
+      "latency_ms": 3111
     },
     {
       "id": "cert_autodesk_cad_certified_user_01",
@@ -4888,7 +4887,7 @@
       "FINAL_STATUS": "BLOCKED",
       "SUB_CLASSIFICATION": null,
       "verification_reason": "HTTP 403 WAF bot block / browser automation required",
-      "latency_ms": 250
+      "latency_ms": 166
     }
   ]
 }
