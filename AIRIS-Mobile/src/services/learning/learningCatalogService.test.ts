@@ -657,5 +657,98 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
       expect(matchedGaps.size).toBeGreaterThanOrEqual(1);
     });
   });
+
+  describe("9. Physical QA Case & Category Tab Pipeline Regression Tests", () => {
+    it("Physical QA Case: IT Specialist with Cisco IOS routing & switching gap surfaces CCNA 200-301 across For You, Certifications, Courses, and Practice tabs", () => {
+      const { matchLearningRecommendations } = require("./learningCatalogService");
+
+      const gapText = "Detail your specific role and outcomes when applying Cisco IOS routing and switching configuration (CCNA-level)";
+
+      // For You tab
+      const forYouRecs = matchLearningRecommendations({
+        targetPosition: "Information Technology Specialist",
+        degreeProgram: "BS Information Technology",
+        skillGaps: [{ skill: gapText }],
+        categoryId: "for_you",
+      });
+
+      expect(forYouRecs.length).toBeGreaterThan(0);
+      const ccnaForYou = forYouRecs.find((r: any) => r.id.includes("ccna") || r.title.includes("CCNA"));
+      expect(ccnaForYou).toBeDefined();
+
+      // Certifications tab
+      const certRecs = matchLearningRecommendations({
+        targetPosition: "Information Technology Specialist",
+        degreeProgram: "BS Information Technology",
+        skillGaps: [{ skill: gapText }],
+        categoryId: "certifications",
+      });
+      expect(certRecs.length).toBeGreaterThan(0);
+      expect(certRecs.every((r: any) => r.type === "certification")).toBe(true);
+      const ccnaCert = certRecs.find((r: any) => r.id.includes("ccna") || r.title.includes("CCNA"));
+      expect(ccnaCert).toBeDefined();
+
+      // Courses tab
+      const courseRecs = matchLearningRecommendations({
+        targetPosition: "Information Technology Specialist",
+        degreeProgram: "BS Information Technology",
+        skillGaps: [{ skill: gapText }],
+        categoryId: "courses",
+      });
+      expect(courseRecs.length).toBeGreaterThan(0);
+      expect(courseRecs.every((r: any) => r.type === "course")).toBe(true);
+
+      // Practice tab
+      const practiceRecs = matchLearningRecommendations({
+        targetPosition: "Information Technology Specialist",
+        degreeProgram: "BS Information Technology",
+        skillGaps: [{ skill: gapText }],
+        categoryId: "practice",
+      });
+      expect(practiceRecs.length).toBeGreaterThan(0);
+    });
+
+    it("Strong Resume Behavior (0 gaps): System provides meaningful role-development recommendations without fabricated gaps", () => {
+      const { matchLearningRecommendations } = require("./learningCatalogService");
+
+      const recs = matchLearningRecommendations({
+        targetPosition: "Information Technology Specialist",
+        degreeProgram: "BS Information Technology",
+        skillGaps: [],
+        categoryId: "for_you",
+      });
+
+      expect(recs.length).toBeGreaterThanOrEqual(3);
+      expect(recs.some((r: any) => r.relevanceTier === "TIER_2_ROLE_COMPETENCY" || r.relevanceTier === "TIER_3_SUPPORTING")).toBe(true);
+    });
+
+    it("Excludes duplicate certifications when resume already contains CCNA 200-301", () => {
+      const { matchLearningRecommendations } = require("./learningCatalogService");
+
+      const recs = matchLearningRecommendations({
+        targetPosition: "Information Technology Specialist",
+        rawResumeText: "Cisco Certified Network Associate (CCNA 200-301) certified in 2024",
+        categoryId: "for_you",
+      });
+
+      const certIds = recs.map((r: any) => r.id);
+      expect(certIds).not.toContain("cert_cisco_ccna_200_301");
+    });
+
+    it("Dynamic non-IT domain test: Civil Engineer receives STAAD/BIM/Revit recommendations dynamically", () => {
+      const { matchLearningRecommendations } = require("./learningCatalogService");
+
+      const recs = matchLearningRecommendations({
+        targetPosition: "Civil Engineer",
+        degreeProgram: "BS Civil Engineering",
+        skillGaps: [{ skill: "Structural analysis using STAAD.pro" }],
+        categoryId: "for_you",
+      });
+
+      expect(recs.length).toBeGreaterThan(0);
+      expect(recs.some((r: any) => r.title.toLowerCase().includes("staad") || r.title.toLowerCase().includes("civil") || r.title.toLowerCase().includes("autocad"))).toBe(true);
+      expect(recs.map((r: any) => r.id)).not.toContain("cert_cisco_ccna_200_301");
+    });
+  });
 });
 

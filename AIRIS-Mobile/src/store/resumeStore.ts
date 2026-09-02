@@ -122,25 +122,39 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
     rawText,
     precomputedAnalysis
   ) => {
-    try {
-      set({ processingStatus: "validating", error: null });
+    // Generate a fresh analysisSessionId at the very beginning of upload
+    const sessionId = "session_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
 
+    // Immediately isolate the new session by clearing stale pending state from previous uploads
+    set({
+      currentAnalysisSessionId: sessionId,
+      pendingAnalysisData: null,
+      pendingTargetSkills: [],
+      processingStatus: "validating",
+      error: null,
+    });
+
+    try {
       const normalized = normalizeResumeText(rawText);
       validateResumeText(normalized);
+
+      if (get().currentAnalysisSessionId !== sessionId) return;
 
       set({ processingStatus: "parsing" });
       const structuredData = parseAndBuildStructuredData(normalized);
 
+      if (get().currentAnalysisSessionId !== sessionId) return;
+
       set({ processingStatus: "analyzing" });
       const analysisResult = precomputedAnalysis || (await calculateAtsCompatibility(normalized, targetPosition));
+
+      if (get().currentAnalysisSessionId !== sessionId) return;
 
       if (!analysisResult.detectedSections || analysisResult.detectedSections.length === 0) {
         const parsed = parseResumeSections(normalized);
         analysisResult.detectedSections = detectResumeSections(parsed);
       }
 
-      // Generate a fresh analysisSessionId for THIS specific upload
-      const sessionId = "session_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
       analysisResult.analysisSessionId = sessionId;
 
       // Extract target skills for self-assessment dynamically from target role benchmark
@@ -159,20 +173,16 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
         analysisResult,
       };
 
-      // REQUIREMENT 1: If zero target skills exist for the role, finalize automatically without an empty assessment screen
-      const existingRatings = await getStoredSelfAssessments();
-      const hasAllRatings = targetSkills.every((t) => {
-        const normKey = t.name.toLowerCase().trim();
-        return existingRatings[normKey] && existingRatings[normKey] !== undefined;
-      });
+      if (get().currentAnalysisSessionId !== sessionId) return;
 
-      if (targetSkills.length === 0 || hasAllRatings) {
+      // Only auto-finalize if zero target skills exist for the target position benchmark
+      if (targetSkills.length === 0) {
         set({
           pendingAnalysisData: pendingData,
-          pendingTargetSkills: targetSkills,
+          pendingTargetSkills: [],
           currentAnalysisSessionId: sessionId,
         });
-        await get().completeSelfAssessmentAndFinalize(existingRatings);
+        await get().completeSelfAssessmentAndFinalize({});
         return;
       }
 
@@ -184,6 +194,7 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
         error: null,
       });
     } catch (err) {
+      if (get().currentAnalysisSessionId !== sessionId) return;
       set({
         processingStatus: "failed",
         error: err instanceof Error ? err.message : String(err),
@@ -202,6 +213,17 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
       return;
     }
 
+    const sessionId = "session_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
+
+    // Immediately isolate the retarget session by clearing stale pending state
+    set({
+      currentAnalysisSessionId: sessionId,
+      pendingAnalysisData: null,
+      pendingTargetSkills: [],
+      processingStatus: "analyzing",
+      error: null,
+    });
+
     const previousRole = currentUser.targetPosition || "General Track";
     console.log("============================================================");
     console.log("AIRIS - CAREER RETARGET");
@@ -214,11 +236,11 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
     console.log("============================================================");
 
     try {
-      set({ processingStatus: "analyzing", error: null });
-
       // Run ONE intentional calculation against the new target position
       const newAnalysisResult = await calculateAtsCompatibility(activeResume.rawText, newTargetPosition);
-      const sessionId = "session_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
+
+      if (get().currentAnalysisSessionId !== sessionId) return;
+
       newAnalysisResult.analysisSessionId = sessionId;
 
       const targetSkills = extractTargetCompetenciesForSelfAssessment(newAnalysisResult);
@@ -232,19 +254,14 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
         analysisResult: newAnalysisResult,
       };
 
-      const existingRatings = await getStoredSelfAssessments();
-      const hasAllRatings = targetSkills.every((t) => {
-        const normKey = t.name.toLowerCase().trim();
-        return existingRatings[normKey] && existingRatings[normKey] !== undefined;
-      });
-
-      if (targetSkills.length === 0 || hasAllRatings) {
+      // Only auto-finalize if zero target skills exist for the target position benchmark
+      if (targetSkills.length === 0) {
         set({
           pendingAnalysisData: pendingData,
-          pendingTargetSkills: targetSkills,
+          pendingTargetSkills: [],
           currentAnalysisSessionId: sessionId,
         });
-        await get().completeSelfAssessmentAndFinalize(existingRatings);
+        await get().completeSelfAssessmentAndFinalize({});
         return;
       }
 
@@ -256,6 +273,7 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
         error: null,
       });
     } catch (err) {
+      if (get().currentAnalysisSessionId !== sessionId) return;
       console.error("[AIRIS Retarget] Failed to retarget resume:", err);
       set({
         processingStatus: "failed",
@@ -266,7 +284,7 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
   },
 
   completeSelfAssessmentAndFinalize: async (ratings: SkillSelfAssessmentMap) => {
-    const { pendingAnalysisData, finalizedSessionIds, processingStatus } = get();
+    const { pendingAnalysisData, finalizedSessionIds, processingStatus, currentAnalysisSessionId } = get();
     if (!pendingAnalysisData) {
       set({ processingStatus: "completed" });
       return;
@@ -274,7 +292,13 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
 
     const { sessionId } = pendingAnalysisData;
 
-    // REQUIREMENT 6: Idempotency Check
+    // Session Guard: ensure old asynchronous tasks cannot finalize over a newer session
+    if (currentAnalysisSessionId !== sessionId) {
+      console.log(`[AIRIS Store] Aborting finalization: session ${sessionId} does not match current session ${currentAnalysisSessionId}`);
+      return;
+    }
+
+    // Idempotency Check
     if (finalizedSessionIds.has(sessionId) || processingStatus === "finalizing") {
       console.log(`[AIRIS Store] Finalization already in progress or completed for session: ${sessionId}`);
       return;
@@ -499,11 +523,22 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
   clearAnalysisState: () => set({
     activeResume: null,
     activeAnalysis: null,
+    pendingAnalysisData: null,
+    pendingTargetSkills: [],
+    currentAnalysisSessionId: null,
     processingStatus: "idle",
     error: null
   }),
 
-  clearStore: () => set({ activeResume: null, activeAnalysis: null, processingStatus: "idle", error: null }),
+  clearStore: () => set({
+    activeResume: null,
+    activeAnalysis: null,
+    pendingAnalysisData: null,
+    pendingTargetSkills: [],
+    currentAnalysisSessionId: null,
+    processingStatus: "idle",
+    error: null
+  }),
 }));
 
 let lastUid: string | null = null;

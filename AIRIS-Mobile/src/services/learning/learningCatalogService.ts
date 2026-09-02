@@ -261,6 +261,36 @@ export interface CareerDomainProfile {
 
 export const CAREER_DOMAINS: CareerDomainProfile[] = [
   {
+    id: "sysadmin_it",
+    name: "Information Technology & Systems Administration",
+    roleKeywords: [
+      "information technology specialist",
+      "it specialist",
+      "system administrator",
+      "sysadmin",
+      "network administrator",
+      "it support specialist",
+      "it infrastructure",
+      "it technician",
+      "network specialist",
+      "information technology",
+    ],
+    coreCompetencies: [
+      "networking",
+      "ccna",
+      "cisco ios",
+      "routing and switching",
+      "network administration",
+      "system administration",
+      "linux",
+      "active directory",
+      "it support fundamentals",
+      "cloud computing",
+      "cybersecurity",
+    ],
+    supportingDomains: ["cloud_devops", "cybersecurity", "software_engineering", "general_tech"],
+  },
+  {
     id: "data_analytics",
     name: "Data Analytics & Business Intelligence",
     roleKeywords: [
@@ -1825,8 +1855,31 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
 
     // Filter by specific category if requested
     if (params.categoryId && params.categoryId !== "for_you") {
-      if (resource.category !== params.categoryId) {
-        continue;
+      if (params.categoryId === "certifications") {
+        if (resource.type !== "certification" && resource.category !== "certifications") {
+          continue;
+        }
+      } else if (params.categoryId === "courses") {
+        if (resource.type !== "course" && resource.category !== "courses") {
+          continue;
+        }
+      } else if (params.categoryId === "practice") {
+        const isPracticeType =
+          resource.type === "practice" ||
+          resource.type === "video" ||
+          resource.type === "guide" ||
+          resource.type === "documentation" ||
+          resource.type === "article" ||
+          resource.type === "seminar" ||
+          resource.type === "module" ||
+          resource.category === "practice";
+        if (!isPracticeType) {
+          continue;
+        }
+      } else {
+        if (resource.category !== params.categoryId) {
+          continue;
+        }
       }
     } else if (params.categoryId === "for_you" || !params.categoryId) {
       if (

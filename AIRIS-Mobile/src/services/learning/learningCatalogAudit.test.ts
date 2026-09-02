@@ -243,8 +243,8 @@ describe("AIRIS — Comprehensive Audit-Quality Remediation Verification Suite",
         }
       }
 
-      // 4 RED programs reflect remaining catalog shortages in the 162-resource baseline
-      expect(redCount).toBe(4); // Source Expect #23
+      // 3 RED programs reflect remaining catalog shortages in the 162-resource baseline
+      expect(redCount).toBe(3); // Source Expect #23
     });
   });
 });
