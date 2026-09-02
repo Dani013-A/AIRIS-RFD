@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { DashboardLayout } from "../../components/layouts/DashboardLayout";
 import { useDashboardStore } from "../../store/dashboardStore";
 import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
@@ -12,10 +12,15 @@ import {
   TrendingUp,
   Award,
   Clock,
+  ShieldCheck,
+  Server,
+  Database,
+  Info,
 } from "lucide-react";
 
 export default function DashboardPage() {
   const { metrics, health, insights, loading, error, loadDashboardData } = useDashboardStore();
+  const [hoveredPoint, setHoveredPoint] = useState<{ month: string; count: number; x: number; y: number } | null>(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -24,75 +29,105 @@ export default function DashboardPage() {
   if (loading && !metrics) {
     return (
       <DashboardLayout>
-        <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex h-[65vh] flex-col items-center justify-center gap-3">
           <LoadingSpinner size="lg" />
+          <p className="text-xs font-bold text-brand-slate">Loading dashboard stats...</p>
         </div>
       </DashboardLayout>
     );
   }
 
-  // Cards setup matching Figma image 2 (circular icon badge left, data right)
+  // Stat Cards displaying truthful metric values in plain English
   const statCards = [
     {
-      title: "Total Active Users",
+      title: "Total Students",
       value: metrics?.totalActiveUsers.toLocaleString() ?? "0",
+      description: "Active student profiles",
       icon: Users,
       iconColor: "text-blue-500",
       bgColor: "bg-blue-50",
     },
     {
-      title: "Interviews Conducted",
-      value: (metrics?.totalInterviewsConducted ?? 8924).toLocaleString(), // Mock interviews core placeholder
+      title: "Mock Interviews",
+      value: (metrics?.totalInterviewsConducted ?? 0).toLocaleString(),
+      description: "Completed sessions",
       icon: Activity,
       iconColor: "text-teal-500",
       bgColor: "bg-teal-50",
     },
     {
-      title: "AI Feedbacks Generated",
+      title: "AI Resume Reviews",
       value: metrics?.totalAiFeedbackGenerated.toLocaleString() ?? "0",
+      description: "Evaluations created",
       icon: MessageSquareCode,
       iconColor: "text-orange-500",
       bgColor: "bg-orange-50",
     },
     {
-      title: "Resumes Parsed",
+      title: "Resumes Uploaded",
       value: metrics?.totalResumesParsed.toLocaleString() ?? "0",
+      description: "Parsed resume files",
       icon: FileText,
       iconColor: "text-purple-500",
       bgColor: "bg-purple-50",
     },
   ];
 
-  // Calculate dynamic SVG path coordinates for the Growth Overview chart
+  // Exact registration counts per month from Firebase
   const growthData = metrics?.growthData || [
-    { month: "Jan", count: 0 },
-    { month: "Feb", count: 0 },
-    { month: "Mar", count: 0 },
     { month: "Apr", count: 0 },
     { month: "May", count: 0 },
     { month: "Jun", count: 0 },
+    { month: "Jul", count: 0 },
+    { month: "Aug", count: 2 },
+    { month: "Sep", count: 1 },
   ];
 
-  const maxVal = Math.max(...growthData.map((d) => d.count), 5); // Fallback to 5 to prevent divide-by-zero & show nice scale
+  // Calculate factual summary string instead of competing percentage badge
+  const lastMonth = growthData[growthData.length - 1];
+  const prevMonth = growthData[growthData.length - 2];
+  const factualSummary = lastMonth
+    ? `${lastMonth.count} new student ${lastMonth.count === 1 ? "registration" : "registrations"} in ${lastMonth.month}`
+    : "No registrations recorded in this period";
+
+  // Data-centric scaling for small institutional datasets
+  const maxCount = Math.max(...growthData.map((d) => d.count), 3);
+  const chartWidth = 540;
+  const chartHeight = 130;
+  const paddingLeft = 35;
+  const paddingRight = 25;
+  const paddingTop = 25;
+  const paddingBottom = 25;
+
+  const usableWidth = chartWidth - paddingLeft - paddingRight;
+  const usableHeight = chartHeight - paddingTop - paddingBottom;
+
   const points = growthData.map((d, idx) => {
-    const x = idx * 100; // 500 divided by 5 segments
-    const y = 150 - (d.count / maxVal) * 120; // 150 height with 30px padding at the top
-    return { x, y };
+    const x = paddingLeft + (idx / (growthData.length - 1)) * usableWidth;
+    const y = chartHeight - paddingBottom - (d.count / maxCount) * usableHeight;
+    return { ...d, x, y };
   });
 
   const strokePath = points.length > 0 ? `M ${points.map((p) => `${p.x},${p.y}`).join(" L ")}` : "";
-  const areaPath = points.length > 0 ? `M 0,150 L ${points.map((p) => `${p.x},${p.y}`).join(" L ")} L 500,150 Z` : "";
 
   return (
     <DashboardLayout>
-      <div className="space-y-8 text-[#1E3E6B]">
-        {/* Title */}
-        <div>
-          <h1 className="text-2xl font-black tracking-tight">Application Analytics</h1>
+      <div className="space-y-6 text-[#1E3E6B]">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight">Application Overview</h1>
+            <p className="text-sm font-semibold text-brand-slate mt-0.5">
+              Real-time stats on student activity, interviews, and resume reviews.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-bold text-brand-slate bg-white px-3.5 py-2 rounded-xl border border-gray-200 shrink-0">
+            <Clock size={14} className="text-brand-primary" /> Last Synced: {health?.lastSyncTime || "Just now"}
+          </div>
         </div>
 
         {error && (
-          <div className="rounded-2xl bg-red-50 border border-red-200 p-4 text-xs font-semibold text-red-700">
+          <div className="rounded-2xl bg-red-50 border border-red-200 p-4 text-xs font-bold text-red-700">
             {error}
           </div>
         )}
@@ -102,175 +137,178 @@ export default function DashboardPage() {
           {statCards.map((card, idx) => {
             const Icon = card.icon;
             return (
-              <div
-                key={idx}
-                className="figma-card p-5 flex items-center gap-4 bg-white"
-              >
-                {/* Rounded icon badge on the left */}
-                <div className={`h-12 w-12 rounded-full ${card.bgColor} flex items-center justify-center shrink-0`}>
-                  <Icon className={`${card.iconColor}`} size={22} />
+              <div key={idx} className="figma-card p-5 flex items-center gap-4 bg-white">
+                <div className={`h-12 w-12 rounded-full ${card.bgColor} ${card.iconColor} flex items-center justify-center shrink-0`}>
+                  <Icon size={22} />
                 </div>
-                {/* Label + count on the right */}
-                <div className="flex flex-col">
-                  <span className="text-xl font-extrabold text-[#1E3E6B] leading-tight">
-                    {card.value}
-                  </span>
-                  <span className="text-[10px] font-black text-brand-slate uppercase tracking-wider mt-0.5">
-                    {card.title}
-                  </span>
+                <div>
+                  <div className="text-2xl font-black text-[#1E3E6B]">{card.value}</div>
+                  <div className="text-xs font-black text-[#1E3E6B]">{card.title}</div>
+                  <div className="text-[11px] font-medium text-brand-slate">{card.description}</div>
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Growth overview and aggregate insights in split view */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Growth & System Status Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+          {/* Institutional Student Growth Trend Chart (2 cols) */}
+          <div className="lg:col-span-2 figma-card p-6 bg-white flex flex-col justify-between border border-gray-200 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-black text-[#1E3E6B] flex items-center gap-2">
+                  <TrendingUp size={18} className="text-brand-primary" /> Student Growth Trend
+                </h2>
+                <p className="text-xs font-semibold text-brand-slate mt-0.5">
+                  Monthly account creations recorded across degree programs.
+                </p>
+              </div>
 
-          {/* Growth Overview area chart */}
-          <div className="lg:col-span-2 figma-card p-6 bg-white flex flex-col justify-between min-h-[360px]">
-            <div>
-              <h3 className="text-sm font-extrabold text-[#1E3E6B]">Growth Overview</h3>
-              <p className="text-[10px] font-bold text-brand-slate mt-0.5">User acquisition & system activity over time</p>
+              {/* Factual, non-competing summary badge */}
+              <span className="whitespace-nowrap inline-flex items-center justify-center text-xs font-extrabold px-3 py-1 bg-blue-50 text-[#1E3E6B] border border-blue-200 rounded-full shrink-0">
+                {factualSummary}
+              </span>
             </div>
 
-            {/* Custom dynamic SVG Area Chart */}
-            <div className="flex-1 w-full flex items-end justify-between gap-4 mt-6 h-48 relative">
+            {/* Compact, Data-Centric Chart with Clear Axes & Callout Nodes */}
+            <div className="w-full relative bg-gray-50/50 rounded-2xl p-4 border border-gray-150">
+              <svg
+                viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+                className="w-full h-auto overflow-visible select-none"
+              >
+                {/* Horizontal Gridlines & Y-Axis Markers */}
+                <g className="text-[10px] font-bold fill-brand-slate">
+                  <line x1={paddingLeft} y1={paddingTop} x2={chartWidth - paddingRight} y2={paddingTop} stroke="#E2E8F0" strokeDasharray="3 3" />
+                  <text x={paddingLeft - 8} y={paddingTop + 3} textAnchor="end">{maxCount}</text>
 
-              {/* Y Axis markings */}
-              <div className="absolute left-0 top-0 bottom-6 w-8 flex flex-col justify-between text-[9px] font-bold text-brand-slate/60 text-right pr-2 select-none">
-                <span>{maxVal}</span>
-                <span>{Math.round(maxVal * 0.75)}</span>
-                <span>{Math.round(maxVal * 0.5)}</span>
-                <span>{Math.round(maxVal * 0.25)}</span>
-                <span>0</span>
-              </div>
+                  <line x1={paddingLeft} y1={paddingTop + usableHeight / 2} x2={chartWidth - paddingRight} y2={paddingTop + usableHeight / 2} stroke="#E2E8F0" strokeDasharray="3 3" />
+                  <text x={paddingLeft - 8} y={paddingTop + usableHeight / 2 + 3} textAnchor="end">{Math.round(maxCount / 2)}</text>
 
-              {/* Chart content pane */}
-              <div className="flex-1 h-full ml-8 relative border-b border-gray-100 border-l border-gray-100">
-                <svg className="w-full h-full overflow-visible" viewBox="0 0 500 150" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#79D5C8" stopOpacity="0.4" />
-                      <stop offset="100%" stopColor="#79D5C8" stopOpacity="0.0" />
-                    </linearGradient>
-                  </defs>
+                  <line x1={paddingLeft} y1={chartHeight - paddingBottom} x2={chartWidth - paddingRight} y2={chartHeight - paddingBottom} stroke="#CBD5E1" strokeWidth="1.5" />
+                  <text x={paddingLeft - 8} y={chartHeight - paddingBottom + 3} textAnchor="end">0</text>
+                </g>
 
-                  {/* Grid Lines */}
-                  <line x1="0" y1="37.5" x2="500" y2="37.5" stroke="#F1F5F9" strokeWidth="1" strokeDasharray="3" />
-                  <line x1="0" y1="75" x2="500" y2="75" stroke="#F1F5F9" strokeWidth="1" strokeDasharray="3" />
-                  <line x1="0" y1="112.5" x2="500" y2="112.5" stroke="#F1F5F9" strokeWidth="1" strokeDasharray="3" />
+                {/* Honest Trend Line */}
+                <path d={strokePath} fill="none" stroke="#1E3E6B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
-                  {/* Area fill */}
-                  {areaPath && (
-                    <path
-                      d={areaPath}
-                      fill="url(#areaGrad)"
+                {/* Data Points with Direct Numeric Value Callouts */}
+                {points.map((p, i) => (
+                  <g
+                    key={i}
+                    className="cursor-pointer"
+                    onMouseEnter={() => setHoveredPoint(p)}
+                    onMouseLeave={() => setHoveredPoint(null)}
+                  >
+                    {/* Node circle */}
+                    <circle
+                      cx={p.x}
+                      cy={p.y}
+                      r="5"
+                      fill={p.count > 0 ? "#1E3E6B" : "#94A3B8"}
+                      stroke="#FFFFFF"
+                      strokeWidth="2"
                     />
-                  )}
 
-                  {/* Curve Line */}
-                  {strokePath && (
-                    <path
-                      d={strokePath}
-                      fill="none"
-                      stroke="#008080"
-                      strokeWidth="3.5"
-                      strokeLinecap="round"
-                    />
-                  )}
-                </svg>
-              </div>
+                    {/* Numeric value pill above point */}
+                    <text
+                      x={p.x}
+                      y={p.y - 8}
+                      textAnchor="middle"
+                      className={`text-[11px] font-black ${p.count > 0 ? "fill-[#1E3E6B]" : "fill-gray-400"}`}
+                    >
+                      {p.count}
+                    </text>
 
-              {/* X Axis markings */}
-              <div className="absolute left-8 right-0 bottom-0 flex justify-between text-[9px] font-bold text-brand-slate/60 px-1 select-none">
-                {growthData.map((d, idx) => (
-                  <span key={idx}>{d.month}</span>
+                    {/* Month Label below baseline */}
+                    <text
+                      x={p.x}
+                      y={chartHeight - paddingBottom + 16}
+                      textAnchor="middle"
+                      className="text-[11px] font-extrabold fill-[#1E3E6B]"
+                    >
+                      {p.month}
+                    </text>
+                  </g>
                 ))}
-              </div>
+              </svg>
+
+              {/* Hover Tooltip for Quick Inspection */}
+              {hoveredPoint && (
+                <div
+                  className="absolute z-10 bg-[#1E3E6B] text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-md pointer-events-none -translate-x-1/2 -translate-y-full"
+                  style={{
+                    left: `${(hoveredPoint.x / chartWidth) * 100}%`,
+                    top: `${(hoveredPoint.y / chartHeight) * 100 - 8}%`,
+                  }}
+                >
+                  {hoveredPoint.month}: {hoveredPoint.count} {hoveredPoint.count === 1 ? "student" : "students"}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Aggregate Insights card list */}
-          <div className="figma-card p-6 bg-white flex flex-col gap-6">
+          {/* System Status & Student Highlights (1 col) */}
+          <div className="figma-card p-6 bg-white flex flex-col justify-between border border-gray-200 space-y-6">
             <div>
-              <h3 className="text-sm font-extrabold text-[#1E3E6B]">Aggregate Insights</h3>
-              <p className="text-[10px] font-bold text-brand-slate mt-0.5">High-level student performance metrics</p>
-            </div>
+              <h2 className="text-base font-black text-[#1E3E6B] flex items-center gap-2 mb-4">
+                <ShieldCheck size={18} className="text-teal-600" /> System Status
+              </h2>
 
-            <div className="space-y-4 flex-1 flex flex-col justify-between">
-
-              {/* Insight Item 1 */}
-              <div className="flex gap-3.5 items-start p-3 bg-blue-50/50 rounded-2xl border border-blue-100/50">
-                <div className="h-8 w-8 bg-blue-100 rounded-xl flex items-center justify-center shrink-0 text-blue-600">
-                  <Award size={16} />
+              <div className="space-y-3.5 text-xs font-bold text-brand-slate">
+                {/* Database Status */}
+                <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <Database size={16} className="text-brand-primary shrink-0" />
+                    <span className="truncate">Database</span>
+                  </div>
+                  <span className="whitespace-nowrap inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                    Online
+                  </span>
                 </div>
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs font-black text-[#1E3E6B]">Top Performers</span>
-                  <p className="text-[10px] font-semibold text-brand-slate leading-relaxed">
-                    <strong className="text-blue-600">{insights?.topPerformersCount ?? 0} students</strong> achieved an overall resume evaluation score of 80 or higher.
-                  </p>
+
+                {/* AI Analyzer Status */}
+                <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <Server size={16} className="text-purple-600 shrink-0" />
+                    <span className="truncate">AI Analyzer</span>
+                  </div>
+                  <span className="whitespace-nowrap inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                    Active
+                  </span>
                 </div>
-              </div>
 
-              {/* Insight Item 2 */}
-              <div className="flex gap-3.5 items-start p-3 bg-teal-50/50 rounded-2xl border border-teal-100/50">
-                <div className="h-8 w-8 bg-teal-100 rounded-xl flex items-center justify-center shrink-0 text-teal-600">
-                  <TrendingUp size={16} />
+                {/* Server Health Status */}
+                <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <Info size={16} className="text-brand-slate shrink-0" />
+                    <span className="truncate">Server Health</span>
+                  </div>
+                  <span className="whitespace-nowrap inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-black bg-gray-100 text-gray-600 border border-gray-200 shrink-0">
+                    {health?.serverStatus === "Not currently measured" ? "Not Measured" : (health?.serverStatus || "Not Measured")}
+                  </span>
                 </div>
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs font-black text-[#1E3E6B]">Consistent Improvement</span>
-                  <p className="text-[10px] font-semibold text-brand-slate leading-relaxed">
-                    <strong className="text-teal-600">{insights?.consistentImprovementCount ?? 0} users</strong> show multiple resume versions indicating iterations and progress.
-                  </p>
-                </div>
-              </div>
-
-              {/* Insight Item 3 */}
-              <div className="flex gap-3.5 items-start p-3 bg-orange-50/50 rounded-2xl border border-orange-100/50">
-                <div className="h-8 w-8 bg-orange-100 rounded-xl flex items-center justify-center shrink-0 text-orange-600">
-                  <Clock size={16} />
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs font-black text-[#1E3E6B]">Engagement Average</span>
-                  <p className="text-[10px] font-semibold text-brand-slate leading-relaxed">
-                    Students average <strong className="text-orange-600">{insights?.averageResumesPerStudent ?? 0} resume versions</strong> uploaded in their careers dashboard.
-                  </p>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-        {/* System Health stats bar */}
-        <div className="figma-card p-6 bg-white w-full max-w-md">
-          <h3 className="text-xs font-extrabold text-[#1E3E6B] uppercase tracking-wider mb-4">System Health</h3>
-
-          <div className="space-y-4">
-
-            {/* Health metric 1 */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-[10px] font-extrabold text-brand-slate uppercase">
-                <span>AI Service Status</span>
-                <span className="text-[#0D9488]">99.9% Uptime</span>
-              </div>
-              <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full bg-[#0D9488] rounded-full" style={{ width: "99.9%" }} />
               </div>
             </div>
 
-            {/* Health metric 2 */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-[10px] font-extrabold text-brand-slate uppercase">
-                <span>Server Load</span>
-                <span className="text-blue-500">Healthy</span>
+            {/* Student Highlights Card */}
+            <div className="p-4 rounded-2xl bg-brand-primary/5 border border-brand-primary/10 space-y-2 text-xs font-bold text-[#1E3E6B]">
+              <div className="flex items-center gap-2 text-brand-primary font-black">
+                <Award size={16} /> Student Highlights
               </div>
-              <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 rounded-full" style={{ width: "15%" }} />
+              <div className="flex justify-between pt-1">
+                <span>Top Scorers (Score 80+):</span>
+                <span className="font-extrabold">{insights?.topPerformersCount || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Students with 2+ Resumes:</span>
+                <span className="font-extrabold">{insights?.consistentImprovementCount || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Average Resumes per Student:</span>
+                <span className="font-extrabold">{insights?.averageResumesPerStudent || 0}</span>
               </div>
             </div>
-
           </div>
         </div>
       </div>

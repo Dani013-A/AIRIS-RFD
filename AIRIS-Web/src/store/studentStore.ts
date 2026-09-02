@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import { StudentListItem } from "../types/user.types";
+import {
+  StudentListItem,
+  StudentFullProfile,
+  ScoreHistoryEvent,
+  StudentActivityEvent,
+} from "../types/user.types";
 import {
   fetchStudentsList,
   fetchStudentDetails,
@@ -12,6 +17,8 @@ interface StudentState {
   selectedStudent: StudentListItem | null;
   selectedAnalysis: any | null;
   selectedResume: any | null;
+  scoreHistory: ScoreHistoryEvent[];
+  activityLogs: StudentActivityEvent[];
   loading: boolean;
   actionLoading: boolean;
   error: string | null;
@@ -27,6 +34,8 @@ export const useStudentStore = create<StudentState>((set, get) => ({
   selectedStudent: null,
   selectedAnalysis: null,
   selectedResume: null,
+  scoreHistory: [],
+  activityLogs: [],
   loading: false,
   actionLoading: false,
   error: null,
@@ -42,13 +51,23 @@ export const useStudentStore = create<StudentState>((set, get) => ({
   },
 
   loadStudentProfile: async (studentId) => {
-    set({ loading: true, error: null, selectedStudent: null, selectedAnalysis: null, selectedResume: null });
+    set({
+      loading: true,
+      error: null,
+      selectedStudent: null,
+      selectedAnalysis: null,
+      selectedResume: null,
+      scoreHistory: [],
+      activityLogs: [],
+    });
     try {
-      const studentDetails = await fetchStudentDetails(studentId);
+      const profile = await fetchStudentDetails(studentId);
       set({
-        selectedStudent: studentDetails.student,
-        selectedAnalysis: studentDetails.resumeAnalysis,
-        selectedResume: studentDetails.resume,
+        selectedStudent: profile.student,
+        selectedAnalysis: profile.latestResumeAnalysis,
+        selectedResume: profile.latestResume,
+        scoreHistory: profile.scoreHistory,
+        activityLogs: profile.activityLogs,
         loading: false,
       });
     } catch (err: any) {
@@ -60,13 +79,13 @@ export const useStudentStore = create<StudentState>((set, get) => ({
     set({ actionLoading: true, error: null });
     try {
       await toggleStudentAccountState(studentId, isDisabled, adminName);
-      const updatedList = get().students.map((s) => (s.uid === studentId ? { ...s, isDisabled } : s));
-      const activeSelected = get().selectedStudent;
-      const updatedSelection = activeSelected && activeSelected.uid === studentId ? { ...activeSelected, isDisabled } : activeSelected;
-
-      set({ students: updatedList, selectedStudent: updatedSelection, actionLoading: false });
+      set((state) => ({
+        students: state.students.map((s) => (s.uid === studentId ? { ...s, isDisabled } : s)),
+        selectedStudent: state.selectedStudent && state.selectedStudent.uid === studentId ? { ...state.selectedStudent, isDisabled } : state.selectedStudent,
+        actionLoading: false,
+      }));
     } catch (err: any) {
-      set({ error: err.message || "Failed to modify student account status.", actionLoading: false });
+      set({ error: err.message || "Failed to modify account state.", actionLoading: false });
       throw err;
     }
   },
@@ -75,13 +94,16 @@ export const useStudentStore = create<StudentState>((set, get) => ({
     set({ actionLoading: true, error: null });
     try {
       await deleteStudentAccount(studentId, adminName);
-      const remainingList = get().students.filter((s) => s.uid !== studentId);
-      set({ students: remainingList, selectedStudent: null, selectedAnalysis: null, selectedResume: null, actionLoading: false });
+      set((state) => ({
+        students: state.students.filter((s) => s.uid !== studentId),
+        selectedStudent: state.selectedStudent && state.selectedStudent.uid === studentId ? null : state.selectedStudent,
+        actionLoading: false,
+      }));
     } catch (err: any) {
       set({ error: err.message || "Failed to delete student account.", actionLoading: false });
       throw err;
     }
   },
 
-  clearSelectedStudent: () => set({ selectedStudent: null, selectedAnalysis: null, selectedResume: null }),
+  clearSelectedStudent: () => set({ selectedStudent: null, selectedAnalysis: null, selectedResume: null, scoreHistory: [], activityLogs: [] }),
 }));
