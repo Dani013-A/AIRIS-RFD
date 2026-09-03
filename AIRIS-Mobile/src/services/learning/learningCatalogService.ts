@@ -659,7 +659,7 @@ export const CAREER_DOMAINS: CareerDomainProfile[] = [
       "sustainable building design",
       "leed",
     ],
-    supportingDomains: ["civil_engineering", "ui_ux"],
+    supportingDomains: ["ui_ux"],
   },
   {
     id: "psychology",
