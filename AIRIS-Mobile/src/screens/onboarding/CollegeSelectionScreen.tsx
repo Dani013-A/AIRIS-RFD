@@ -25,8 +25,11 @@ export default function CollegeSelectionScreen() {
   const [errorText, setErrorText] = useState<string | null>(null);
 
   const handleGoBack = () => {
-    useOnboardingStore.getState().reset();
-    router.replace("/(auth)/login");
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(auth)/login");
+    }
   };
 
   React.useEffect(() => {

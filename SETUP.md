@@ -109,15 +109,22 @@ Each component directory contains a template file (`.env.example`) with safe pla
   ```
 - **Windows (PowerShell)**:
   ```powershell
+  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
   .\start_backend.ps1
   ```
 The API server runs at `http://127.0.0.1:8000` with hot-reload enabled.
 
 ### Running the Mobile Application
 Start the Expo development server:
-```bash
-./start_mobile.sh
-```
+- **macOS / Linux**:
+  ```bash
+  ./start_mobile.sh
+  ```
+- **Windows (PowerShell)**:
+  ```powershell
+  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+  .\start_mobile.ps1
+  ```
 - Press **w** in the terminal to launch in a web browser.
 - Scan the QR code with **Expo Go** on your physical phone (ensure your phone and computer are on the same Wi-Fi network and set `EXPO_PUBLIC_API_URL` in `AIRIS-Mobile/.env` to your computer's local LAN IP).
 

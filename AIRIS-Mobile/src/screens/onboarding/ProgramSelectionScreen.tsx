@@ -29,8 +29,11 @@ export default function ProgramSelectionScreen() {
   const [errorText, setErrorText] = useState<string | null>(null);
 
   const handleGoBack = () => {
-    useOnboardingStore.getState().reset();
-    router.replace("/(student)/college-selection");
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(student)/college-selection");
+    }
   };
 
   React.useEffect(() => {

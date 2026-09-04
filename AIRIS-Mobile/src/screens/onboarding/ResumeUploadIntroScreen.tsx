@@ -57,8 +57,19 @@ export default function ResumeUploadIntroScreen() {
 
   const fileName = activeResume?.originalFileName || null;
 
+  const handleGoBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(student)/onboarding");
+    }
+  };
+
   React.useEffect(() => {
-    const onBackPress = () => false;
+    const onBackPress = () => {
+      handleGoBack();
+      return true;
+    };
     const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
     return () => subscription.remove();
   }, []);
@@ -317,6 +328,12 @@ export default function ResumeUploadIntroScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#F4F8FB] px-6" edges={["top", "left", "right"]}>
+      <View className="flex-row items-center justify-between pt-2 pb-2">
+        <TouchableOpacity onPress={handleGoBack} className="flex-row items-center py-2">
+          <Ionicons name="arrow-back" size={24} color="#1F3A5F" />
+          <Text className="text-[#1F3A5F] font-bold ml-1 text-base">Back</Text>
+        </TouchableOpacity>
+      </View>
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}

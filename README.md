@@ -122,12 +122,14 @@ Ensure your development machine has the following tools installed:
 
 5. **Start the FastAPI backend**:
    ```powershell
+   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
    .\start_backend.ps1
    ```
 
 6. **Start mobile or web as applicable**:
    - Start the Expo mobile server (in a second terminal window):
      ```powershell
+     Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
      .\start_mobile.ps1
      ```
    - Or start the Next.js web dashboard:

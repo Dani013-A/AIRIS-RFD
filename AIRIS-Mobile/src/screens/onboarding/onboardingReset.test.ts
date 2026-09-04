@@ -40,12 +40,25 @@ describe('Onboarding Navigation & State Reset Unit Tests', () => {
     expect(state.targetPosition).toBe('');
   });
 
-  test('Navigating back to College Selection via reset() unselects all onboarding fields', () => {
+  test('Navigating backward preserves college, program, and target position state', () => {
     useOnboardingStore.getState().setCollege('College of Business Education');
     useOnboardingStore.getState().setDegreeProgram('BS Accountancy');
     useOnboardingStore.getState().setTargetPosition('Auditor');
 
-    // Back to college selection triggers reset()
+    // Backward navigation should retain selected values
+    const state = useOnboardingStore.getState();
+
+    expect(state.college).toBe('College of Business Education');
+    expect(state.degreeProgram).toBe('BS Accountancy');
+    expect(state.targetPosition).toBe('Auditor');
+  });
+
+  test('Explicit reset() clears all onboarding fields when starting fresh', () => {
+    useOnboardingStore.getState().setCollege('College of Business Education');
+    useOnboardingStore.getState().setDegreeProgram('BS Accountancy');
+    useOnboardingStore.getState().setTargetPosition('Auditor');
+
+    // Explicit reset for new session
     useOnboardingStore.getState().reset();
     const state = useOnboardingStore.getState();
 

@@ -114,11 +114,25 @@ export default function RootLayout() {
       }
     }
 
+    // List of all valid onboarding screens
+    const ONBOARDING_ROUTES = [
+      "college-selection",
+      "program-selection",
+      "position-selection",
+      "onboarding",
+      "resume-upload",
+    ];
+
+    const isCurrentlyOnboarding = inStudentGroup && ONBOARDING_ROUTES.includes(currentSegment);
+
     // Ensure profile is complete before proceeding.
     const hasMissingSetupFields = !currentUser.college || !currentUser.degreeProgram || !currentUser.targetPosition;
     const setupIncomplete = currentUser.hasCompletedInitialSetup !== true || hasMissingSetupFields;
 
     if (setupIncomplete) {
+      if (isCurrentlyOnboarding) {
+        return;
+      }
       if (!currentUser.college) {
         if (!inStudentGroup || currentSegment !== "college-selection") {
           router.replace("/(student)/college-selection");
@@ -136,6 +150,9 @@ export default function RootLayout() {
     }
 
     if (currentUser.hasCompletedOnboarding !== true) {
+      if (isCurrentlyOnboarding) {
+        return;
+      }
       if (!inStudentGroup || currentSegment !== "onboarding") {
         router.replace("/(student)/onboarding");
       }

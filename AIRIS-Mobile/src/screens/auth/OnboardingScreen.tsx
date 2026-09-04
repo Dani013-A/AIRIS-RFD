@@ -18,8 +18,19 @@ export default function OnboardingScreen() {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
+  const handleGoBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(student)/position-selection");
+    }
+  };
+
   React.useEffect(() => {
-    const onBackPress = () => true;
+    const onBackPress = () => {
+      handleGoBack();
+      return true;
+    };
     const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
     return () => subscription.remove();
   }, []);
@@ -43,6 +54,13 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#F4F8FB]" edges={["top", "left", "right"]}>
+      <View className="flex-row items-center justify-between px-6 pt-2 pb-2">
+        <TouchableOpacity onPress={handleGoBack} className="flex-row items-center py-2">
+          <Ionicons name="arrow-back" size={24} color="#1F3A5F" />
+          <Text className="text-[#1F3A5F] font-bold ml-1 text-base">Target Role</Text>
+        </TouchableOpacity>
+        <Text className="text-xs font-bold text-[#4F6B82] uppercase tracking-wider">Step 4 of 4</Text>
+      </View>
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}

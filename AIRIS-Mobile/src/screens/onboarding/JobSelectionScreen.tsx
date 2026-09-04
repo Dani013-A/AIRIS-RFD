@@ -45,8 +45,11 @@ export default function JobSelectionScreen() {
   const loading = useAuthStore((state) => state.loading);
 
   const handleGoBack = () => {
-    setTargetPosition("");
-    router.replace("/(student)/program-selection");
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(student)/program-selection");
+    }
   };
 
   React.useEffect(() => {
