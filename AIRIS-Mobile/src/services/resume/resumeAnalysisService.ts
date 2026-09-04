@@ -42,7 +42,8 @@ export interface UploadProgressEvent {
 export async function uploadResumeFileWithProgress(
   file: { uri: string; name: string; mimeType: string; size?: number },
   targetPosition: string,
-  onProgress?: (event: UploadProgressEvent) => void
+  onProgress?: (event: UploadProgressEvent) => void,
+  accountName?: string
 ): Promise<{
   rawText: string;
   parsedSections: Record<string, string>;
@@ -84,7 +85,24 @@ export async function uploadResumeFileWithProgress(
               reject(new Error("Invalid JSON response from server."));
             }
           } else {
-            reject(new Error(`Server error HTTP ${xhr.status}`));
+            let errorMsg = `Server error HTTP ${xhr.status}`;
+            let errorCode = "SERVER_ERROR";
+            try {
+              const errJson = JSON.parse(xhr.responseText);
+              if (errJson.detail) {
+                errorMsg = typeof errJson.detail === "string" ? errJson.detail : JSON.stringify(errJson.detail);
+                if (errorMsg.includes("exceed 3 pages") || errorMsg.includes("pages long")) {
+                  errorCode = "EXCEEDED_PAGE_LIMIT";
+                } else if (errorMsg.includes("belong to a different individual")) {
+                  errorCode = "NAME_MISMATCH";
+                } else if (errorMsg.includes("doesn't appear to be a resume") || errorMsg.includes("valid resume")) {
+                  errorCode = "INVALID_RESUME";
+                }
+              }
+            } catch {}
+            const apiErr = new Error(errorMsg);
+            (apiErr as any).code = errorCode;
+            reject(apiErr);
           }
         };
 
@@ -99,6 +117,10 @@ export async function uploadResumeFileWithProgress(
         } as any);
         if (targetPosition) {
           formData.append("targetPosition", targetPosition);
+        }
+        if (accountName) {
+          formData.append("accountName", accountName);
+          formData.append("account_name", accountName);
         }
 
         xhr.open("POST", uploadUrl);

@@ -1,6 +1,7 @@
 # Ignore environment files
 .env
 .env.*
+.env*.local
 !.env.example
 
 # Ignore Node.js
@@ -25,6 +26,7 @@ venv.bak/
 
 # Ignore Keys & Credentials
 *.keystore
+*.jks
 google-services.json
 airis-development-firebase-adminsdk-*.json
 

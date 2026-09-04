@@ -1,21 +1,29 @@
 #!/usr/bin/env bash
 set -e
 
-# Determine repository root (directory containing this script)
-ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-cd "$ROOT/AIRIS-Backend"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BACKEND_DIR="$ROOT/AIRIS-Backend"
+cd "$BACKEND_DIR"
 
-# Activate virtual environment if present
-if [ -d ".venv" ]; then
-  source .venv/bin/activate
+VENV_PYTHON="python"
+if [ -x ".venv/bin/python" ]; then
+  VENV_PYTHON=".venv/bin/python"
+elif [ -x ".venv/Scripts/python.exe" ]; then
+  VENV_PYTHON=".venv/Scripts/python.exe"
+elif [ -x ".venv/Scripts/python" ]; then
+  VENV_PYTHON=".venv/Scripts/python"
+elif [ -f ".venv/bin/python" ]; then
+  VENV_PYTHON=".venv/bin/python"
+elif [ -f ".venv/Scripts/python.exe" ]; then
+  VENV_PYTHON=".venv/Scripts/python.exe"
 fi
 
 # Run unit tests (if any)
-if command -v pytest >/dev/null 2>&1; then
+if "$VENV_PYTHON" -m pytest --version >/dev/null 2>&1; then
   echo "=== Running pytest ==="
-  pytest -q || { echo "Pytest failures"; exit 1; }
+  "$VENV_PYTHON" -m pytest -q || { echo "Pytest failures"; exit 1; }
 else
-  echo "pytest not installed – skipping unit tests"
+  echo "pytest not installed – skipping pytest unit tests"
 fi
 
 # Simple health check for the FastAPI server (must be running separately)
@@ -28,7 +36,7 @@ fi
 
 # Verify backend import does not raise errors
 echo "=== Importing backend modules ==="
-python - <<'PY'
+"$VENV_PYTHON" - <<'PY'
 try:
     import main
     print("Backend import OK")
@@ -55,7 +63,5 @@ for ext in pdf docx txt rtf; do
     echo "Upload $ext overallScore $SCORE"
   fi
 done
-
-echo "All checks passed"
 
 echo "All checks passed"

@@ -2,17 +2,26 @@
 set -e
 
 # Repository root (this script's directory)
-ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-cd "$ROOT/AIRIS-Backend"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BACKEND_DIR="$ROOT/AIRIS-Backend"
+cd "$BACKEND_DIR"
 
-# Activate virtual environment if present
-if [ -d ".venv" ]; then
-  source .venv/bin/activate
+VENV_PYTHON="python"
+if [ -x ".venv/bin/python" ]; then
+  VENV_PYTHON=".venv/bin/python"
+elif [ -x ".venv/Scripts/python.exe" ]; then
+  VENV_PYTHON=".venv/Scripts/python.exe"
+elif [ -x ".venv/Scripts/python" ]; then
+  VENV_PYTHON=".venv/Scripts/python"
+elif [ -f ".venv/bin/python" ]; then
+  VENV_PYTHON=".venv/bin/python"
+elif [ -f ".venv/Scripts/python.exe" ]; then
+  VENV_PYTHON=".venv/Scripts/python.exe"
 fi
 
 # Start FastAPI server in background
-echo "Starting FastAPI server"
-uvicorn main:app --host 127.0.0.1 --port 8000 > server.log 2>&1 &
+echo "Starting FastAPI server with $VENV_PYTHON..."
+"$VENV_PYTHON" -m uvicorn main:app --host 127.0.0.1 --port 8000 > server.log 2>&1 &
 SERVER_PID=$!
 # Give the server a moment to start
 sleep 3
@@ -54,7 +63,7 @@ else
 fi
 
 # Clean up server
-kill $SERVER_PID
+kill $SERVER_PID 2>/dev/null || true
 wait $SERVER_PID 2>/dev/null || true
 
 echo "All smoke test checks passed"

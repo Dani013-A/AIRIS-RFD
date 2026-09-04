@@ -166,7 +166,9 @@ async def analyze_resume(request: Request):
 async def upload_resume(
     file: UploadFile = File(...),
     targetPosition: Optional[str] = Form(None),
-    target_position: Optional[str] = Query(None)
+    target_position: Optional[str] = Query(None),
+    accountName: Optional[str] = Form(None),
+    account_name: Optional[str] = Form(None)
 ):
     """
     Accept a resume file, extract raw text, parse sections, and run analysis.
@@ -198,7 +200,7 @@ async def upload_resume(
             if page_count > 3:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Your resume is {page_count} pages long. Please upload a resume with 3 pages or fewer."
+                    detail="Resumes must not exceed 3 pages. Please upload a 1–3 page resume."
                 )
 
         raw_text = extract_text(content, filename)
@@ -209,6 +211,16 @@ async def upload_resume(
                 "message": "Unable to extract readable text from this document. Please ensure the file is not empty, corrupted, or password-protected.",
                 "analysisId": None,
             }
+
+        user_acc_name = (accountName or account_name or "").strip()
+        if user_acc_name and raw_text:
+            from ai_validator import validate_resume_name_match
+            name_res = validate_resume_name_match(user_acc_name, raw_text)
+            if not name_res["is_valid"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail=name_res.get("reason") or "The uploaded resume appears to belong to a different individual. Please ensure you upload your own resume."
+                )
 
         from resume_parser import parse_resume
         parsed_sections = parse_resume(raw_text)

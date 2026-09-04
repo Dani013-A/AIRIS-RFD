@@ -160,7 +160,8 @@ export default function ResumeUploadIntroScreen() {
               setUploadStage("analyzing");
               setUploadPhase("Parsing resume sections & evaluating alignment...");
             }
-          }
+          },
+          currentUser?.fullName || ""
         );
 
         extractedText = uploadResult.rawText;
@@ -169,7 +170,10 @@ export default function ResumeUploadIntroScreen() {
         const normErr = normalizeApiError(backendError);
         if (
           normErr.code === "EXCEEDED_PAGE_LIMIT" ||
+          normErr.code === "NAME_MISMATCH" ||
           normErr.code === "INVALID_RESUME" ||
+          normErr.userMessage.includes("exceed 3 pages") ||
+          normErr.userMessage.includes("belong to a different individual") ||
           normErr.userMessage.includes("doesn't appear to be a resume") ||
           normErr.userMessage.includes("valid resume")
         ) {

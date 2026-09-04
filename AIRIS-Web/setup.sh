@@ -6,6 +6,10 @@ echo "========================================"
 echo " Setting up AIRIS-Web"
 echo "========================================"
 
+# Navigate to the correct directory if run from root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 # Check for Node.js
 if ! command -v node >/dev/null 2>&1; then
     echo "[ERROR] Node.js is not installed. Please install Node.js (v18+) and try again."
@@ -18,21 +22,16 @@ if ! command -v npm >/dev/null 2>&1; then
     exit 1
 fi
 
-# Navigate to the correct directory if run from root
-SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-cd "$SCRIPT_DIR"
-
 echo "[INFO] Installing npm dependencies..."
 npm install
 
 echo "[INFO] Checking environment variables..."
 if [ -f ".env.local" ]; then
-    echo "[INFO] .env.local file already exists. Skipping environment setup."
+    echo "[INFO] .env.local file already exists. Preserving existing configuration."
 else
-    echo "[WARNING] No .env.local file found."
-    echo "[INFO] Please create a .env.local file based on .env.example:"
-    echo "       cp .env.example .env.local"
-    echo "       Then edit .env.local to include your real Firebase API keys."
+    echo "[WARNING] No .env.local file found. Creating from .env.example..."
+    cp .env.example .env.local
+    echo "[INFO] Created .env.local from .env.example. Please update it with your real Firebase API keys."
 fi
 
 echo "========================================"

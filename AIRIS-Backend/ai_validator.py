@@ -364,3 +364,78 @@ def validate_and_enhance_analysis(
         "analyzedAt": analyzed_at,
         "analysisVersion": "2.0.0-sbert-deterministic"
     }
+
+HONORIFICS_AND_SUFFIXES = {
+    "mr", "mrs", "ms", "dr", "prof", "engr", "arch",
+    "jr", "sr", "iii", "ii", "iv", "v", "phd", "cpa", "md"
+}
+
+NON_NAME_KEYWORDS = {
+    "education", "summary", "experience", "objective", "skills", "curriculum", "vitae",
+    "resume", "projects", "certifications", "contact", "profile", "overview", "work",
+    "seeking", "position", "developer", "engineer", "analyst", "manager", "internship",
+    "student", "university", "college", "department", "school", "aspiring", "professional",
+    "javascript", "python", "react", "html", "css", "node", "java", "sql", "git"
+}
+
+import unicodedata
+
+def _normalize_name_tokens(name_str: str) -> List[str]:
+    if not name_str:
+        return []
+    normalized = unicodedata.normalize("NFD", name_str)
+    normalized = "".join(c for c in normalized if unicodedata.category(c) != "Mn")
+    cleaned = re.sub(r"[^a-z0-9\s]", " ", normalized.lower())
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    tokens = [t for t in cleaned.split() if len(t) >= 2 and t not in HONORIFICS_AND_SUFFIXES]
+    return tokens
+
+def validate_resume_name_match(account_name: str, raw_text: str) -> Dict[str, Any]:
+    if not account_name or not account_name.strip() or not raw_text or not raw_text.strip():
+        return {"is_valid": True, "status": "UNABLE_TO_VERIFY"}
+
+    account_tokens = _normalize_name_tokens(account_name)
+    if not account_tokens:
+        return {"is_valid": True, "status": "UNABLE_TO_VERIFY"}
+
+    top_lines = [l.strip() for l in raw_text.splitlines() if l.strip()][:8]
+
+    candidate_lines = []
+    for line in top_lines:
+        l_norm = unicodedata.normalize("NFD", line)
+        l_norm = "".join(c for c in l_norm if unicodedata.category(c) != "Mn")
+        l_lower = l_norm.lower()
+        if "@" in l_lower or "http" in l_lower or "www." in l_lower or "linkedin.com" in l_lower or "github.com" in l_lower:
+            continue
+        if re.search(r"^\+?\d[\d\s\-\(\)]{7,}", line):
+            continue
+        if any(k in l_lower for k in NON_NAME_KEYWORDS):
+            continue
+        candidate_lines.append(line)
+
+    if not candidate_lines:
+        return {"is_valid": True, "status": "UNABLE_TO_VERIFY"}
+
+    for line in candidate_lines[:3]:
+        line_tokens = _normalize_name_tokens(line)
+        if len(line_tokens) < 2:
+            continue
+
+        matching_tokens = [t for t in account_tokens if t in line_tokens]
+        candidate_only_tokens = [t for t in line_tokens if t not in account_tokens and len(t) >= 2]
+        account_only_tokens = [t for t in account_tokens if t not in line_tokens and len(t) >= 2]
+
+        if len(matching_tokens) == len(account_tokens) or (len(matching_tokens) == len(line_tokens) and len(line_tokens) >= 2):
+            return {"is_valid": True, "status": "MATCHED"}
+
+        if len(matching_tokens) >= 2 and len(candidate_only_tokens) == 0:
+            return {"is_valid": True, "status": "MATCHED"}
+
+        if len(matching_tokens) == 0 or (len(candidate_only_tokens) > 0 and len(account_only_tokens) > 0):
+            return {
+                "is_valid": False,
+                "status": "CONFLICT",
+                "reason": "The uploaded resume appears to belong to a different individual. Please ensure you upload your own resume."
+            }
+
+    return {"is_valid": True, "status": "UNABLE_TO_VERIFY"}

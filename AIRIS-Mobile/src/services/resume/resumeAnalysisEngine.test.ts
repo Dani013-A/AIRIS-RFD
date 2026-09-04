@@ -1,4 +1,5 @@
 import { analyzeResume, parseResumeSections } from "./resumeAnalysisEngine";
+import { validateResumeNameMatch } from "./resumeNormalizer";
 
 describe("Resume Analysis Engine - Deterministic Tests", () => {
   const TARGET_SW_DEV = "Software Developer";
@@ -121,5 +122,54 @@ describe("Resume Analysis Engine - Deterministic Tests", () => {
     const missingEdu = result.missingSections.find((m) => m.name === "Education");
     expect(missingEdu).toBeDefined();
     expect(missingEdu?.requirement).toBe("required");
+  });
+
+  describe("Resume Name Matching Validation - Production Assertions", () => {
+    it("Daniel Tan / Daniel S. Tan -> MATCHED", () => {
+      const res = validateResumeNameMatch("Daniel Tan", "Daniel S. Tan\nBS Computer Science\ndaniel@example.com");
+      expect(res.isValid).toBe(true);
+      expect(res.status).toBe("MATCHED");
+    });
+
+    it("Daniel Tan / Tan, Daniel -> MATCHED", () => {
+      const res = validateResumeNameMatch("Daniel Tan", "Tan, Daniel\nBS Computer Science\ndaniel@example.com");
+      expect(res.isValid).toBe(true);
+      expect(res.status).toBe("MATCHED");
+    });
+
+    it("Daniel Tan / Daniel Santos -> CONFLICT (must NOT be MATCHED)", () => {
+      const res = validateResumeNameMatch("Daniel Tan", "Daniel Santos\nBS Computer Science\ndaniel@example.com");
+      expect(res.isValid).toBe(false);
+      expect(res.status).toBe("CONFLICT");
+      expect(res.reason).toContain("different individual");
+    });
+
+    it("Daniel Tan / Maria Santos -> CONFLICT", () => {
+      const res = validateResumeNameMatch("Daniel Tan", "Maria Santos\nBS Accountancy\nmaria@example.com");
+      expect(res.isValid).toBe(false);
+      expect(res.status).toBe("CONFLICT");
+      expect(res.reason).toContain("different individual");
+    });
+
+    it("Daniel Tan / no identifiable name -> UNABLE_TO_VERIFY", () => {
+      const res = validateResumeNameMatch(
+        "Daniel Tan",
+        "OBJECTIVE:\nSeeking software developer internship...\nSKILLS:\nJavaScript, React, Node.js"
+      );
+      expect(res.isValid).toBe(true);
+      expect(res.status).toBe("UNABLE_TO_VERIFY");
+    });
+
+    it("Juan Dela Cruz / Juan Dela Cruz Jr. -> MATCHED", () => {
+      const res = validateResumeNameMatch("Juan Dela Cruz", "Juan Dela Cruz Jr.\nBS Information Technology");
+      expect(res.isValid).toBe(true);
+      expect(res.status).toBe("MATCHED");
+    });
+
+    it("Juan Dela Cruz / Dela Cruz, Juan -> MATCHED", () => {
+      const res = validateResumeNameMatch("Juan Dela Cruz", "Dela Cruz, Juan\nBS Information Technology");
+      expect(res.isValid).toBe(true);
+      expect(res.status).toBe("MATCHED");
+    });
   });
 });
