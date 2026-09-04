@@ -38,6 +38,7 @@ cd AIRIS
 Copy-Item AIRIS-Backend\.env.example AIRIS-Backend\.env
 Copy-Item AIRIS-Mobile\.env.example AIRIS-Mobile\.env
 Copy-Item AIRIS-Web\.env.example AIRIS-Web\.env.local
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\setup.ps1
 ```
 

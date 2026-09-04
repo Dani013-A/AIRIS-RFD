@@ -19,13 +19,13 @@ AIRIS is organized as a multi-component workspace:
 
 Ensure your development machine has the following tools installed:
 
-### 🍎 macOS / Linux
+### macOS / Linux
 - **Node.js**: v18.0.0 or higher ([Download Node.js](https://nodejs.org/))
 - **npm**: v9.0.0 or higher (packaged with Node.js)
 - **Python**: v3.9 or higher ([Download Python](https://www.python.org/))
 - **Git**: ([Download Git](https://git-scm.com/))
 
-### 🪟 Windows
+### Windows
 - **Operating System**: Windows 10 or 11
 - **Terminal**: PowerShell (or the VS Code / Antigravity built-in terminal)
 - **Node.js**: v18.0.0 or higher ([Download Node.js](https://nodejs.org/))
@@ -48,7 +48,7 @@ Ensure your development machine has the following tools installed:
 
 ---
 
-### 🍎 macOS / Linux Setup Flow
+### macOS / Linux Setup Flow
 
 1. **Clone the repository**:
    ```bash
@@ -92,7 +92,7 @@ Ensure your development machine has the following tools installed:
 
 ---
 
-### 🪟 Windows Setup Flow (PowerShell / VS Code Terminal)
+### Windows Setup Flow (PowerShell / VS Code Terminal)
 
 1. **Clone the repository**:
    ```powershell
@@ -116,9 +116,9 @@ Ensure your development machine has the following tools installed:
 
 4. **Run the PowerShell setup system**:
    ```powershell
+   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
    .\setup.ps1
    ```
-   *(If PowerShell displays an execution policy error, run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` first).*
 
 5. **Start the FastAPI backend**:
    ```powershell
@@ -195,7 +195,7 @@ Access the dashboard at `http://localhost:3000`.
 
 Verify the codebase at any time using the provided validation scripts:
 
-### 🍎 macOS / Linux
+### macOS / Linux
 ```bash
 # Run backend health & API smoke test
 ./test_api.sh
@@ -210,7 +210,7 @@ cd AIRIS-Mobile && npx tsc --noEmit
 cd AIRIS-Mobile && npx jest --runInBand
 ```
 
-### 🪟 Windows (PowerShell)
+### Windows (PowerShell)
 ```powershell
 # Run mobile TypeScript type checks
 cd AIRIS-Mobile; npx tsc --noEmit
