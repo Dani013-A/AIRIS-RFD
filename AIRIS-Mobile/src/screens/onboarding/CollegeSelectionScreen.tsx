@@ -17,6 +17,7 @@ import { useOnboardingStore } from "../../store/onboardingStore";
 export default function CollegeSelectionScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const logout = useAuthStore((state) => state.logout);
   const saveCollegeSelection = useAuthStore((state) => state.saveCollegeSelection);
   const { college: selectedCollege, setCollege } = useOnboardingStore();
 
@@ -24,10 +25,13 @@ export default function CollegeSelectionScreen() {
   const [saving, setSaving] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
 
-  const handleGoBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
+  const handleGoBack = async () => {
+    try {
+      useOnboardingStore.getState().reset();
+      await logout();
+    } catch {
+      // Ignore cleanup error and proceed to login
+    } finally {
       router.replace("/(auth)/login");
     }
   };
