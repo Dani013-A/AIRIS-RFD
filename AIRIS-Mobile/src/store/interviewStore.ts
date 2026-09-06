@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 
 export type InterviewStatus = 'setup' | 'briefing' | 'active' | 'evaluating' | 'completed';
 
@@ -8,7 +8,7 @@ export interface InterviewSession {
   targetRole: string;
   program: string;
   resumeId: string;
-  interviewType: 'one-on-one' | 'panel' | 'vr';
+  interviewType: 'one-on-one' | 'panel' | 'immersive-one-on-one' | 'immersive-panel';
   startedAt: number;
   completedAt?: number;
   totalQuestions: number;
@@ -115,3 +115,4 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
 
   clearSession: () => set({ status: 'setup', session: null }),
 }));
+
