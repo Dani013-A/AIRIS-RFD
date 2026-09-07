@@ -1,4 +1,4 @@
-﻿import React, { useRef, useCallback, useState, useEffect } from "react";
+import React, { useRef, useCallback, useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -16,7 +16,7 @@ import { useInterviewStore } from "../../store/interviewStore";
 // ── Daniel's existing scoring pipeline — reused exactly ─────────────────────
 import { submitInterviewAnswer } from "../../services/api/interviewApi";
 
-// ── Bridge types ─────────────────────────────────────────────────────────────
+// ── Bridge types ────────────────────────────────────────────────────────────
 interface BridgeEnvelope {
   type: string;
   payload: string; // nested JSON string
@@ -95,6 +95,7 @@ export default function ImmersiveInterviewScreen() {
   // ─── Effect: send first question once scene is loaded ─────────────────────
   useEffect(() => {
     if (sceneLoaded && session?.currentQuestion) {
+      console.log("[Immersive] Scene loaded. Sending first question to Unity:", session.currentQuestion);
       postToUnity("SHOW_QUESTION", {
         questionText: session.currentQuestion,
         speakerIndex: 1, // Claudia (lead) for panel; default for 1-on-1
@@ -103,10 +104,23 @@ export default function ImmersiveInterviewScreen() {
     }
   }, [sceneLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ─── Fallback: Ping Unity / load scene if still waiting after mount ────────
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!sceneLoaded) {
+        console.log("[Immersive] Scene not yet confirmed loaded after 2.5s — actively sending LOAD_SCENE to Unity:", sceneName);
+        postToUnity("LOAD_SCENE", { sceneName });
+      }
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [sceneLoaded, sceneName, postToUnity]);
+
   // ─── Unity message handler ────────────────────────────────────────────────
   const onUnityMessage = useCallback(
     async (event: NativeSyntheticEvent<{ message: string }>) => {
       const raw = event.nativeEvent.message;
+      console.log("[Immersive] onUnityMessage received:", raw);
+
       let msg: BridgeEnvelope;
       try {
         msg = JSON.parse(raw);
@@ -118,13 +132,16 @@ export default function ImmersiveInterviewScreen() {
       switch (msg.type) {
         // ── Unity finished initialising ─────────────────────────────────────
         case "UNITY_READY": {
+          console.log("[Immersive] UNITY_READY received. Requesting scene:", sceneName);
           setUnityReady(true);
           postToUnity("LOAD_SCENE", { sceneName });
           break;
         }
 
-        // ── Scene fully loaded ─────────────────────────────────────────────
+        // ── Scene fully loaded ──────────────────────────────────────────────
         case "SCENE_LOADED": {
+          console.log("[Immersive] SCENE_LOADED received. Dismissing loading overlay.");
+          setUnityReady(true);
           setSceneLoaded(true);
           // first SHOW_QUESTION is sent by the useEffect above
           break;
@@ -132,12 +149,16 @@ export default function ImmersiveInterviewScreen() {
 
         // ── TTS finished speaking the question → start recording ───────────
         case "QUESTION_SPOKEN": {
+          setUnityReady(true);
+          setSceneLoaded(true);
           postToUnity("START_RECORDING");
           break;
         }
 
-        // ── Mic started (informational) ────────────────────────────────────
+        // ── Mic started (informational) ─────────────────────────────────────
         case "RECORDING_STARTED": {
+          setUnityReady(true);
+          setSceneLoaded(true);
           break;
         }
 
@@ -147,8 +168,11 @@ export default function ImmersiveInterviewScreen() {
           break;
         }
 
-        // ── Whisper transcription complete ────────────────────────────────
+        // ── Whisper transcription complete ──────────────────────────────────
         case "TRANSCRIPT_READY": {
+          setUnityReady(true);
+          setSceneLoaded(true);
+
           let transcript = "";
           try {
             const p = JSON.parse(msg.payload);
@@ -163,11 +187,11 @@ export default function ImmersiveInterviewScreen() {
           }
 
           try {
-            // ══════════════════════════════════════════════════════════════════
+            // ═══════════════════════════════════════════════════════════════════
             // CALL DANIEL'S EXISTING SCORING PIPELINE — UNCHANGED
             // This is the exact same function call that ActiveSimulationScreen
             // makes. No changes to interviewApi.ts needed.
-            // ══════════════════════════════════════════════════════════════════
+            // ═══════════════════════════════════════════════════════════════════
             const response = await submitInterviewAnswer({
               targetRole: session.targetRole,
               program: session.program,
@@ -175,9 +199,9 @@ export default function ImmersiveInterviewScreen() {
               history: session.history,
               currentQuestion: session.currentQuestion,
               currentAnswer: transcript,
-              currentQuestionType: session.currentQuestionType,
+              currentQuestionType: session.currentQuestionType || "general",
+              currentBenchmarkAnswer: session.currentBenchmarkAnswer || "",
               totalQuestions: session.totalQuestions,
-              // pauseMetrics omitted — not available from Whisper VAD yet
             });
 
             // Update Zustand store — same call as ActiveSimulationScreen
@@ -242,7 +266,7 @@ export default function ImmersiveInterviewScreen() {
           break;
         }
 
-        // ── Unity confirmed interview closed ───────────────────────────────
+        // ── Unity confirmed interview closed ────────────────────────────────
         case "INTERVIEW_ENDED": {
           break;
         }
@@ -340,9 +364,9 @@ const styles = StyleSheet.create({
     borderColor: "#F4A47A",
   },
   processingText: {
-    color: "#F4A47A",
-    fontWeight: "700",
+    color: "#FFFFFF",
     fontSize: 13,
-    marginLeft: 10,
+    fontWeight: "700",
+    marginLeft: 8,
   },
 });

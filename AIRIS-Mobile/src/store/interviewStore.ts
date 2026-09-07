@@ -1,4 +1,4 @@
-﻿import { create } from 'zustand';
+import { create } from 'zustand';
 
 export type InterviewStatus = 'setup' | 'briefing' | 'active' | 'evaluating' | 'completed';
 

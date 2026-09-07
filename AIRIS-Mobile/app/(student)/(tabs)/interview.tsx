@@ -1,40 +1,27 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import { PrimaryButton } from "../../../src/components/ui";
 import { useInterviewStore } from "../../../src/store/interviewStore";
 
 type ExperienceType = "one-on-one" | "panel" | "immersive-one-on-one" | "immersive-panel";
 
 export default function ExperienceSelectionScreen() {
-  const router = useRouter();
   const [selectedType, setSelectedType] = useState<ExperienceType>("one-on-one");
 
   const isSelected = (type: ExperienceType) => selectedType === type;
 
-  const cardStyle = (type: ExperienceType) =>
-    `p-5 rounded-2xl border bg-white mb-4 ${
-      isSelected(type) ? "border-[#F4A47A] shadow-sm" : "border-[#BFD6EA]"
-    }`;
-
-  const cardShadow = (type: ExperienceType) => ({
+  const getCardShadow = (type: ExperienceType) => ({
+    borderColor: isSelected(type) ? "#F4A47A" : "#BFD6EA",
+    backgroundColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: isSelected(type) ? 0.1 : 0.05,
     shadowRadius: 3,
     elevation: 2,
   });
-
-  const iconBg = (type: ExperienceType) =>
-    isSelected(type) ? "bg-[#FEF5F1]" : "bg-[#F4F8FB]";
-
-  const iconColor = (type: ExperienceType) =>
-    isSelected(type) ? "#CA5D25" : "#4F6B82";
-
-  const titleColor = (type: ExperienceType) =>
-    isSelected(type) ? "text-[#CA5D25]" : "text-[#1F3A5F]";
 
   const handleContinue = () => {
     if (selectedType === "one-on-one") {
@@ -43,8 +30,6 @@ export default function ExperienceSelectionScreen() {
     } else {
       // Immersive VR flow — seed a placeholder session with the right type
       // so ImmersiveBriefingScreen knows which scene to load.
-      // initializeSession() is called properly inside ImmersiveBriefingScreen
-      // after startInterviewSimulation() returns the first question.
       useInterviewStore.setState((state) => ({
         ...state,
         status: "setup",
@@ -77,7 +62,6 @@ export default function ExperienceSelectionScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-
         <Text className="text-sm font-bold text-[#1F3A5F] mb-4 uppercase tracking-wider">
           Experience Selection
         </Text>
@@ -93,15 +77,25 @@ export default function ExperienceSelectionScreen() {
         {/* ONE ON ONE */}
         <TouchableOpacity
           onPress={() => setSelectedType("one-on-one")}
-          className={cardStyle("one-on-one")}
-          style={cardShadow("one-on-one")}
+          className="p-5 rounded-2xl border mb-4"
+          style={getCardShadow("one-on-one")}
         >
           <View className="flex-row items-center justify-between mb-3">
             <View className="flex-row items-center">
-              <View className={`h-10 w-10 rounded-full items-center justify-center mr-3 ${iconBg("one-on-one")}`}>
-                <Ionicons name="person" size={20} color={iconColor("one-on-one")} />
+              <View
+                className="h-10 w-10 rounded-full items-center justify-center mr-3"
+                style={{ backgroundColor: isSelected("one-on-one") ? "#FEF5F1" : "#F4F8FB" }}
+              >
+                <Ionicons
+                  name="person"
+                  size={20}
+                  color={isSelected("one-on-one") ? "#CA5D25" : "#4F6B82"}
+                />
               </View>
-              <Text className={`text-base font-extrabold ${titleColor("one-on-one")}`}>
+              <Text
+                className="text-base font-extrabold"
+                style={{ color: isSelected("one-on-one") ? "#CA5D25" : "#1F3A5F" }}
+              >
                 One-on-One Interview
               </Text>
             </View>
@@ -111,7 +105,7 @@ export default function ExperienceSelectionScreen() {
               color={isSelected("one-on-one") ? "#CA5D25" : "#BFD6EA"}
             />
           </View>
-          <Text className="text-sm text-[#4F6B82] leading-5 font-medium ml-13 pl-1">
+          <Text className="text-sm text-[#4F6B82] leading-5 font-medium ml-12 pl-1">
             Classic format. Just you and a single interviewer focused on your resume and skills.
           </Text>
         </TouchableOpacity>
@@ -124,21 +118,39 @@ export default function ExperienceSelectionScreen() {
         {/* IMMERSIVE ONE-ON-ONE */}
         <TouchableOpacity
           onPress={() => setSelectedType("immersive-one-on-one")}
-          className={cardStyle("immersive-one-on-one")}
-          style={cardShadow("immersive-one-on-one")}
+          className="p-5 rounded-2xl border mb-4"
+          style={getCardShadow("immersive-one-on-one")}
         >
           <View className="flex-row items-center justify-between mb-3">
             <View className="flex-row items-center">
-              <View className={`h-10 w-10 rounded-full items-center justify-center mr-3 ${iconBg("immersive-one-on-one")}`}>
-                <Ionicons name="headset" size={20} color={iconColor("immersive-one-on-one")} />
+              <View
+                className="h-10 w-10 rounded-full items-center justify-center mr-3"
+                style={{ backgroundColor: isSelected("immersive-one-on-one") ? "#FEF5F1" : "#F4F8FB" }}
+              >
+                <Ionicons
+                  name="headset"
+                  size={20}
+                  color={isSelected("immersive-one-on-one") ? "#CA5D25" : "#4F6B82"}
+                />
               </View>
               <View>
-                <Text className={`text-base font-extrabold ${titleColor("immersive-one-on-one")}`}>
+                <Text
+                  className="text-base font-extrabold"
+                  style={{ color: isSelected("immersive-one-on-one") ? "#CA5D25" : "#1F3A5F" }}
+                >
                   Immersive One-on-One
                 </Text>
                 <View className="flex-row items-center mt-0.5">
-                  <View className="bg-[#E8F8F6] px-2 py-0.5 rounded-full border border-[#79D5C8]">
-                    <Text className="text-[10px] font-bold text-[#1E5D53] uppercase tracking-wider">New</Text>
+                  <View
+                    className="px-2 py-0.5 rounded-full border"
+                    style={{ backgroundColor: "#E8F8F6", borderColor: "#79D5C8" }}
+                  >
+                    <Text
+                      className="font-bold uppercase tracking-wider"
+                      style={{ fontSize: 10, color: "#1E5D53" }}
+                    >
+                      New
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -149,7 +161,7 @@ export default function ExperienceSelectionScreen() {
               color={isSelected("immersive-one-on-one") ? "#CA5D25" : "#BFD6EA"}
             />
           </View>
-          <Text className="text-sm text-[#4F6B82] leading-5 font-medium ml-13 pl-1">
+          <Text className="text-sm text-[#4F6B82] leading-5 font-medium ml-12 pl-1">
             Practice in a realistic 3D virtual office. Speak your answers aloud — no typing required.
           </Text>
         </TouchableOpacity>
@@ -157,21 +169,39 @@ export default function ExperienceSelectionScreen() {
         {/* IMMERSIVE PANEL */}
         <TouchableOpacity
           onPress={() => setSelectedType("immersive-panel")}
-          className={`${cardStyle("immersive-panel")} mb-8`}
-          style={cardShadow("immersive-panel")}
+          className="p-5 rounded-2xl border mb-8"
+          style={getCardShadow("immersive-panel")}
         >
           <View className="flex-row items-center justify-between mb-3">
             <View className="flex-row items-center">
-              <View className={`h-10 w-10 rounded-full items-center justify-center mr-3 ${iconBg("immersive-panel")}`}>
-                <Ionicons name="people" size={20} color={iconColor("immersive-panel")} />
+              <View
+                className="h-10 w-10 rounded-full items-center justify-center mr-3"
+                style={{ backgroundColor: isSelected("immersive-panel") ? "#FEF5F1" : "#F4F8FB" }}
+              >
+                <Ionicons
+                  name="people"
+                  size={20}
+                  color={isSelected("immersive-panel") ? "#CA5D25" : "#4F6B82"}
+                />
               </View>
               <View>
-                <Text className={`text-base font-extrabold ${titleColor("immersive-panel")}`}>
+                <Text
+                  className="text-base font-extrabold"
+                  style={{ color: isSelected("immersive-panel") ? "#CA5D25" : "#1F3A5F" }}
+                >
                   Immersive Panel Interview
                 </Text>
                 <View className="flex-row items-center mt-0.5">
-                  <View className="bg-[#E8F8F6] px-2 py-0.5 rounded-full border border-[#79D5C8]">
-                    <Text className="text-[10px] font-bold text-[#1E5D53] uppercase tracking-wider">New</Text>
+                  <View
+                    className="px-2 py-0.5 rounded-full border"
+                    style={{ backgroundColor: "#E8F8F6", borderColor: "#79D5C8" }}
+                  >
+                    <Text
+                      className="font-bold uppercase tracking-wider"
+                      style={{ fontSize: 10, color: "#1E5D53" }}
+                    >
+                      New
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -182,7 +212,7 @@ export default function ExperienceSelectionScreen() {
               color={isSelected("immersive-panel") ? "#CA5D25" : "#BFD6EA"}
             />
           </View>
-          <Text className="text-sm text-[#4F6B82] leading-5 font-medium ml-13 pl-1">
+          <Text className="text-sm text-[#4F6B82] leading-5 font-medium ml-12 pl-1">
             Face a 3-person virtual panel (Claudia, Eric, Carla) in a realistic office environment.
           </Text>
         </TouchableOpacity>
@@ -192,7 +222,6 @@ export default function ExperienceSelectionScreen() {
           variant="orange"
           onPress={handleContinue}
         />
-
       </ScrollView>
     </SafeAreaView>
   );
