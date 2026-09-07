@@ -53,8 +53,8 @@ export default function ImmersiveInterviewScreen() {
   const sceneName =
     session?.interviewType === "panel" ||
     session?.interviewType === ("immersive-panel" as any)
-      ? "Office"    // AIRIS PANEL scene
-      : "OneOnOne"; // AIRIS 1-on-1 scene
+      ? "SampleScene" // AIRIS PANEL scene (Scene 0 in Build Settings)
+      : "OneOnOne";    // AIRIS 1-on-1 scene (Scene 1 in Build Settings)
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
