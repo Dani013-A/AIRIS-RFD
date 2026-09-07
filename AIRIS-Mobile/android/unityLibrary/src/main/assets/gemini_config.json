@@ -1,0 +1,13 @@
+{
+  "groqApiKey": "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",
+  "groqModel": "llama-3.3-70b-versatile",
+  "openRouterApiKey": "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",
+  "openRouterModel": "meta-llama/llama-3.3-70b-instruct",
+  "geminiApiKey": "AQ.Ab8RN6KMJX5AQue9A0D3L78K91AnVEyZQ8OwPCzW_r5SqT8qkA",
+  "geminiModel": "gemini-2.5-flash",
+  "temperature": 0.7,
+  "maxOutputTokens": 1024,
+  "timeoutSeconds": 15.0,
+  "allowFollowUpQuestions": true,
+  "maxFollowUpsPerQuestion": 1
+}
