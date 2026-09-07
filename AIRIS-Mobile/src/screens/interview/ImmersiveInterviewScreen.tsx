@@ -115,6 +115,13 @@ export default function ImmersiveInterviewScreen() {
     return () => clearTimeout(timer);
   }, [sceneLoaded, sceneName, postToUnity]);
 
+  // Ensure orientation is restored to Portrait whenever leaving the immersive screen
+  useEffect(() => {
+    return () => {
+      postToUnity("RESTORE_PORTRAIT", {});
+    };
+  }, [postToUnity]);
+
   // ─── Unity message handler ────────────────────────────────────────────────
   const onUnityMessage = useCallback(
     async (event: NativeSyntheticEvent<{ message: string }>) => {
@@ -223,6 +230,7 @@ export default function ImmersiveInterviewScreen() {
                   "Thank you for completing your interview simulation with AIRIS. Your results are being prepared.",
               });
               setTimeout(() => {
+                postToUnity("RESTORE_PORTRAIT", {});
                 router.push("/(student)/interview-session/summary" as any);
               }, 4000);
             } else {
@@ -267,7 +275,17 @@ export default function ImmersiveInterviewScreen() {
         }
 
         // ── Unity confirmed interview closed ────────────────────────────────
+        case "SESSION_EXIT": {
+          console.log("[Immersive] Exit requested from Unity VR — restoring portrait and returning to menu.");
+          postToUnity("RESTORE_PORTRAIT", {});
+          router.back();
+          break;
+        }
+
         case "INTERVIEW_ENDED": {
+          console.log("[Immersive] Interview ended in Unity — restoring portrait and navigating to summary.");
+          postToUnity("RESTORE_PORTRAIT", {});
+          router.push("/(student)/interview-session/summary" as any);
           break;
         }
 
