@@ -98,8 +98,8 @@ export default function ImmersiveInterviewScreen() {
       console.log("[Immersive] Scene loaded. Sending first question to Unity:", session.currentQuestion);
       postToUnity("SHOW_QUESTION", {
         questionText: session.currentQuestion,
-        speakerIndex: 1, // Claudia (lead) for panel; default for 1-on-1
-        speakerName: "Claudia",
+        speakerIndex: sceneName === "SampleScene" ? 1 : 0,
+        speakerName: sceneName === "SampleScene" ? "Claudia" : "Interviewer",
       });
     }
   }, [sceneLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -147,8 +147,31 @@ export default function ImmersiveInterviewScreen() {
 
         // ── Scene fully loaded ──────────────────────────────────────────────
         case "SCENE_LOADED": {
-          console.log("[Immersive] SCENE_LOADED received. Dismissing loading overlay.");
+          let loadedScene = "";
+          try {
+            const p = JSON.parse(msg.payload);
+            loadedScene = p.sceneName || "";
+          } catch {
+            console.warn("[Immersive] Could not parse SCENE_LOADED payload:", msg.payload);
+          }
+
+          console.log(
+            `[Immersive] SCENE_LOADED received: '${loadedScene}'. Target scene is '${sceneName}'.`
+          );
           setUnityReady(true);
+
+          // If the loaded scene does not match the intended interview scene, actively demand Unity switch!
+          if (loadedScene && loadedScene.toLowerCase() !== sceneName.toLowerCase()) {
+            console.log(
+              `[Immersive] Scene mismatch ('${loadedScene}' != '${sceneName}'). Actively requesting '${sceneName}' from Unity...`
+            );
+            postToUnity("LOAD_SCENE", { sceneName });
+            return;
+          }
+
+          console.log(
+            `[Immersive] Scene '${sceneName}' confirmed loaded. Dismissing loading overlay.`
+          );
           setSceneLoaded(true);
           // first SHOW_QUESTION is sent by the useEffect above
           break;
@@ -245,8 +268,8 @@ export default function ImmersiveInterviewScreen() {
                 if (response.nextQuestion) {
                   postToUnity("SHOW_QUESTION", {
                     questionText: response.nextQuestion.question,
-                    speakerIndex: 1,
-                    speakerName: "Claudia",
+                    speakerIndex: sceneName === "SampleScene" ? 1 : 0,
+                    speakerName: sceneName === "SampleScene" ? "Claudia" : "Interviewer",
                   });
                 }
               }, 4500); // Allow feedback TTS to finish
