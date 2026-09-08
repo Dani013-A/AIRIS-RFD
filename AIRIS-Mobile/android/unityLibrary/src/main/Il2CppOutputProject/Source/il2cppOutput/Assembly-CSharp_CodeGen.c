@@ -63,12 +63,9 @@ extern void U3CSpeakThenNotifyU3Ed__30_MoveNext_mC086BFDD17A87DED84AF69A0025D2EB
 extern void U3CSpeakThenNotifyU3Ed__30_System_Collections_Generic_IEnumeratorU3CSystem_ObjectU3E_get_Current_mFC4BAC804FCEB2A3ED449B567C695A7DD8DC91A1 (void);
 extern void U3CSpeakThenNotifyU3Ed__30_System_Collections_IEnumerator_Reset_m90C8E38663A404C3CE5C136CB29990A78042EA33 (void);
 extern void U3CSpeakThenNotifyU3Ed__30_System_Collections_IEnumerator_get_Current_m810FB13A220E7C63FD338F334C0FB4D15BD0E009 (void);
-extern void CardboardHeadTracker_EnsureAttachedToCamera_m3ABB87E455BD7AF72D78FC97748FF266C8AF0B43 (void);
 extern void CardboardHeadTracker_Start_m962E69682B9FF3B8974A9817A775049CED422265 (void);
 extern void CardboardHeadTracker_OnDestroy_m0E65E00503E483910289A50B7A63E0C9B9432647 (void);
 extern void CardboardHeadTracker_RestorePortraitOrientation_m8D979ADD8950B873FEAFB8E5FD267DEBAC2B03A2 (void);
-extern void CardboardHeadTracker_Update_m8CAFB5B4F5C2106E4469F565EE9A90A175DEE638 (void);
-extern void CardboardHeadTracker_ConvertGyroToUnity_mE03815100DF1C16076A1B7552172A74CBE4A8C70 (void);
 extern void CardboardHeadTracker_Recenter_mA2A8407D7F74C65426EF212888D490D1B12E86D1 (void);
 extern void CardboardHeadTracker__ctor_mC0E388F1BE924C94914E25DAC88B303A85E1CE7D (void);
 extern void DialogueManager_Awake_m1E03D7AA32F5A9A8F8FBE2EC1C9ABB2742341207 (void);
@@ -589,7 +586,7 @@ extern void U3CU3Ec__DisplayClass83_0__ctor_mD8C6FB5062382446EC1FF09DF95D3B7BE04
 extern void U3CU3Ec__DisplayClass83_0_U3CCreateAnimationButtonsInFolderU3Eb__0_mE0CA80C70704F28158E80A103A09B4D1437EA274 (void);
 extern void U3CU3Ec__DisplayClass89_0__ctor_m81CFCE9A768B11B62B06917BC7C7DE26134C5F64 (void);
 extern void U3CU3Ec__DisplayClass89_0_U3CGenerateClearUpperAnimationButtonU3Eb__0_m74E33A7F8E93BC141BE63E8A52CD9B08F6873AF7 (void);
-static Il2CppMethodPointer s_methodPointers[582] = 
+static Il2CppMethodPointer s_methodPointers[579] = 
 {
 	Billboard_Start_mA528118C3E891454B3573A892BD82ABB04D7095A,
 	Billboard_LateUpdate_m9B22BE9123A200D3E2B5731C1CBC6EC3DD2BC86B,
@@ -647,12 +644,9 @@ static Il2CppMethodPointer s_methodPointers[582] =
 	U3CSpeakThenNotifyU3Ed__30_System_Collections_Generic_IEnumeratorU3CSystem_ObjectU3E_get_Current_mFC4BAC804FCEB2A3ED449B567C695A7DD8DC91A1,
 	U3CSpeakThenNotifyU3Ed__30_System_Collections_IEnumerator_Reset_m90C8E38663A404C3CE5C136CB29990A78042EA33,
 	U3CSpeakThenNotifyU3Ed__30_System_Collections_IEnumerator_get_Current_m810FB13A220E7C63FD338F334C0FB4D15BD0E009,
-	CardboardHeadTracker_EnsureAttachedToCamera_m3ABB87E455BD7AF72D78FC97748FF266C8AF0B43,
 	CardboardHeadTracker_Start_m962E69682B9FF3B8974A9817A775049CED422265,
 	CardboardHeadTracker_OnDestroy_m0E65E00503E483910289A50B7A63E0C9B9432647,
 	CardboardHeadTracker_RestorePortraitOrientation_m8D979ADD8950B873FEAFB8E5FD267DEBAC2B03A2,
-	CardboardHeadTracker_Update_m8CAFB5B4F5C2106E4469F565EE9A90A175DEE638,
-	CardboardHeadTracker_ConvertGyroToUnity_mE03815100DF1C16076A1B7552172A74CBE4A8C70,
 	CardboardHeadTracker_Recenter_mA2A8407D7F74C65426EF212888D490D1B12E86D1,
 	CardboardHeadTracker__ctor_mC0E388F1BE924C94914E25DAC88B303A85E1CE7D,
 	DialogueManager_Awake_m1E03D7AA32F5A9A8F8FBE2EC1C9ABB2742341207,
@@ -1198,30 +1192,30 @@ extern void U3CGenerateFinalReportAsyncU3Ed__10_MoveNext_mC1D34E9EC299B4CC4BD2F1
 extern void U3CGenerateFinalReportAsyncU3Ed__10_SetStateMachine_m6E38A72E2FA0E50307A26C31EC03AC77DD5E98F7_AdjustorThunk (void);
 static Il2CppTokenAdjustorThunkPair s_adjustorThunks[22] = 
 {
-	{ 0x06000097, U3CReceiveTranscriptU3Ed__43_MoveNext_m04511CB4BBF6F4EC2A3FE76FB1E321A2F1A9F232_AdjustorThunk },
-	{ 0x06000098, U3CReceiveTranscriptU3Ed__43_SetStateMachine_m0629E09AC4DD538D66EF48D5B014C2CE25A2016D_AdjustorThunk },
-	{ 0x0600010D, U3CStopRecordingU3Ed__30_MoveNext_m10FDAE57205EF74614AB6AB672B7E52188442D13_AdjustorThunk },
-	{ 0x0600010E, U3CStopRecordingU3Ed__30_SetStateMachine_m51B95485E3A4244B22179F4755603F6B88D3675E_AdjustorThunk },
-	{ 0x06000114, U3CTranscribeAudioU3Ed__3_MoveNext_m1BD587C2D50F2BE7270C017D61CA17390633105F_AdjustorThunk },
-	{ 0x06000115, U3CTranscribeAudioU3Ed__3_SetStateMachine_m0FF119FEBFDF8CF3C3D603C9DAE7C5130001E9D4_AdjustorThunk },
-	{ 0x06000122, U3CTestTranscriptionU3Ed__2_MoveNext_mDED25B945E46154CD126F76C65FB2888091E8F8C_AdjustorThunk },
-	{ 0x06000123, U3CTestTranscriptionU3Ed__2_SetStateMachine_mA139DC34ADDE1F63A3576C0B6CC89E7602A44A7F_AdjustorThunk },
-	{ 0x0600019C, TrackedRotation_get_totalOffset_mC129829FFE6CDD96C8885030BDAEF40D569F06C8_AdjustorThunk },
-	{ 0x0600019D, TrackedRotation_Reset_m54545DE2D01827833956AEC4324C136A0CB72425_AdjustorThunk },
-	{ 0x0600019E, TrackedRotation_SetBaseFromVector_m0CAD68507FD5C7AA3C7CAE09720645F033F1D26E_AdjustorThunk },
-	{ 0x0600019F, TrackedRotation_SetTargetFromVector_m42F1586C38A41E0FB628220D326B1572BB8F80D7_AdjustorThunk },
-	{ 0x060001BE, U3CCallGeminiNativeEndpointAsyncU3Ed__7_MoveNext_m861AAEB4CC7D42D7AD41531B34ADC0FA7DFDF72D_AdjustorThunk },
-	{ 0x060001BF, U3CCallGeminiNativeEndpointAsyncU3Ed__7_SetStateMachine_m75B57C17E9159682FA791B7611D9BCD63645A613_AdjustorThunk },
-	{ 0x060001C0, U3CCallOpenAICompatibleEndpointAsyncU3Ed__6_MoveNext_m96FF47CA7B600663597ECFBB0AF1C47EECDCAEE3_AdjustorThunk },
-	{ 0x060001C1, U3CCallOpenAICompatibleEndpointAsyncU3Ed__6_SetStateMachine_mBB9714A55B742A22289CA29776B7DC858E74A652_AdjustorThunk },
-	{ 0x060001C2, U3CGenerateContentAsyncU3Ed__5_MoveNext_m060D5ECB2A072DE516BD6391642A0B5E70874D5F_AdjustorThunk },
-	{ 0x060001C3, U3CGenerateContentAsyncU3Ed__5_SetStateMachine_m9DA4B640B6D148B2C86C544841025278B51DBCBB_AdjustorThunk },
-	{ 0x060001F5, U3CEvaluateResponseAsyncU3Ed__9_MoveNext_m0225FA6E1EA611FBA401CEDD628BD4238B2AAF82_AdjustorThunk },
-	{ 0x060001F6, U3CEvaluateResponseAsyncU3Ed__9_SetStateMachine_mD7E475E5550632211072424B6CD53DFBE59A9BD2_AdjustorThunk },
-	{ 0x060001F7, U3CGenerateFinalReportAsyncU3Ed__10_MoveNext_mC1D34E9EC299B4CC4BD2F17929C41CC611E63003_AdjustorThunk },
-	{ 0x060001F8, U3CGenerateFinalReportAsyncU3Ed__10_SetStateMachine_m6E38A72E2FA0E50307A26C31EC03AC77DD5E98F7_AdjustorThunk },
+	{ 0x06000094, U3CReceiveTranscriptU3Ed__43_MoveNext_m04511CB4BBF6F4EC2A3FE76FB1E321A2F1A9F232_AdjustorThunk },
+	{ 0x06000095, U3CReceiveTranscriptU3Ed__43_SetStateMachine_m0629E09AC4DD538D66EF48D5B014C2CE25A2016D_AdjustorThunk },
+	{ 0x0600010A, U3CStopRecordingU3Ed__30_MoveNext_m10FDAE57205EF74614AB6AB672B7E52188442D13_AdjustorThunk },
+	{ 0x0600010B, U3CStopRecordingU3Ed__30_SetStateMachine_m51B95485E3A4244B22179F4755603F6B88D3675E_AdjustorThunk },
+	{ 0x06000111, U3CTranscribeAudioU3Ed__3_MoveNext_m1BD587C2D50F2BE7270C017D61CA17390633105F_AdjustorThunk },
+	{ 0x06000112, U3CTranscribeAudioU3Ed__3_SetStateMachine_m0FF119FEBFDF8CF3C3D603C9DAE7C5130001E9D4_AdjustorThunk },
+	{ 0x0600011F, U3CTestTranscriptionU3Ed__2_MoveNext_mDED25B945E46154CD126F76C65FB2888091E8F8C_AdjustorThunk },
+	{ 0x06000120, U3CTestTranscriptionU3Ed__2_SetStateMachine_mA139DC34ADDE1F63A3576C0B6CC89E7602A44A7F_AdjustorThunk },
+	{ 0x06000199, TrackedRotation_get_totalOffset_mC129829FFE6CDD96C8885030BDAEF40D569F06C8_AdjustorThunk },
+	{ 0x0600019A, TrackedRotation_Reset_m54545DE2D01827833956AEC4324C136A0CB72425_AdjustorThunk },
+	{ 0x0600019B, TrackedRotation_SetBaseFromVector_m0CAD68507FD5C7AA3C7CAE09720645F033F1D26E_AdjustorThunk },
+	{ 0x0600019C, TrackedRotation_SetTargetFromVector_m42F1586C38A41E0FB628220D326B1572BB8F80D7_AdjustorThunk },
+	{ 0x060001BB, U3CCallGeminiNativeEndpointAsyncU3Ed__7_MoveNext_m861AAEB4CC7D42D7AD41531B34ADC0FA7DFDF72D_AdjustorThunk },
+	{ 0x060001BC, U3CCallGeminiNativeEndpointAsyncU3Ed__7_SetStateMachine_m75B57C17E9159682FA791B7611D9BCD63645A613_AdjustorThunk },
+	{ 0x060001BD, U3CCallOpenAICompatibleEndpointAsyncU3Ed__6_MoveNext_m96FF47CA7B600663597ECFBB0AF1C47EECDCAEE3_AdjustorThunk },
+	{ 0x060001BE, U3CCallOpenAICompatibleEndpointAsyncU3Ed__6_SetStateMachine_mBB9714A55B742A22289CA29776B7DC858E74A652_AdjustorThunk },
+	{ 0x060001BF, U3CGenerateContentAsyncU3Ed__5_MoveNext_m060D5ECB2A072DE516BD6391642A0B5E70874D5F_AdjustorThunk },
+	{ 0x060001C0, U3CGenerateContentAsyncU3Ed__5_SetStateMachine_m9DA4B640B6D148B2C86C544841025278B51DBCBB_AdjustorThunk },
+	{ 0x060001F2, U3CEvaluateResponseAsyncU3Ed__9_MoveNext_m0225FA6E1EA611FBA401CEDD628BD4238B2AAF82_AdjustorThunk },
+	{ 0x060001F3, U3CEvaluateResponseAsyncU3Ed__9_SetStateMachine_mD7E475E5550632211072424B6CD53DFBE59A9BD2_AdjustorThunk },
+	{ 0x060001F4, U3CGenerateFinalReportAsyncU3Ed__10_MoveNext_mC1D34E9EC299B4CC4BD2F17929C41CC611E63003_AdjustorThunk },
+	{ 0x060001F5, U3CGenerateFinalReportAsyncU3Ed__10_SetStateMachine_m6E38A72E2FA0E50307A26C31EC03AC77DD5E98F7_AdjustorThunk },
 };
-static const int32_t s_InvokerIndices[582] = 
+static const int32_t s_InvokerIndices[579] = 
 {
 	13325,
 	13325,
@@ -1233,11 +1227,11 @@ static const int32_t s_InvokerIndices[582] =
 	13325,
 	13325,
 	13325,
-	19805,
-	19498,
-	19498,
-	19498,
-	19995,
+	19808,
+	19500,
+	19500,
+	19500,
+	19998,
 	13325,
 	13325,
 	13325,
@@ -1279,12 +1273,9 @@ static const int32_t s_InvokerIndices[582] =
 	12828,
 	13325,
 	12828,
-	19995,
 	13325,
 	13325,
-	19995,
-	13325,
-	8904,
+	19998,
 	13325,
 	13325,
 	13325,
@@ -1409,8 +1400,8 @@ static const int32_t s_InvokerIndices[582] =
 	13325,
 	63,
 	12828,
-	19805,
-	19498,
+	19808,
+	19500,
 	12862,
 	9810,
 	12862,
@@ -1427,7 +1418,7 @@ static const int32_t s_InvokerIndices[582] =
 	9956,
 	13325,
 	6115,
-	17157,
+	17159,
 	13325,
 	9753,
 	9956,
@@ -1474,7 +1465,7 @@ static const int32_t s_InvokerIndices[582] =
 	6130,
 	4158,
 	2489,
-	15789,
+	15791,
 	2056,
 	13325,
 	13325,
@@ -1496,7 +1487,7 @@ static const int32_t s_InvokerIndices[582] =
 	13325,
 	13325,
 	6115,
-	18780,
+	18782,
 	13325,
 	13325,
 	9753,
@@ -1514,7 +1505,7 @@ static const int32_t s_InvokerIndices[582] =
 	13325,
 	13325,
 	9753,
-	20051,
+	20054,
 	13325,
 	13325,
 	13325,
@@ -1528,7 +1519,7 @@ static const int32_t s_InvokerIndices[582] =
 	13325,
 	13325,
 	13325,
-	14911,
+	14913,
 	13325,
 	13325,
 	13325,
@@ -1569,7 +1560,7 @@ static const int32_t s_InvokerIndices[582] =
 	13325,
 	13325,
 	13325,
-	18881,
+	18883,
 	13325,
 	13325,
 	9753,
@@ -1630,7 +1621,7 @@ static const int32_t s_InvokerIndices[582] =
 	10140,
 	13210,
 	13325,
-	16515,
+	16517,
 	13325,
 	13325,
 	13325,
@@ -1711,8 +1702,8 @@ static const int32_t s_InvokerIndices[582] =
 	12828,
 	13325,
 	12828,
-	19805,
-	19498,
+	19808,
+	19500,
 	13325,
 	393,
 	1046,
@@ -1810,7 +1801,7 @@ IL2CPP_EXTERN_C const Il2CppCodeGenModule g_AssemblyU2DCSharp_CodeGenModule;
 const Il2CppCodeGenModule g_AssemblyU2DCSharp_CodeGenModule = 
 {
 	"Assembly-CSharp.dll",
-	582,
+	579,
 	s_methodPointers,
 	22,
 	s_adjustorThunks,

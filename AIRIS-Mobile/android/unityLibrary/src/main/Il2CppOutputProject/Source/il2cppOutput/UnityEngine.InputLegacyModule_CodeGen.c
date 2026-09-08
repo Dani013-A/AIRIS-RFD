@@ -26,16 +26,6 @@ extern void Touch_get_altitudeAngle_m26DEF010E2CDC23F4FADE8E49A986D557C07D391 (v
 extern void Touch_get_azimuthAngle_m2F11532183492E608922A2F9D9EC9AC31D34F490 (void);
 extern void Touch_get_radius_m5BC9C50DABBB17B07742BAFC6CC36A6736AE7960 (void);
 extern void Touch_get_radiusVariance_m6F54BE964B91C3B2F8FA2A483E1FDB644B282B21 (void);
-extern void Gyroscope__ctor_mC476EA849DBF7705A36094F4A2609B5F6286408F (void);
-extern void Gyroscope_attitude_Internal_mE673BB2C9BDCD791AD249FF307C10F83DCC5F3D2 (void);
-extern void Gyroscope_getEnabled_Internal_m69827470009782D6CC88AA7F9EEAC66A3E5C3BCE (void);
-extern void Gyroscope_setEnabled_Internal_mBA928BFDE5565840E372846AF9E0D0E45AD7D115 (void);
-extern void Gyroscope_setUpdateInterval_Internal_m9E08181F8BF28707553BFB77A2B7697C7E33DB6D (void);
-extern void Gyroscope_get_attitude_mF6D8131ED2D0E5BF979C7FC4AAC99E87A01CBE85 (void);
-extern void Gyroscope_get_enabled_m10F5B3F646AB1A6EEE2831010642E9E1E0BCBDB9 (void);
-extern void Gyroscope_set_enabled_m2B22BC93369BA61034A80350405FE1B493822DAB (void);
-extern void Gyroscope_set_updateInterval_m477CB8AF6D656813C14467CCB62EDC3BF1383925 (void);
-extern void Gyroscope_attitude_Internal_Injected_m550F81250B94FE9B11049C8F49DE2F8B9061A2AC (void);
 extern void Input_GetAxis_m10372E6C5FF591668D2DC5F58C58D213CC598A62 (void);
 extern void Input_GetAxisRaw_m47C0CF8E090561A2F407A4E11D5F2A45044EB8E4 (void);
 extern void Input_GetButtonDown_mEF5F80C9E8F04104E807D9CBD6F70CDB98751579 (void);
@@ -61,8 +51,6 @@ extern void Input_GetTouchSupportedInternal_mDCA680EA815E39D9B50A029CC707A7A4EEF
 extern void Input_get_mousePresent_mAD77FFD987CD5B998AFAD4DAECADBC76034026BF (void);
 extern void Input_get_touchSupported_m2A4FA398A793861AE1BC5971A1363552AB33BEEF (void);
 extern void Input_get_touchCount_m057388BFC67A0F4CA53764B1022867ED81D01E39 (void);
-extern void Input_GetGyroInternal_mE769DAF56501C53B38B2714742CC75E99EC696C4 (void);
-extern void Input_get_gyro_m895498B803FE9A3124FBFE3C05966431F8840548 (void);
 extern void Input_GetTouch_Injected_m04E25DD035583531339AB310FBDD4F5A30817F87 (void);
 extern void Input_GetLastPenContactEvent_Injected_mA7F2DE408F86C38FC15357E468645CD82D38A84A (void);
 extern void Input_get_mousePosition_Injected_m7EF43ADB535051F9182A366CA84951F946984E1A (void);
@@ -84,7 +72,7 @@ extern void InputUnsafeUtility_GetButtonUp__Unmanaged_mCCE34158CE05432541102B1C2
 extern void InputUnsafeUtility_GetAxis_Injected_m7617B11C7695077D77C9C2F3F068734E5F35E12E (void);
 extern void InputUnsafeUtility_GetAxisRaw_Injected_mB5CF61FFB2DE889CB33B56AB77AE94BB8F16D31D (void);
 extern void InputUnsafeUtility_GetButtonDown_Injected_m14E4D5FEFEE423F495E54FE1CACC08567ABDAA29 (void);
-static Il2CppMethodPointer s_methodPointers[77] = 
+static Il2CppMethodPointer s_methodPointers[65] = 
 {
 	EmbeddedAttribute__ctor_mD186A3EECAEA1F33E2DF7020B8BB5B7498869351,
 	RefSafetyRulesAttribute__ctor_m151599E27DEEB22884EC61292629B3F3A766EBD1,
@@ -105,16 +93,6 @@ static Il2CppMethodPointer s_methodPointers[77] =
 	Touch_get_azimuthAngle_m2F11532183492E608922A2F9D9EC9AC31D34F490,
 	Touch_get_radius_m5BC9C50DABBB17B07742BAFC6CC36A6736AE7960,
 	Touch_get_radiusVariance_m6F54BE964B91C3B2F8FA2A483E1FDB644B282B21,
-	Gyroscope__ctor_mC476EA849DBF7705A36094F4A2609B5F6286408F,
-	Gyroscope_attitude_Internal_mE673BB2C9BDCD791AD249FF307C10F83DCC5F3D2,
-	Gyroscope_getEnabled_Internal_m69827470009782D6CC88AA7F9EEAC66A3E5C3BCE,
-	Gyroscope_setEnabled_Internal_mBA928BFDE5565840E372846AF9E0D0E45AD7D115,
-	Gyroscope_setUpdateInterval_Internal_m9E08181F8BF28707553BFB77A2B7697C7E33DB6D,
-	Gyroscope_get_attitude_mF6D8131ED2D0E5BF979C7FC4AAC99E87A01CBE85,
-	Gyroscope_get_enabled_m10F5B3F646AB1A6EEE2831010642E9E1E0BCBDB9,
-	Gyroscope_set_enabled_m2B22BC93369BA61034A80350405FE1B493822DAB,
-	Gyroscope_set_updateInterval_m477CB8AF6D656813C14467CCB62EDC3BF1383925,
-	Gyroscope_attitude_Internal_Injected_m550F81250B94FE9B11049C8F49DE2F8B9061A2AC,
 	Input_GetAxis_m10372E6C5FF591668D2DC5F58C58D213CC598A62,
 	Input_GetAxisRaw_m47C0CF8E090561A2F407A4E11D5F2A45044EB8E4,
 	Input_GetButtonDown_mEF5F80C9E8F04104E807D9CBD6F70CDB98751579,
@@ -140,8 +118,6 @@ static Il2CppMethodPointer s_methodPointers[77] =
 	Input_get_mousePresent_mAD77FFD987CD5B998AFAD4DAECADBC76034026BF,
 	Input_get_touchSupported_m2A4FA398A793861AE1BC5971A1363552AB33BEEF,
 	Input_get_touchCount_m057388BFC67A0F4CA53764B1022867ED81D01E39,
-	Input_GetGyroInternal_mE769DAF56501C53B38B2714742CC75E99EC696C4,
-	Input_get_gyro_m895498B803FE9A3124FBFE3C05966431F8840548,
 	Input_GetTouch_Injected_m04E25DD035583531339AB310FBDD4F5A30817F87,
 	Input_GetLastPenContactEvent_Injected_mA7F2DE408F86C38FC15357E468645CD82D38A84A,
 	Input_get_mousePosition_Injected_m7EF43ADB535051F9182A366CA84951F946984E1A,
@@ -201,7 +177,7 @@ static Il2CppTokenAdjustorThunkPair s_adjustorThunks[17] =
 	{ 0x06000012, Touch_get_radius_m5BC9C50DABBB17B07742BAFC6CC36A6736AE7960_AdjustorThunk },
 	{ 0x06000013, Touch_get_radiusVariance_m6F54BE964B91C3B2F8FA2A483E1FDB644B282B21_AdjustorThunk },
 };
-static const int32_t s_InvokerIndices[77] = 
+static const int32_t s_InvokerIndices[65] = 
 {
 	13325,
 	9956,
@@ -222,70 +198,58 @@ static const int32_t s_InvokerIndices[77] =
 	13210,
 	13210,
 	13210,
-	9956,
-	19209,
-	18893,
-	18315,
-	18320,
-	13147,
-	12862,
-	9810,
-	10140,
-	18314,
-	19265,
-	19265,
-	18881,
-	18893,
-	18893,
-	18893,
-	18893,
-	19367,
-	19884,
-	19995,
-	18893,
-	19822,
-	19991,
-	19989,
-	19859,
-	19515,
-	19805,
-	19989,
-	19539,
-	19822,
-	19822,
-	19822,
-	19822,
-	19822,
-	19859,
-	19859,
-	19805,
-	18314,
-	19498,
-	19498,
-	19498,
-	19498,
-	19498,
-	19498,
-	17290,
-	17290,
-	17290,
-	19265,
-	18029,
-	19265,
-	18029,
-	17290,
-	18881,
-	17290,
-	17290,
-	19265,
-	19265,
-	18881,
+	19267,
+	19267,
+	18883,
+	18895,
+	18895,
+	18895,
+	18895,
+	19369,
+	19887,
+	19998,
+	18895,
+	19825,
+	19994,
+	19992,
+	19862,
+	19518,
+	19808,
+	19992,
+	19542,
+	19825,
+	19825,
+	19825,
+	19825,
+	19825,
+	19862,
+	18316,
+	19500,
+	19500,
+	19500,
+	19500,
+	19500,
+	19500,
+	17292,
+	17292,
+	17292,
+	19267,
+	18031,
+	19267,
+	18031,
+	17292,
+	18883,
+	17292,
+	17292,
+	19267,
+	19267,
+	18883,
 };
 IL2CPP_EXTERN_C const Il2CppCodeGenModule g_UnityEngine_InputLegacyModule_CodeGenModule;
 const Il2CppCodeGenModule g_UnityEngine_InputLegacyModule_CodeGenModule = 
 {
 	"UnityEngine.InputLegacyModule.dll",
-	77,
+	65,
 	s_methodPointers,
 	17,
 	s_adjustorThunks,

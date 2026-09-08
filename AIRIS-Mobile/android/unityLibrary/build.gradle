@@ -20,6 +20,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-storage:22.0.1' // Assets/Firebase/Editor/StorageDependencies.xml:16
     implementation 'com.google.firebase:firebase-storage-unity:13.15.0' // Assets/Firebase/Editor/StorageDependencies.xml:23
 // Android Resolver Dependencies End
+    implementation(name: 'GfxPluginCardboard', ext:'aar')
     implementation project(':unityLibrary:FirebaseApp.androidlib')
     implementation project(':unityLibrary:xrmanifest.androidlib')
     implementation 'androidx.appcompat:appcompat:1.6.1'

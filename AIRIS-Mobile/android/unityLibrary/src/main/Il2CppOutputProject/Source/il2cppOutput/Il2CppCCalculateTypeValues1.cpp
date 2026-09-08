@@ -53606,15 +53606,7 @@ struct CalloutGazeController_t968951EF07E856BE01FEC52D878133D40F195204  : public
 };
 struct CardboardHeadTracker_tAD18157C4DBE6C964574CE32E555B2114DF3738B  : public MonoBehaviour_t532A11E69716D348D8AA7F854AFCBFCB8AD17F71
 {
-	float ___smoothing;
 	bool ___autoRecenterOnStart;
-	bool ___invertPitch;
-	bool ___invertYaw;
-	bool ___invertRoll;
-	Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 ___initialCameraRotation;
-	Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 ___recenterOffset;
-	bool ___isGyroAvailable;
-	Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 ___targetRotation;
 };
 struct ClimbTeleportDestinationIndicator_t95EC8E13B0E057810A00B57C40978485340B4458  : public MonoBehaviour_t532A11E69716D348D8AA7F854AFCBFCB8AD17F71
 {
