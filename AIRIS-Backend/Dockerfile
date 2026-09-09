@@ -14,9 +14,9 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements file first to leverage Docker layer caching
 COPY requirements.txt .
 
-# Install Python dependencies
+# Install Python dependencies using CPU-only PyTorch index to prevent downloading CUDA dependencies (~2.5 GB saved)
 # Using --no-cache-dir to keep the image small
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
 
 # Copy the rest of the backend application code
 COPY . .

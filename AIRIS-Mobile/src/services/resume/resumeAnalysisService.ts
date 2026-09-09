@@ -1,31 +1,11 @@
-import Constants from "expo-constants";
-import { NativeModules, Platform } from "react-native";
+import { getApiBaseUrl } from "../api/apiClient";
 import { analyzeResume, parseResumeSections, detectResumeSections, type ResumeAnalysisResult } from "./resumeAnalysisEngine";
 
 /**
- * Returns prioritized backend candidate URLs supporting dynamic host IP extraction
- * from Metro scriptURL, Expo manifest, Android emulator, iOS simulator, and production endpoints.
+ * Returns the authoritative backend base URL using the centralized resolver.
  */
 export function getBackendBaseUrls(): string[] {
-  const urls: string[] = [];
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    urls.push(process.env.EXPO_PUBLIC_API_URL);
-  }
-
-  // Expo LAN IP (Useful for physical devices on same WiFi)
-  const hostUri = Constants.expoConfig?.hostUri || (Constants.manifest as any)?.hostUri;
-  if (hostUri) {
-    const lanIp = hostUri.split(':')[0];
-    urls.push(`http://${lanIp}:8000`);
-  }
-
-  if (Platform.OS === 'android') {
-    urls.push("http://10.0.2.2:8000"); // Emulator
-  } else {
-    urls.push("http://localhost:8000"); // iOS Simulator / Web
-  }
-
-  return [...new Set(urls)];
+  return [getApiBaseUrl()];
 }
 
 export interface UploadProgressEvent {

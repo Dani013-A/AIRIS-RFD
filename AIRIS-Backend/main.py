@@ -46,7 +46,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, Request
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, Request, Header, Depends
+from fastapi.responses import JSONResponse
+from rate_limiter import (
+    resolve_request_identity,
+    check_rate_limit,
+    ExpensiveConcurrencyGuard,
+    PER_USER_EXPENSIVE_REQUEST_LIMIT,
+    PER_USER_GENERAL_REQUEST_LIMIT,
+    PER_IP_PUBLIC_REQUEST_LIMIT,
+)
 
 class NormalizationRequest(BaseModel):
     type: str  # "job" | "skill" | "certification" | "program"
@@ -57,12 +66,28 @@ class CareerCompatibilityRequest(BaseModel):
     targetCareer: str
     resumeSkills: Optional[List[str]] = []
 
+@app.exception_handler(HTTPException)
+async def custom_http_exception_handler(request: Request, exc: HTTPException):
+    if exc.status_code == 429:
+        content = exc.detail if isinstance(exc.detail, dict) else {
+            "error": "TOO_MANY_REQUESTS",
+            "message": str(exc.detail),
+            "retryAfterSeconds": 5
+        }
+        return JSONResponse(status_code=429, content=content, headers=exc.headers)
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail}, headers=exc.headers)
+
 @app.get("/")
-def read_root():
+def read_root(request: Request):
+    id_type, id_val = resolve_request_identity(request)
+    check_rate_limit(id_type, id_val, PER_IP_PUBLIC_REQUEST_LIMIT)
     return {"status": "running", "service": "AIRIS SBERT Evaluator API"}
 
 @app.post("/career/compatibility")
-def check_career_compatibility(req: CareerCompatibilityRequest):
+def check_career_compatibility(req: CareerCompatibilityRequest, request: Request, authorization: Optional[str] = Header(None)):
+    id_type, id_val = resolve_request_identity(request, authorization)
+    limit = PER_USER_GENERAL_REQUEST_LIMIT if id_type == "uid" else PER_IP_PUBLIC_REQUEST_LIMIT
+    check_rate_limit(id_type, id_val, limit)
     from ai_service import evaluate_career_compatibility
     return evaluate_career_compatibility(req.academicProgram, req.targetCareer, req.resumeSkills or [])
 
@@ -95,75 +120,82 @@ def trigger_refresh_trends(admin_uid: str = Depends(verify_admin_token)):
         raise HTTPException(status_code=500, detail="Refresh operation failed. See backend logs.")
 
 @app.post("/analyze")
-async def analyze_resume(request: Request):
-    try:
+async def analyze_resume(request: Request, authorization: Optional[str] = Header(None)):
+    id_type, id_val = resolve_request_identity(request, authorization)
+    limit = PER_USER_EXPENSIVE_REQUEST_LIMIT if id_type == "uid" else PER_IP_PUBLIC_REQUEST_LIMIT
+    check_rate_limit(id_type, id_val, limit)
+
+    with ExpensiveConcurrencyGuard(f"{id_type}:{id_val}"):
         try:
-            analysis_payload = await request.json()
-        except Exception:
-            analysis_payload = {}
+            try:
+                analysis_payload = await request.json()
+            except Exception:
+                analysis_payload = {}
 
-        raw_text = str(analysis_payload.get("rawText") or analysis_payload.get("raw_text") or "")
-        parsed_sections = analysis_payload.get("parsedSections") or analysis_payload.get("parsed_sections") or {}
-        if not parsed_sections or not isinstance(parsed_sections, dict) or len(parsed_sections) < 2:
-            from resume_parser import parse_resume
-            parsed_sections = parse_resume(raw_text)
+            raw_text = str(analysis_payload.get("rawText") or analysis_payload.get("raw_text") or "")
+            parsed_sections = analysis_payload.get("parsedSections") or analysis_payload.get("parsed_sections") or {}
+            if not parsed_sections or not isinstance(parsed_sections, dict) or len(parsed_sections) < 2:
+                from resume_parser import parse_resume
+                parsed_sections = parse_resume(raw_text)
 
-        target_pos = str(analysis_payload.get("targetPosition") or analysis_payload.get("target_position") or "").strip()
-        if not target_pos:
-            raise HTTPException(status_code=400, detail="Target position is required for resume analysis.")
+            target_pos = str(analysis_payload.get("targetPosition") or analysis_payload.get("target_position") or "").strip()
+            if not target_pos:
+                raise HTTPException(status_code=400, detail="Target position is required for resume analysis.")
 
-        # Validate resume content BEFORE expensive SBERT / LLM analysis via Universal LLM Resume Validity Gate
-        validity_res = validate_resume_validity_with_llm(raw_text, parsed_sections)
-        if not validity_res.get("is_resume"):
-            return {
-                "valid": False,
-                "message": validity_res.get("reason") or "This document doesn't appear to be a resume or CV. Please upload a document containing your academic, professional, or career information.",
-                "analysisId": None,
+            # Validate resume content BEFORE expensive SBERT / LLM analysis via Universal LLM Resume Validity Gate
+            validity_res = validate_resume_validity_with_llm(raw_text, parsed_sections)
+            if not validity_res.get("is_resume"):
+                return {
+                    "valid": False,
+                    "message": validity_res.get("reason") or "This document doesn't appear to be a resume or CV. Please upload a document containing your academic, professional, or career information.",
+                    "analysisId": None,
+                }
+
+            skills_text = str(parsed_sections.get("Skills", ""))
+            experience_text = str(parsed_sections.get("WorkExperience", "") or parsed_sections.get("Experience", ""))
+            # 1. Run semantic similarity scoring with SBERT
+            sbert_results = evaluate_semantic_alignment(
+                parsed_sections=parsed_sections,
+                target_position=target_pos
+            )
+
+            # 2. Get explainable feedback from Gemini AI validator using the authoritative frontend deterministic scores
+            enhanced_result = validate_and_enhance_analysis(
+                raw_text=raw_text,
+                parsed_sections=parsed_sections,
+                target_position=target_pos,
+                sbert_results=sbert_results
+            )
+
+            analysis_id = str(uuid.uuid4())
+            response = {
+                "valid": True,
+                "message": "Resume processed successfully.",
+                "analysisId": analysis_id,
+                "parsedSections": parsed_sections,
+                "atsScore": enhanced_result["atsScore"],
+                "suggestions": enhanced_result["suggestions"],
+                "detectedSections": enhanced_result.get("detectedSections", []),
+                "missingSections": enhanced_result.get("missingSections", []),
+                "recommendations": enhanced_result.get("recommendations", []),
+                "learningSnapshot": enhanced_result.get("learningSnapshot"),
+                "isAnalysisComplete": True,
+                "analyzedAt": enhanced_result.get("analyzedAt", ""),
+                "analysisVersion": "1.1.0-sbert",
             }
 
-        skills_text = str(parsed_sections.get("Skills", ""))
-        experience_text = str(parsed_sections.get("WorkExperience", "") or parsed_sections.get("Experience", ""))
-        # 1. Run semantic similarity scoring with SBERT
-        sbert_results = evaluate_semantic_alignment(
-            parsed_sections=parsed_sections,
-            target_position=target_pos
-        )
+            return response
 
-        # 2. Get explainable feedback from Gemini AI validator using the authoritative frontend deterministic scores
-        enhanced_result = validate_and_enhance_analysis(
-            raw_text=raw_text,
-            parsed_sections=parsed_sections,
-            target_position=target_pos,
-            sbert_results=sbert_results
-        )
-
-        analysis_id = str(uuid.uuid4())
-        response = {
-            "valid": True,
-            "message": "Resume processed successfully.",
-            "analysisId": analysis_id,
-            "parsedSections": parsed_sections,
-            "atsScore": enhanced_result["atsScore"],
-            "suggestions": enhanced_result["suggestions"],
-            "detectedSections": enhanced_result.get("detectedSections", []),
-            "missingSections": enhanced_result.get("missingSections", []),
-            "recommendations": enhanced_result.get("recommendations", []),
-            "learningSnapshot": enhanced_result.get("learningSnapshot"),
-            "isAnalysisComplete": True,
-            "analyzedAt": enhanced_result.get("analyzedAt", ""),
-            "analysisVersion": "1.1.0-sbert",
-        }
-
-        return response
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        print("Analysis error:", e)
-        raise HTTPException(status_code=500, detail="An internal error occurred during analysis.")
+        except HTTPException:
+            raise
+        except Exception as e:
+            print("Analysis error:", e)
+            raise HTTPException(status_code=500, detail="An internal error occurred during analysis.")
 
 @app.post("/upload")
 async def upload_resume(
+    request: Request,
+    authorization: Optional[str] = Header(None),
     file: UploadFile = File(...),
     targetPosition: Optional[str] = Form(None),
     target_position: Optional[str] = Query(None),
@@ -173,109 +205,117 @@ async def upload_resume(
     """
     Accept a resume file, extract raw text, parse sections, and run analysis.
     """
-    try:
-        selected_position = (targetPosition or target_position or "").strip()
-        if not selected_position:
-            raise HTTPException(status_code=400, detail="Target position is required for upload analysis.")
+    id_type, id_val = resolve_request_identity(request, authorization)
+    limit = PER_USER_EXPENSIVE_REQUEST_LIMIT if id_type == "uid" else PER_IP_PUBLIC_REQUEST_LIMIT
+    check_rate_limit(id_type, id_val, limit)
 
-        filename = getattr(file, "filename", "uploaded_resume.pdf") or "uploaded_resume.pdf"
-        content = await file.read()
+    with ExpensiveConcurrencyGuard(f"{id_type}:{id_val}"):
+        try:
+            selected_position = (targetPosition or target_position or "").strip()
+            if not selected_position:
+                raise HTTPException(status_code=400, detail="Target position is required for upload analysis.")
 
-        if not content or len(content) == 0:
-            raise HTTPException(
-                status_code=400,
-                detail="The uploaded file is empty. Please choose a valid resume file."
-            )
+            filename = getattr(file, "filename", "uploaded_resume.pdf") or "uploaded_resume.pdf"
+            content = await file.read()
 
-        allowed_exts = (".pdf", ".docx", ".doc", ".rtf", ".txt")
-        if not any(filename.lower().endswith(ext) for ext in allowed_exts):
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid file format. Please upload a valid PDF, DOCX, DOC, RTF, or TXT resume document."
-            )
-
-        if filename.lower().endswith(".pdf"):
-            from file_utils import get_pdf_page_count
-            page_count = get_pdf_page_count(content)
-            if page_count > 3:
+            if not content or len(content) == 0:
                 raise HTTPException(
                     status_code=400,
-                    detail="Resumes must not exceed 3 pages. Please upload a 1–3 page resume."
+                    detail="The uploaded file is empty. Please choose a valid resume file."
                 )
 
-        raw_text = extract_text(content, filename)
-
-        if not raw_text or len(raw_text.strip()) < 30:
-            return {
-                "valid": False,
-                "message": "Unable to extract readable text from this document. Please ensure the file is not empty, corrupted, or password-protected.",
-                "analysisId": None,
-            }
-
-        user_acc_name = (accountName or account_name or "").strip()
-        if user_acc_name and raw_text:
-            from ai_validator import validate_resume_name_match
-            name_res = validate_resume_name_match(user_acc_name, raw_text)
-            if not name_res["is_valid"]:
+            allowed_exts = (".pdf", ".docx", ".doc", ".rtf", ".txt")
+            if not any(filename.lower().endswith(ext) for ext in allowed_exts):
                 raise HTTPException(
                     status_code=400,
-                    detail=name_res.get("reason") or "The uploaded resume appears to belong to a different individual. Please ensure you upload your own resume."
+                    detail="Invalid file format. Please upload a valid PDF, DOCX, DOC, RTF, or TXT resume document."
                 )
 
-        from resume_parser import parse_resume
-        parsed_sections = parse_resume(raw_text)
+            if filename.lower().endswith(".pdf"):
+                from file_utils import get_pdf_page_count
+                page_count = get_pdf_page_count(content)
+                if page_count > 3:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Resumes must not exceed 3 pages. Please upload a 1–3 page resume."
+                    )
 
-        # Validate resume content BEFORE expensive SBERT / LLM analysis via Universal LLM Resume Validity Gate
-        validity_res = validate_resume_validity_with_llm(raw_text, parsed_sections)
-        if not validity_res.get("is_resume"):
+            raw_text = extract_text(content, filename)
+
+            if not raw_text or len(raw_text.strip()) < 30:
+                return {
+                    "valid": False,
+                    "message": "Unable to extract readable text from this document. Please ensure the file is not empty, corrupted, or password-protected.",
+                    "analysisId": None,
+                }
+
+            user_acc_name = (accountName or account_name or "").strip()
+            if user_acc_name and raw_text:
+                from ai_validator import validate_resume_name_match
+                name_res = validate_resume_name_match(user_acc_name, raw_text)
+                if not name_res["is_valid"]:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=name_res.get("reason") or "The uploaded resume appears to belong to a different individual. Please ensure you upload your own resume."
+                    )
+
+            from resume_parser import parse_resume
+            parsed_sections = parse_resume(raw_text)
+
+            # Validate resume content BEFORE expensive SBERT / LLM analysis via Universal LLM Resume Validity Gate
+            validity_res = validate_resume_validity_with_llm(raw_text, parsed_sections)
+            if not validity_res.get("is_resume"):
+                return {
+                    "valid": False,
+                    "message": validity_res.get("reason") or "This document doesn't appear to be a resume or CV. Please upload a document containing your academic, professional, or career information.",
+                    "analysisId": None,
+                }
+
+            analysis_id = str(uuid.uuid4())
+
+            sbert_results = evaluate_semantic_alignment(
+                parsed_sections=parsed_sections,
+                target_position=selected_position
+            )
+
+            enhanced_result = validate_and_enhance_analysis(
+                raw_text=raw_text,
+                parsed_sections=parsed_sections,
+                target_position=selected_position,
+                sbert_results=sbert_results,
+            )
+
             return {
-                "valid": False,
-                "message": validity_res.get("reason") or "This document doesn't appear to be a resume or CV. Please upload a document containing your academic, professional, or career information.",
-                "analysisId": None,
+                "valid": True,
+                "message": "Resume processed successfully.",
+                "analysisId": analysis_id,
+                "rawText": raw_text,
+                "parsedSections": parsed_sections,
+                "atsScore": enhanced_result["atsScore"],
+                "suggestions": enhanced_result["suggestions"],
+                "detectedSections": enhanced_result.get("detectedSections", []),
+                "missingSections": enhanced_result.get("missingSections", []),
+                "recommendations": enhanced_result.get("recommendations", []),
+                "learningSnapshot": enhanced_result.get("learningSnapshot"),
+                "isAnalysisComplete": True,
+                "analyzedAt": enhanced_result.get("analyzedAt", ""),
+                "analysisVersion": "1.1.0-sbert",
             }
-
-        analysis_id = str(uuid.uuid4())
-
-        sbert_results = evaluate_semantic_alignment(
-            parsed_sections=parsed_sections,
-            target_position=selected_position
-        )
-
-        enhanced_result = validate_and_enhance_analysis(
-            raw_text=raw_text,
-            parsed_sections=parsed_sections,
-            target_position=selected_position,
-            sbert_results=sbert_results,
-        )
-
-        return {
-            "valid": True,
-            "message": "Resume processed successfully.",
-            "analysisId": analysis_id,
-            "rawText": raw_text,
-            "parsedSections": parsed_sections,
-            "atsScore": enhanced_result["atsScore"],
-            "suggestions": enhanced_result["suggestions"],
-            "detectedSections": enhanced_result.get("detectedSections", []),
-            "missingSections": enhanced_result.get("missingSections", []),
-            "recommendations": enhanced_result.get("recommendations", []),
-            "learningSnapshot": enhanced_result.get("learningSnapshot"),
-            "isAnalysisComplete": True,
-            "analyzedAt": enhanced_result.get("analyzedAt", ""),
-            "analysisVersion": "1.1.0-sbert",
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        print("Upload analysis error:", e)
-        raise HTTPException(status_code=500, detail="An internal error occurred during upload analysis.")
+        except HTTPException:
+            raise
+        except Exception as e:
+            print("Upload analysis error:", e)
+            raise HTTPException(status_code=500, detail="An internal error occurred during upload analysis.")
 
 @app.post("/normalize")
-def normalize_input(req: NormalizationRequest):
+def normalize_input(req: NormalizationRequest, request: Request, authorization: Optional[str] = Header(None)):
     """
     Function of page:
     Intelligently normalizes any career-related input string.
     """
+    id_type, id_val = resolve_request_identity(request, authorization)
+    limit = PER_USER_GENERAL_REQUEST_LIMIT if id_type == "uid" else PER_IP_PUBLIC_REQUEST_LIMIT
+    check_rate_limit(id_type, id_val, limit)
     try:
         normalization_result = normalize_career_input(req.input, req.type)
         return normalization_result
@@ -309,7 +349,11 @@ class InterviewReportRequest(BaseModel):
 import datetime
 
 @app.post("/interview/start")
-def start_interview(req: InterviewStartRequest):
+def start_interview(req: InterviewStartRequest, request: Request, authorization: Optional[str] = Header(None)):
+    id_type, id_val = resolve_request_identity(request, authorization)
+    limit = PER_USER_GENERAL_REQUEST_LIMIT if id_type == "uid" else PER_IP_PUBLIC_REQUEST_LIMIT
+    check_rate_limit(id_type, id_val, limit)
+
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     target_role = (req.targetRole or "").strip()
     if not target_role:
@@ -331,7 +375,11 @@ def start_interview(req: InterviewStartRequest):
         raise HTTPException(status_code=500, detail=f"Failed to generate interview question: {str(e)}")
 
 @app.post("/interview/answer")
-def evaluate_interview_answer(req: InterviewAnswerRequest):
+def evaluate_interview_answer(req: InterviewAnswerRequest, request: Request, authorization: Optional[str] = Header(None)):
+    id_type, id_val = resolve_request_identity(request, authorization)
+    limit = PER_USER_GENERAL_REQUEST_LIMIT if id_type == "uid" else PER_IP_PUBLIC_REQUEST_LIMIT
+    check_rate_limit(id_type, id_val, limit)
+
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] [INTERVIEW] Evaluating answer to question: '{req.currentQuestion[:30]}...'")
     try:
@@ -356,41 +404,56 @@ def evaluate_interview_answer(req: InterviewAnswerRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/interview/transcribe")
-async def transcribe_interview_audio(audio: UploadFile = File(...)):
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{timestamp}] [INTERVIEW] Received audio for transcription. MIME: {audio.content_type}")
+async def transcribe_interview_audio(
+    request: Request,
+    authorization: Optional[str] = Header(None),
+    audio: UploadFile = File(...)
+):
+    id_type, id_val = resolve_request_identity(request, authorization)
+    limit = PER_USER_EXPENSIVE_REQUEST_LIMIT if id_type == "uid" else PER_IP_PUBLIC_REQUEST_LIMIT
+    check_rate_limit(id_type, id_val, limit)
 
-    # Enforce 5MB limit
-    MAX_SIZE = 5 * 1024 * 1024
-    file_bytes = bytearray()
-    chunk_size = 1024 * 1024 # 1MB chunks
+    with ExpensiveConcurrencyGuard(f"{id_type}:{id_val}"):
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"[{timestamp}] [INTERVIEW] Received audio for transcription. MIME: {audio.content_type}")
 
-    try:
-        while chunk := await audio.read(chunk_size):
-            file_bytes.extend(chunk)
-            if len(file_bytes) > MAX_SIZE:
-                raise HTTPException(status_code=413, detail="File too large. Maximum size is 5MB.")
+        # Enforce 5MB limit
+        MAX_SIZE = 5 * 1024 * 1024
+        file_bytes = bytearray()
+        chunk_size = 1024 * 1024 # 1MB chunks
 
-        from transcriber import transcribe_audio
-        # Default fallback mime type if not provided
-        mime = audio.content_type if audio.content_type else "audio/m4a"
-        transcribe_res = transcribe_audio(bytes(file_bytes), mime)
-        
-        if isinstance(transcribe_res, dict):
-            text = transcribe_res.get("text", "")
-            pause_metrics = transcribe_res.get("pauseMetrics", {})
-        else:
-            text = str(transcribe_res)
-            pause_metrics = {}
+        try:
+            while chunk := await audio.read(chunk_size):
+                file_bytes.extend(chunk)
+                if len(file_bytes) > MAX_SIZE:
+                    raise HTTPException(status_code=413, detail="File too large. Maximum size is 5MB.")
 
-        print(f"[{timestamp}] [INTERVIEW] Transcription complete: '{text[:50]}...'")
-        return {"transcription": text, "pauseMetrics": pause_metrics}
-    except Exception as e:
-        print(f"[{timestamp}] [INTERVIEW ERROR] Transcribe Error:", e)
-        raise HTTPException(status_code=500, detail=str(e))
+            from transcriber import transcribe_audio
+            # Default fallback mime type if not provided
+            mime = audio.content_type if audio.content_type else "audio/m4a"
+            transcribe_res = transcribe_audio(bytes(file_bytes), mime)
+
+            if isinstance(transcribe_res, dict):
+                text = transcribe_res.get("text", "")
+                pause_metrics = transcribe_res.get("pauseMetrics", {})
+            else:
+                text = str(transcribe_res)
+                pause_metrics = {}
+
+            print(f"[{timestamp}] [INTERVIEW] Transcription complete: '{text[:50]}...'")
+            return {"transcription": text, "pauseMetrics": pause_metrics}
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"[{timestamp}] [INTERVIEW ERROR] Transcribe Error:", e)
+            raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/interview/report")
-def generate_interview_report(req: InterviewReportRequest):
+def generate_interview_report(req: InterviewReportRequest, request: Request, authorization: Optional[str] = Header(None)):
+    id_type, id_val = resolve_request_identity(request, authorization)
+    limit = PER_USER_GENERAL_REQUEST_LIMIT if id_type == "uid" else PER_IP_PUBLIC_REQUEST_LIMIT
+    check_rate_limit(id_type, id_val, limit)
+
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] [INTERVIEW] Generating final report...")
     try:

@@ -1,20 +1,8 @@
-import { Platform } from 'react-native';
-import Constants from 'expo-constants';
+import { getApiBaseUrl } from './apiClient';
 
-// Get backend URL from env, with smart fallbacks for local development
+// Get authoritative backend URL from centralized apiClient resolver
 export const getBaseUrl = (): string => {
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
-  }
-
-  // Expo LAN IP (Useful for physical devices on same WiFi)
-  const hostUri = Constants.expoConfig?.hostUri || (Constants.manifest as any)?.hostUri;
-  if (hostUri) {
-    const lanIp = hostUri.split(':')[0];
-    return `http://${lanIp}:8000`;
-  }
-
-  return Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
+  return getApiBaseUrl();
 };
 
 export interface InterviewStartRequest {

@@ -27,8 +27,7 @@ import { useOnboardingStore } from "../../store/onboardingStore";
 import { fuzzyMatchRole } from "../../utils/fuzzyMatcher";
 import { evaluateCareerTargetCompatibility, CareerCompatibilityResult } from "../../services/ai/careerCompatibilityGuardrail";
 import { CareerCompatibilityModal } from "../../components/ui/CareerCompatibilityModal";
-
-const BACKEND_ENDPOINT = `${process.env.EXPO_PUBLIC_API_URL || (Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000')}/normalize`;
+import { getApiEndpoint } from "../../services/api/apiClient";
 
 export default function JobSelectionScreen() {
   const insets = useSafeAreaInsets();
@@ -119,7 +118,7 @@ export default function JobSelectionScreen() {
     const timeoutId = setTimeout(() => controller.abort(), 3500);
 
     try {
-      const response = await fetch(BACKEND_ENDPOINT, {
+      const response = await fetch(getApiEndpoint("/normalize"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "job", input: queryRole }),
