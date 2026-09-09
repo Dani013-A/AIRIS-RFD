@@ -11621,12 +11621,12 @@ IL2CPP_EXTERN_C  void Enumerator_System_Collections_IEnumerator_Reset_m54F7FBC76
 #pragma clang diagnostic ignored "-Winvalid-offsetof"
 #pragma clang diagnostic ignored "-Wunused-variable"
 #endif
-// Method Definition Index: 80756
-// Method Definition Index: 80757
-// Method Definition Index: 80758
-// Method Definition Index: 80759
-// Method Definition Index: 80760
-// Method Definition Index: 80761
+// Method Definition Index: 80774
+// Method Definition Index: 80775
+// Method Definition Index: 80776
+// Method Definition Index: 80777
+// Method Definition Index: 80778
+// Method Definition Index: 80779
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif

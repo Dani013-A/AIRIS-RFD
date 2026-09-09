@@ -6,6 +6,7 @@ import {
   Text,
   Alert,
   NativeSyntheticEvent,
+  StatusBar,
 } from "react-native";
 import UnityView from "@azesmway/react-native-unity";
 import { useRouter } from "expo-router";
@@ -40,6 +41,7 @@ interface BridgeEnvelope {
 export default function ImmersiveInterviewScreen() {
   const router = useRouter();
   const unityRef = useRef<UnityView>(null);
+  const pendingNextQuestionRef = useRef<{ question: string } | null>(null);
 
   const currentUser = useAuthStore((s) => s.currentUser);
   const activeAnalysis = useResumeStore((s) => s.activeAnalysis);
@@ -185,6 +187,21 @@ export default function ImmersiveInterviewScreen() {
           break;
         }
 
+        // ── Feedback TTS finished speaking → show next question ───────────
+        case "FEEDBACK_SPOKEN": {
+          setUnityReady(true);
+          setSceneLoaded(true);
+          if (pendingNextQuestionRef.current) {
+            postToUnity("SHOW_QUESTION", {
+              questionText: pendingNextQuestionRef.current.question,
+              speakerIndex: sceneName === "SampleScene" ? 1 : 0,
+              speakerName: sceneName === "SampleScene" ? "Claudia" : "Interviewer",
+            });
+            pendingNextQuestionRef.current = null;
+          }
+          break;
+        }
+
         // ── Mic started (informational) ─────────────────────────────────────
         case "RECORDING_STARTED": {
           setUnityReady(true);
@@ -257,22 +274,16 @@ export default function ImmersiveInterviewScreen() {
                 router.push("/(student)/interview-session/summary" as any);
               }, 4000);
             } else {
-              // Show brief feedback bubble, then the next question
+              pendingNextQuestionRef.current = response.nextQuestion
+                ? { question: response.nextQuestion.question }
+                : null;
+
+              // Show brief feedback bubble & trigger feedback TTS in Unity
               postToUnity("SHOW_FEEDBACK", {
                 feedback: response.evaluation?.feedback || "Thank you for your response.",
                 speakerIndex: 1,
                 score: response.evaluation?.score ?? 0,
               });
-
-              setTimeout(() => {
-                if (response.nextQuestion) {
-                  postToUnity("SHOW_QUESTION", {
-                    questionText: response.nextQuestion.question,
-                    speakerIndex: sceneName === "SampleScene" ? 1 : 0,
-                    speakerName: sceneName === "SampleScene" ? "Claudia" : "Interviewer",
-                  });
-                }
-              }, 4500); // Allow feedback TTS to finish
             }
           } catch (error) {
             console.error("[Immersive] Scoring error:", error);
@@ -333,6 +344,7 @@ export default function ImmersiveInterviewScreen() {
 
   return (
     <View style={styles.container}>
+      <StatusBar hidden translucent backgroundColor="transparent" />
       <UnityView
         ref={unityRef}
         style={styles.unity}

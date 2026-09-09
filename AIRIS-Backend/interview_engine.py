@@ -248,9 +248,9 @@ def evaluate_answer_and_generate_next(
             f"- Pause Period Equivalent (1s = 1.00 period): {p_eq}\n"
             f"- Longest Pause: {p_long}s\n"
             f"- Average Pause Duration: {p_avg}s\n"
-            "EVALUATION INSTRUCTION: Interpret these measured audio values together with filler-word frequency for communication scoring. "
-            "Do NOT invent pause values. Do NOT automatically penalize every pause—natural short pauses (under 1.5s) are expected and natural, "
-            "whereas repeated long pauses (over 2.0s) indicate hesitation."
+            "EVALUATION INSTRUCTION FOR 'communication' SCORE: Interpret these measured audio values together with filler-word frequency for communication scoring. "
+            "Do NOT invent pause values. Minor filler words and pauses within a normal range should be ignored and NOT penalized — "
+            "only flag/deduct when filler frequency or pause duration is severe enough to actually impair communication clarity."
         )
 
     prompt = f"""
@@ -277,9 +277,14 @@ def evaluate_answer_and_generate_next(
     TASK 1: EVALUATE THE ANSWER
     {
     "The candidate requested to SKIP this question. Do not evaluate it. Leave the evaluation object strictly as null." if is_skip else
-    "Evaluate the candidate's answer strictly. Score out of 100 on multiple dimensions.\n"
-    "Be rigorous. If the answer is vague, generic, extremely short, or lacks evidence, penalize it heavily.\n"
-    "Do NOT give high scores just for participating."
+    "Evaluate the candidate's answer strictly. Score out of 100 on multiple dimensions (clarity, relevance, technicalAccuracy, specificity, communication, evidence, overall).\n"
+    "EVALUATION & FEEDBACK CONSTRAINTS:\n"
+    "- Under the 'communication' dimension specifically: minor filler words and pauses within a normal range should be ignored and NOT penalized — only flag/deduct when filler frequency or pause duration is severe enough to actually impair communication clarity.\n"
+    "- Feedback must be grounded only in the content of the candidate's actual response — do not introduce assumptions about their experience or background not stated in the answer.\n"
+    "- Feedback tone must be constructive and encouraging, appropriate for fresh graduates building interview confidence.\n"
+    "- Well-answered components should not be flagged as issues unnecessarily.\n"
+    "- Feedback length: Explicitly request and generate feedback of 2–4 sentences (not a single line, not a long paragraph).\n"
+    "- If the answer is vague, generic, extremely short, or lacks evidence, score it accurately and provide actionable guidance to improve, while maintaining an encouraging coaching tone."
     }
 
     TASK 2: DECIDE ON FOLLOW-UP OR NEXT TOPIC
@@ -292,7 +297,7 @@ def evaluate_answer_and_generate_next(
 
     OUTPUT FORMAT (Strict JSON):
     {{
-        "evaluation": {{"overall": 80, "clarity": 85, "relevance": 70, "technicalAccuracy": 90, "specificity": 60, "communication": 75, "evidence": 50, "strengths": ["Clear communication"], "weaknesses": ["Lacked quantifiable evidence"], "feedback": "Internal observation of the candidate's performance on this question."}} if this is NOT a skip request, otherwise null,
+        "evaluation": {{"overall": 80, "clarity": 85, "relevance": 70, "technicalAccuracy": 90, "specificity": 60, "communication": 75, "evidence": 50, "strengths": ["Clear communication"], "weaknesses": ["Lacked quantifiable evidence"], "feedback": "Constructive observation of the candidate's performance on this question (explicitly 2–4 sentences)."}} if this is NOT a skip request, otherwise null,
         "nextQuestion": {{
             "question": "The adapted dataset question OR a follow-up question",
             "questionType": "behavioral | technical | situational | follow-up | closing",
