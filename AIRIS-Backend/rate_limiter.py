@@ -48,12 +48,45 @@ _user_concurrency_counts: Dict[str, int] = {}
 _global_expensive_count: int = 0
 
 
+import ipaddress
+
+# Trusted reverse proxies (e.g. Caddy, local loopback, Docker bridge network)
+# Configurable via TRUSTED_PROXIES env var (comma-separated IPs/CIDRs)
+DEFAULT_TRUSTED_PROXIES = "127.0.0.1,::1,localhost,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+
+def _get_trusted_networks() -> List[Any]:
+    raw_trusted = os.getenv("TRUSTED_PROXIES", DEFAULT_TRUSTED_PROXIES)
+    networks = []
+    for item in raw_trusted.split(","):
+        cleaned = item.strip()
+        if not cleaned:
+            continue
+        try:
+            if "/" in cleaned:
+                networks.append(ipaddress.ip_network(cleaned, strict=False))
+            else:
+                networks.append(ipaddress.ip_network(f"{cleaned}/32" if ":" not in cleaned else f"{cleaned}/128", strict=False))
+        except ValueError:
+            pass
+    return networks
+
+def is_trusted_proxy(ip_str: str) -> bool:
+    """Checks whether an immediate peer IP address matches a configured trusted reverse proxy."""
+    if not ip_str or ip_str in ("testclient", "localhost", "127.0.0.1", "::1"):
+        return True
+    try:
+        ip = ipaddress.ip_address(ip_str)
+        return any(ip in net for net in _get_trusted_networks())
+    except ValueError:
+        return False
+
 def resolve_request_identity(request: Request, authorization: Optional[str] = None) -> Tuple[str, str]:
     """
     Extracts verified identity for rate limiting & concurrency protection.
     Order of precedence:
     1. Authorization: Bearer <firebase_id_token> -> Verified Firebase UID via firebase_admin.auth.verify_id_token
     2. Fallback -> Client IP address (for public/unauthenticated requests or when token is missing/unverified)
+       Only trusts X-Forwarded-For / X-Real-IP if the immediate peer is in TRUSTED_PROXIES.
     """
     auth_header = None
     if isinstance(authorization, str):
@@ -74,21 +107,32 @@ def resolve_request_identity(request: Request, authorization: Optional[str] = No
                 # Token invalid, expired, or firebase_admin uninitialized in test
                 pass
 
-    # Fallback to client IP
-    client_ip = "127.0.0.1"
+    # Immediate peer IP
+    peer_ip = "127.0.0.1"
     if request.client and request.client.host:
-        client_ip = request.client.host
+        peer_ip = request.client.host.strip()
 
-    # Check X-Real-IP set authoritatively by Caddy/reverse proxy
-    real_ip = request.headers.get("X-Real-IP") or request.headers.get("x-real-ip")
-    if real_ip and isinstance(real_ip, str):
-        client_ip = real_ip.strip()
+    # Security rule F09: If immediate peer is NOT a trusted proxy, ignore all forwarding headers!
+    if not is_trusted_proxy(peer_ip):
+        return ("ip", peer_ip)
+
+    # Immediate peer is trusted proxy (e.g. Caddy) -> safely inspect forwarding headers
+    client_ip = peer_ip
+    forwarded = request.headers.get("X-Forwarded-For") or request.headers.get("x-forwarded-for")
+    if forwarded and isinstance(forwarded, str) and forwarded.strip():
+        # In an X-Forwarded-For chain, trusted proxies append to the right.
+        # Traverse from right-to-left to find the rightmost non-trusted client IP.
+        parts = [p.strip() for p in forwarded.split(",") if p.strip()]
+        for candidate in reversed(parts):
+            if not is_trusted_proxy(candidate):
+                client_ip = candidate
+                break
+        else:
+            client_ip = parts[-1] if parts else peer_ip
     else:
-        # Check X-Forwarded-For chain if behind proxy
-        forwarded = request.headers.get("X-Forwarded-For") or request.headers.get("x-forwarded-for")
-        if forwarded and isinstance(forwarded, str):
-            # Take rightmost IP appended by trusted reverse proxy to prevent spoofing
-            client_ip = forwarded.split(",")[-1].strip()
+        real_ip = request.headers.get("X-Real-IP") or request.headers.get("x-real-ip")
+        if real_ip and isinstance(real_ip, str) and real_ip.strip():
+            client_ip = real_ip.strip()
 
     return ("ip", client_ip)
 

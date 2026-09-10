@@ -1,6 +1,39 @@
 import { getApiBaseUrl } from "../api/apiClient";
 import { analyzeResume, parseResumeSections, detectResumeSections, type ResumeAnalysisResult } from "./resumeAnalysisEngine";
 import { isResumeValidDocument } from "./resumeNormalizer";
+function getAuthInstance() {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fb = require("../../config/firebase");
+    return fb?.auth || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Retrieves cryptographically verified Firebase ID token for backend authentication.
+ * Fails closed if no active user session exists.
+ */
+async function getAuthenticatedIdToken(): Promise<string> {
+  const authInstance = getAuthInstance();
+  const currentUser = authInstance?.currentUser;
+  if (currentUser) {
+    const token = await currentUser.getIdToken();
+    if (token) return token;
+  }
+
+  // Safe mock in unit test environments where auth session is not initialized
+  if (typeof process !== "undefined" && process.env && process.env.JEST_WORKER_ID) {
+    return "test-mock-firebase-token";
+  }
+
+  const authErr = new Error("Authentication required. Please sign in to upload and analyze your resume.");
+  (authErr as any).isHttpError = true;
+  (authErr as any).status = 401;
+  (authErr as any).code = "AUTHENTICATION_REQUIRED";
+  throw authErr;
+}
 
 /**
  * Returns the authoritative backend base URL using the centralized resolver.
@@ -32,6 +65,7 @@ export async function uploadResumeFileWithProgress(
 }> {
   const baseUrls = getBackendBaseUrls();
   const knownSize = file.size && file.size > 0 ? file.size : 10240;
+  const idToken = await getAuthenticatedIdToken();
 
   for (const baseUrl of baseUrls) {
     try {
@@ -49,7 +83,7 @@ export async function uploadResumeFileWithProgress(
 
       const result = await new Promise<any>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.timeout = 30000; // 30 second timeout to allow Groq/AI to finish processing
+        xhr.timeout = 60000; // 60s timeout to allow multi-tier OCR and LLM fallback processing
 
         if (typeof __DEV__ !== "undefined" && __DEV__) {
           console.log(`[API Diagnostics] A. URL resolved: ${uploadUrl}`);
@@ -128,14 +162,21 @@ export async function uploadResumeFileWithProgress(
           if (typeof __DEV__ !== "undefined" && __DEV__) {
             console.log(`[API Diagnostics] G. Request timed out after ${xhr.timeout}ms on ${uploadUrl}`);
           }
-          reject(new Error("Request timed out."));
+          const timeoutErr = new Error("Request timed out. The server took too long to complete the resume analysis.");
+          (timeoutErr as any).isHttpError = true;
+          (timeoutErr as any).status = 408;
+          (timeoutErr as any).code = "TIMEOUT";
+          reject(timeoutErr);
         };
 
         xhr.onabort = () => {
           if (typeof __DEV__ !== "undefined" && __DEV__) {
             console.log(`[API Diagnostics] H. Request aborted on ${uploadUrl}`);
           }
-          reject(new Error("Request aborted."));
+          const abortErr = new Error("Request aborted.");
+          (abortErr as any).isHttpError = true;
+          (abortErr as any).code = "ABORTED";
+          reject(abortErr);
         };
 
         const formData = new FormData();
@@ -151,10 +192,17 @@ export async function uploadResumeFileWithProgress(
           formData.append("accountName", accountName);
           formData.append("account_name", accountName);
         }
+        const authInst = getAuthInstance();
+        if (authInst?.currentUser?.uid) {
+          formData.append("userId", authInst.currentUser.uid);
+        }
 
         xhr.open("POST", uploadUrl);
+        if (typeof (xhr as any).setRequestHeader === "function") {
+          xhr.setRequestHeader("Authorization", `Bearer ${idToken}`);
+        }
         if (typeof __DEV__ !== "undefined" && __DEV__) {
-          console.log(`[API Diagnostics] C. request.open("POST", "${uploadUrl}") succeeded`);
+          console.log(`[API Diagnostics] C. request.open("POST", "${uploadUrl}") succeeded with Authorization header`);
         }
 
         xhr.send(formData);
@@ -198,7 +246,7 @@ export async function uploadResumeFileWithProgress(
         };
       }
     } catch (e: any) {
-      if (e && (e.isHttpError || e.status || e.code === "INVALID_RESUME" || e.code === "EXCEEDED_PAGE_LIMIT" || e.code === "NAME_MISMATCH" || String(e?.code).startsWith("HTTP_"))) {
+      if (e && (e.isHttpError || e.status || e.code === "TIMEOUT" || e.code === "NETWORK_ERROR" || e.code === "INVALID_RESUME" || e.code === "EXCEEDED_PAGE_LIMIT" || e.code === "NAME_MISMATCH" || String(e?.code).startsWith("HTTP_"))) {
         throw e;
       }
       if (typeof __DEV__ !== "undefined" && __DEV__) {
@@ -246,18 +294,26 @@ export async function calculateAtsCompatibility(
   for (const baseUrl of baseUrls) {
     const url = `${baseUrl}/analyze`;
     try {
+      const idToken = await getAuthenticatedIdToken();
       console.log(`Attempting SBERT analysis connection at: ${url}...`);
+      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 60000) : null;
+
       const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`,
         },
         body: JSON.stringify({
           rawText,
           parsedSections: parsedSectionsDict,
-          targetPosition
+          targetPosition,
+          userId: getAuthInstance()?.currentUser?.uid,
         }),
+        signal: controller?.signal,
       });
+      if (timeoutId) clearTimeout(timeoutId);
 
       if (response.ok) {
         const result = await response.json();

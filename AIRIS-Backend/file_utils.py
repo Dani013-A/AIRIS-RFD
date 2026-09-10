@@ -154,13 +154,13 @@ def extract_text_from_image(file_bytes: bytes, filename: str) -> str:
                     {"mime_type": mime, "data": file_bytes}
                 ])
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(_do_gemini_vision)
-                response = future.result(timeout=10.0)
-                ocr_text = response.text.strip() if response and response.text else ""
-                if ocr_text and len(ocr_text) >= 10:
-                    print(f"[OCR Tier 1] Gemini Vision ({gemini_model_name}) succeeded for {filename}")
-                    return normalize_ocr_text(ocr_text)
+            from ai_service import _gemini_executor
+            future = _gemini_executor.submit(_do_gemini_vision)
+            response = future.result(timeout=10.0)
+            ocr_text = response.text.strip() if response and response.text else ""
+            if ocr_text and len(ocr_text) >= 10:
+                print(f"[OCR Tier 1] Gemini Vision ({gemini_model_name}) succeeded for {filename}")
+                return normalize_ocr_text(ocr_text)
     except Exception as ocr_err:
         print(f"[OCR Tier 1] Gemini Vision failed for {filename}: {ocr_err}")
 

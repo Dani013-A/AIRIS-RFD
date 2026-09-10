@@ -12,6 +12,15 @@ import google.generativeai as genai
 
 import concurrent.futures
 
+import atexit
+
+# Bounded, application-level ThreadPoolExecutor for Gemini SDK operations requiring explicit timeout control
+_gemini_executor = concurrent.futures.ThreadPoolExecutor(
+    max_workers=4,
+    thread_name_prefix="gemini_worker"
+)
+atexit.register(_gemini_executor.shutdown, wait=False)
+
 def call_gemini(prompt: str) -> str:
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -25,12 +34,11 @@ def call_gemini(prompt: str) -> str:
         response = model.generate_content(prompt)
         return response.text.strip()
 
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-    future = executor.submit(_do_call)
+    future = _gemini_executor.submit(_do_call)
     try:
-        return future.result(timeout=30.0)
+        return future.result(timeout=15.0)
     except concurrent.futures.TimeoutError:
-        raise TimeoutError("Gemini API timed out after 30 seconds")
+        raise TimeoutError("Gemini API timed out after 15 seconds")
 
 def call_groq(prompt: str) -> str:
     api_key = os.getenv("GROQ_API_KEY")
@@ -46,7 +54,7 @@ def call_groq(prompt: str) -> str:
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.2
     }
-    res = requests.post(url, headers=headers, json=data, timeout=30.0)
+    res = requests.post(url, headers=headers, json=data, timeout=15.0)
     res.raise_for_status()
     return res.json()["choices"][0]["message"]["content"].strip()
 
@@ -64,7 +72,7 @@ def call_openrouter(prompt: str) -> str:
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.2
     }
-    res = requests.post(url, headers=headers, json=data, timeout=30.0)
+    res = requests.post(url, headers=headers, json=data, timeout=15.0)
     res.raise_for_status()
     return res.json()["choices"][0]["message"]["content"].strip()
 
@@ -82,7 +90,7 @@ def call_mistral(prompt: str) -> str:
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.2
     }
-    res = requests.post(url, headers=headers, json=data, timeout=30.0)
+    res = requests.post(url, headers=headers, json=data, timeout=15.0)
     res.raise_for_status()
     return res.json()["choices"][0]["message"]["content"].strip()
 
@@ -129,8 +137,9 @@ def generate_text_with_fallback(prompt: str) -> str:
             err_msg = f"{name} error after {elapsed:.2f}s: {str(e)}"
             print(err_msg)
             errors.append(err_msg)
-            # Circuit breaker: cooldown for 30s on rate-limit (429) or payment error (402)
-            if "429" in err_msg or "402" in err_msg or "quota" in err_msg.lower():
+            # Circuit breaker: cooldown for 30s on rate-limit, quota, 5xx server errors, or timeouts
+            err_lower = err_msg.lower()
+            if any(k in err_lower for k in ("429", "402", "quota", "timeout", "timed out", "500", "502", "503", "504", "unavailable")):
                 _provider_cooldown[name] = now + 30.0
 
     raise RuntimeError(f"All AI API providers failed: {'; '.join(errors)}")

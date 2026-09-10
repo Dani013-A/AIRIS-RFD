@@ -1,13 +1,21 @@
 import unittest
 import io
 from fastapi.testclient import TestClient
+from unittest.mock import patch
 from main import app
 from file_utils import normalize_ocr_text, extract_text_from_image, extract_text
 
 client = TestClient(app)
 
+def mock_verify_id_token(token, *args, **kwargs):
+    if token.startswith("token-"):
+        uid = token.replace("token-", "")
+        return {"uid": uid}
+    raise Exception("Invalid token")
+
 class TestFileValidationOrder(unittest.TestCase):
-    def test_unsupported_file_types_rejected_at_step_one(self):
+    @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)
+    def test_unsupported_file_types_rejected_at_step_one(self, mock_auth):
         """
         Invariant: Unsupported file formats (.ppt, .pptx, .xls, .xlsx, .exe, .zip) MUST be
         rejected immediately at step 1 file-type validation BEFORE reaching identity or OCR analysis.
@@ -21,10 +29,11 @@ class TestFileValidationOrder(unittest.TestCase):
             ("archive.zip", "application/zip"),
         ]
 
-        for filename, mime in unsupported_files:
+        for i, (filename, mime) in enumerate(unsupported_files):
             dummy_bytes = b"\x00\x01\x02\x03\x04\x05FakeBinaryData"
             response = client.post(
                 "/upload",
+                headers={"Authorization": f"Bearer token-student{i}"},
                 files={"file": (filename, io.BytesIO(dummy_bytes), mime)},
                 data={"targetPosition": "Software Engineer", "accountName": "Juan Dela Cruz"}
             )
@@ -33,7 +42,8 @@ class TestFileValidationOrder(unittest.TestCase):
             self.assertIn("Invalid file format", detail, f"Failed for {filename}")
             self.assertNotIn("different individual", detail, f"Failed for {filename}")
 
-    def test_corrupt_unreadable_file_rejection(self):
+    @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)
+    def test_corrupt_unreadable_file_rejection(self, mock_auth):
         """
         Verifies that a supported-looking text file with corrupted binary noise is rejected as unreadable,
         NEVER as a name/identity mismatch.
@@ -41,6 +51,7 @@ class TestFileValidationOrder(unittest.TestCase):
         binary_corrupt_bytes = b"\x00\x00\x00\x00\x00\x00\x00\x00"
         response = client.post(
             "/upload",
+            headers={"Authorization": "Bearer token-student123"},
             files={"file": ("corrupt.txt", io.BytesIO(binary_corrupt_bytes), "text/plain")},
             data={"targetPosition": "Software Engineer", "accountName": "Juan Dela Cruz"}
         )

@@ -28,7 +28,9 @@ venv.bak/
 *.keystore
 *.jks
 google-services.json
-airis-development-firebase-adminsdk-*.json
+*firebase-adminsdk*.json
+*.pem
+*.key
 
 # OS files
 .DS_Store

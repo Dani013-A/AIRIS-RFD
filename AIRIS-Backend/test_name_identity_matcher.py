@@ -1,10 +1,17 @@
 import unittest
 import io
 from fastapi.testclient import TestClient
+from unittest.mock import patch
 from main import app
 from ai_validator import validate_resume_name_match, _parse_name_structure, _compare_name_structures
 
 client = TestClient(app)
+
+def mock_verify_id_token(token, *args, **kwargs):
+    if token.startswith("token-"):
+        uid = token.replace("token-", "")
+        return {"uid": uid}
+    raise Exception("Invalid token")
 
 class TestGeneralizedNameIdentityMatcher(unittest.TestCase):
 
@@ -147,7 +154,8 @@ class TestGeneralizedNameIdentityMatcher(unittest.TestCase):
     # -------------------------------------------------------------
     # 5. FASTAPI /upload ENDPOINT INTEGRATION TEST
     # -------------------------------------------------------------
-    def test_upload_endpoint_accepts_valid_expanded_name(self):
+    @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)
+    def test_upload_endpoint_accepts_valid_expanded_name(self, mock_auth):
         """
         Integration test verifying that POST /upload accepts the reported valid user name
         (Daniel Tan Espela vs DANIEL AARON T. ESPELA) and proceeds with analysis instead of 400.
@@ -166,6 +174,7 @@ class TestGeneralizedNameIdentityMatcher(unittest.TestCase):
 
         response = client.post(
             "/upload",
+            headers={"Authorization": "Bearer token-student-daniel"},
             files={"file": ("resume.txt", io.BytesIO(resume_text.encode("utf-8")), "text/plain")},
             data={"targetPosition": "Software Engineer", "accountName": "Daniel Tan Espela"}
         )
@@ -175,7 +184,8 @@ class TestGeneralizedNameIdentityMatcher(unittest.TestCase):
         self.assertTrue(data.get("valid"), f"Expected valid upload response, got: {data}")
         self.assertIn("atsScore", data)
 
-    def test_upload_endpoint_rejects_genuinely_conflicting_name(self):
+    @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)
+    def test_upload_endpoint_rejects_genuinely_conflicting_name(self, mock_auth):
         """
         Integration test verifying that POST /upload rejects a genuinely conflicting name
         (John Smith vs Michael Jones) with HTTP 400 Bad Request.
@@ -190,6 +200,7 @@ class TestGeneralizedNameIdentityMatcher(unittest.TestCase):
 
         response = client.post(
             "/upload",
+            headers={"Authorization": "Bearer token-student-john"},
             files={"file": ("resume.txt", io.BytesIO(resume_text.encode("utf-8")), "text/plain")},
             data={"targetPosition": "Software Engineer", "accountName": "John Smith"}
         )

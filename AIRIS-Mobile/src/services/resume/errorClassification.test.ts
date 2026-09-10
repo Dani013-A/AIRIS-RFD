@@ -146,4 +146,14 @@ describe("Upload Error Classification & Fallback Protection Test Suite", () => {
       message: "This document doesn't appear to be a resume or CV. Please upload a valid resume.",
     });
   });
+
+  test("9. XHR request timeout is classified as TIMEOUT error with status 408", async () => {
+    setupMockXHR(0, "", false, true);
+
+    await expect(uploadResumeFileWithProgress(dummyFile, "Software Engineer")).rejects.toMatchObject({
+      isHttpError: true,
+      status: 408,
+      code: "TIMEOUT",
+    });
+  });
 });

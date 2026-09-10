@@ -290,17 +290,26 @@ Infrastructure & Auditing Specialist
         - unevidenced requirements are routed to missingSkills / gaps
         """
         import io
+        from unittest.mock import patch
         from fastapi.testclient import TestClient
         from main import app
 
         client = TestClient(app)
         resume_bytes = self.DANIEL_RESUME_TEXT.encode("utf-8")
 
-        response = client.post(
-            "/upload",
-            files={"file": ("daniel_resume.txt", io.BytesIO(resume_bytes), "text/plain")},
-            data={"targetPosition": "Full Stack Developer", "accountName": "Daniel Tan"}
-        )
+        def mock_verify_id_token(token, *args, **kwargs):
+            if token.startswith("token-"):
+                uid = token.replace("token-", "")
+                return {"uid": uid}
+            raise Exception("Invalid token")
+
+        with patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token):
+            response = client.post(
+                "/upload",
+                headers={"Authorization": "Bearer token-student-daniel"},
+                files={"file": ("daniel_resume.txt", io.BytesIO(resume_bytes), "text/plain")},
+                data={"targetPosition": "Full Stack Developer", "accountName": "Daniel Tan"}
+            )
 
         self.assertEqual(response.status_code, 200, f"Upload endpoint failed: {response.text}")
         data = response.json()

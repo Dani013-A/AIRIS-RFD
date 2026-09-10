@@ -44,7 +44,17 @@ const withCleartextTraffic = (config) => {
   return withAndroidManifest(config, (config) => {
     const androidManifest = config.modResults;
     if (androidManifest.manifest && androidManifest.manifest.application) {
-      androidManifest.manifest.application[0].$["android:usesCleartextTraffic"] = "true";
+      const isRelease =
+        process.env.NODE_ENV === "production" ||
+        process.env.APP_ENV === "production" ||
+        process.env.EAS_BUILD_PROFILE === "production" ||
+        process.env.EAS_BUILD_PROFILE === "preview";
+
+      if (isRelease) {
+        androidManifest.manifest.application[0].$["android:usesCleartextTraffic"] = "false";
+      } else {
+        androidManifest.manifest.application[0].$["android:usesCleartextTraffic"] = "true";
+      }
     }
     return config;
   });

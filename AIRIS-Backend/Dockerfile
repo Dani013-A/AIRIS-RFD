@@ -22,8 +22,10 @@ RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/wh
 # Copy the rest of the backend application code
 COPY . .
 
-# Hugging Face Spaces strictly requires exposing port 7860
+# Expose standard AIRIS backend port 8000 (and 7860 for container host flexibility)
+EXPOSE 8000
 EXPOSE 7860
 
-# Start FastAPI server
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
+# Start FastAPI server, respecting dynamic $PORT if provided, defaulting to 8000
+ENV PORT=8000
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT}"]

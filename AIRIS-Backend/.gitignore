@@ -20,3 +20,8 @@ build/
 
 # OS
 .DS_Store
+
+# Credentials & Keys
+*firebase-adminsdk*.json
+*.pem
+*.key
