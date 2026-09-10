@@ -71,6 +71,12 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
       return;
     }
 
+    // Protection Guard: Do not overwrite pending analysis awaiting self-assessment
+    if (get().pendingAnalysisData !== null || get().processingStatus === "awaiting_self_assessment") {
+      console.log(`[SESSION] fetchActiveResume ignored: session ${get().currentAnalysisSessionId} is pending self-assessment.`);
+      return;
+    }
+
     try {
       set({ processingStatus: "extracting", error: null });
       const resume = await fetchActiveResumeFromDb(userId, activeResumeId);
@@ -124,6 +130,7 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
   ) => {
     // Generate a fresh analysisSessionId at the very beginning of upload
     const sessionId = "session_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
+    console.log(`[UPLOAD] session=${sessionId} start`);
 
     // Immediately isolate the new session by clearing stale pending state from previous uploads
     set({
@@ -150,6 +157,8 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
 
       if (get().currentAnalysisSessionId !== sessionId) return;
 
+      console.log(`[ANALYSIS] session=${sessionId} ready`);
+
       if (!analysisResult.detectedSections || analysisResult.detectedSections.length === 0) {
         const parsed = parseResumeSections(normalized);
         analysisResult.detectedSections = detectResumeSections(parsed);
@@ -157,7 +166,7 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
 
       analysisResult.analysisSessionId = sessionId;
 
-      // Extract target skills for self-assessment dynamically from target role benchmark
+      // Extract target skills for self-assessment dynamically from candidate skills and target benchmark
       const targetSkills = extractTargetCompetenciesForSelfAssessment(analysisResult);
 
       const pendingData = {
@@ -175,17 +184,10 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
 
       if (get().currentAnalysisSessionId !== sessionId) return;
 
-      // Only auto-finalize if zero target skills exist for the target position benchmark
-      if (targetSkills.length === 0) {
-        set({
-          pendingAnalysisData: pendingData,
-          pendingTargetSkills: [],
-          currentAnalysisSessionId: sessionId,
-        });
-        await get().completeSelfAssessmentAndFinalize({});
-        return;
-      }
+      console.log(`[SESSION] session=${sessionId} pending`);
+      console.log(`[SELF_ASSESSMENT] session=${sessionId} required`);
 
+      // Invariant: EVERY successful new analysis MUST enter self-assessment before publication.
       set({
         pendingAnalysisData: pendingData,
         pendingTargetSkills: targetSkills,
@@ -224,19 +226,7 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
       error: null,
     });
 
-    const previousRole = currentUser.targetPosition || "General Track";
-    console.log("============================================================");
-    console.log("AIRIS - CAREER RETARGET");
-    console.log("============================================================");
-    console.log(`Previous Role: ${previousRole}`);
-    console.log(`New Role: ${newTargetPosition}`);
-    console.log("Resume: Existing Resume");
-    console.log("Action: Intentional Role Retarget Analysis");
-    console.log("Status: STARTED");
-    console.log("============================================================");
-
     try {
-      // Run ONE intentional calculation against the new target position
       const newAnalysisResult = await calculateAtsCompatibility(activeResume.rawText, newTargetPosition);
 
       if (get().currentAnalysisSessionId !== sessionId) return;
@@ -253,17 +243,6 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
         activeResume,
         analysisResult: newAnalysisResult,
       };
-
-      // Only auto-finalize if zero target skills exist for the target position benchmark
-      if (targetSkills.length === 0) {
-        set({
-          pendingAnalysisData: pendingData,
-          pendingTargetSkills: [],
-          currentAnalysisSessionId: sessionId,
-        });
-        await get().completeSelfAssessmentAndFinalize({});
-        return;
-      }
 
       set({
         pendingAnalysisData: pendingData,
@@ -443,6 +422,9 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
 
         const newFinalized = new Set(get().finalizedSessionIds);
         newFinalized.add(sessionId);
+
+        console.log(`[SELF_ASSESSMENT] session=${sessionId} saved`);
+        console.log(`[SESSION] session=${sessionId} published`);
 
         set({
           activeResume: resume,

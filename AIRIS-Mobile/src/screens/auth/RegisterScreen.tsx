@@ -180,7 +180,8 @@ export default function RegisterScreen() {
         >
           <Ionicons name="person-outline" size={20} color={firstNameWarning ? "#CA5D25" : "#4F6B82"} />
           <TextInput
-            className="ml-3 flex-1 text-base text-[#1F3A5F]"
+            className="ml-3 flex-1 h-full text-base text-[#1F3A5F]"
+            style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
             placeholder="First Name"
             placeholderTextColor="#94A3B8"
             value={firstName}
@@ -200,7 +201,8 @@ export default function RegisterScreen() {
         >
           <Ionicons name="person-outline" size={20} color={lastNameWarning ? "#CA5D25" : "#4F6B82"} />
           <TextInput
-            className="ml-3 flex-1 text-base text-[#1F3A5F]"
+            className="ml-3 flex-1 h-full text-base text-[#1F3A5F]"
+            style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
             placeholder="Last Name"
             placeholderTextColor="#94A3B8"
             value={lastName}
@@ -220,7 +222,8 @@ export default function RegisterScreen() {
         >
           <Ionicons name="mail-outline" size={20} color={emailWarning ? "#CA5D25" : "#4F6B82"} />
           <TextInput
-            className="ml-3 flex-1 text-base text-[#1F3A5F]"
+            className="ml-3 flex-1 h-full text-base text-[#1F3A5F]"
+            style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
             placeholder="TIP Email Address"
             placeholderTextColor="#94A3B8"
             value={email}
@@ -241,7 +244,8 @@ export default function RegisterScreen() {
         >
           <Ionicons name="lock-closed-outline" size={20} color={passwordWarning ? "#CA5D25" : "#4F6B82"} />
           <TextInput
-            className="ml-3 flex-1 text-base text-[#1F3A5F]"
+            className="ml-3 flex-1 h-full text-base text-[#1F3A5F]"
+            style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
             placeholder="Password"
             placeholderTextColor="#94A3B8"
             value={password}
@@ -272,7 +276,8 @@ export default function RegisterScreen() {
         >
           <Ionicons name="lock-closed-outline" size={20} color={confirmPasswordWarning ? "#CA5D25" : "#4F6B82"} />
           <TextInput
-            className="ml-3 flex-1 text-base text-[#1F3A5F]"
+            className="ml-3 flex-1 h-full text-base text-[#1F3A5F]"
+            style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
             placeholder="Confirm Password"
             placeholderTextColor="#94A3B8"
             value={passwordConfirm}

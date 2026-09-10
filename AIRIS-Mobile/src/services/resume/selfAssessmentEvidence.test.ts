@@ -107,7 +107,7 @@ describe("Resume-Grounded Self-Assessment & Evidence Integrity Strict Audit Suit
     expect(verified).toBe(validQuote);
   });
 
-  test("H. Multiple supported skills (>8 skills) preserved without data-layer cap loss", () => {
+  test("H. Multiple supported skills (>10 skills) intelligently prioritized to Top 10", () => {
     const twelveSkills = [
       "Python", "JavaScript", "Java", "C++", "SQL", "PostgreSQL",
       "React.js", "Node.js", "Docker", "Git", "HTML", "CSS"
@@ -115,10 +115,18 @@ describe("Resume-Grounded Self-Assessment & Evidence Integrity Strict Audit Suit
 
     const mockAnalysis = {
       detectedSkills: twelveSkills,
+      targetPosition: "Full Stack Developer",
     };
 
     const targets = extractTargetCompetenciesForSelfAssessment(mockAnalysis);
-    expect(targets).toHaveLength(12);
+    expect(targets).toHaveLength(10);
+
+    // If candidate has <= 10 skills, all are presented
+    const sixSkillsAnalysis = {
+      detectedSkills: ["Python", "JavaScript", "Java", "C++", "SQL", "Git"],
+    };
+    const sixTargets = extractTargetCompetenciesForSelfAssessment(sixSkillsAnalysis);
+    expect(sixTargets).toHaveLength(6);
   });
 
   test("I. Domain neutrality across Civil Engineering, Accountancy, and Psychology", () => {
@@ -155,5 +163,18 @@ describe("Resume-Grounded Self-Assessment & Evidence Integrity Strict Audit Suit
     expect(evaluation.personalizedStatus).toBe("CONFIDENCE_MISMATCH");
     expect(evaluation.headline).toBe("STRONG EVIDENCE - LOW CONFIDENCE");
     expect(atsScoreObj.overallScore).toBe(85);
+  });
+
+  test("K. Duplicate competency aliases (.NET and NET) collapse into single canonical competency", () => {
+    const mockAnalysis = {
+      detectedSkills: [".NET", "NET", "dotnet", "VB.NET", "React", "React.js", "ReactJS"],
+    };
+    const targets = extractTargetCompetenciesForSelfAssessment(mockAnalysis);
+    const names = targets.map((t) => t.name);
+    // .NET, NET, dotnet must collapse to one .NET
+    expect(names.filter((n) => n === ".NET")).toHaveLength(1);
+    // React, React.js, ReactJS must collapse to one React
+    expect(names.filter((n) => n === "React")).toHaveLength(1);
+    expect(names).toContain("VB.NET");
   });
 });

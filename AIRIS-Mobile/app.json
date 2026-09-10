@@ -7,14 +7,12 @@
     "icon": "./assets/images/airis-app-new.png",
     "scheme": "airismobile",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.airis.mobile"
     },
     "android": {
       "package": "com.airis.mobile",
-      "usesCleartextTraffic": true,
       "googleServicesFile": "./google-services.json",
       "predictiveBackGestureEnabled": false
     },
@@ -24,6 +22,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-asset",
       [
         "expo-splash-screen",
         {
@@ -36,7 +35,19 @@
           }
         }
       ],
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow AIRIS to access your photo library to select resume image files."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow AIRIS to access your microphone for interview voice responses."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

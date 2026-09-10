@@ -315,3 +315,11 @@ export const tipManilaPrograms: College[] = [
     ],
   },
 ];
+
+/**
+ * Filtered catalog containing ONLY undergraduate college departments (excludes Senior High School).
+ * Use this for all college-level selection choices, dropdowns, and academic onboarding steps.
+ */
+export const tipManilaCollegePrograms: College[] = tipManilaPrograms.filter(
+  (c) => c.name !== "Senior High School"
+);

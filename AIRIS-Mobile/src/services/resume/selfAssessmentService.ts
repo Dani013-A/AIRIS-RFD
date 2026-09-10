@@ -84,24 +84,186 @@ export function validateVerbatimEvidence(
   return trimmedChunk; // SOURCE-VERIFIED
 }
 
+export const CANONICAL_SKILL_MAP: Record<string, string> = {
+  "react.js": "React",
+  "reactjs": "React",
+  "react js": "React",
+  "react": "React",
+  "react native": "React Native",
+  "react-native": "React Native",
+  "node.js": "Node.js",
+  "nodejs": "Node.js",
+  "node js": "Node.js",
+  "node": "Node.js",
+  "express.js": "Express.js",
+  "expressjs": "Express.js",
+  "express js": "Express.js",
+  "express": "Express.js",
+  "vue.js": "Vue.js",
+  "vuejs": "Vue.js",
+  "vue js": "Vue.js",
+  "vue": "Vue.js",
+  "next.js": "Next.js",
+  "nextjs": "Next.js",
+  "next js": "Next.js",
+  "next": "Next.js",
+  "javascript": "JavaScript",
+  "js": "JavaScript",
+  "ecmascript": "JavaScript",
+  "es6": "JavaScript",
+  "typescript": "TypeScript",
+  "ts": "TypeScript",
+  "c++": "C++",
+  "cpp": "C++",
+  "c plus plus": "C++",
+  "c#": "C#",
+  "csharp": "C#",
+  "c sharp": "C#",
+  "vb.net": "VB.NET",
+  "vb net": "VB.NET",
+  "visual basic .net": "VB.NET",
+  "visual basic": "VB.NET",
+  ".net": ".NET",
+  "net": ".NET",
+  "dotnet": ".NET",
+  "dot net": ".NET",
+  "rest api": "REST API",
+  "restful api": "REST API",
+  "restful apis": "REST API",
+  "rest apis": "REST API",
+  "aws": "AWS",
+  "amazon web services": "AWS",
+  "aws ec2": "AWS EC2",
+  "ec2": "AWS EC2",
+  "aws rds": "AWS RDS",
+  "rds": "AWS RDS",
+  "gcp": "GCP",
+  "google cloud": "GCP",
+  "google cloud platform": "GCP",
+  "sql": "SQL",
+  "structured query language": "SQL",
+  "mysql": "MySQL",
+  "postgresql": "PostgreSQL",
+  "postgres": "PostgreSQL",
+  "sqlite": "SQLite",
+  "mongodb": "MongoDB",
+  "redis": "Redis",
+  "pytorch": "PyTorch",
+  "tensorflow": "TensorFlow",
+  "scikit-learn": "Scikit-Learn",
+  "sklearn": "Scikit-Learn",
+  "numpy": "NumPy",
+  "pandas": "Pandas",
+  "html": "HTML",
+  "html5": "HTML",
+  "css": "CSS",
+  "css3": "CSS",
+  "excel": "Excel",
+  "ms excel": "Excel",
+  "microsoft excel": "Excel",
+  "advanced excel": "Advanced Excel",
+  "autocad": "AutoCAD",
+  "auto cad": "AutoCAD",
+  "quickbooks": "QuickBooks",
+  "quick books": "QuickBooks",
+  "staad.pro": "STAAD.Pro",
+  "staad pro": "STAAD.Pro",
+  "staad-pro": "STAAD.Pro",
+  "sentence transformers": "Sentence Transformers",
+  "sentence-transformers": "Sentence Transformers",
+  "sbert": "SBERT",
+  "fastapi": "FastAPI",
+  "postman": "Postman",
+  "github": "GitHub",
+  "gitlab": "GitLab",
+  "openrouter": "OpenRouter",
+  "git": "Git",
+  "figma": "Figma",
+  "unity": "Unity",
+  "android studio": "Android Studio",
+  "power bi": "Power BI",
+  "powerbi": "Power BI",
+  "sap": "SAP",
+  "erp": "ERP",
+  "revit": "Revit",
+  "autodesk revit": "Revit",
+  "sketchup": "SketchUp",
+  "spss": "SPSS",
+};
+
+export function isSkillGroundedInText(skillName: string, rawText: string): boolean {
+  if (!skillName || !rawText) return false;
+
+  let rawNorm = rawText.toLowerCase();
+  rawNorm = rawNorm.replace(/[“”]/g, '"').replace(/[’]/g, "'").replace(/[–—]/g, "-");
+
+  const skillClean = skillName.trim();
+  if (!skillClean || skillClean.length < 2) return false;
+  const skillLower = skillClean.toLowerCase();
+
+  // Expand search terms with canonical aliases
+  const searchTerms = [skillLower];
+  const canonTarget = CANONICAL_SKILL_MAP[skillLower];
+  if (canonTarget && !searchTerms.includes(canonTarget.toLowerCase())) {
+    searchTerms.push(canonTarget.toLowerCase());
+  }
+
+  for (const [alias, canon] of Object.entries(CANONICAL_SKILL_MAP)) {
+    if (canon.toLowerCase() === skillLower || (canonTarget && canon.toLowerCase() === canonTarget.toLowerCase())) {
+      if (!searchTerms.includes(alias)) {
+        searchTerms.push(alias);
+      }
+    }
+  }
+
+  for (const term of searchTerms) {
+    const cleanT = term.trim();
+    if (!cleanT) continue;
+
+    if (/^[a-zA-Z0-9\s]+$/.test(cleanT)) {
+      // Purely alphanumeric: enforce word boundaries so e.g. "java" does not match "javascript"
+      const words = cleanT.split(/\s+/).map((w) => w.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&"));
+      const pat = new RegExp(`\\b${words.join("\\s+")}\\b`, "i");
+      if (pat.test(rawNorm)) return true;
+    } else {
+      // Term contains symbols like C++, C#, .NET, Node.js, STAAD.Pro
+      let escaped = cleanT.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+      escaped = escaped.replace(/\\([.\-+])/g, "\\s*\\$1\\s*");
+      const leftB = /^\w/.test(cleanT) ? "(?:\\b|(?<=[^a-zA-Z0-9]))" : "(?:^|(?<=[\\s,;:(•|\\n\\r]))";
+      const rightB = /.*\w$/.test(cleanT) ? "(?:\\b|(?=[^a-zA-Z0-9]))" : "(?:$|(?=[\\s,;:.)•|\\n\\r]))";
+      const pat = new RegExp(`${leftB}${escaped}${rightB}`, "i");
+      if (pat.test(rawNorm)) return true;
+    }
+  }
+
+  return false;
+}
+
 /**
  * Dynamically extracts competencies directly GROUNDED in the user's submitted resume.
  * Strictly preserves the user's supported resume skills.
  * NEVER injects target-role benchmark skills or artificial caps.
  */
 export function extractTargetCompetenciesForSelfAssessment(
-  analysisResult: any
+  analysisResult: any,
+  options?: { maxItems?: number; existingRatings?: SkillSelfAssessmentMap }
 ): SkillAssessmentTarget[] {
   if (!analysisResult) return [];
 
-  const targets: SkillAssessmentTarget[] = [];
-  const seen = new Set<string>();
+  const maxItems = options?.maxItems ?? 10;
+  const existingRatings = options?.existingRatings || {};
 
-  // 1. Extract raw skills directly detected/extracted from user's submitted resume
-  const resumeDetectedSkills: string[] = [
+  const rawResumeText =
+    analysisResult.rawText ||
+    (analysisResult.parsedSections ? Object.values(analysisResult.parsedSections).join("\n\n") : "") ||
+    "";
+
+  // 1. Extract raw candidate skills directly detected/extracted from user's submitted resume
+  const allCandidateSkills: string[] = [
     ...(analysisResult.detectedSkills || []),
     ...((analysisResult.structuredData?.skills || []).map((s: any) => typeof s === "string" ? s : s.name || s.title || "")),
     ...(analysisResult.learningSnapshot?.careerContext?.detectedSkills || []),
+    ...(analysisResult.parsedSections?.Skills ? String(analysisResult.parsedSections.Skills).split(/[,;\n•|]+/) : []),
   ].filter(Boolean);
 
   // Gauge target-role relevance if benchmark adjustments exist
@@ -126,31 +288,141 @@ export function extractTargetCompetenciesForSelfAssessment(
     else if (adj.maximumPoints === 5) benchmarkMedRelevance.add(rawConcept);
   }
 
-  // Add resume-grounded skills ONLY (no data-layer cap)
-  for (const rawSkill of resumeDetectedSkills) {
+  // Target role title / keywords
+  const targetRoleStr = (
+    analysisResult.targetPosition ||
+    analysisResult.targetRole?.title ||
+    analysisResult.learningSnapshot?.targetPosition ||
+    ""
+  ).toLowerCase().trim();
+
+  // Academic program context
+  const programStr = (
+    analysisResult.academicProgram ||
+    analysisResult.learningSnapshot?.programContext ||
+    analysisResult.degreeProgram ||
+    ""
+  ).toLowerCase().trim();
+
+  // Experience / Projects text for evidence depth
+  const expProjText = [
+    analysisResult.parsedSections?.Experience || "",
+    analysisResult.parsedSections?.WorkExperience || "",
+    analysisResult.parsedSections?.Projects || "",
+    analysisResult.parsedSections?.Internship || "",
+  ].join("\n").toLowerCase();
+
+  const candidateItems: Array<{
+    name: string;
+    canonicalKey: string;
+    relevance: "HIGH" | "MEDIUM" | "LOW";
+    priorityScore: number;
+    evidenceCount: number;
+  }> = [];
+
+  const seen = new Set<string>();
+
+  for (const rawSkill of allCandidateSkills) {
     const cleanSkill = rawSkill.trim();
-    if (!cleanSkill) continue;
-    const lowerKey = cleanSkill.toLowerCase();
+    if (!cleanSkill || cleanSkill.length < 2) continue;
 
-    if (seen.has(lowerKey)) continue;
-    seen.add(lowerKey);
-
-    const displayName = formatCanonicalCompetencyName(cleanSkill);
-
-    let relevance: "HIGH" | "MEDIUM" | "LOW" = "MEDIUM";
-    if (benchmarkHighRelevance.has(lowerKey) || Array.from(benchmarkHighRelevance).some((b) => b.includes(lowerKey) || lowerKey.includes(b))) {
-      relevance = "HIGH";
-    } else if (benchmarkMedRelevance.has(lowerKey) || Array.from(benchmarkMedRelevance).some((b) => b.includes(lowerKey) || lowerKey.includes(b))) {
-      relevance = "MEDIUM";
+    // Strict Grounding Check when raw text is present
+    if (rawResumeText && !isSkillGroundedInText(cleanSkill, rawResumeText)) {
+      continue;
     }
 
-    targets.push({
+    const displayName = formatCanonicalCompetencyName(cleanSkill);
+    const canonicalKey = displayName.toLowerCase();
+    if (seen.has(canonicalKey)) continue;
+    seen.add(canonicalKey);
+
+    // Calculate generalized, domain-neutral prioritization score
+    let priorityScore = 0;
+    let relevance: "HIGH" | "MEDIUM" | "LOW" = "LOW";
+
+    // 1. Target Career Relevance
+    const isTargetHigh =
+      benchmarkHighRelevance.has(canonicalKey) ||
+      Array.from(benchmarkHighRelevance).some((b) => b.includes(canonicalKey) || canonicalKey.includes(b));
+    const isTargetMed =
+      benchmarkMedRelevance.has(canonicalKey) ||
+      Array.from(benchmarkMedRelevance).some((b) => b.includes(canonicalKey) || canonicalKey.includes(b));
+
+    if (isTargetHigh) {
+      priorityScore += 100;
+      relevance = "HIGH";
+    } else if (isTargetMed) {
+      priorityScore += 60;
+      relevance = "MEDIUM";
+    } else if (targetRoleStr && (targetRoleStr.includes(canonicalKey) || canonicalKey.includes(targetRoleStr))) {
+      priorityScore += 50;
+      relevance = "HIGH";
+    } else {
+      relevance = "MEDIUM";
+      priorityScore += 20;
+    }
+
+    // 2. Academic Program Relevance
+    if (programStr && (programStr.includes(canonicalKey) || canonicalKey.includes(programStr))) {
+      priorityScore += 30;
+    }
+
+    // 3. Evidence Strength in Resume
+    let evidenceCount = 0;
+    if (rawResumeText) {
+      const lowerRaw = rawResumeText.toLowerCase();
+      let pos = 0;
+      while ((pos = lowerRaw.indexOf(canonicalKey, pos)) !== -1) {
+        evidenceCount++;
+        pos += canonicalKey.length;
+        if (evidenceCount >= 10) break;
+      }
+    }
+    // Deep evidence in Work Experience / Projects / Internship sections
+    if (expProjText && expProjText.includes(canonicalKey)) {
+      priorityScore += 25;
+    }
+    priorityScore += Math.min(evidenceCount * 3, 15);
+
+    // 4. Existing Self-Assessment Stability
+    if (existingRatings[canonicalKey] || (analysisResult.selfRatings && analysisResult.selfRatings[canonicalKey])) {
+      priorityScore += 10;
+    }
+
+    candidateItems.push({
       name: displayName,
+      canonicalKey,
       relevance,
+      priorityScore,
+      evidenceCount,
     });
   }
 
-  return targets;
+  // Principled Top-10 Selection Rule:
+  // IF candidate skills <= maxItems (10): return all candidate skills.
+  // IF candidate skills > maxItems (10): sort by priority and select top 10.
+  if (candidateItems.length <= maxItems) {
+    return candidateItems.map((item) => ({
+      name: item.name,
+      relevance: item.relevance,
+    }));
+  }
+
+  // Sort by priorityScore DESC, tie-break by evidenceCount DESC, then name ASC (deterministic)
+  candidateItems.sort((a, b) => {
+    if (b.priorityScore !== a.priorityScore) {
+      return b.priorityScore - a.priorityScore;
+    }
+    if (b.evidenceCount !== a.evidenceCount) {
+      return b.evidenceCount - a.evidenceCount;
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  return candidateItems.slice(0, maxItems).map((item) => ({
+    name: item.name,
+    relevance: item.relevance,
+  }));
 }
 
 /**
@@ -173,6 +445,12 @@ export function formatCanonicalCompetencyName(rawName: string): string {
   }
 
   const KNOWN_EXCEPTIONS: Record<string, string> = {
+    ".net": ".NET",
+    "net": ".NET",
+    "dotnet": ".NET",
+    "dot net": ".NET",
+    "vb.net": "VB.NET",
+    "vb net": "VB.NET",
     "fastapi": "FastAPI",
     "typescript": "TypeScript",
     "javascript": "JavaScript",
@@ -191,7 +469,9 @@ export function formatCanonicalCompetencyName(rawName: string): string {
     "cpa": "CPA",
     "bim": "BIM",
     "node.js": "Node.js",
-    "react.js": "React.js",
+    "react": "React",
+    "react.js": "React",
+    "reactjs": "React",
     "express.js": "Express.js",
     "react native": "React Native",
     "vue.js": "Vue.js",

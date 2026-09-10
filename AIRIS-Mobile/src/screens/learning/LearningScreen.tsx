@@ -24,6 +24,7 @@ import {
   refreshCatalog,
   subscribeToCatalog,
 } from "../../services/learning/learningCatalogService";
+import { getStoredSelfAssessments } from "../../services/resume/selfAssessmentService";
 import { useAuthStore } from "../../store/authStore";
 import { useResumeStore } from "../../store/resumeStore";
 import {
@@ -143,6 +144,20 @@ export default function LearningScreen({ initialCategory = "interviews" }: Learn
 
   // State for search query
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selfRatings, setSelfRatings] = useState<Record<string, string>>({});
+
+  // Sync stored self-assessments for personalization
+  useEffect(() => {
+    let isMounted = true;
+    getStoredSelfAssessments().then((ratings) => {
+      if (isMounted && ratings) {
+        setSelfRatings(ratings);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [activeAnalysis]);
 
   // Resume analysis sync
   useEffect(() => {
@@ -220,6 +235,7 @@ export default function LearningScreen({ initialCategory = "interviews" }: Learn
       customCatalog: catalogResources,
       rawResumeText: activeResume?.rawText,
       structuredResumeData: activeResume?.structuredData,
+      selfAssessmentRatings: selfRatings,
     });
 
     if (selectedCategoryId === "for_you" && items && items.length > 0) {
@@ -241,6 +257,7 @@ export default function LearningScreen({ initialCategory = "interviews" }: Learn
     currentUser?.department,
     activeAnalysis,
     activeResume,
+    selfRatings,
   ]);
 
   // Apply search filtering on the matched recommendations
@@ -413,6 +430,7 @@ ${program} | Expected Graduation: 2026
           <Ionicons name="search-outline" size={18} color="#8B95A5" style={{ marginRight: 8 }} />
           <TextInput
             className="flex-1 text-sm text-[#1F3A5F] h-full"
+            style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
             placeholder="Search resources, topics, skills..."
             placeholderTextColor="#94A3B8"
             value={searchQuery}

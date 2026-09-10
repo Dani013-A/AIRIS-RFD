@@ -23,6 +23,7 @@ export interface AppUser {
   termsVersion?: string;
   privacyVersion?: string;
   hasUploadedResume?: boolean;
+  hasCompletedProductTour?: boolean;
   activeResumeId?: string | null;
   resumeVersionCounter?: number;
   photoURL?: string | null;

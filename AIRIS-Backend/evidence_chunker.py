@@ -26,6 +26,9 @@ def _is_header_line(line: str) -> bool:
     stripped = line.strip()
     if not stripped:
         return False
+    # If a line contains multiple pipes (e.g. "Python | Java | SQL | React"), it is a pipe-delimited skill list, not a single job header line
+    if stripped.count(" | ") > 1 or stripped.count("|") > 1:
+        return False
     # Pipe or dash separated header (e.g., "Software Developer | ABC Corp" or "Software Engineer — TechCorp (2024-2026)")
     has_dash_separator = any(sep in stripped for sep in [" | ", " — ", " – ", " - "])
     has_date_range = bool(re.search(r'\b(19|20)\d{2}\b', stripped))

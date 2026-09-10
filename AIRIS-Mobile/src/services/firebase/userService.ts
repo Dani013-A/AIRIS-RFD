@@ -103,6 +103,13 @@ export const updateHasUploadedResume = async (uid: string, hasUploadedResume: bo
   });
 };
 
+export const updateHasCompletedProductTour = async (uid: string, hasCompletedProductTour: boolean) => {
+  await updateDoc(doc(db, USERS_COLLECTION, uid), {
+    hasCompletedProductTour,
+    updatedAt: serverTimestamp(),
+  });
+};
+
 export const updateProfileDetails = async (
   uid: string,
   fullName: string,

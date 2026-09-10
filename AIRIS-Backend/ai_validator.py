@@ -343,11 +343,17 @@ def validate_and_enhance_analysis(
             "reason": "Enhance competitive positioning."
         })
 
-    from ai_service import generate_learning_snapshot
+    from ai_service import generate_learning_snapshot, extract_authoritative_resume_skills
+    authoritative_skills = extract_authoritative_resume_skills(
+        raw_text=raw_text,
+        parsed_sections=parsed_sections
+    )
+
     learning_snapshot = generate_learning_snapshot(
         target_position=target_position,
         parsed_sections=parsed_sections,
-        sbert_results=sbert_results
+        sbert_results=sbert_results,
+        raw_text=raw_text
     )
 
     import datetime
@@ -355,6 +361,7 @@ def validate_and_enhance_analysis(
 
     return {
         "atsScore": ats_score_payload,
+        "detectedSkills": authoritative_skills,
         "detectedSections": detected_sections_list,
         "missingSections": missing_sections_list,
         "suggestions": suggestions[:5],
@@ -378,27 +385,144 @@ NON_NAME_KEYWORDS = {
     "javascript", "python", "react", "html", "css", "node", "java", "sql", "git"
 }
 
+MULTI_WORD_SURNAME_PREFIXES = {
+    "de", "la", "dela", "del", "van", "von", "der", "den", "dos", "das", "san", "santa", "st", "saint", "bin", "ibn", "al", "el", "di", "da"
+}
+
 import unicodedata
 
-def _normalize_name_tokens(name_str: str) -> List[str]:
-    if not name_str:
-        return []
-    normalized = unicodedata.normalize("NFD", name_str)
-    normalized = "".join(c for c in normalized if unicodedata.category(c) != "Mn")
-    cleaned = re.sub(r"[^a-z0-9\s]", " ", normalized.lower())
+def _clean_ocr_spacing(text: str) -> str:
+    if not text:
+        return ""
+    # Collapse single spaces between isolated single letters (e.g. "D A N I E L   E S P E L A" -> "DANIEL   ESPELA")
+    # preserving multi-space word boundaries and initials with punctuation ("T.")
+    prev = None
+    curr = text
+    while prev != curr:
+        prev = curr
+        curr = re.sub(r'(?<=\b[a-zA-Z])\s(?=[a-zA-Z]\b(?![\.\,\-\_\:\;]))', '', curr)
+    return curr
+
+def _parse_name_structure(name_str: str) -> Optional[Dict[str, Any]]:
+    if not name_str or not name_str.strip():
+        return None
+
+    cleaned_ocr = _clean_ocr_spacing(name_str.strip())
+    normalized = unicodedata.normalize("NFD", cleaned_ocr)
+    normalized = "".join(c for c in normalized if unicodedata.category(c) != "Mn").lower()
+
+    # Check "Last, First Middle" format (comma-separated)
+    if "," in normalized:
+        parts = normalized.split(",", 1)
+        surname_part = parts[0].strip()
+        given_part = parts[1].strip()
+
+        surname_tokens = [t for t in re.sub(r"[^a-z0-9\s]", " ", surname_part).split() if t not in HONORIFICS_AND_SUFFIXES]
+        given_tokens = [t for t in re.sub(r"[^a-z0-9\s]", " ", given_part).split() if t not in HONORIFICS_AND_SUFFIXES]
+
+        if not surname_tokens or not given_tokens:
+            return None
+
+        first_token = given_tokens[0]
+        middle_tokens = given_tokens[1:]
+        full_surname = " ".join(surname_tokens)
+
+        return {
+            "first": first_token,
+            "middle_tokens": middle_tokens,
+            "surname": full_surname,
+            "surname_tokens": surname_tokens,
+            "all_tokens": given_tokens + surname_tokens
+        }
+
+    # Standard "First Middle Last" format
+    cleaned = re.sub(r"[^a-z0-9\s]", " ", normalized)
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
-    tokens = [t for t in cleaned.split() if len(t) >= 2 and t not in HONORIFICS_AND_SUFFIXES]
-    return tokens
+    tokens = [t for t in cleaned.split() if t not in HONORIFICS_AND_SUFFIXES]
+
+    if len(tokens) < 2:
+        return None
+
+    # Multi-word surname prefix detection (e.g., "dela cruz", "van dyke")
+    if len(tokens) >= 3 and tokens[-2] in MULTI_WORD_SURNAME_PREFIXES:
+        surname_tokens = tokens[-2:]
+        middle_tokens = tokens[1:-2]
+    elif len(tokens) >= 4 and tokens[-3] in MULTI_WORD_SURNAME_PREFIXES and tokens[-2] in MULTI_WORD_SURNAME_PREFIXES:
+        surname_tokens = tokens[-3:]
+        middle_tokens = tokens[1:-3]
+    else:
+        surname_tokens = [tokens[-1]]
+        middle_tokens = tokens[1:-1]
+
+    first_token = tokens[0]
+    full_surname = " ".join(surname_tokens)
+
+    return {
+        "first": first_token,
+        "middle_tokens": middle_tokens,
+        "surname": full_surname,
+        "surname_tokens": surname_tokens,
+        "all_tokens": tokens
+    }
+
+def _are_middle_names_compatible(mid1: List[str], mid2: List[str]) -> bool:
+    if not mid1 or not mid2:
+        return True
+
+    full_mid1 = [t for t in mid1 if len(t) >= 2]
+    full_mid2 = [t for t in mid2 if len(t) >= 2]
+    initials1 = {t[0] for t in mid1}
+    initials2 = {t[0] for t in mid2}
+
+    if len(full_mid1) == 1 and len(full_mid2) == 1:
+        m1, m2 = full_mid1[0], full_mid2[0]
+        m1_matched = (m1 == m2 or m1[0] in initials2)
+        m2_matched = (m2 == m1 or m2[0] in initials1)
+        if not m1_matched and not m2_matched:
+            return False
+
+    return True
+
+def _compare_name_structures(p1: Dict[str, Any], p2: Dict[str, Any]) -> str:
+    # 1. Given Name Agreement
+    first1, first2 = p1["first"], p2["first"]
+    first_match = False
+    if first1 == first2:
+        first_match = True
+    elif len(first1) == 1 and len(first2) >= 1 and first2.startswith(first1):
+        first_match = True
+    elif len(first2) == 1 and len(first1) >= 1 and first1.startswith(first2):
+        first_match = True
+
+    if not first_match:
+        return "CONFLICT"
+
+    # 2. Surname Agreement
+    surname1, surname2 = p1["surname"], p2["surname"]
+    tokens1, tokens2 = p1["surname_tokens"], p2["surname_tokens"]
+
+    surname_match = False
+    if surname1 == surname2 or tokens1 == tokens2:
+        surname_match = True
+
+    if not surname_match:
+        return "CONFLICT"
+
+    # 3. Middle Name / Initial Compatibility Check
+    if not _are_middle_names_compatible(p1["middle_tokens"], p2["middle_tokens"]):
+        return "CONFLICT"
+
+    return "MATCHED"
 
 def validate_resume_name_match(account_name: str, raw_text: str) -> Dict[str, Any]:
     if not account_name or not account_name.strip() or not raw_text or not raw_text.strip():
         return {"is_valid": True, "status": "UNABLE_TO_VERIFY"}
 
-    account_tokens = _normalize_name_tokens(account_name)
-    if not account_tokens:
+    p_account = _parse_name_structure(account_name)
+    if not p_account:
         return {"is_valid": True, "status": "UNABLE_TO_VERIFY"}
 
-    top_lines = [l.strip() for l in raw_text.splitlines() if l.strip()][:8]
+    top_lines = [l.strip() for l in raw_text.splitlines() if l.strip()][:10]
 
     candidate_lines = []
     for line in top_lines:
@@ -416,26 +540,24 @@ def validate_resume_name_match(account_name: str, raw_text: str) -> Dict[str, An
     if not candidate_lines:
         return {"is_valid": True, "status": "UNABLE_TO_VERIFY"}
 
-    for line in candidate_lines[:3]:
-        line_tokens = _normalize_name_tokens(line)
-        if len(line_tokens) < 2:
+    has_explicit_conflict = False
+
+    for line in candidate_lines[:5]:
+        p_candidate = _parse_name_structure(line)
+        if not p_candidate:
             continue
 
-        matching_tokens = [t for t in account_tokens if t in line_tokens]
-        candidate_only_tokens = [t for t in line_tokens if t not in account_tokens and len(t) >= 2]
-        account_only_tokens = [t for t in account_tokens if t not in line_tokens and len(t) >= 2]
-
-        if len(matching_tokens) == len(account_tokens) or (len(matching_tokens) == len(line_tokens) and len(line_tokens) >= 2):
+        res = _compare_name_structures(p_account, p_candidate)
+        if res == "MATCHED":
             return {"is_valid": True, "status": "MATCHED"}
+        elif res == "CONFLICT":
+            has_explicit_conflict = True
 
-        if len(matching_tokens) >= 2 and len(candidate_only_tokens) == 0:
-            return {"is_valid": True, "status": "MATCHED"}
-
-        if len(matching_tokens) == 0 or (len(candidate_only_tokens) > 0 and len(account_only_tokens) > 0):
-            return {
-                "is_valid": False,
-                "status": "CONFLICT",
-                "reason": "The uploaded resume appears to belong to a different individual. Please ensure you upload your own resume."
-            }
+    if has_explicit_conflict:
+        return {
+            "is_valid": False,
+            "status": "CONFLICT",
+            "reason": "The uploaded resume appears to belong to a different individual. Please ensure you upload your own resume."
+        }
 
     return {"is_valid": True, "status": "UNABLE_TO_VERIFY"}

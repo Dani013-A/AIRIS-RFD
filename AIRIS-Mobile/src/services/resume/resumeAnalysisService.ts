@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from "../api/apiClient";
 import { analyzeResume, parseResumeSections, detectResumeSections, type ResumeAnalysisResult } from "./resumeAnalysisEngine";
+import { isResumeValidDocument } from "./resumeNormalizer";
 
 /**
  * Returns the authoritative backend base URL using the centralized resolver.
@@ -12,12 +13,12 @@ export interface UploadProgressEvent {
   loaded: number;
   total: number;
   progress: number;
-  phase: "uploading" | "processing";
+  phase: "connecting" | "uploading" | "processing";
 }
 
 /**
  * Uploads document file to FastAPI backend with real-time XHR byte progress tracking.
- * Uses 5s request timeout per candidate endpoint to prevent hanging.
+ * Uses 30s request timeout per candidate endpoint to prevent hanging.
  */
 export async function uploadResumeFileWithProgress(
   file: { uri: string; name: string; mimeType: string; size?: number },
@@ -35,18 +36,34 @@ export async function uploadResumeFileWithProgress(
   for (const baseUrl of baseUrls) {
     try {
       const uploadUrl = `${baseUrl}/upload`;
-      if (__DEV__) {
+      if (typeof __DEV__ !== "undefined" && __DEV__) {
         console.log(`Connecting to backend service at ${uploadUrl}...`);
       }
+
+      onProgress?.({
+        loaded: 0,
+        total: knownSize,
+        progress: 0,
+        phase: "connecting",
+      });
 
       const result = await new Promise<any>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.timeout = 30000; // 30 second timeout to allow Groq/AI to finish processing
 
+        if (typeof __DEV__ !== "undefined" && __DEV__) {
+          console.log(`[API Diagnostics] A. URL resolved: ${uploadUrl}`);
+          console.log(`[API Diagnostics] B. XHR instance created (timeout: ${xhr.timeout}ms)`);
+        }
+
         xhr.upload.onprogress = (event) => {
           const totalBytes = event.lengthComputable && event.total > 0 ? event.total : knownSize;
           const loadedBytes = event.loaded || 0;
           const percent = totalBytes > 0 ? Math.min(Math.round((loadedBytes / totalBytes) * 100), 99) : 0;
+
+          if (typeof __DEV__ !== "undefined" && __DEV__ && (percent === 0 || percent === 50 || percent === 99)) {
+            console.log(`[API Diagnostics] E. Upload progress: ${percent}% (${loadedBytes}/${totalBytes} bytes)`);
+          }
 
           onProgress?.({
             loaded: loadedBytes,
@@ -57,6 +74,10 @@ export async function uploadResumeFileWithProgress(
         };
 
         xhr.onload = () => {
+          if (typeof __DEV__ !== "undefined" && __DEV__) {
+            console.log(`[API Diagnostics] F. Server response received: HTTP ${xhr.status}`);
+          }
+
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
               const response = JSON.parse(xhr.responseText);
@@ -66,28 +87,56 @@ export async function uploadResumeFileWithProgress(
             }
           } else {
             let errorMsg = `Server error HTTP ${xhr.status}`;
-            let errorCode = "SERVER_ERROR";
+            let errorCode = `HTTP_${xhr.status}`;
             try {
               const errJson = JSON.parse(xhr.responseText);
               if (errJson.detail) {
                 errorMsg = typeof errJson.detail === "string" ? errJson.detail : JSON.stringify(errJson.detail);
-                if (errorMsg.includes("exceed 3 pages") || errorMsg.includes("pages long")) {
-                  errorCode = "EXCEEDED_PAGE_LIMIT";
-                } else if (errorMsg.includes("belong to a different individual")) {
-                  errorCode = "NAME_MISMATCH";
-                } else if (errorMsg.includes("doesn't appear to be a resume") || errorMsg.includes("valid resume")) {
-                  errorCode = "INVALID_RESUME";
-                }
+              } else if (errJson.message) {
+                errorMsg = typeof errJson.message === "string" ? errJson.message : JSON.stringify(errJson.message);
               }
             } catch {}
+
+            if (errorMsg.includes("exceed 3 pages") || errorMsg.includes("pages long")) {
+              errorCode = "EXCEEDED_PAGE_LIMIT";
+            } else if (errorMsg.includes("belong to a different individual")) {
+              errorCode = "NAME_MISMATCH";
+            } else if (errorMsg.includes("doesn't appear to be a resume") || errorMsg.includes("valid resume")) {
+              errorCode = "INVALID_RESUME";
+            }
+
+            if (typeof __DEV__ !== "undefined" && __DEV__) {
+              console.log(`[API Diagnostics] J. HTTP application error: HTTP ${xhr.status} code=${errorCode}`);
+            }
+
             const apiErr = new Error(errorMsg);
+            (apiErr as any).isHttpError = true;
+            (apiErr as any).status = xhr.status;
             (apiErr as any).code = errorCode;
             reject(apiErr);
           }
         };
 
-        xhr.onerror = () => reject(new Error("Network connection error."));
-        xhr.ontimeout = () => reject(new Error("Request timed out."));
+        xhr.onerror = () => {
+          if (typeof __DEV__ !== "undefined" && __DEV__) {
+            console.log(`[API Diagnostics] I. Network connection error on ${uploadUrl}`);
+          }
+          reject(new Error("Network connection error."));
+        };
+
+        xhr.ontimeout = () => {
+          if (typeof __DEV__ !== "undefined" && __DEV__) {
+            console.log(`[API Diagnostics] G. Request timed out after ${xhr.timeout}ms on ${uploadUrl}`);
+          }
+          reject(new Error("Request timed out."));
+        };
+
+        xhr.onabort = () => {
+          if (typeof __DEV__ !== "undefined" && __DEV__) {
+            console.log(`[API Diagnostics] H. Request aborted on ${uploadUrl}`);
+          }
+          reject(new Error("Request aborted."));
+        };
 
         const formData = new FormData();
         formData.append("file", {
@@ -104,13 +153,22 @@ export async function uploadResumeFileWithProgress(
         }
 
         xhr.open("POST", uploadUrl);
+        if (typeof __DEV__ !== "undefined" && __DEV__) {
+          console.log(`[API Diagnostics] C. request.open("POST", "${uploadUrl}") succeeded`);
+        }
+
         xhr.send(formData);
+        if (typeof __DEV__ !== "undefined" && __DEV__) {
+          console.log(`[API Diagnostics] D. request.send() called`);
+        }
       });
 
       if (result) {
         if (result.valid === false) {
           const rejectMsg = result.message || "This document doesn't appear to be a resume or CV. Please upload a document containing your academic, professional, or career information.";
           const invalidErr = new Error(rejectMsg);
+          (invalidErr as any).isHttpError = true;
+          (invalidErr as any).status = 400;
           (invalidErr as any).code = "INVALID_RESUME";
           throw invalidErr;
         }
@@ -139,12 +197,12 @@ export async function uploadResumeFileWithProgress(
           analysisResult: result.atsScore ? (result as ResumeAnalysisResult) : undefined,
         };
       }
-    } catch (e) {
-      if (e instanceof Error && ((e as any).code === "INVALID_RESUME" || (e as any).code === "EXCEEDED_PAGE_LIMIT" || e.message.includes("resume") || e.message.includes("page limit"))) {
+    } catch (e: any) {
+      if (e && (e.isHttpError || e.status || e.code === "INVALID_RESUME" || e.code === "EXCEEDED_PAGE_LIMIT" || e.code === "NAME_MISMATCH" || String(e?.code).startsWith("HTTP_"))) {
         throw e;
       }
-      if (__DEV__) {
-        console.log(`Connection attempt to ${baseUrl} unfulfilled, trying fallback...`);
+      if (typeof __DEV__ !== "undefined" && __DEV__) {
+        console.log(`Connection attempt to ${baseUrl} unfulfilled:`, e?.message || e);
       }
     }
   }
@@ -175,27 +233,14 @@ export async function calculateAtsCompatibility(
     parsedSectionsDict[sec.name] = sec.content;
   }
 
-  // Validate document structure locally.
-  function isResumeValidLocal(text: string, sections: Record<string, string>): boolean {
-    if (!text.trim() || text.split(/\s+/).filter(Boolean).length < 20) {
-      return false;
-    }
-    return true;
-  }
-
-  if (!isResumeValidLocal(rawText, parsedSectionsDict)) {
-    throw new Error('The provided document does not appear to be a valid resume.');
+  // Validate document structure locally using authoritative validator.
+  if (!isResumeValidDocument(rawText, parsedSectionsDict)) {
+    const invalidErr = new Error("This document doesn't appear to be a resume or CV. Please upload a document containing your academic, professional, or career information.");
+    (invalidErr as any).code = "INVALID_RESUME";
+    throw invalidErr;
   }
 
   const baseUrls = getBackendBaseUrls();
-
-  // Pre-calculate deterministic scores.
-  let localAnalysis: any = null;
-  try {
-    localAnalysis = analyzeResume(rawText, targetPosition);
-  } catch (err) {
-    console.log("Local analysis pre-calculation failed, continuing without it.", err);
-  }
 
   // Try the SBERT backend endpoints sequentially
   for (const baseUrl of baseUrls) {
@@ -248,6 +293,9 @@ export async function calculateAtsCompatibility(
   try {
     const localResult = analyzeResume(rawText, targetPosition);
     (localResult as any).isLocalFallback = true;
+    if (localResult.atsScore) {
+      (localResult.atsScore as any).overallScore = 0; // Fallback score is 0
+    }
     return localResult;
   } catch (error) {
     throw new Error(

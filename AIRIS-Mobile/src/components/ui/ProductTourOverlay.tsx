@@ -3,6 +3,7 @@ import { Modal, View, Text, TouchableOpacity, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuthStore } from "../../store/authStore";
 
 const TOUR_STORAGE_KEY = "@airis_product_tour_completed_v1";
 
@@ -67,27 +68,66 @@ export const ProductTourOverlay: React.FC<ProductTourOverlayProps> = ({ onComple
   const [visible, setVisible] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
+  const currentUser = useAuthStore((state) => state.currentUser);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+  const saveProductTourCompletion = useAuthStore((state) => state.saveProductTourCompletion);
+
   useEffect(() => {
+    if (!isInitialized) return;
     checkTourStatus();
-  }, []);
+  }, [isInitialized, currentUser?.uid, currentUser?.hasCompletedProductTour]);
+
+  const getStorageKey = () => {
+    const uid = currentUser?.uid || "guest";
+    return `${TOUR_STORAGE_KEY}_${uid}`;
+  };
 
   const checkTourStatus = async () => {
+    if (!currentUser) {
+      setVisible(false);
+      return;
+    }
+
+    // 1. Authoritative check: User-level Firestore profile state across devices
+    if (currentUser.hasCompletedProductTour === true) {
+      setVisible(false);
+      return;
+    }
+
+    // 2. Safe local cache fallback (AsyncStorage)
     try {
-      const completed = await AsyncStorage.getItem(TOUR_STORAGE_KEY);
-      if (!completed) {
-        setVisible(true);
+      const key = getStorageKey();
+      const completed = await AsyncStorage.getItem(key);
+      if (completed === "true") {
+        setVisible(false);
+        // Sync local cache back to user profile
+        saveProductTourCompletion(true);
+        return;
       }
     } catch (err) {
       console.log("[PRODUCT_TOUR] Error checking tour status:", err);
     }
+
+    // Tour not completed on any device/cache -> show tour
+    setVisible(true);
   };
 
   const finishTour = async () => {
     try {
-      await AsyncStorage.setItem(TOUR_STORAGE_KEY, "true");
+      const key = getStorageKey();
+      await AsyncStorage.setItem(key, "true");
     } catch (err) {
-      console.warn("[PRODUCT_TOUR] Error saving tour status:", err);
+      console.warn("[PRODUCT_TOUR] Error saving tour status locally:", err);
     }
+
+    if (currentUser?.uid) {
+      try {
+        await saveProductTourCompletion(true);
+      } catch (err) {
+        console.warn("[PRODUCT_TOUR] Error saving tour status to user profile:", err);
+      }
+    }
+
     setVisible(false);
     if (onComplete) onComplete();
   };
@@ -164,7 +204,7 @@ export const ProductTourOverlay: React.FC<ProductTourOverlayProps> = ({ onComple
         {/* Bottom spacer to account for bottom navigation bar */}
         <View className="items-center">
           <Text className="text-xs font-medium text-white/80 text-center">
-            Welcome to AIRIS — Career Preparation Platform
+            Welcome to AIRIS a Career Preparation Platform
           </Text>
         </View>
       </View>

@@ -8,7 +8,14 @@ SECTION_ALIASES = {
     "Internships": ["internship", "internships", "internship experience", "on the job training", "ojt", "practicum"],
     "Education": ["education", "educational background", "academic background", "academic history", "education & qualifications", "education and qualifications", "academic qualifications", "academic profile"],
     "RelevantCoursework": ["relevant coursework", "coursework", "relevant courses", "academic coursework", "subjects"],
-    "Skills": ["skills", "technical skills", "core skills", "competencies", "core competencies", "technical competencies", "areas of expertise", "technical proficiencies", "skills & proficiencies", "skills and proficiencies", "key skills", "specializations", "hard skills", "tools & technologies", "tools and technologies"],
+    "Skills": [
+        "skills", "technical skills", "core skills", "competencies", "core competencies",
+        "technical competencies", "areas of expertise", "technical proficiencies",
+        "skills & proficiencies", "skills and proficiencies", "key skills", "specializations",
+        "hard skills", "tools & technologies", "tools and technologies", "tech stack",
+        "technologies", "skills & tools", "skills & competencies", "programming languages",
+        "frameworks & libraries", "databases & cloud", "developer tools"
+    ],
     "Projects": ["projects", "academic projects", "personal projects", "project experience", "relevant projects", "technical projects", "selected projects", "capstone", "capstone project", "undergraduate thesis", "thesis", "key projects", "featured projects", "systems developed"],
     "Certifications": ["certifications", "certificates", "licenses and certifications", "credentials", "professional certifications", "certifications & trainings", "trainings and certifications", "certifications and licenses", "courses & certifications"],
     "OrganizationsLeadership": ["organizations", "leadership", "organizations & leadership", "organizations and leadership", "extracurricular activities", "student organizations", "affiliations", "leadership experience", "volunteering", "volunteer experience", "community involvement"],
@@ -16,6 +23,12 @@ SECTION_ALIASES = {
     "Languages": ["languages", "language proficiency", "language skills"],
     "Trainings": ["trainings", "training", "seminars", "workshops", "professional development", "trainings & seminars", "seminars & workshops", "seminars and workshops", "workshops & seminars", "trainings and workshops"]
 }
+
+SKILL_SUBCATEGORY_PREFIXES = [
+    "programming languages", "languages", "frameworks", "libraries", "frameworks & libraries",
+    "databases", "databases & cloud", "tools", "developer tools", "tools & platforms",
+    "devops", "cloud", "platforms", "technologies", "methodologies", "core competencies"
+]
 
 def _normalize_heading(text: str) -> str:
     text_clean = text.lower()
@@ -37,10 +50,17 @@ def _is_probable_heading(line: str) -> bool:
         return True
     return False
 
-def _detect_section_heading(line: str) -> str:
+def _detect_section_heading(line: str, current_key: str = None) -> str:
     stripped = line.strip()
-    # Support inline colon headings e.g. "SKILLS: Revit" or "EXPERIENCE: Intern"
     header_part = stripped.split(":", 1)[0].strip() if ":" in stripped else stripped
+    header_lower = header_part.lower()
+
+    # If already inside Skills section, subcategories like "Languages:" or "Frameworks:" stay in Skills
+    if current_key == "Skills" and ":" in stripped:
+        clean_sub = re.sub(r'[^a-z0-9\s\&]', '', header_lower).strip()
+        if any(clean_sub == sub or clean_sub.startswith(sub) for sub in SKILL_SUBCATEGORY_PREFIXES):
+            return "Skills"
+
     norm = _normalize_heading(header_part)
     if norm in NORMALIZED_ALIASES:
         return NORMALIZED_ALIASES[norm]
@@ -75,11 +95,16 @@ def parse_resume(text: str) -> Dict[str, str]:
             sections.setdefault(current_key, []).append(line)
             continue
 
-        heading = _detect_section_heading(line)
+        heading = _detect_section_heading(line, current_key)
         if heading and heading.startswith("Custom_") and i < 5:
             heading = None
 
         if heading:
+            # If subcategory detected while already in Skills, treat line as Skills content
+            if heading == "Skills" and current_key == "Skills" and ":" in line:
+                sections.setdefault("Skills", []).append(line)
+                continue
+
             current_key = heading
             sections.setdefault(current_key, [])
             if ":" in line:
@@ -93,4 +118,7 @@ def parse_resume(text: str) -> Dict[str, str]:
 
         sections.setdefault(current_key, []).append(line)
 
-    return {k: "\n".join(v) for k, v in sections.items() if v}
+    result = {k: "\n".join(v) for k, v in sections.items() if v}
+    # Always preserve the complete authoritative raw text for grounding validation
+    result["raw_text"] = text
+    return result

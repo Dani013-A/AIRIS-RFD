@@ -77,6 +77,7 @@ export interface ScoreComponent {
 
 export interface ResumeScoreBreakdown {
   skills: ScoreComponent;
+  experience?: ScoreComponent;
   education: ScoreComponent;
   certifications: ScoreComponent;
 }

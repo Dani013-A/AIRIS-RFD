@@ -120,7 +120,8 @@ def call_gemini_audio(file_bytes: bytes, mime_type: str) -> dict:
         raise ValueError("GEMINI_API_KEY not set")
 
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    gemini_model_name = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+    model = genai.GenerativeModel(gemini_model_name)
 
     prompt = (
         "Please accurately transcribe the following spoken audio. Output strictly the text transcription with no extra conversational text. "

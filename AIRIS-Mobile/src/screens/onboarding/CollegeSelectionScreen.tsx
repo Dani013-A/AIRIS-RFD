@@ -10,7 +10,7 @@ import { ActivityIndicator, BackHandler, ScrollView, Text, TextInput, TouchableO
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PrimaryButton } from "../../components/ui";
-import { tipManilaPrograms } from "../../data/tipManilaPrograms";
+import { tipManilaCollegePrograms } from "../../data/tipManilaPrograms";
 import { useAuthStore } from "../../store/authStore";
 import { useOnboardingStore } from "../../store/onboardingStore";
 
@@ -63,7 +63,7 @@ export default function CollegeSelectionScreen() {
     }
   };
 
-  const filteredColleges = tipManilaPrograms.filter((c) =>
+  const filteredColleges = tipManilaCollegePrograms.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -90,7 +90,8 @@ export default function CollegeSelectionScreen() {
       <View className="mt-4 mb-2 flex-row items-center rounded-xl bg-white px-4 h-14 border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
         <Ionicons name="search-outline" size={20} color="#8B95A5" />
         <TextInput
-          className="ml-3 flex-1 text-base text-[#1F3A5F]"
+          className="ml-3 flex-1 h-full text-base text-[#1F3A5F]"
+          style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
           placeholder="Search college or strand..."
           placeholderTextColor="#94A3B8"
           value={search}

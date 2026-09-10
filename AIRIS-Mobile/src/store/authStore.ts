@@ -92,6 +92,8 @@ interface AuthState {
     termsVersion: string,
     privacyVersion: string
   ) => Promise<void>;
+  saveHasUploadedResume: (uploaded: boolean) => Promise<void>;
+  saveProductTourCompletion: (completed: boolean) => Promise<void>;
   updateProfilePhotoAction: () => Promise<boolean>;
   deleteAccountAction: (currentPassword?: string) => Promise<void>;
   checkSessionValidity: () => Promise<boolean>;
@@ -477,7 +479,20 @@ export const useAuthStore = create<AuthState>((set) => ({
           isInitialized: true,
           error: null,
         });
-      } catch (err) {
+      } catch (err: any) {
+        const errCode = err?.code || "";
+        const errStr = String(err || "");
+        if (
+          errCode === "auth/network-request-failed" ||
+          errCode === "auth/timeout" ||
+          errStr.includes("network-request-failed") ||
+          errStr.includes("Network Error")
+        ) {
+          console.warn("Auth initialization encountered a transient network error; preserving current session state:", errStr);
+          set({ loading: false, isInitialized: true });
+          return;
+        }
+
         console.error("Auth initialization error during session load:", sanitizeErrorForLogging(err));
         try {
           await signOut(auth);
@@ -907,6 +922,31 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
+  saveProductTourCompletion: async (completed: boolean) => {
+    const currentUser = useAuthStore.getState().currentUser;
+    if (!currentUser) return;
+
+    try {
+      set({ loading: true, error: null });
+      const { updateHasCompletedProductTour } = await import("../services/firebase/userService");
+      await updateHasCompletedProductTour(currentUser.uid, completed);
+
+      set({
+        currentUser: {
+          ...currentUser,
+          hasCompletedProductTour: completed,
+        },
+        loading: false,
+        error: null,
+      });
+    } catch (error) {
+      set({
+        loading: false,
+        error: error instanceof Error ? error.message : "Failed to save product tour status.",
+      });
+    }
+  },
+
   checkSessionValidity: async () => {
     const firebaseUser = auth.currentUser;
     if (!firebaseUser) return false;
@@ -920,8 +960,20 @@ export const useAuthStore = create<AuthState>((set) => ({
         return false;
       }
       return true;
-    } catch (err) {
-      console.warn("Session validation encountered an error; logging out safely:", sanitizeErrorForLogging(err));
+    } catch (err: any) {
+      const errCode = err?.code || "";
+      const errStr = String(err || "");
+      if (
+        errCode === "auth/network-request-failed" ||
+        errCode === "auth/timeout" ||
+        errStr.includes("network-request-failed") ||
+        errStr.includes("Network Error")
+      ) {
+        console.warn("Session validation encountered a transient network error; preserving local session:", errStr);
+        return true;
+      }
+
+      console.warn("Session validation encountered an unrecoverable auth error; logging out safely:", sanitizeErrorForLogging(err));
       try {
         await signOut(auth);
       } catch (signOutErr) {

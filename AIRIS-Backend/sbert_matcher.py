@@ -1,11 +1,12 @@
 import numpy as np
 import time
+import re
 from sentence_transformers import SentenceTransformer
 from typing import Dict, List, Any, Optional
 import os
 import json
 from functools import lru_cache
-from ai_service import generate_text_with_fallback
+from ai_service import generate_text_with_fallback, is_skill_grounded_in_text
 from evidence_chunker import chunk_resume_evidence, EvidenceChunk
 
 _model = None
@@ -264,15 +265,27 @@ def evaluate_semantic_alignment(
         best_has_verbatim = False
 
         c_lower = concept.lower()
-        concept_terms = [t.strip() for t in c_lower.replace("/", " ").replace("-", " ").split() if len(t.strip()) >= 3]
+        STOP_WORDS = {
+            "and", "or", "with", "using", "for", "the", "in", "of", "to", "a", "an",
+            "design", "development", "implementation", "framework", "pipelines",
+            "orchestration", "containerization", "databases", "front", "end", "backend",
+            "management", "tools", "systems", "guide", "fundamentals", "overview", "level"
+        }
+        # Disallow single generic/subsidiary tokens (e.g. "github") from matching compound requirements (e.g. "CI/CD Pipelines using Jenkins, GitHub Actions...")
+        raw_tokens = [t.strip() for t in re.split(r'[,;•|\(\)\[\]]+|\s+or\s+|\s+and\s+|\s+using\s+|\s+with\s+', c_lower) if len(t.strip()) >= 2]
+        concept_candidates = [t for t in raw_tokens if t not in STOP_WORDS]
+        if not concept_candidates:
+            concept_candidates = [c_lower]
 
         for idx, chunk in enumerate(evidence_chunks):
             raw_sim = calculate_cosine_similarity(c_emb, chunk_embs[idx])
-            chunk_lower = chunk.text.lower()
+            chunk_text = chunk.text
 
-            has_verbatim = c_lower in chunk_lower
-            if not has_verbatim and concept_terms:
-                has_verbatim = any(term in chunk_lower for term in concept_terms)
+            # Exact concept or grounded alias match in chunk
+            has_verbatim = is_skill_grounded_in_text(concept, chunk_text)
+            if not has_verbatim and concept_candidates:
+                # Require at least one distinct competency candidate to pass grounding
+                has_verbatim = any(is_skill_grounded_in_text(cand, chunk_text) for cand in concept_candidates)
 
             sim = min(1.0, raw_sim + 0.25) if has_verbatim else raw_sim
 

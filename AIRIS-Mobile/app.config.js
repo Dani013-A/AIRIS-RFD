@@ -1,4 +1,4 @@
-const { withAppBuildGradle } = require("@expo/config-plugins");
+const { withAppBuildGradle, withAndroidManifest } = require("@expo/config-plugins");
 
 // Custom Expo Config Plugin to inject release signing configuration in build.gradle
 const withAndroidReleaseSigning = (config) => {
@@ -40,6 +40,16 @@ const withAndroidReleaseSigning = (config) => {
   });
 };
 
+const withCleartextTraffic = (config) => {
+  return withAndroidManifest(config, (config) => {
+    const androidManifest = config.modResults;
+    if (androidManifest.manifest && androidManifest.manifest.application) {
+      androidManifest.manifest.application[0].$["android:usesCleartextTraffic"] = "true";
+    }
+    return config;
+  });
+};
+
 module.exports = ({ config }) => {
   let updatedConfig = {
     ...config,
@@ -55,8 +65,9 @@ module.exports = ({ config }) => {
     },
   };
 
-  // Programmatically apply the release signing plugin
+  // Programmatically apply plugins
   updatedConfig = withAndroidReleaseSigning(updatedConfig);
+  updatedConfig = withCleartextTraffic(updatedConfig);
 
   return updatedConfig;
 };

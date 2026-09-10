@@ -166,7 +166,8 @@ export default function LoginScreen() {
           >
             <Ionicons name="mail-outline" size={20} color={emailWarning ? "#CA5D25" : "#4F6B82"} />
             <TextInput
-              className="ml-3 flex-1 text-base text-[#1F3A5F]"
+              className="ml-3 flex-1 h-full text-base text-[#1F3A5F]"
+              style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
               placeholder="TIP Email Address"
               placeholderTextColor="#94A3B8"
               value={email}
@@ -187,7 +188,8 @@ export default function LoginScreen() {
           >
             <Ionicons name="lock-closed-outline" size={20} color={passwordWarning ? "#CA5D25" : "#4F6B82"} />
             <TextInput
-              className="ml-3 flex-1 text-base text-[#1F3A5F]"
+              className="ml-3 flex-1 h-full text-base text-[#1F3A5F]"
+              style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
               placeholder="Password"
               placeholderTextColor="#94A3B8"
               value={password}

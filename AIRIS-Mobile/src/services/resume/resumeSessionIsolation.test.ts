@@ -87,7 +87,17 @@ describe('Resume Upload Session Isolation & Publication Gate Unit Tests', () => 
   test('Resume #1 abandoned self-assessment state is immediately discarded when Resume #2 starts', async () => {
     const userId = 'user_test_123';
     const mockFile1 = { name: 'resume_v1.pdf', mimeType: 'application/pdf', uri: 'file://v1' };
-    const rawText1 = 'Experienced Python developer with Django and PostgreSQL expertise.';
+    const rawText1 = `
+      JOHN DOE
+      Email: john.doe@tip.edu.ph | Phone: 09171234567
+      EDUCATION
+      Bachelor of Science in Computer Science - TIP Manila
+      WORK EXPERIENCE
+      Software Intern - Tech Corp (2025)
+      - Experienced Python developer with Django and PostgreSQL expertise.
+      SKILLS
+      Python, Django, PostgreSQL, Git
+    `;
 
     // Start Upload #1
     await useResumeStoreActual.getState().uploadAndProcessResume(
@@ -109,7 +119,17 @@ describe('Resume Upload Session Isolation & Publication Gate Unit Tests', () => 
     // User abandons Resume #1 flow without calling completeSelfAssessmentAndFinalize.
     // Now start Upload #2 for a different role (Data Analyst)
     const mockFile2 = { name: 'resume_v2.pdf', mimeType: 'application/pdf', uri: 'file://v2' };
-    const rawText2 = 'Data analyst experienced in SQL, Tableau, and R programming.';
+    const rawText2 = `
+      JOHN DOE
+      Email: john.doe@tip.edu.ph | Phone: 09171234567
+      EDUCATION
+      Bachelor of Science in Computer Science - TIP Manila
+      WORK EXPERIENCE
+      Data Analyst Intern - Analytics Co (2025)
+      - Data analyst experienced in SQL, Tableau, and R programming.
+      SKILLS
+      SQL, Tableau, R, Analytics
+    `;
 
     await useResumeStoreActual.getState().uploadAndProcessResume(
       userId,
@@ -129,7 +149,17 @@ describe('Resume Upload Session Isolation & Publication Gate Unit Tests', () => 
   test('New upload results remain UNPUBLISHED as activeAnalysis until explicitly finalized', async () => {
     const userId = 'user_test_456';
     const mockFile = { name: 'resume_test.pdf', mimeType: 'application/pdf', uri: 'file://test' };
-    const rawText = 'Software engineer with strong computer science background.';
+    const rawText = `
+      JOHN DOE
+      Email: john.doe@tip.edu.ph | Phone: 09171234567
+      EDUCATION
+      Bachelor of Science in Computer Science - TIP Manila
+      WORK EXPERIENCE
+      Software Engineer Intern - Tech Corp (2025)
+      - Software engineer with strong computer science background.
+      SKILLS
+      JavaScript, Python, React Native, SQL
+    `;
 
     await useResumeStoreActual.getState().uploadAndProcessResume(
       userId,

@@ -50,13 +50,13 @@ export function parseAndBuildStructuredData(rawText: string): StructuredResumeDa
     }
   }
 
-  // Split the skills list using commas, colons, or line breaks while preserving multi-word skills.
+  // Split the skills list using commas, semicolons, bullets, pipes, slashes with spaces, or line breaks while preserving compound skills like CI/CD.
   let skillsList: string[] = [];
   if (skillsSection) {
     skillsList = skillsSection.content
-      .split(/[,;•\n]+/)
+      .split(/(?:[,;•|\n]|\s+[\/\\]\s+)+/)
       .map((s) => s.trim())
-      .filter((s) => s.length > 0 && s.length < 40);
+      .filter((s) => s.length > 0 && s.length < 50);
   }
 
   return {

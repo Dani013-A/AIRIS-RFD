@@ -3,7 +3,7 @@ import { View, Text, ActivityIndicator, Alert, TouchableOpacity, ScrollView } fr
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Audio } from "expo-av";
+import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync } from "expo-audio";
 import { useAuthStore } from "../../store/authStore";
 import { useResumeStore } from "../../store/resumeStore";
 import { useInterviewStore } from "../../store/interviewStore";
@@ -29,7 +29,7 @@ export default function PreSimulationBriefingScreen() {
 
   const checkMicPermissions = async () => {
     try {
-      const status = await Audio.getPermissionsAsync();
+      const status = await getRecordingPermissionsAsync();
       if (status.granted) {
         setMicStatus("granted");
       } else {
@@ -42,7 +42,7 @@ export default function PreSimulationBriefingScreen() {
 
   const requestMicPermissions = async () => {
     try {
-      const res = await Audio.requestPermissionsAsync();
+      const res = await requestRecordingPermissionsAsync();
       if (res.granted) {
         setMicStatus("granted");
       } else {

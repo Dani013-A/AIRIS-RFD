@@ -9,7 +9,7 @@ import { useInterviewStore } from "../../store/interviewStore";
 import { submitInterviewAnswer, transcribeAudio, PauseMetrics } from "../../services/api/interviewApi";
 import { PrimaryButton } from "../../components/ui";
 import * as Speech from "expo-speech";
-import { Audio } from "expo-av";
+import { requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, RecordingPresets } from "expo-audio";
 
 export default function ActiveSimulationScreen() {
   const router = useRouter();
@@ -17,7 +17,7 @@ export default function ActiveSimulationScreen() {
   const [loading, setLoading] = useState(false);
 
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
 
@@ -41,14 +41,14 @@ export default function ActiveSimulationScreen() {
 
   const startRecording = async () => {
     try {
-      const permission = await Audio.requestPermissionsAsync();
-      if (permission.status === 'granted') {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: true,
-          playsInSilentModeIOS: true,
+      const permission = await requestRecordingPermissionsAsync();
+      if (permission.granted) {
+        await setAudioModeAsync({
+          allowsRecording: true,
+          playsInSilentMode: true,
         });
-        const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-        setRecording(recording);
+        await audioRecorder.prepareToRecordAsync();
+        audioRecorder.record();
         setIsRecording(true);
       } else {
         Alert.alert("Permission Required", "Please grant microphone permissions to use voice transcription.");
@@ -61,12 +61,11 @@ export default function ActiveSimulationScreen() {
   const [lastPauseMetrics, setLastPauseMetrics] = useState<PauseMetrics | undefined>(undefined);
 
   const stopRecording = async () => {
-    if (!recording) return;
     setIsRecording(false);
     setIsTranscribing(true);
     try {
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
+      await audioRecorder.stop();
+      const uri = audioRecorder.uri;
       if (uri) {
         const { transcription, pauseMetrics } = await transcribeAudio(uri, "audio/m4a");
         setAnswer((prev) => (prev ? prev + " " + transcription : transcription));
@@ -79,7 +78,6 @@ export default function ActiveSimulationScreen() {
       Alert.alert("Transcription Error", "Failed to process audio.");
     } finally {
       setIsTranscribing(false);
-      setRecording(null);
     }
   };
 

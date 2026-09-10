@@ -1,32 +1,26 @@
-"use client";
+import React from "react";
+import { LandingNavbar } from "../components/landing/LandingNavbar";
+import { HeroSection } from "../components/landing/HeroSection";
+import { PurposeSection } from "../components/landing/PurposeSection";
+import { ObjectivesSection } from "../components/landing/ObjectivesSection";
+import { AboutSection } from "../components/landing/AboutSection";
+import { TeamSection } from "../components/landing/TeamSection";
+import { DownloadSection } from "../components/landing/DownloadSection";
+import { LandingFooter } from "../components/landing/LandingFooter";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuthStore } from "../store/authStore";
-import { LoadingSpinner } from "../components/ui/LoadingSpinner";
-
-export default function RootPage() {
-  const router = useRouter();
-  const { currentAdmin, initialized, initializeSession } = useAuthStore();
-
-  useEffect(() => {
-    const unsubscribe = initializeSession();
-    return () => unsubscribe();
-  }, [initializeSession]);
-
-  useEffect(() => {
-    if (initialized) {
-      if (currentAdmin) {
-        router.replace("/dashboard");
-      } else {
-        router.replace("/login");
-      }
-    }
-  }, [initialized, currentAdmin, router]);
-
+export default function PublicLandingPage() {
   return (
-    <div className="flex h-screen items-center justify-center bg-background">
-      <LoadingSpinner size="lg" />
+    <div className="min-h-screen flex flex-col bg-white text-[#1E3E6B] font-sans selection:bg-[#F59E73]/20 selection:text-[#1E3E6B]">
+      <LandingNavbar />
+      <main id="main-content" className="flex-1">
+        <HeroSection />
+        <PurposeSection />
+        <ObjectivesSection />
+        <AboutSection />
+        <TeamSection />
+        <DownloadSection />
+      </main>
+      <LandingFooter />
     </div>
   );
 }

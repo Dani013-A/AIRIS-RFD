@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { ActivityIndicator, Alert, BackHandler, Modal, ScrollView, Text, TextInput, TouchableOpacity, View, AppState } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
 
 import { PrimaryButton } from "../../components/ui";
 import { useAuthStore } from "../../store/authStore";
@@ -13,6 +14,7 @@ import { getMockResumeText } from "../../fixtures/resume/mockResume";
 import { uploadResumeFileWithProgress, type UploadProgressEvent } from "../../services/resume/resumeAnalysisService";
 import { classifyNameMatch } from "../../utils/nameMatcher";
 import { normalizeApiError } from "../../utils/errorMapper";
+import { validateResumeText } from "../../services/resume/resumeNormalizer";
 
 function formatBytes(bytes: number): string {
   if (!bytes || bytes <= 0) return "0 KB";
@@ -52,10 +54,13 @@ export default function ResumeUploadIntroScreen() {
 
   const [uploadProgress, setUploadProgress] = useState(0);
   const [bytesUploaded, setBytesUploaded] = useState<{ loaded: number; total: number }>({ loaded: 0, total: 0 });
-  const [uploadPhase, setUploadPhase] = useState<string>("Uploading file...");
-  const [uploadStage, setUploadStage] = useState<"idle" | "uploading" | "extracting" | "analyzing" | "awaiting_assessment" | "saving" | "completed">("idle");
+  const [uploadPhase, setUploadPhase] = useState<string>("Connecting to server...");
+  const [uploadStage, setUploadStage] = useState<"idle" | "connecting" | "uploading" | "extracting" | "analyzing" | "awaiting_assessment" | "saving" | "completed">("idle");
 
-  const fileName = activeResume?.originalFileName || null;
+  const [selectedFile, setSelectedFile] = useState<{ uri: string; name: string; mimeType: string; size: number } | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isInvalidDocument, setIsInvalidDocument] = useState<boolean>(false);
+  const [hasValidUploadCompleted, setHasValidUploadCompleted] = useState<boolean>(false);
 
   const handleGoBack = () => {
     if (router.canGoBack()) {
@@ -77,17 +82,207 @@ export default function ResumeUploadIntroScreen() {
   const handleToggleTerms = () => setAgreeTerms(!agreeTerms);
   const handleTogglePrivacy = () => setAgreePrivacy(!agreePrivacy);
 
-  const handleUploadResume = async () => {
-    if (!agreeTerms || !agreePrivacy) {
+  const isSubmittingRef = React.useRef(false);
+
+  const processSelectedResumeFile = async (fileToProcess: { uri: string; name: string; mimeType: string; size: number }) => {
+    if (!currentUser) return;
+    if (isSubmittingRef.current) {
+      console.log("[AIRIS Upload] Duplicate upload submission blocked.");
+      return;
+    }
+    isSubmittingRef.current = true;
+
+    try {
+      setSelectedFile(fileToProcess);
+      setValidationError(null);
+      setIsInvalidDocument(false);
+      setHasValidUploadCompleted(false);
+
+    const fileExtension = fileToProcess.name.split(".").pop()?.toLowerCase() || "";
+    const validExtensions = ["pdf", "doc", "docx", "txt", "png", "jpg", "jpeg", "webp", "heic"];
+    const isValidMime =
+      fileToProcess.mimeType.includes("pdf") ||
+      fileToProcess.mimeType.includes("word") ||
+      fileToProcess.mimeType.includes("text") ||
+      fileToProcess.mimeType.startsWith("image/");
+
+    if (!validExtensions.includes(fileExtension) && !isValidMime) {
+      const errMsg = "Please select a valid PDF, DOCX, TXT, or Image file (PNG, JPG, HEIC).";
+      setIsInvalidDocument(true);
+      setValidationError(errMsg);
+      setUploadStage("idle");
+      Alert.alert("Unsupported Format", errMsg);
+      return;
+    }
+
+    const targetPosition = (currentUser?.targetPosition || "").trim();
+    if (!targetPosition) {
       Alert.alert(
-        "Consent Required",
-        "Please check and agree to both the Terms of Service and Privacy Policy before uploading your resume."
+        "Target Position Required",
+        "Please select a target position before uploading your resume.",
+        [
+          {
+            text: "Select Target Position",
+            onPress: () => router.push("/(student)/(onboarding)/job-selection" as any),
+          },
+        ]
       );
       return;
     }
 
-    if (!currentUser) return;
+    const initialSize = fileToProcess.size > 0 ? fileToProcess.size : 10240;
+    useResumeStore.getState().setProcessingStatus("extracting");
+    setUploadStage("connecting");
+    setUploadProgress(0);
+    setBytesUploaded({ loaded: 0, total: initialSize });
+    setUploadPhase("Connecting to server...");
 
+    let extractedText = "";
+    let sourceFileType: any = "pdf";
+    let sourceDetailType: any = "pdf_text";
+
+    if (fileExtension === "doc" || fileExtension === "docx" || fileToProcess.mimeType.includes("word")) {
+      sourceFileType = "docx";
+      sourceDetailType = "docx_text";
+    } else if (fileExtension === "txt" || fileToProcess.mimeType === "text/plain") {
+      sourceFileType = "txt";
+      sourceDetailType = "txt_direct";
+    } else if (fileExtension === "png" || fileExtension === "jpg" || fileExtension === "jpeg" || fileExtension === "webp" || fileExtension === "heic" || fileToProcess.mimeType.startsWith("image/")) {
+      sourceFileType = "image";
+      sourceDetailType = "image_ocr";
+    }
+
+    let precomputedAnalysis: any = undefined;
+    try {
+      const uploadResult = await uploadResumeFileWithProgress(
+        { ...fileToProcess, size: initialSize },
+        targetPosition,
+        (progressEvent: UploadProgressEvent) => {
+          setUploadProgress(progressEvent.progress);
+          setBytesUploaded({ loaded: progressEvent.loaded, total: progressEvent.total || initialSize });
+          if (progressEvent.phase === "connecting") {
+            setUploadStage("connecting");
+            setUploadPhase("Connecting to server...");
+          } else if (progressEvent.phase === "uploading") {
+            setUploadStage("uploading");
+            setUploadPhase(`Uploading your resume... (${progressEvent.progress}%)`);
+          } else {
+            setUploadStage("extracting");
+            setUploadPhase("Reading & checking your resume...");
+          }
+        },
+        currentUser?.fullName || ""
+      );
+
+      extractedText = uploadResult.rawText;
+      precomputedAnalysis = uploadResult.analysisResult || ((uploadResult as any).atsScore ? uploadResult as any : undefined);
+    } catch (backendError: any) {
+      const normErr = normalizeApiError(backendError);
+      const isImageFile = sourceFileType === "image" || (validExtensions.includes(fileExtension) && ["png", "jpg", "jpeg", "webp", "heic"].includes(fileExtension));
+      const isHttpAppError = Boolean(backendError?.isHttpError || backendError?.status || (normErr.code !== "UNKNOWN_ERROR" && normErr.code !== "NETWORK_ERROR"));
+
+      if (
+        isHttpAppError ||
+        isImageFile ||
+        normErr.code === "EXCEEDED_PAGE_LIMIT" ||
+        normErr.code === "NAME_MISMATCH" ||
+        normErr.code === "INVALID_RESUME" ||
+        normErr.userMessage.includes("exceed 3 pages") ||
+        normErr.userMessage.includes("belong to a different individual") ||
+        normErr.userMessage.includes("doesn't appear to be a resume") ||
+        normErr.userMessage.includes("valid resume")
+      ) {
+        useResumeStore.getState().setProcessingStatus("idle");
+        setUploadStage("idle");
+        setUploadProgress(0);
+        setIsInvalidDocument(true);
+        setValidationError(normErr.userMessage);
+        setHasValidUploadCompleted(false);
+        Alert.alert("Upload Notice", normErr.userMessage);
+        return;
+      }
+
+      console.log("Backend network connection unreachable. Attempting client parser fallback for text document:", backendError);
+      setUploadStage("extracting");
+      setUploadPhase("Reading document content...");
+      setUploadProgress(50);
+      setBytesUploaded({ loaded: Math.round(initialSize * 0.5), total: initialSize });
+
+      try {
+        extractedText = await extractTextFromFile(fileToProcess.uri, fileToProcess.name, fileToProcess.mimeType);
+        validateResumeText(extractedText);
+      } catch (clientErr) {
+        const clientNorm = normalizeApiError(clientErr);
+        useResumeStore.getState().setProcessingStatus("idle");
+        setUploadStage("idle");
+        setUploadProgress(0);
+        setIsInvalidDocument(true);
+        setValidationError(clientNorm.userMessage);
+        setHasValidUploadCompleted(false);
+        Alert.alert("Upload Notice", clientNorm.userMessage);
+        return;
+      }
+
+      setUploadProgress(100);
+      setBytesUploaded({ loaded: initialSize, total: initialSize });
+    }
+
+    // Name Matching Decision Flow (Warning / Confirmation)
+    const nameCheck = classifyNameMatch(currentUser.fullName || "", extractedText);
+    if (nameCheck.classification === "CLEAR_MISMATCH") {
+      const confirmProceed = await new Promise<boolean>((resolve) => {
+        Alert.alert(
+          "Name Verification Warning",
+          "The candidate name in the uploaded document appears to differ from your profile name. Would you like to proceed with this resume or select another file?",
+          [
+            { text: "Select Different File", style: "cancel", onPress: () => resolve(false) },
+            { text: "Proceed Anyway", style: "default", onPress: () => resolve(true) },
+          ]
+        );
+      });
+
+      if (!confirmProceed) {
+        useResumeStore.getState().setProcessingStatus("idle");
+        setUploadStage("idle");
+        setUploadProgress(0);
+        setTempFile(null);
+        setIsInvalidDocument(true);
+        setValidationError("The uploaded document name does not match your profile name.");
+        setHasValidUploadCompleted(false);
+        return;
+      }
+    }
+
+    setUploadStage("saving");
+    setUploadPhase("Finalizing resume analysis & saving...");
+    setUploadProgress(100);
+
+    await uploadAndProcessResume(
+      currentUser.uid,
+      currentUser.targetPosition || "",
+      fileToProcess,
+      sourceFileType,
+      sourceDetailType,
+      extractedText,
+      precomputedAnalysis
+    );
+
+    const currentStatus = useResumeStore.getState().processingStatus;
+    setIsInvalidDocument(false);
+    setValidationError(null);
+    setHasValidUploadCompleted(true);
+    if (currentStatus === "awaiting_self_assessment") {
+      setUploadStage("awaiting_assessment");
+      setUploadPhase("Please rate your confidence for the target skills below.");
+    } else {
+      setUploadStage("completed");
+    }
+    } finally {
+      isSubmittingRef.current = false;
+    }
+  };
+
+  const pickDocumentResume = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ["*/*"],
@@ -99,167 +294,96 @@ export default function ResumeUploadIntroScreen() {
       }
 
       const asset = result.assets[0];
-      const initialSize = asset.size && asset.size > 0 ? asset.size : 10240;
       const selectedFile = {
         uri: asset.uri,
         name: asset.name,
         mimeType: asset.mimeType || "application/octet-stream",
-        size: initialSize,
+        size: asset.size && asset.size > 0 ? asset.size : 10240,
       };
 
-      const fileExtension = selectedFile.name.split(".").pop()?.toLowerCase() || "";
-      const validExtensions = ["pdf", "doc", "docx", "txt", "png", "jpg", "jpeg"];
-      const isValidMime =
-        selectedFile.mimeType.includes("pdf") ||
-        selectedFile.mimeType.includes("word") ||
-        selectedFile.mimeType.includes("text") ||
-        selectedFile.mimeType.startsWith("image/");
-
-      if (!validExtensions.includes(fileExtension) && !isValidMime) {
-        Alert.alert("Unsupported Format", "Please select a PDF, DOCX, TXT, or Image file.");
-        return;
-      }
-
-      const targetPosition = (currentUser?.targetPosition || "").trim();
-      if (!targetPosition) {
-        Alert.alert(
-          "Target Position Required",
-          "Please select a target position before uploading your resume.",
-          [
-            {
-              text: "Select Target Position",
-              onPress: () => router.push("/(student)/(onboarding)/job-selection" as any),
-            },
-          ]
-        );
-        return;
-      }
-
-      useResumeStore.getState().setProcessingStatus("extracting");
-      setUploadStage("uploading");
-      setUploadProgress(0);
-      setBytesUploaded({ loaded: 0, total: initialSize });
-      setUploadPhase("Uploading resume file...");
-
-      let extractedText = "";
-      let sourceFileType: any = "pdf";
-      let sourceDetailType: any = "pdf_text";
-
-      if (fileExtension === "doc" || fileExtension === "docx" || selectedFile.mimeType.includes("word")) {
-        sourceFileType = "docx";
-        sourceDetailType = "docx_text";
-      } else if (fileExtension === "txt" || selectedFile.mimeType === "text/plain") {
-        sourceFileType = "txt";
-        sourceDetailType = "txt_direct";
-      } else if (fileExtension === "png" || fileExtension === "jpg" || fileExtension === "jpeg" || selectedFile.mimeType.startsWith("image/")) {
-        sourceFileType = "image";
-        sourceDetailType = "image_ocr";
-      }
-
-      let precomputedAnalysis: any = undefined;
-      try {
-        const uploadResult = await uploadResumeFileWithProgress(
-          { ...selectedFile, size: initialSize },
-          targetPosition,
-          (progressEvent: UploadProgressEvent) => {
-            setUploadProgress(progressEvent.progress);
-            setBytesUploaded({ loaded: progressEvent.loaded, total: progressEvent.total || initialSize });
-            if (progressEvent.phase === "uploading") {
-              setUploadStage("uploading");
-              setUploadPhase(`Uploading resume file... (${progressEvent.progress}%)`);
-            } else {
-              setUploadStage("analyzing");
-              setUploadPhase("Parsing resume sections & evaluating alignment...");
-            }
-          },
-          currentUser?.fullName || ""
-        );
-
-        extractedText = uploadResult.rawText;
-        precomputedAnalysis = uploadResult.analysisResult;
-      } catch (backendError) {
-        const normErr = normalizeApiError(backendError);
-        if (
-          normErr.code === "EXCEEDED_PAGE_LIMIT" ||
-          normErr.code === "NAME_MISMATCH" ||
-          normErr.code === "INVALID_RESUME" ||
-          normErr.userMessage.includes("exceed 3 pages") ||
-          normErr.userMessage.includes("belong to a different individual") ||
-          normErr.userMessage.includes("doesn't appear to be a resume") ||
-          normErr.userMessage.includes("valid resume")
-        ) {
-          throw new Error(normErr.userMessage);
-        }
-        console.log("Backend upload fallback to client parser:", backendError);
-        setUploadStage("extracting");
-        setUploadPhase("Reading document content...");
-        setUploadProgress(50);
-        setBytesUploaded({ loaded: Math.round(initialSize * 0.5), total: initialSize });
-
-        if (fileExtension === "txt" || selectedFile.mimeType === "text/plain") {
-          extractedText = await extractTextFromFile(selectedFile.uri, selectedFile.name, selectedFile.mimeType);
-        } else {
-          const fullName = currentUser.fullName || "Student";
-          const college = currentUser.college || "";
-          const degreeProgram = currentUser.degreeProgram || "";
-          extractedText = getMockResumeText(fullName, college, degreeProgram, targetPosition);
-        }
-
-        setUploadProgress(100);
-        setBytesUploaded({ loaded: initialSize, total: initialSize });
-      }
-
-      // Name Matching Decision Flow (Warning / Confirmation)
-      const nameCheck = classifyNameMatch(currentUser.fullName || "", extractedText);
-      if (nameCheck.classification === "CLEAR_MISMATCH") {
-        const confirmProceed = await new Promise<boolean>((resolve) => {
-          Alert.alert(
-            "Name Verification Warning",
-            "The candidate name in the uploaded document appears to differ from your profile name. Would you like to proceed with this resume or select another file?",
-            [
-              { text: "Select Different File", style: "cancel", onPress: () => resolve(false) },
-              { text: "Proceed Anyway", style: "default", onPress: () => resolve(true) },
-            ]
-          );
-        });
-
-        if (!confirmProceed) {
-          useResumeStore.getState().setProcessingStatus("idle");
-          setUploadStage("idle");
-          setUploadProgress(0);
-          setTempFile(null);
-          return;
-        }
-      }
-
-      setUploadStage("saving");
-      setUploadPhase("Finalizing resume analysis & saving...");
-      setUploadProgress(100);
-
-      await uploadAndProcessResume(
-        currentUser.uid,
-        currentUser.targetPosition || "",
-        selectedFile,
-        sourceFileType,
-        sourceDetailType,
-        extractedText,
-        precomputedAnalysis
-      );
-
-      const currentStatus = useResumeStore.getState().processingStatus;
-      if (currentStatus === "awaiting_self_assessment") {
-        setUploadStage("awaiting_assessment");
-        setUploadPhase("Please rate your confidence for the target skills below.");
-      } else {
-        setUploadStage("completed");
-      }
+      await processSelectedResumeFile(selectedFile);
     } catch (err) {
       useResumeStore.getState().setProcessingStatus("idle");
       setUploadStage("idle");
       setUploadProgress(0);
-      const normalized = normalizeApiError(err, "Failed to process resume upload.");
+      const normalized = normalizeApiError(err, "Failed to process resume document.");
+      setIsInvalidDocument(true);
+      setValidationError(normalized.userMessage);
+      setHasValidUploadCompleted(false);
       Alert.alert("Upload Notice", normalized.userMessage);
     }
+  };
+
+  const pickPhotoLibraryResume = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert("Permission Required", "AIRIS needs access to your Photo Library to select image resumes.");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 1,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      const ext = asset.mimeType?.split("/")[1] || "jpg";
+      const fileName = asset.fileName || `resume_image_${Date.now()}.${ext}`;
+      const selectedFile = {
+        uri: asset.uri,
+        name: fileName,
+        mimeType: asset.mimeType || "image/jpeg",
+        size: asset.fileSize || 102400,
+      };
+
+      await processSelectedResumeFile(selectedFile);
+    } catch (err) {
+      useResumeStore.getState().setProcessingStatus("idle");
+      setUploadStage("idle");
+      setUploadProgress(0);
+      const normalized = normalizeApiError(err, "Failed to process photo resume.");
+      setIsInvalidDocument(true);
+      setValidationError(normalized.userMessage);
+      setHasValidUploadCompleted(false);
+      Alert.alert("Upload Notice", normalized.userMessage);
+    }
+  };
+
+  const handleUploadResume = async () => {
+    if (!agreeTerms || !agreePrivacy) {
+      Alert.alert(
+        "Consent Required",
+        "Please check and agree to both the Terms of Service and Privacy Policy before uploading your resume."
+      );
+      return;
+    }
+
+    if (!currentUser) return;
+
+    Alert.alert(
+      "Choose Resume Source",
+      "Select your resume document or photo from library:",
+      [
+        {
+          text: "Document File (PDF, DOCX, TXT)",
+          onPress: pickDocumentResume,
+        },
+        {
+          text: "Photo Library (PNG, JPG, HEIC)",
+          onPress: pickPhotoLibraryResume,
+        },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+      ]
+    );
   };
 
   const handlePasteSubmit = async () => {
@@ -269,6 +393,17 @@ export default function ResumeUploadIntroScreen() {
     }
 
     if (!currentUser) return;
+
+    try {
+      validateResumeText(pastedText);
+    } catch (valErr) {
+      const normVal = normalizeApiError(valErr);
+      setIsInvalidDocument(true);
+      setValidationError(normVal.userMessage);
+      setHasValidUploadCompleted(false);
+      Alert.alert("Upload Notice", normVal.userMessage);
+      return;
+    }
 
     const fileExtension = tempFile.name.split(".").pop()?.toLowerCase() || "";
     const sourceFileType = (fileExtension === "pdf" ? "pdf" : "image") as any;
@@ -284,6 +419,9 @@ export default function ResumeUploadIntroScreen() {
         pastedText
       );
       const currentStatus = useResumeStore.getState().processingStatus;
+      setIsInvalidDocument(false);
+      setValidationError(null);
+      setHasValidUploadCompleted(true);
       if (currentStatus === "awaiting_self_assessment") {
         setUploadStage("awaiting_assessment");
         setUploadPhase("Please rate your confidence for the target skills below.");
@@ -293,11 +431,31 @@ export default function ResumeUploadIntroScreen() {
       setPastedText("");
       setTempFile(null);
     } catch (err) {
-      Alert.alert("Analysis Error", err instanceof Error ? err.message : "Failed to analyze and save resume.");
+      const normErr = normalizeApiError(err);
+      setIsInvalidDocument(true);
+      setValidationError(normErr.userMessage);
+      setHasValidUploadCompleted(false);
+      Alert.alert("Analysis Error", normErr.userMessage);
     }
   };
 
   const handleContinue = async () => {
+    if (isInvalidDocument || validationError) {
+      Alert.alert(
+        "Invalid Resume Document",
+        validationError || "The selected document is invalid. Please select a valid resume or CV file."
+      );
+      return;
+    }
+
+    if (!selectedFile || !hasValidUploadCompleted) {
+      Alert.alert(
+        "Resume Upload Required",
+        "Please select and upload a valid resume or CV file before continuing."
+      );
+      return;
+    }
+
     if (!agreeTerms || !agreePrivacy) {
       Alert.alert("Consent Required", "Please check and agree to both the Terms of Service and Privacy Policy to proceed.");
       return;
@@ -322,9 +480,26 @@ export default function ResumeUploadIntroScreen() {
     processingStatus === "validating" ||
     processingStatus === "parsing" ||
     processingStatus === "analyzing" ||
-    processingStatus === "saving";
+    processingStatus === "saving" ||
+    uploadStage === "connecting" ||
+    uploadStage === "uploading" ||
+    uploadStage === "extracting" ||
+    uploadStage === "analyzing" ||
+    uploadStage === "saving";
 
-  const isSubmitEnabled = agreeTerms && agreePrivacy && !isProcessing;
+  const isAwaitingAssessment =
+    processingStatus === "awaiting_self_assessment" ||
+    uploadStage === "awaiting_assessment";
+
+  const isSubmitEnabled =
+    agreeTerms &&
+    agreePrivacy &&
+    !isProcessing &&
+    !isAwaitingAssessment &&
+    !isInvalidDocument &&
+    !validationError &&
+    selectedFile !== null &&
+    hasValidUploadCompleted;
 
   return (
     <SafeAreaView className="flex-1 bg-[#F4F8FB] px-6" edges={["top", "left", "right"]}>
@@ -344,7 +519,7 @@ export default function ResumeUploadIntroScreen() {
             Upload Your Resume
           </Text>
           <Text className="mt-2 text-center text-sm font-medium text-[#4F6B82] px-4 leading-6">
-            Supported files include PDF, DOCX, TXT, and images. Real-time ATS analysis is run automatically.
+            Supported files include PDF, DOCX, TXT, and images. Real-time ATS analysis will run automatically.
           </Text>
         </View>
 
@@ -360,73 +535,97 @@ export default function ResumeUploadIntroScreen() {
             {isProcessing ? (
               <View className="w-full px-4 py-3">
                 <Text className="text-xs font-bold text-[#1F3A5F] uppercase tracking-wider mb-4 text-center">
-                  Analyzing Your Resume
+                  Processing Your Resume
                 </Text>
 
                 <View className="gap-3">
-                  {/* Stage 1: Upload */}
+                  {/* Stage 1: Connecting / Uploading */}
                   <View className="flex-row items-center">
-                    {uploadStage === "uploading" ? (
+                    {uploadStage === "connecting" || uploadStage === "uploading" ? (
                       <ActivityIndicator size="small" color="#F4A47A" style={{ width: 20, height: 20 }} />
                     ) : (
                       <Ionicons name="checkmark-circle" size={20} color="#79D5C8" />
                     )}
-                    <Text className={`ml-3 text-xs font-semibold ${uploadStage === "uploading" ? "text-[#CA5D25] font-bold" : "text-[#1F3A5F]"}`}>
-                      {uploadStage === "uploading"
-                        ? `Uploading document (${bytesUploaded.total > 0 ? formatBytes(bytesUploaded.loaded) : "in progress"}...)`
-                        : "Document uploaded successfully"}
+                    <Text className={`ml-3 text-xs font-semibold ${uploadStage === "connecting" || uploadStage === "uploading" ? "text-[#CA5D25] font-bold" : "text-[#1F3A5F]"}`}>
+                      {uploadStage === "connecting"
+                        ? "Connecting to server..."
+                        : uploadStage === "uploading"
+                        ? `Uploading your resume... (${bytesUploaded.total > 0 ? formatBytes(bytesUploaded.loaded) : "in progress"})`
+                        : "Resume uploaded"}
                     </Text>
                   </View>
 
-                  {/* Stage 2: Extraction & Structure */}
+                  {/* Stage 2: Reading */}
                   <View className="flex-row items-center">
-                    {uploadStage === "uploading" ? (
+                    {uploadStage === "connecting" || uploadStage === "uploading" ? (
                       <Ionicons name="ellipse-outline" size={20} color="#BFD6EA" />
                     ) : uploadStage === "extracting" ? (
                       <ActivityIndicator size="small" color="#F4A47A" style={{ width: 20, height: 20 }} />
                     ) : (
                       <Ionicons name="checkmark-circle" size={20} color="#79D5C8" />
                     )}
-                    <Text className={`ml-3 text-xs font-semibold ${uploadStage === "extracting" ? "text-[#CA5D25] font-bold" : uploadStage === "uploading" ? "text-[#8B95A5]" : "text-[#1F3A5F]"}`}>
-                      Extracting sections & content
+                    <Text className={`ml-3 text-xs font-semibold ${uploadStage === "extracting" ? "text-[#CA5D25] font-bold" : uploadStage === "connecting" || uploadStage === "uploading" ? "text-[#8B95A5]" : "text-[#1F3A5F]"}`}>
+                      Reading your resume...
                     </Text>
                   </View>
 
-                  {/* Stage 3: Semantic Alignment & SBERT Analysis */}
+                  {/* Stage 3: Checking */}
                   <View className="flex-row items-center">
-                    {uploadStage === "uploading" || uploadStage === "extracting" ? (
+                    {uploadStage === "connecting" || uploadStage === "uploading" || uploadStage === "extracting" ? (
                       <Ionicons name="ellipse-outline" size={20} color="#BFD6EA" />
                     ) : uploadStage === "analyzing" ? (
                       <ActivityIndicator size="small" color="#F4A47A" style={{ width: 20, height: 20 }} />
                     ) : (
                       <Ionicons name="checkmark-circle" size={20} color="#79D5C8" />
                     )}
-                    <Text className={`ml-3 text-xs font-semibold ${uploadStage === "analyzing" ? "text-[#CA5D25] font-bold" : uploadStage === "saving" || uploadStage === "completed" ? "text-[#1F3A5F]" : "text-[#8B95A5]"}`}>
-                      Matching alignment to {currentUser?.targetPosition || "target role"}
+                    <Text className={`ml-3 text-xs font-semibold ${uploadStage === "analyzing" ? "text-[#CA5D25] font-bold" : uploadStage === "saving" || uploadStage === "completed" || uploadStage === "awaiting_assessment" ? "text-[#1F3A5F]" : "text-[#8B95A5]"}`}>
+                      Checking your resume...
                     </Text>
                   </View>
 
-                  {/* Stage 4: Learning Roadmap & Finalization */}
+                  {/* Stage 4: Analyzing */}
                   <View className="flex-row items-center">
                     {uploadStage === "saving" ? (
                       <ActivityIndicator size="small" color="#F4A47A" style={{ width: 20, height: 20 }} />
-                    ) : uploadStage === "completed" ? (
+                    ) : uploadStage === "completed" || uploadStage === "awaiting_assessment" ? (
                       <Ionicons name="checkmark-circle" size={20} color="#79D5C8" />
                     ) : (
                       <Ionicons name="ellipse-outline" size={20} color="#BFD6EA" />
                     )}
-                    <Text className={`ml-3 text-xs font-semibold ${uploadStage === "saving" ? "text-[#CA5D25] font-bold" : uploadStage === "completed" ? "text-[#1F3A5F]" : "text-[#8B95A5]"}`}>
-                      Curating skill gaps & learning roadmap
+                    <Text className={`ml-3 text-xs font-semibold ${uploadStage === "saving" ? "text-[#CA5D25] font-bold" : uploadStage === "completed" || uploadStage === "awaiting_assessment" ? "text-[#1F3A5F]" : "text-[#8B95A5]"}`}>
+                      Analyzing your skills and experience...
+                    </Text>
+                  </View>
+
+                  {/* Stage 5: Preparing */}
+                  <View className="flex-row items-center">
+                    {uploadStage === "completed" || uploadStage === "awaiting_assessment" ? (
+                      <Ionicons name="checkmark-circle" size={20} color="#79D5C8" />
+                    ) : (
+                      <Ionicons name="ellipse-outline" size={20} color="#BFD6EA" />
+                    )}
+                    <Text className={`ml-3 text-xs font-semibold ${uploadStage === "completed" || uploadStage === "awaiting_assessment" ? "text-[#1F3A5F]" : "text-[#8B95A5]"}`}>
+                      Preparing your results...
                     </Text>
                   </View>
                 </View>
               </View>
-            ) : fileName ? (
+            ) : isInvalidDocument ? (
+              <>
+                <View className="h-16 w-16 items-center justify-center rounded-full bg-[#FEF5F1] shadow-sm mb-3">
+                  <Ionicons name="alert-circle" size={32} color="#CA5D25" />
+                </View>
+                <Text className="text-xs font-bold text-[#CA5D25] text-center px-4 leading-5">
+                  {validationError || "Invalid document selected."}
+                </Text>
+                <Text className="mt-2 text-xs font-bold text-[#1F3A5F]">Tap to select another file</Text>
+              </>
+            ) : selectedFile && hasValidUploadCompleted ? (
               <>
                 <View className="h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm mb-4">
                   <Ionicons name="document-text" size={32} color="#79D5C8" />
                 </View>
-                <Text className="text-base font-bold text-[#79D5C8] text-center px-2">{fileName}</Text>
+                <Text className="text-base font-bold text-[#79D5C8] text-center px-2">{selectedFile.name}</Text>
                 <Text className="mt-2 text-xs font-medium text-[#4F6B82]">Tap to re-upload</Text>
               </>
             ) : (
@@ -641,15 +840,19 @@ export default function ResumeUploadIntroScreen() {
 
       {/* SKILL SELF-ASSESSMENT MODAL IN UPLOAD FLOW */}
       <SkillSelfAssessmentModal
-        visible={processingStatus === "awaiting_self_assessment"}
+        visible={isAwaitingAssessment}
         skills={pendingTargetSkills}
         onSave={async (ratings) => {
+          console.log(`[SELF_ASSESSMENT] session=${useResumeStore.getState().currentAnalysisSessionId} saved`);
           await completeSelfAssessmentAndFinalize(ratings);
           setUploadStage("completed");
+          setHasValidUploadCompleted(true);
         }}
         onSkip={async () => {
+          console.log(`[SELF_ASSESSMENT] session=${useResumeStore.getState().currentAnalysisSessionId} explicit_skip`);
           await completeSelfAssessmentAndFinalize({});
           setUploadStage("completed");
+          setHasValidUploadCompleted(true);
         }}
       />
     </SafeAreaView>

@@ -20,7 +20,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PrimaryButton } from "../../components/ui";
-import { tipManilaPrograms } from "../../data/tipManilaPrograms";
+import { tipManilaCollegePrograms } from "../../data/tipManilaPrograms";
 import { validateCareerRole } from "../../services/ai/careerValidator";
 import { useAuthStore } from "../../store/authStore";
 import { useOnboardingStore } from "../../store/onboardingStore";
@@ -64,13 +64,13 @@ export default function JobSelectionScreen() {
   const programData = React.useMemo(() => {
     const cleanProg = (degreeProgram || "").toLowerCase().trim();
     if (!cleanProg) return null;
-    return tipManilaPrograms
+    return tipManilaCollegePrograms
       .flatMap((c) => c.programs)
       .find((p) => p.name.toLowerCase().trim() === cleanProg || p.name.toLowerCase().includes(cleanProg) || cleanProg.includes(p.name.toLowerCase()));
   }, [degreeProgram]);
 
   const defaultSuggestions = React.useMemo(() => {
-    return programData?.suggestedPositions ?? tipManilaPrograms.flatMap((c) => c.programs.flatMap((p) => p.suggestedPositions)).slice(0, 12);
+    return programData?.suggestedPositions ?? tipManilaCollegePrograms.flatMap((c) => c.programs.flatMap((p) => p.suggestedPositions)).slice(0, 12);
   }, [programData]);
 
   // Instant multi-level search filtering across program suggestions + all catalog roles
@@ -81,7 +81,7 @@ export default function JobSelectionScreen() {
     }
 
     const allCanonicalRoles = Array.from(
-      new Set(tipManilaPrograms.flatMap((c) => c.programs.flatMap((p) => p.suggestedPositions)))
+      new Set(tipManilaCollegePrograms.flatMap((c) => c.programs.flatMap((p) => p.suggestedPositions)))
     );
 
     // 1. First priority: program-specific suggestions matching query
@@ -238,8 +238,9 @@ export default function JobSelectionScreen() {
       <View className="mb-4 flex-row items-center rounded-xl bg-white px-4 h-14 border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
         <Ionicons name="search-outline" size={20} color="#8B95A5" />
         <TextInput
-          className="ml-3 flex-1 text-base text-[#1F3A5F]"
-          placeholder="Search target position..."
+          className="ml-3 flex-1 h-full text-base text-[#1F3A5F]"
+          style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
+          placeholder="Search job title (e.g. Software Engineer)..."
           placeholderTextColor="#94A3B8"
           value={search}
           onChangeText={(txt) => {

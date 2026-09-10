@@ -11,6 +11,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 from ai_validator import is_resume_valid, validate_resume_validity_with_llm
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
+from starlette.concurrency import run_in_threadpool
 from file_utils import extract_text
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -136,14 +137,14 @@ async def analyze_resume(request: Request, authorization: Optional[str] = Header
             parsed_sections = analysis_payload.get("parsedSections") or analysis_payload.get("parsed_sections") or {}
             if not parsed_sections or not isinstance(parsed_sections, dict) or len(parsed_sections) < 2:
                 from resume_parser import parse_resume
-                parsed_sections = parse_resume(raw_text)
+                parsed_sections = await run_in_threadpool(parse_resume, raw_text)
 
             target_pos = str(analysis_payload.get("targetPosition") or analysis_payload.get("target_position") or "").strip()
             if not target_pos:
                 raise HTTPException(status_code=400, detail="Target position is required for resume analysis.")
 
             # Validate resume content BEFORE expensive SBERT / LLM analysis via Universal LLM Resume Validity Gate
-            validity_res = validate_resume_validity_with_llm(raw_text, parsed_sections)
+            validity_res = await run_in_threadpool(validate_resume_validity_with_llm, raw_text, parsed_sections)
             if not validity_res.get("is_resume"):
                 return {
                     "valid": False,
@@ -154,13 +155,15 @@ async def analyze_resume(request: Request, authorization: Optional[str] = Header
             skills_text = str(parsed_sections.get("Skills", ""))
             experience_text = str(parsed_sections.get("WorkExperience", "") or parsed_sections.get("Experience", ""))
             # 1. Run semantic similarity scoring with SBERT
-            sbert_results = evaluate_semantic_alignment(
+            sbert_results = await run_in_threadpool(
+                evaluate_semantic_alignment,
                 parsed_sections=parsed_sections,
                 target_position=target_pos
             )
 
             # 2. Get explainable feedback from Gemini AI validator using the authoritative frontend deterministic scores
-            enhanced_result = validate_and_enhance_analysis(
+            enhanced_result = await run_in_threadpool(
+                validate_and_enhance_analysis,
                 raw_text=raw_text,
                 parsed_sections=parsed_sections,
                 target_position=target_pos,
@@ -174,6 +177,7 @@ async def analyze_resume(request: Request, authorization: Optional[str] = Header
                 "analysisId": analysis_id,
                 "parsedSections": parsed_sections,
                 "atsScore": enhanced_result["atsScore"],
+                "detectedSkills": enhanced_result.get("detectedSkills", []),
                 "suggestions": enhanced_result["suggestions"],
                 "detectedSections": enhanced_result.get("detectedSections", []),
                 "missingSections": enhanced_result.get("missingSections", []),
@@ -224,23 +228,26 @@ async def upload_resume(
                     detail="The uploaded file is empty. Please choose a valid resume file."
                 )
 
-            allowed_exts = (".pdf", ".docx", ".doc", ".rtf", ".txt")
+            allowed_exts = (".pdf", ".docx", ".doc", ".rtf", ".txt", ".png", ".jpg", ".jpeg", ".webp", ".heic")
             if not any(filename.lower().endswith(ext) for ext in allowed_exts):
                 raise HTTPException(
                     status_code=400,
-                    detail="Invalid file format. Please upload a valid PDF, DOCX, DOC, RTF, or TXT resume document."
+                    detail="Invalid file format. Please upload a valid PDF, DOCX, DOC, RTF, TXT, or Image (PNG, JPG, JPEG, WEBP, HEIC) resume document."
                 )
 
             if filename.lower().endswith(".pdf"):
                 from file_utils import get_pdf_page_count
-                page_count = get_pdf_page_count(content)
+                page_count = await run_in_threadpool(get_pdf_page_count, content)
                 if page_count > 3:
                     raise HTTPException(
                         status_code=400,
                         detail="Resumes must not exceed 3 pages. Please upload a 1–3 page resume."
                     )
 
-            raw_text = extract_text(content, filename)
+            try:
+                raw_text = await run_in_threadpool(extract_text, content, filename)
+            except ValueError as ve:
+                raise HTTPException(status_code=400, detail=str(ve))
 
             if not raw_text or len(raw_text.strip()) < 30:
                 return {
@@ -249,21 +256,11 @@ async def upload_resume(
                     "analysisId": None,
                 }
 
-            user_acc_name = (accountName or account_name or "").strip()
-            if user_acc_name and raw_text:
-                from ai_validator import validate_resume_name_match
-                name_res = validate_resume_name_match(user_acc_name, raw_text)
-                if not name_res["is_valid"]:
-                    raise HTTPException(
-                        status_code=400,
-                        detail=name_res.get("reason") or "The uploaded resume appears to belong to a different individual. Please ensure you upload your own resume."
-                    )
-
             from resume_parser import parse_resume
-            parsed_sections = parse_resume(raw_text)
+            parsed_sections = await run_in_threadpool(parse_resume, raw_text)
 
-            # Validate resume content BEFORE expensive SBERT / LLM analysis via Universal LLM Resume Validity Gate
-            validity_res = validate_resume_validity_with_llm(raw_text, parsed_sections)
+            # Invariant: Unsupported / Invalid documents MUST be validated as resume BEFORE identity checking
+            validity_res = await run_in_threadpool(validate_resume_validity_with_llm, raw_text, parsed_sections)
             if not validity_res.get("is_resume"):
                 return {
                     "valid": False,
@@ -271,14 +268,26 @@ async def upload_resume(
                     "analysisId": None,
                 }
 
+            user_acc_name = (accountName or account_name or "").strip()
+            if user_acc_name and raw_text:
+                from ai_validator import validate_resume_name_match
+                name_res = await run_in_threadpool(validate_resume_name_match, user_acc_name, raw_text)
+                if not name_res["is_valid"]:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=name_res.get("reason") or "The uploaded resume appears to belong to a different individual. Please ensure you upload your own resume."
+                    )
+
             analysis_id = str(uuid.uuid4())
 
-            sbert_results = evaluate_semantic_alignment(
+            sbert_results = await run_in_threadpool(
+                evaluate_semantic_alignment,
                 parsed_sections=parsed_sections,
                 target_position=selected_position
             )
 
-            enhanced_result = validate_and_enhance_analysis(
+            enhanced_result = await run_in_threadpool(
+                validate_and_enhance_analysis,
                 raw_text=raw_text,
                 parsed_sections=parsed_sections,
                 target_position=selected_position,
@@ -292,6 +301,7 @@ async def upload_resume(
                 "rawText": raw_text,
                 "parsedSections": parsed_sections,
                 "atsScore": enhanced_result["atsScore"],
+                "detectedSkills": enhanced_result.get("detectedSkills", []),
                 "suggestions": enhanced_result["suggestions"],
                 "detectedSections": enhanced_result.get("detectedSections", []),
                 "missingSections": enhanced_result.get("missingSections", []),

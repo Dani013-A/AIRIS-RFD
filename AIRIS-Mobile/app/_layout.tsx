@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
+import { DarkTheme, DefaultTheme, ThemeProvider } from "expo-router/react-navigation";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
@@ -130,9 +130,6 @@ export default function RootLayout() {
     const setupIncomplete = currentUser.hasCompletedInitialSetup !== true || hasMissingSetupFields;
 
     if (setupIncomplete) {
-      if (isCurrentlyOnboarding) {
-        return;
-      }
       if (!currentUser.college) {
         if (!inStudentGroup || currentSegment !== "college-selection") {
           router.replace("/(student)/college-selection");
@@ -141,9 +138,13 @@ export default function RootLayout() {
         if (!inStudentGroup || currentSegment !== "program-selection") {
           router.replace("/(student)/program-selection");
         }
-      } else {
+      } else if (!currentUser.targetPosition) {
         if (!inStudentGroup || currentSegment !== "position-selection") {
           router.replace("/(student)/position-selection");
+        }
+      } else if (!inStudentGroup || currentSegment !== "college-selection") {
+        if (!isCurrentlyOnboarding) {
+          router.replace("/(student)/college-selection");
         }
       }
       return;

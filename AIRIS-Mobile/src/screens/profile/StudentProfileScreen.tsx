@@ -18,7 +18,7 @@ import { useResumeStore } from "../../store/resumeStore";
 import { PrimaryButton } from "../../components/ui";
 import { fetchUserActivities, UserActivity } from "../../services/firebase/activityService";
 import { Image } from "expo-image";
-import { tipManilaPrograms } from "../../data/tipManilaPrograms";
+import { tipManilaPrograms, tipManilaCollegePrograms } from "../../data/tipManilaPrograms";
 import { PasswordRequirementsView } from "../../components/ui/PasswordRequirementsView";
 import { validatePassword } from "../../utils/passwordPolicy";
 import { validatePersonName, validateAcademicSelection } from "../../utils/inputValidator";
@@ -494,7 +494,8 @@ export default function StudentProfileScreen() {
                   <View className="gap-2">
                     <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">Full Name</Text>
                     <TextInput
-                      className="rounded-xl border border-[#BFD6EA] px-4 py-3 text-base text-[#1F3A5F] bg-[#F4F8FB] h-12"
+                      className="rounded-xl border border-[#BFD6EA] px-4 text-base text-[#1F3A5F] bg-[#F4F8FB] h-12"
+                      style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
                       value={editName}
                       onChangeText={setEditName}
                       placeholder="Full Name"
@@ -508,7 +509,7 @@ export default function StudentProfileScreen() {
                     <TouchableOpacity
                       onPress={() => setShowCollegeModal(true)}
                       disabled={loading || isRetargeting}
-                      className="rounded-xl border border-[#BFD6EA] px-4 py-3 bg-[#F4F8FB] h-12 flex-row items-center justify-between"
+                      className="rounded-xl border border-[#BFD6EA] px-4 bg-[#F4F8FB] h-12 flex-row items-center justify-between"
                     >
                       <Text className={`text-base ${editCollege ? "text-[#1F3A5F] font-semibold" : "text-[#94A3B8]"}`}>
                         {editCollege || "Select College Department"}
@@ -528,7 +529,7 @@ export default function StudentProfileScreen() {
                         setShowProgramModal(true);
                       }}
                       disabled={loading || isRetargeting}
-                      className="rounded-xl border border-[#BFD6EA] px-4 py-3 bg-[#F4F8FB] h-12 flex-row items-center justify-between"
+                      className="rounded-xl border border-[#BFD6EA] px-4 bg-[#F4F8FB] h-12 flex-row items-center justify-between"
                     >
                       <Text className={`text-base ${editProgram ? "text-[#1F3A5F] font-semibold" : "text-[#94A3B8]"}`}>
                         {editProgram || "Select Degree Program"}
@@ -547,7 +548,8 @@ export default function StudentProfileScreen() {
                       )}
                     </View>
                     <TextInput
-                      className="rounded-xl border border-[#BFD6EA] px-4 py-3 text-base text-[#1F3A5F] bg-[#F4F8FB] h-12"
+                      className="rounded-xl border border-[#BFD6EA] px-4 text-base text-[#1F3A5F] bg-[#F4F8FB] h-12"
+                      style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
                       value={editCareer}
                       onChangeText={setEditCareer}
                       placeholder="e.g. Software Engineer"
@@ -558,7 +560,7 @@ export default function StudentProfileScreen() {
                     {/* Dynamic career suggestion pills from canonical academic catalog */}
                     <View className="flex-row flex-wrap gap-1.5 mt-1">
                       {(() => {
-                        const collegeData = tipManilaPrograms.find((c) => c.name.toLowerCase() === editCollege.toLowerCase());
+                        const collegeData = tipManilaCollegePrograms.find((c) => c.name.toLowerCase() === editCollege.toLowerCase());
                         const progData = collegeData?.programs.find((p) => p.name.toLowerCase() === editProgram.toLowerCase());
                         const dynamicSuggestions = progData?.suggestedPositions || [
                           "Software Engineer", "Data Analyst", "Civil Engineer", "Accountant", "Architect", "QA Engineer"
@@ -647,8 +649,8 @@ export default function StudentProfileScreen() {
                     <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">Current Password</Text>
                     <View className="flex-row items-center rounded-xl border border-[#BFD6EA] px-4 bg-[#F4F8FB] h-12">
                       <TextInput
-                        className="flex-1 text-base text-[#1F3A5F]"
-                        style={{ paddingVertical: 0 }}
+                        className="flex-1 h-full text-base text-[#1F3A5F]"
+                        style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
                         placeholder="Current Password"
                         placeholderTextColor="#94A3B8"
                         value={currentPassword}
@@ -674,8 +676,8 @@ export default function StudentProfileScreen() {
                     <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">New Password</Text>
                     <View className="flex-row items-center rounded-xl border border-[#BFD6EA] px-4 bg-[#F4F8FB] h-12">
                       <TextInput
-                        className="flex-1 text-base text-[#1F3A5F]"
-                        style={{ paddingVertical: 0 }}
+                        className="flex-1 h-full text-base text-[#1F3A5F]"
+                        style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
                         placeholder="New Password"
                         placeholderTextColor="#94A3B8"
                         value={newPassword}
@@ -703,8 +705,8 @@ export default function StudentProfileScreen() {
                     <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">Confirm Password</Text>
                     <View className="flex-row items-center rounded-xl border border-[#BFD6EA] px-4 bg-[#F4F8FB] h-12">
                       <TextInput
-                        className="flex-1 text-base text-[#1F3A5F]"
-                        style={{ paddingVertical: 0 }}
+                        className="flex-1 h-full text-base text-[#1F3A5F]"
+                        style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
                         placeholder="Confirm Password"
                         placeholderTextColor="#94A3B8"
                         value={confirmPassword}
@@ -806,7 +808,7 @@ export default function StudentProfileScreen() {
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 20 }}>
-              {tipManilaPrograms.map((c) => {
+              {tipManilaCollegePrograms.map((c) => {
                 const isSelected = editCollege.toLowerCase() === c.name.toLowerCase();
                 return (
                   <TouchableOpacity
@@ -848,7 +850,7 @@ export default function StudentProfileScreen() {
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 20 }}>
               {(() => {
-                const collegeData = tipManilaPrograms.find((c) => c.name.toLowerCase() === editCollege.toLowerCase());
+                const collegeData = tipManilaCollegePrograms.find((c) => c.name.toLowerCase() === editCollege.toLowerCase());
                 const availablePrograms = collegeData ? collegeData.programs : [];
                 return availablePrograms.map((p) => {
                   const isSelected = editProgram.toLowerCase() === p.name.toLowerCase();
@@ -919,8 +921,8 @@ export default function StudentProfileScreen() {
               <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">Current Password</Text>
               <View className="flex-row items-center rounded-xl border border-[#BFD6EA] px-4 bg-[#F4F8FB] h-12">
                 <TextInput
-                  className="flex-1 text-base text-[#1F3A5F]"
-                  style={{ paddingVertical: 0 }}
+                  className="flex-1 h-full text-base text-[#1F3A5F]"
+                  style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
                   placeholder="Enter current password"
                   placeholderTextColor="#94A3B8"
                   value={reauthPassword}

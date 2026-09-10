@@ -20,7 +20,8 @@ def call_gemini(prompt: str) -> str:
     def _do_call():
         if hasattr(genai, "configure"):
             genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        gemini_model_name = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+        model = genai.GenerativeModel(gemini_model_name)
         response = model.generate_content(prompt)
         return response.text.strip()
 
@@ -85,6 +86,8 @@ def call_mistral(prompt: str) -> str:
     res.raise_for_status()
     return res.json()["choices"][0]["message"]["content"].strip()
 
+_provider_cooldown: Dict[str, float] = {}
+
 def generate_text_with_fallback(prompt: str) -> str:
     """
     Attempts to complete a prompt using available providers.
@@ -109,7 +112,10 @@ def generate_text_with_fallback(prompt: str) -> str:
         providers.append(("OpenRouter", call_openrouter))
 
     errors = []
+    now = time.time()
     for name, func in providers:
+        if name in _provider_cooldown and now < _provider_cooldown[name]:
+            continue
         try:
             print(f"Executing provider: {name} ...")
             start_time = time.time()
@@ -123,6 +129,9 @@ def generate_text_with_fallback(prompt: str) -> str:
             err_msg = f"{name} error after {elapsed:.2f}s: {str(e)}"
             print(err_msg)
             errors.append(err_msg)
+            # Circuit breaker: cooldown for 30s on rate-limit (429) or payment error (402)
+            if "429" in err_msg or "402" in err_msg or "quota" in err_msg.lower():
+                _provider_cooldown[name] = now + 30.0
 
     raise RuntimeError(f"All AI API providers failed: {'; '.join(errors)}")
 
@@ -373,10 +382,380 @@ VERIFIED_CERTIFICATION_CATALOG = [
     }
 ]
 
-def sanitize_and_validate_learning_snapshot(snapshot: Dict[str, Any], target_position: str) -> Dict[str, Any]:
+CANONICAL_SKILL_MAP: Dict[str, str] = {
+    "react.js": "React",
+    "reactjs": "React",
+    "react js": "React",
+    "react": "React",
+    "react native": "React Native",
+    "react-native": "React Native",
+    "node.js": "Node.js",
+    "nodejs": "Node.js",
+    "node js": "Node.js",
+    "node": "Node.js",
+    "express.js": "Express.js",
+    "expressjs": "Express.js",
+    "express js": "Express.js",
+    "express": "Express.js",
+    "vue.js": "Vue.js",
+    "vuejs": "Vue.js",
+    "vue js": "Vue.js",
+    "vue": "Vue.js",
+    "next.js": "Next.js",
+    "nextjs": "Next.js",
+    "next js": "Next.js",
+    "next": "Next.js",
+    "javascript": "JavaScript",
+    "js": "JavaScript",
+    "ecmascript": "JavaScript",
+    "es6": "JavaScript",
+    "typescript": "TypeScript",
+    "ts": "TypeScript",
+    "c++": "C++",
+    "cpp": "C++",
+    "c plus plus": "C++",
+    "c#": "C#",
+    "csharp": "C#",
+    "c sharp": "C#",
+    "vb.net": "VB.NET",
+    "vb net": "VB.NET",
+    "visual basic .net": "VB.NET",
+    "visual basic": "VB.NET",
+    ".net": ".NET",
+    "net": ".NET",
+    "dotnet": ".NET",
+    "dot net": ".NET",
+    "rest api": "REST API",
+    "restful api": "REST API",
+    "restful apis": "REST API",
+    "rest apis": "REST API",
+    "aws": "AWS",
+    "amazon web services": "AWS",
+    "aws ec2": "AWS EC2",
+    "ec2": "AWS EC2",
+    "aws rds": "AWS RDS",
+    "rds": "AWS RDS",
+    "gcp": "GCP",
+    "google cloud": "GCP",
+    "google cloud platform": "GCP",
+    "sql": "SQL",
+    "structured query language": "SQL",
+    "mysql": "MySQL",
+    "postgresql": "PostgreSQL",
+    "postgres": "PostgreSQL",
+    "sqlite": "SQLite",
+    "mongodb": "MongoDB",
+    "redis": "Redis",
+    "pytorch": "PyTorch",
+    "tensorflow": "TensorFlow",
+    "scikit-learn": "Scikit-Learn",
+    "sklearn": "Scikit-Learn",
+    "numpy": "NumPy",
+    "pandas": "Pandas",
+    "html": "HTML",
+    "html5": "HTML",
+    "css": "CSS",
+    "css3": "CSS",
+    "excel": "Excel",
+    "ms excel": "Excel",
+    "microsoft excel": "Excel",
+    "advanced excel": "Advanced Excel",
+    "autocad": "AutoCAD",
+    "auto cad": "AutoCAD",
+    "quickbooks": "QuickBooks",
+    "quick books": "QuickBooks",
+    "staad.pro": "STAAD.Pro",
+    "staad pro": "STAAD.Pro",
+    "staad-pro": "STAAD.Pro",
+    "sentence transformers": "Sentence Transformers",
+    "sentence-transformers": "Sentence Transformers",
+    "sbert": "SBERT",
+    "fastapi": "FastAPI",
+    "postman": "Postman",
+    "github": "GitHub",
+    "gitlab": "GitLab",
+    "openrouter": "OpenRouter",
+    "git": "Git",
+    "figma": "Figma",
+    "unity": "Unity",
+    "android studio": "Android Studio",
+    "power bi": "Power BI",
+    "powerbi": "Power BI",
+    "sap": "SAP",
+    "erp": "ERP",
+    "revit": "Revit",
+    "autodesk revit": "Revit",
+    "sketchup": "SketchUp",
+    "spss": "SPSS",
+}
+
+CANONICAL_SKILL_ALIASES = {k: [k] for k in CANONICAL_SKILL_MAP}
+for k, v in CANONICAL_SKILL_MAP.items():
+    canon_l = v.lower()
+    CANONICAL_SKILL_ALIASES.setdefault(canon_l, [])
+    if k not in CANONICAL_SKILL_ALIASES[canon_l]:
+        CANONICAL_SKILL_ALIASES[canon_l].append(k)
+
+def is_skill_grounded_in_text(skill_name: str, raw_text: str) -> bool:
+    """
+    Robust deterministic evidence verification.
+    Distinguishes legitimate normalization (e.g. React.js -> React, NodeJS -> Node.js,
+    TypeScript / TS -> TypeScript, C++ / C plus plus -> C++) from semantic inference.
+    Tolerates OCR whitespace artifacts, line breaks, and punctuation differences.
+    Strictly forbids inference (React != Angular, SQL != PostgreSQL, GitHub != GitHub Actions or CI/CD).
+    """
+    if not skill_name or not raw_text:
+        return False
+
+    raw_norm = raw_text.lower()
+    raw_norm = raw_norm.replace('“', '"').replace('”', '"').replace('’', "'").replace('–', '-').replace('—', '-')
+
+    skill_clean = skill_name.strip()
+    if not skill_clean or len(skill_clean) < 2:
+        return False
+    skill_lower = skill_clean.lower()
+
+    # Expand search terms with canonical aliases if available
+    search_terms = [skill_lower]
+    canon_target = CANONICAL_SKILL_MAP.get(skill_lower)
+    if canon_target and canon_target.lower() not in search_terms:
+        search_terms.append(canon_target.lower())
+    for alias, canon in CANONICAL_SKILL_MAP.items():
+        if canon.lower() == skill_lower or (canon_target and canon.lower() == canon_target.lower()):
+            if alias not in search_terms:
+                search_terms.append(alias)
+
+    for term in search_terms:
+        clean_t = term.strip()
+        if not clean_t:
+            continue
+
+        if re.match(r'^[a-zA-Z0-9\s]+$', clean_t):
+            # Purely alphanumeric: enforce word boundaries so e.g. "java" does not match "javascript"
+            words = clean_t.split()
+            escaped_words = [re.escape(w) for w in words]
+            pat = r'\b' + r'\s+'.join(escaped_words) + r'\b'
+            if re.search(pat, raw_norm, re.IGNORECASE):
+                return True
+        else:
+            # Term contains symbols like C++, C#, .NET, Node.js, STAAD.Pro
+            escaped = re.escape(clean_t)
+            # Allow optional whitespace around punctuation for OCR tolerance (e.g. "node . js", "c ++")
+            escaped = re.sub(r'\\([.\-+])', r'\\s*\\\1\\s*', escaped)
+            left_b = r'(?:\b|(?<=[^a-zA-Z0-9]))' if re.match(r'^\w', clean_t) else r'(?:^|(?<=[\s,;:(•|\n\r]))'
+            right_b = r'(?:\b|(?=[^a-zA-Z0-9]))' if re.match(r'.*\w$', clean_t) else r'(?:$|(?=[\s,;:.)•|\n\r]))'
+            pat = left_b + escaped + right_b
+            if re.search(pat, raw_norm, re.IGNORECASE):
+                return True
+
+    return False
+
+def _format_skill_display_name(skill_str: str) -> str:
+    s = skill_str.strip()
+    if not s:
+        return ""
+    lower = s.lower()
+    if lower in CANONICAL_SKILL_MAP:
+        return CANONICAL_SKILL_MAP[lower]
+    if len(s) <= 4 and s.isupper():
+        return s
+    if any(c.isupper() for c in s[1:]):
+        return s
+    if any(c in s for c in [".", "+", "#", "-", "/"]):
+        return s
+    return " ".join(word.capitalize() for word in s.split())
+
+def _sanitize_and_split_candidate_tokens(raw_token: str, known_catalog_lower: set = None) -> List[str]:
+    if not raw_token:
+        return []
+    # Strip non-alphanumeric punctuation from borders, preserving terminal +, # for C++, C#
+    t = re.sub(r'^[^\w#\+]+|[^\w#\+\.]+$', '', raw_token.strip())
+    # Strip trailing periods
+    t = re.sub(r'\.+$', '', t).strip()
+
+    # Strip leading action verbs, conjunctions, prepositions
+    prefix_pattern = r'^(?:(?:and|or|with|using|via|in|for|built\s+(?:with|using)|developed\s+(?:with|using)|implemented\s+(?:using|with)|created\s+(?:with|using)|integrated|automated|deployed|managed|designed|engineered|utilized|leveraged|proficient\s+in|skilled\s+in|experience\s+with|experienced\s+(?:with|in)|hands-on\s+with)\s+)+'
+    t = re.sub(prefix_pattern, '', t, flags=re.IGNORECASE).strip()
+
+    # Strip trailing conjunctions, prepositions, or generic category qualifiers
+    suffix_pattern = r'\s+(?:and|or|with|using|etc|and\s+more|LLM\s+APIs?|APIs?|databases?|database\s+design|frameworks?|libraries|library|tools?|technologies|technology|solutions|pipelines?|systems?)$'
+    t = re.sub(suffix_pattern, '', t, flags=re.IGNORECASE).strip()
+
+    # Final cleanup of outer non-word characters (except #, +)
+    t = re.sub(r'^[^\w#\+]+|[^\w#\+]+$', '', t).strip()
+    if not t or len(t) < 2:
+        return []
+
+    # Split on internal delimiters like " and ", " / ", " & "
+    sub_parts = re.split(r'\s+(?:and|\/|&)\s+', t, flags=re.IGNORECASE)
+    results = []
+    for sp in sub_parts:
+        sp_clean = re.sub(r'^[^\w#\+]+|[^\w#\+]+$', '', sp).strip()
+        if not sp_clean or len(sp_clean) < 2:
+            continue
+        # If token is a concatenation of two distinct known catalog technologies (e.g. "Python FastAPI")
+        if known_catalog_lower:
+            words = sp_clean.split()
+            if len(words) == 2 and sp_clean.lower() not in known_catalog_lower:
+                if words[0].lower() in known_catalog_lower and words[1].lower() in known_catalog_lower:
+                    results.append(words[0])
+                    results.append(words[1])
+                    continue
+        results.append(sp_clean)
+    return results
+
+def extract_authoritative_resume_skills(
+    raw_text: str = "",
+    parsed_sections: Dict[str, Any] = None
+) -> List[str]:
+    """
+    Authoritative, domain-neutral candidate skill discovery and deterministic evidence gate.
+    The taxonomy serves only as discovery assistance and canonicalization, NOT as a whitelist.
+    AIRIS detects legitimate unseen competencies (e.g., Terraform, STAAD.Pro, Solidity, Elixir,
+    Psychometrics, IFRS) when evidenced in candidate resume content.
+    """
+    parsed_sections = parsed_sections or {}
+    if raw_text and len(raw_text.strip()) > 20:
+        full_text = raw_text
+    elif "raw_text" in parsed_sections and parsed_sections["raw_text"]:
+        full_text = str(parsed_sections["raw_text"])
+    elif "Content" in parsed_sections and parsed_sections["Content"]:
+        full_text = str(parsed_sections["Content"])
+    else:
+        full_text = "\n\n".join(str(v) for v in parsed_sections.values() if v)
+
+    if not full_text or len(full_text.strip()) < 10:
+        return []
+
+    candidate_proposals = set()
+
+    # 3. Domain-neutral candidate discovery assistance across academic domains
+    DOMAIN_DISCOVERY_CATALOG = [
+        # Computing / IT / Software
+        "Python", "Java", "C++", "C#", "JavaScript", "TypeScript", "SQL", "Kotlin", "VB.NET", ".NET", "Swift", "Go", "Rust", "PHP", "Dart",
+        "React", "React Native", "Expo", "Next.js", "Vue.js", "Angular", "Node.js", "Express.js", "FastAPI", "Django", "Laravel", "Spring Boot",
+        "SBERT", "Sentence Transformers", "Gemini", "Groq", "OpenRouter", "OCR", "Whisper", "PyTorch", "TensorFlow", "Pandas", "NumPy", "Scikit-Learn",
+        "Firebase", "MySQL", "PostgreSQL", "Oracle", "SQLite", "MongoDB", "Redis", "AWS", "AWS EC2", "AWS RDS", "GCP", "Docker", "Kubernetes",
+        "Git", "GitHub", "GitLab", "Postman", "Figma", "Android Studio", "Unity", "Unreal Engine", "REST API", "GraphQL", "CI/CD", "Jenkins",
+        "Linux", "Terraform", "Ansible", "Solidity", "Elixir",
+        # Engineering & Architecture
+        "AutoCAD", "STAAD.Pro", "Revit", "SketchUp", "BIM", "SolidWorks", "MATLAB", "3D Modeling",
+        "Structural Analysis", "Quantity Estimation", "Construction Planning", "Site Safety", "HVAC", "IoT",
+        "Embedded Systems", "Microelectronics", "Power Systems", "Control Systems", "Quality Control", "Six Sigma", "Lean Manufacturing",
+        # Business, Accountancy & Management
+        "Financial Reporting", "Bookkeeping", "Tax Compliance", "Auditing", "Internal Audit", "Internal Controls",
+        "Financial Analysis", "Cost Accounting", "IFRS", "GAAP", "QuickBooks", "SAP", "ERP", "Advanced Excel", "Excel",
+        "Bank Reconciliation", "Financial Modeling", "Payroll Management", "Credit Analysis", "Investment Analysis",
+        "Supply Chain Management", "Logistics Coordination", "Procurement", "Inventory Management",
+        "Digital Marketing", "Social Media Marketing", "Market Research", "SEO", "Google Analytics", "Content Creation",
+        "Talent Acquisition", "Human Resource Management", "Performance Management",
+        # Psychology & Education
+        "Psychological Assessment", "Psychometrics", "Test Construction", "SPSS", "Counseling Techniques",
+        "Behavioral Analysis", "Clinical Psychology", "Instructional Design", "Curriculum Development", "ADDIE Model"
+    ]
+    for cat_item in DOMAIN_DISCOVERY_CATALOG:
+        candidate_proposals.add(cat_item)
+
+    known_catalog_lower = {s.lower() for s in DOMAIN_DISCOVERY_CATALOG}
+    for alias in CANONICAL_SKILL_ALIASES:
+        known_catalog_lower.add(alias.lower())
+
+    # 1. Structured skill sections
+    skill_section_keys = [
+        "Skills", "Technical Skills", "Technologies", "Tech Stack",
+        "Tools & Technologies", "Frameworks & Libraries", "Certifications", "Languages"
+    ]
+    for key in skill_section_keys:
+        sec_val = parsed_sections.get(key, "")
+        if not sec_val or not isinstance(sec_val, str):
+            continue
+        for line in sec_val.splitlines():
+            line_str = line.strip()
+            if not line_str:
+                continue
+            if ":" in line_str:
+                line_str = line_str.split(":", 1)[1].strip()
+            items = re.split(r'[,;•|\n]+|\s+[\/\\]\s+', line_str)
+            for item in items:
+                for clean_item in _sanitize_and_split_candidate_tokens(item, known_catalog_lower):
+                    if 2 <= len(clean_item) <= 40:
+                        candidate_proposals.add(clean_item)
+
+    # 2. Extract bullet points / line lists from full text (enables unseen skills discovery even without explicit sections)
+    ACTION_VERB_PREFIXES = (
+        "developed", "implemented", "automated", "designed", "deployed",
+        "managed", "created", "built", "integrated", "engineered", "led",
+        "conducted", "maintained", "configured", "optimized", "collaborated",
+        "spearheaded", "assisted", "prepared", "analyzed", "coordinated",
+        "provisioned", "performed", "established"
+    )
+
+    for line in full_text.splitlines():
+        line_s = line.strip()
+        if not line_s:
+            continue
+        if any(line_s.startswith(bullet) for bullet in ["•", "-", "*", "·", "▪", "▫", ">"]):
+            stripped_bullet = re.sub(r'^[•\-\*·▪▫>\s]+', '', line_s).strip()
+            if ":" in stripped_bullet and len(stripped_bullet.split(":", 1)[0]) < 25:
+                stripped_bullet = stripped_bullet.split(":", 1)[1].strip()
+
+            first_word = stripped_bullet.split()[0].lower() if stripped_bullet.split() else ""
+            first_word = re.sub(r'[^\w]', '', first_word)
+            if first_word in ACTION_VERB_PREFIXES:
+                # Experience bullet: extract via tech introductory phrases only
+                matches = re.findall(r'(?i)\b(?:using|built\s+(?:with|using)|developed\s+(?:with|using)|implemented\s+(?:using|with)|integrated|technologies?:?|tools?:?)\s+([^;\.\n]+)', stripped_bullet)
+                for m in matches:
+                    m_clean = re.sub(r'(?i)\s+(?:for|to|as|while|so\s+that)\s+.*$', '', m).strip()
+                    for token in re.split(r'[,;•|]+|\s+and\s+', m_clean):
+                        for clean_part in _sanitize_and_split_candidate_tokens(token, known_catalog_lower):
+                            if 2 <= len(clean_part) <= 35:
+                                candidate_proposals.add(clean_part)
+            else:
+                # True skill list bullet
+                for part in re.split(r'[,;•|]+|\s+[\/\\]\s+', stripped_bullet):
+                    for clean_part in _sanitize_and_split_candidate_tokens(part, known_catalog_lower):
+                        if 2 <= len(clean_part) <= 35:
+                            candidate_proposals.add(clean_part)
+
+    # 4. Narrative pattern discovery in projects/experience
+    for key in ["Projects", "WorkExperience", "Content"]:
+        sec_text = parsed_sections.get(key, "")
+        if sec_text and isinstance(sec_text, str):
+            matches = re.findall(r'(?i)\b(?:proficient in|experience with|implemented using|developed using|developed with|built with|built using|skilled in|hands-on with|technologies?:?|tools?:?)\s+([A-Za-z0-9\s#\+\.\-\/]+?)(?:[;\n]|\.\s|$)', sec_text)
+            for m in matches:
+                m_clean = re.sub(r'(?i)\s+(?:for|to|as|while|so\s+that)\s+.*$', '', m).strip()
+                for token in re.split(r'[,;•|]+|\s+and\s+', m_clean):
+                    for clean_part in _sanitize_and_split_candidate_tokens(token, known_catalog_lower):
+                        if 2 <= len(clean_part) <= 30:
+                            candidate_proposals.add(clean_part)
+
+    # 5. Deterministic Evidence Gate
+    accepted_skills = []
+    seen_canonical = set()
+
+    for candidate in sorted(candidate_proposals, key=lambda x: -len(x)):
+        clean_cand = candidate.strip()
+        if not clean_cand or len(clean_cand) < 2:
+            continue
+
+        if is_skill_grounded_in_text(clean_cand, full_text):
+            display_name = _format_skill_display_name(clean_cand)
+            key = display_name.lower()
+            if key not in seen_canonical:
+                seen_canonical.add(key)
+                accepted_skills.append(display_name)
+
+    return accepted_skills
+
+def sanitize_and_validate_learning_snapshot(
+    snapshot: Dict[str, Any],
+    target_position: str,
+    raw_text: str = ""
+) -> Dict[str, Any]:
     """
     Strictly validates resource types, rejects non-certifications from certifications list,
-    ensures zero null URLs, and enforces coach-like supportive language.
+    ensures zero null URLs, enforces coach-like supportive language, and guarantees
+    that careerContext and candidate strengths are strictly grounded in resume evidence.
     """
     if not isinstance(snapshot, dict):
         snapshot = {}
@@ -485,20 +864,43 @@ def sanitize_and_validate_learning_snapshot(snapshot: Dict[str, Any], target_pos
     snapshot["recommendedCourses"] = cleaned_courses
     snapshot["seminars"] = snapshot.get("seminars", []) if isinstance(snapshot.get("seminars"), list) else []
 
+    # Enforce grounding on careerContext and strengths if raw_text is provided
+    if raw_text:
+        if isinstance(snapshot.get("careerContext"), dict):
+            det = snapshot["careerContext"].get("detectedSkills", [])
+            if isinstance(det, list):
+                snapshot["careerContext"]["detectedSkills"] = [
+                    s for s in det if is_skill_grounded_in_text(s, raw_text)
+                ]
+
+        raw_strengths = snapshot.get("strengths", [])
+        if isinstance(raw_strengths, list):
+            valid_strengths = []
+            for s in raw_strengths:
+                s_str = str(s).strip()
+                # Accept if grounded skill or valid high-level narrative summary
+                if is_skill_grounded_in_text(s_str, raw_text) or len(s_str.split()) > 3:
+                    valid_strengths.append(s_str)
+            snapshot["strengths"] = valid_strengths or ["Foundational academic preparation"]
+
     return snapshot
 
 def generate_learning_snapshot(
     target_position: str,
     parsed_sections: Dict[str, Any],
     sbert_results: Dict[str, Any],
-    program: str = ""
+    program: str = "",
+    raw_text: str = ""
 ) -> Dict[str, Any]:
     """
     Dynamically generates a career-specific learning snapshot based on candidate context,
     target position, and identified skill gaps.
+    Guarantees that careerContext['detectedSkills'] contains only authoritative candidate skills.
     """
     evidence = sbert_results.get("evidence", []) if sbert_results else []
-    detected_skills = parsed_sections.get("Skills", "") if parsed_sections else ""
+
+    # Extract authoritative candidate skills from the complete source text
+    grounded_skills = extract_authoritative_resume_skills(raw_text=raw_text, parsed_sections=parsed_sections)
 
     strong_concepts = [e["concept"] for e in evidence if e.get("status") == "STRONG_MATCH"]
     partial_concepts = [e["concept"] for e in evidence if e.get("status") == "PARTIAL_MATCH"]
@@ -576,11 +978,7 @@ def generate_learning_snapshot(
                     })
                     break
 
-        if not matched_certs:
-            matched_certs = []
-
         courses = []
-
         interview_prep = [
             {
                 "questionType": "Technical & Domain",
@@ -601,12 +999,12 @@ def generate_learning_snapshot(
             "degreeProgram": program,
             "resumeVersion": 1,
             "careerSummary": f"Tailored improvement strategy for aspiring {target_position} professionals.",
-            "strengths": strong_concepts[:4] if strong_concepts else ["Foundational academic preparation"],
+            "strengths": [s for s in grounded_skills if any(sc.lower() in s.lower() or s.lower() in sc.lower() for sc in strong_concepts)][:4] or (grounded_skills[:4] if grounded_skills else ["Foundational academic preparation"]),
             "improvementAreas": improvement_areas,
             "careerContext": {
                 "targetPosition": target_position,
                 "program": program,
-                "detectedSkills": [s.strip() for s in detected_skills.split(",") if s.strip()][:5] if isinstance(detected_skills, str) else [],
+                "detectedSkills": grounded_skills,
                 "missingSkills": missing_concepts
             },
             "skillGaps": gaps,
@@ -617,7 +1015,7 @@ def generate_learning_snapshot(
             "seminars": [],
             "interviewPrep": interview_prep
         }
-        return sanitize_and_validate_learning_snapshot(fallback, target_position)
+        return sanitize_and_validate_learning_snapshot(fallback, target_position, raw_text=raw_text)
 
     prompt = f"""
     You are an expert AI Career Coach and Learning Curation Engine for AIRIS.
@@ -626,7 +1024,7 @@ def generate_learning_snapshot(
     CANDIDATE CONTEXT:
     - Target Position: "{target_position}"
     - Field/Program of Study: "{program or 'Not Specified'}"
-    - Detected Skills: {detected_skills}
+    - Detected Skills: {grounded_skills}
     - Strong Concept Matches: {', '.join(strong_concepts) if strong_concepts else 'None'}
     - Partial Concept Matches: {', '.join(partial_concepts) if partial_concepts else 'None'}
     - Missing Concept Gaps: {', '.join(missing_concepts) if missing_concepts else 'None'}
@@ -718,7 +1116,13 @@ def generate_learning_snapshot(
             extracted["generatedAt"] = timestamp
             extracted["targetPosition"] = target_position
             extracted["degreeProgram"] = program
-            return sanitize_and_validate_learning_snapshot(extracted, target_position)
+            if not isinstance(extracted.get("careerContext"), dict):
+                extracted["careerContext"] = {}
+            extracted["careerContext"]["targetPosition"] = target_position
+            extracted["careerContext"]["program"] = program
+            extracted["careerContext"]["detectedSkills"] = grounded_skills
+            extracted["careerContext"]["missingSkills"] = missing_concepts
+            return sanitize_and_validate_learning_snapshot(extracted, target_position, raw_text=raw_text)
     except Exception as e:
         print("AI Learning Snapshot generation failed, using dynamic deterministic fallback:", e)
 

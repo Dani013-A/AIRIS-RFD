@@ -154,9 +154,9 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onPress })
       {/* CARD BODY CONTENT */}
       <View className="p-4">
         {/* METADATA LINE */}
-        <View className="flex-row items-center justify-between mb-2">
-          <View className="flex-row items-center gap-1.5">
-            <View className={`px-2 py-0.5 rounded-full border flex-row items-center ${typeTheme.bg} ${typeTheme.border}`}>
+        <View className="flex-row flex-wrap items-center justify-between gap-1.5 mb-2">
+          <View className="flex-row flex-wrap items-center gap-1.5 flex-1">
+            <View className={`px-2.5 py-0.5 rounded-full border flex-row items-center max-w-full ${typeTheme.bg} ${typeTheme.border}`}>
               <Ionicons
                 name={typeTheme.icon}
                 size={10}
@@ -175,7 +175,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onPress })
                 }
                 style={{ marginRight: 3 }}
               />
-              <Text className={`text-[9px] font-bold uppercase tracking-wider ${typeTheme.text}`}>{typeTheme.label}</Text>
+              <Text className={`text-[9px] font-bold uppercase tracking-wider ${typeTheme.text}`} style={{ flexShrink: 1 }}>{typeTheme.label}</Text>
             </View>
 
             {resource.estimatedTime && (

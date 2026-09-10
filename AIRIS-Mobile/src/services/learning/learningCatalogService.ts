@@ -272,6 +272,14 @@ export const CAREER_DOMAINS: CareerDomainProfile[] = [
       "it support specialist",
       "it infrastructure",
       "it technician",
+      "it support technician",
+      "computer systems servicing technician",
+      "computer systems servicing",
+      "helpdesk technician",
+      "pc technician",
+      "hardware technician",
+      "technical support specialist",
+      "hardware support technician",
       "network specialist",
       "information technology",
     ],
@@ -285,6 +293,11 @@ export const CAREER_DOMAINS: CareerDomainProfile[] = [
       "linux",
       "active directory",
       "it support fundamentals",
+      "computer hardware",
+      "pc assembly",
+      "hardware diagnostics",
+      "hardware troubleshooting",
+      "troubleshooting",
       "cloud computing",
       "cybersecurity",
     ],
@@ -960,9 +973,28 @@ export const ACADEMIC_DOMAINS: AcademicDomainProfile[] = [
       "technical-vocational-livelihood",
       "shs gas",
       "shs tvl",
+      "tvl-ict",
+      "tvl ict",
+      "ict track",
+      "computer systems servicing",
     ],
-    coreCompetencies: ["it support fundamentals", "pc assembly", "administrative support", "customer service", "technical skills"],
-    primaryCareers: ["it support technician", "multimedia assistant", "administrative associate", "customer service representative"],
+    coreCompetencies: [
+      "it support fundamentals",
+      "computer hardware",
+      "pc assembly",
+      "hardware diagnostics",
+      "troubleshooting",
+      "administrative support",
+      "customer service",
+      "technical skills",
+    ],
+    primaryCareers: [
+      "it support technician",
+      "computer systems servicing technician",
+      "multimedia assistant",
+      "administrative associate",
+      "customer service representative",
+    ],
   },
 ];
 
@@ -1216,6 +1248,256 @@ export const GENERIC_TECHNOLOGY_WORDS = new Set([
   "summit",
 ]);
 
+export const CAREER_MODIFIER_WORDS = new Set([
+  "junior",
+  "senior",
+  "associate",
+  "specialist",
+  "intern",
+  "trainee",
+  "lead",
+  "entry",
+  "level",
+  "assistant",
+  "staff",
+  "principal",
+]);
+
+/**
+ * Normalizes a career title into core substantive tokens, stripping modifier prefixes/suffixes.
+ */
+export function getCareerTitleTokens(title: string): string[] {
+  return (title || "")
+    .toLowerCase()
+    .trim()
+    .split(/[\s/\\-]+/)
+    .map((t) => t.replace(/[^a-z0-9]/g, ""))
+    .filter((t) => t.length >= 2 && !CAREER_MODIFIER_WORDS.has(t));
+}
+
+// Known compound acronyms to protect before splitting slashes
+const PROTECTED_ACRONYMS: Record<string, string> = {
+  "ci/cd": "__CI_CD__",
+  "tcp/ip": "__TCP_IP__",
+  "ui/ux": "__UI_UX__",
+  "pl/sql": "__PL_SQL__",
+  "c/c++": "__C_CPP__",
+  "i/o": "__IO__",
+};
+
+export interface ToolOntology {
+  canonical: string;
+  parentConcept?: string;
+  isBroadDiscipline?: boolean;
+}
+
+export const CANONICAL_TOOL_MAP: Record<string, ToolOntology> = {
+  // Databases (Relational & NoSQL)
+  "postgresql": { canonical: "PostgreSQL", parentConcept: "sql" },
+  "postgres": { canonical: "PostgreSQL", parentConcept: "sql" },
+  "mysql": { canonical: "MySQL", parentConcept: "sql" },
+  "sqlite": { canonical: "SQLite", parentConcept: "sql" },
+  "mariadb": { canonical: "MariaDB", parentConcept: "sql" },
+  "mongodb": { canonical: "MongoDB", parentConcept: "nosql" },
+  "cassandra": { canonical: "Cassandra", parentConcept: "nosql" },
+  "dynamodb": { canonical: "DynamoDB", parentConcept: "nosql" },
+  "redis": { canonical: "Redis", parentConcept: "nosql" },
+  "sql": { canonical: "SQL", isBroadDiscipline: true },
+  "nosql": { canonical: "NoSQL", isBroadDiscipline: true },
+  "database management": { canonical: "database management", isBroadDiscipline: true },
+  "databases": { canonical: "database management", isBroadDiscipline: true },
+
+  // Containers & Orchestration
+  "docker": { canonical: "Docker", parentConcept: "containerization" },
+  "containerization": { canonical: "containerization", isBroadDiscipline: true },
+  "containers": { canonical: "containerization", isBroadDiscipline: true },
+  "kubernetes": { canonical: "Kubernetes", parentConcept: "orchestration" },
+  "k8s": { canonical: "Kubernetes", parentConcept: "orchestration" },
+  "orchestration": { canonical: "orchestration", isBroadDiscipline: true },
+
+  // CI/CD & Version Control
+  "jenkins": { canonical: "Jenkins", parentConcept: "ci/cd" },
+  "github actions": { canonical: "GitHub Actions", parentConcept: "ci/cd" },
+  "gitlab ci": { canonical: "GitLab CI", parentConcept: "ci/cd" },
+  "circleci": { canonical: "CircleCI", parentConcept: "ci/cd" },
+  "ci/cd": { canonical: "CI/CD", isBroadDiscipline: true },
+  "pipeline setup": { canonical: "CI/CD", isBroadDiscipline: true },
+  "git": { canonical: "Git", parentConcept: "version control" },
+  "github": { canonical: "GitHub", parentConcept: "version control" },
+  "gitlab": { canonical: "GitLab", parentConcept: "version control" },
+  "version control": { canonical: "version control", isBroadDiscipline: true },
+
+  // Web & APIs
+  "restful api": { canonical: "REST API", parentConcept: "api design" },
+  "rest api": { canonical: "REST API", parentConcept: "api design" },
+  "rest": { canonical: "REST API", parentConcept: "api design" },
+  "graphql": { canonical: "GraphQL", parentConcept: "api design" },
+  "api design": { canonical: "API design", isBroadDiscipline: true },
+  "node.js": { canonical: "Node.js", parentConcept: "backend development" },
+  "nodejs": { canonical: "Node.js", parentConcept: "backend development" },
+  "express.js": { canonical: "Express.js", parentConcept: "backend development" },
+  "express": { canonical: "Express.js", parentConcept: "backend development" },
+  "django": { canonical: "Django", parentConcept: "backend development" },
+  "fastapi": { canonical: "FastAPI", parentConcept: "backend development" },
+  "server-side development": { canonical: "server-side development", isBroadDiscipline: true },
+  "backend development": { canonical: "backend development", isBroadDiscipline: true },
+
+  // Engineering & Architecture
+  "staad.pro": { canonical: "STAAD.Pro", parentConcept: "structural analysis" },
+  "staad": { canonical: "STAAD.Pro", parentConcept: "structural analysis" },
+  "structural analysis": { canonical: "structural analysis", isBroadDiscipline: true },
+  "solidworks": { canonical: "SolidWorks", parentConcept: "cad" },
+  "cad": { canonical: "CAD", isBroadDiscipline: true },
+  "revit": { canonical: "Revit", parentConcept: "bim" },
+  "bim": { canonical: "BIM", isBroadDiscipline: true },
+  "power systems": { canonical: "Power Systems", isBroadDiscipline: true },
+  "electrical protection": { canonical: "Electrical Protection", isBroadDiscipline: true },
+  "etap": { canonical: "ETAP", parentConcept: "power systems" },
+
+  // Business & Finance
+  "financial reporting": { canonical: "Financial Reporting", isBroadDiscipline: true },
+  "ifrs": { canonical: "IFRS", parentConcept: "financial reporting" },
+  "audit": { canonical: "Audit", isBroadDiscipline: true },
+  "internal controls": { canonical: "Internal Controls", isBroadDiscipline: true },
+  "coso": { canonical: "COSO", parentConcept: "internal controls" },
+  "talent acquisition": { canonical: "Talent Acquisition", isBroadDiscipline: true },
+  "recruitment": { canonical: "Talent Acquisition", isBroadDiscipline: true },
+  "hr": { canonical: "Human Resources", isBroadDiscipline: true },
+
+  // Other / Digital / Humanities
+  "policy analysis": { canonical: "Policy Analysis", isBroadDiscipline: true },
+  "research methods": { canonical: "Research Methods", isBroadDiscipline: true },
+  "content writing": { canonical: "Content Writing", isBroadDiscipline: true },
+  "seo": { canonical: "SEO", parentConcept: "digital marketing" },
+  "project coordination": { canonical: "Project Coordination", isBroadDiscipline: true },
+  "agile": { canonical: "Agile", isBroadDiscipline: true },
+};
+
+export const GENERIC_ISOLATED_WORDS = new Set([
+  "implementation",
+  "setup",
+  "pipeline setup",
+  "using",
+  "with",
+  "for",
+  "and",
+  "or",
+  "in",
+  "to",
+  "tools",
+  "tool",
+  "basics",
+  "fundamentals",
+  "skills",
+  "development",
+  "design",
+  "practice",
+  "methodology",
+  "methodologies",
+]);
+
+export interface AtomicGapComponent {
+  raw: string;
+  normalized: string;
+  canonical: string;
+  parentConcept?: string;
+  isSpecificToolOrTech: boolean;
+}
+
+export function decomposeCompoundGap(gapStr: string): AtomicGapComponent[] {
+  let text = (gapStr || "").trim();
+  if (!text) return [];
+
+  // Protect acronyms with slashes
+  for (const [acronym, placeholder] of Object.entries(PROTECTED_ACRONYMS)) {
+    const escaped = acronym.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&");
+    const regex = new RegExp(`(^|\\s|[.,;()])${escaped}($|\\s|[.,;()])`, "gi");
+    text = text.replace(regex, `$1${placeholder}$2`);
+  }
+
+  const rawPieces: string[] = [];
+
+  // 1. Parentheticals: (PostgreSQL/MySQL), (MongoDB)
+  const parenRegex = /\(([^)]+)\)|\[([^\]]+)\]/g;
+  let match;
+  while ((match = parenRegex.exec(text)) !== null) {
+    const inner = match[1] || match[2];
+    if (inner) {
+      inner.split(/[\/,;]|\s+(?:and|or)\s+/i).forEach((p) => rawPieces.push(p));
+    }
+  }
+
+  // Remove parentheticals
+  const outerText = text.replace(parenRegex, " ");
+
+  // 2. Split outer clauses by conjunctions & prepositional dividers
+  const clauses = outerText.split(/[,;]|\s+(?:and|or|with|using|under|including|such as|for)\s+/i);
+  for (const clause of clauses) {
+    const subParts = clause.split(/[\/]/);
+    for (const sub of subParts) {
+      rawPieces.push(sub);
+    }
+  }
+
+  const components: AtomicGapComponent[] = [];
+  const seenNorm = new Set<string>();
+
+  function registerPiece(phrase: string) {
+    // Restore protected acronyms
+    let piece = phrase;
+    for (const [acronym, placeholder] of Object.entries(PROTECTED_ACRONYMS)) {
+      piece = piece.replace(new RegExp(placeholder, "g"), acronym);
+    }
+
+    let clean = piece
+      .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D-]/g, " ")
+      .replace(/^[,\s/.:\-]+|[,\s/.:\-]+$/g, "")
+      .replace(/^(using|with|and|or|for|in|to|under|such as|including)\s+/i, "")
+      .replace(/\s+(using|with|and|or|for|in|to|under)\s*$/i, "")
+      .trim();
+
+    if (!clean || clean.length < 2) return;
+    const norm = clean.toLowerCase();
+
+    // Ignore pure filler/isolated words
+    if (GENERIC_ISOLATED_WORDS.has(norm)) return;
+
+    // Check multi-word phrase for embedded known tools/concepts, e.g. "RESTful API design" -> "RESTful API" + "API design"
+    // Only split if the phrase itself is not ALREADY an established canonical entity (e.g. "github actions", "restful api")
+    if (norm.includes(" ") && !CANONICAL_TOOL_MAP[norm]) {
+      const sortedKeys = Object.keys(CANONICAL_TOOL_MAP).sort((a, b) => b.length - a.length);
+      for (const key of sortedKeys) {
+        if (norm.startsWith(key + " ") || norm.endsWith(" " + key)) {
+          const rest = norm.replace(key, "").trim();
+          registerPiece(key);
+          if (rest && !GENERIC_ISOLATED_WORDS.has(rest)) {
+            registerPiece(rest);
+          }
+          return;
+        }
+      }
+    }
+
+    if (seenNorm.has(norm)) return;
+    seenNorm.add(norm);
+
+    const info = CANONICAL_TOOL_MAP[norm];
+    components.push({
+      raw: clean,
+      normalized: norm,
+      canonical: info?.canonical || clean,
+      parentConcept: info?.parentConcept,
+      isSpecificToolOrTech: info ? !info.isBroadDiscipline : !norm.includes(" "),
+    });
+  }
+
+  for (const p of rawPieces) {
+    registerPiece(p);
+  }
+
+  return components;
+}
+
 /**
  * Normalized representation of a user skill gap with substantive concept extraction.
  */
@@ -1227,6 +1509,7 @@ export interface NormalizedGap {
   discriminatingTokens: string[];
   importance: string;
   reason?: string;
+  atomicComponents?: AtomicGapComponent[];
 }
 
 /**
@@ -1323,6 +1606,7 @@ export function normalizeGap(
     discriminatingTokens: Array.from(new Set(discriminatingTokens)),
     importance: importance.toLowerCase(),
     reason,
+    atomicComponents: decomposeCompoundGap(raw),
   };
 }
 
@@ -1339,8 +1623,13 @@ export function getResourceDomains(resource: LearningResource): CareerDomainProf
 export interface GapEvaluationResult {
   isMatch: boolean;
   isDirectGap: boolean;
+  isPartialGap?: boolean;
   matchScore: number;
   matchedConcept?: string;
+  matchedComponents?: string[];
+  unmatchedComponents?: string[];
+  coverageRatio?: number;
+  groundedRationale?: string;
   evidence: MatchEvidence;
 }
 
@@ -1354,6 +1643,7 @@ export function evaluateGapMatch(
   userPrimaryDomain: CareerDomainProfile | null
 ): GapEvaluationResult {
   const resourceSkills = (resource.skills || []).map((s) => s.toLowerCase().trim());
+  const resourceSubskills = (resource.subskills || []).map((s) => s.toLowerCase().trim());
   const resourceTags = (resource.tags || []).map((t) => t.toLowerCase().trim());
   const resourceTitleLower = resource.title.toLowerCase();
   const resourceCareerPaths = (resource.careerPaths || []).map((c) => c.toLowerCase());
@@ -1370,6 +1660,181 @@ export function evaluateGapMatch(
     isDomainDirectMatch ||
     resourceCareerPaths.includes("all tech roles") ||
     resourceCareerPaths.includes("all career paths");
+
+  // Priority 1: Atomic Compound Gap Component Evaluation
+  if (gap.atomicComponents && gap.atomicComponents.length > 0) {
+    const matched: string[] = [];
+    const unmatched: string[] = [];
+
+    for (const comp of gap.atomicComponents) {
+      const compNorm = comp.normalized;
+      const compCanonical = comp.canonical;
+
+      let isCompMatched = false;
+
+      // 1. Exact or canonical match on resource skills
+      for (const skill of resourceSkills) {
+        if (skill === compNorm || skill === compCanonical.toLowerCase()) {
+          isCompMatched = true;
+          break;
+        }
+        // Upward generalization: resource has specific tool (e.g. mysql), comp is parent (e.g. sql)
+        const skillInfo = CANONICAL_TOOL_MAP[skill];
+        if (skillInfo?.parentConcept && skillInfo.parentConcept === compNorm) {
+          isCompMatched = true;
+          break;
+        }
+      }
+
+      // 2. Subskills or tags
+      if (!isCompMatched) {
+        if (resourceSubskills.some((s) => s === compNorm || s === compCanonical.toLowerCase())) {
+          isCompMatched = true;
+        } else if (resourceTags.some((t) => t === compNorm)) {
+          isCompMatched = true;
+        }
+      }
+
+      // 3. Negative Semantic Boundaries Enforcement:
+      // Git/GitHub NEVER matches CI/CD, Jenkins, GitHub Actions, or GitLab CI
+      if (
+        (compNorm === "ci/cd" || compNorm === "jenkins" || compNorm === "github actions" || compNorm === "gitlab ci") &&
+        !resourceSkills.some((s) => s === "ci/cd" || s === "jenkins" || s === "github actions" || s === "gitlab ci") &&
+        !resourceSubskills.some((s) => s === "ci/cd" || s === "jenkins" || s === "github actions" || s === "gitlab ci")
+      ) {
+        isCompMatched = false;
+      }
+
+      // Docker NEVER matches Kubernetes
+      if (compNorm === "kubernetes" && !resourceSkills.includes("kubernetes") && !resourceSubskills.includes("kubernetes")) {
+        isCompMatched = false;
+      }
+      // Kubernetes NEVER matches Docker
+      if (compNorm === "docker" && !resourceSkills.includes("docker") && !resourceSubskills.includes("docker")) {
+        isCompMatched = false;
+      }
+      // MySQL NEVER matches MongoDB
+      if (compNorm === "mongodb" && !resourceSkills.includes("mongodb") && !resourceSubskills.includes("mongodb")) {
+        isCompMatched = false;
+      }
+      // REST NEVER matches GraphQL
+      if (compNorm === "graphql" && !resourceSkills.includes("graphql") && !resourceSubskills.includes("graphql")) {
+        isCompMatched = false;
+      }
+
+      // Broad concept match (e.g. "database management", "api design"):
+      if (!isCompMatched) {
+        if (compNorm === "database management" || compNorm === "databases") {
+          if (resourceSkills.some((s) => s === "mysql" || s === "postgresql" || s === "mongodb" || s === "sql" || s === "databases")) {
+            isCompMatched = true;
+          }
+        } else if (compNorm === "api design") {
+          if (resourceSkills.some((s) => s === "rest api" || s === "graphql" || s === "restful api")) {
+            isCompMatched = true;
+          }
+        } else if (compNorm === "structural analysis") {
+          if (resourceSkills.some((s) => s === "staad" || s === "staad.pro" || s === "structural analysis")) {
+            isCompMatched = true;
+          }
+        } else if (compNorm === "cad") {
+          if (resourceSkills.some((s) => s === "solidworks" || s === "autocad" || s === "cad")) {
+            isCompMatched = true;
+          }
+        } else if (compNorm === "financial reporting") {
+          if (resourceSkills.some((s) => s === "ifrs" || s === "gaap" || s === "financial reporting")) {
+            isCompMatched = true;
+          }
+        } else if (compNorm === "internal controls") {
+          if (resourceSkills.some((s) => s === "coso" || s === "internal controls" || s === "internal audit")) {
+            isCompMatched = true;
+          }
+        }
+      }
+
+      if (isCompMatched) {
+        matched.push(compCanonical);
+      } else {
+        unmatched.push(compCanonical);
+      }
+    }
+
+    const total = gap.atomicComponents.length;
+    const coverageRatio = total > 0 ? matched.length / total : 0;
+    const substantiveUnmatched = unmatched.filter((u) => !GENERIC_TECHNOLOGY_WORDS.has(u.toLowerCase()));
+    const hasSubstantiveMatch = matched.some((m) => !GENERIC_TECHNOLOGY_WORDS.has(m.toLowerCase()));
+    const isDirect =
+      total === 1
+        ? matched.length === 1 && isDomainDirectMatch
+        : isDomainDirectMatch &&
+          (coverageRatio >= 0.75 || (substantiveUnmatched.length === 0 && hasSubstantiveMatch));
+    const isPartial = !isDirect && matched.length > 0;
+
+    if (isDirect || isPartial) {
+      let matchedStr = "";
+      if (matched.length === 1) {
+        matchedStr = matched[0];
+      } else if (matched.length === 2) {
+        matchedStr = `${matched[0]} and ${matched[1]}`;
+      } else if (matched.length > 2) {
+        matchedStr = `${matched.slice(0, -1).join(", ")}, and ${matched[matched.length - 1]}`;
+      }
+
+      const matchedTopics = matched
+        .map((m) => {
+          const info = CANONICAL_TOOL_MAP[m.toLowerCase()];
+          return info?.parentConcept || (info?.isBroadDiscipline ? info.canonical.toLowerCase() : "");
+        })
+        .filter(Boolean);
+      const uniqueTopics = Array.from(new Set(matchedTopics));
+      const gapTopic = uniqueTopics.length > 0 ? uniqueTopics.join(" and ") : "relevant skill";
+
+      let groundedRationale = "";
+      if (isDirect) {
+        groundedRationale = `Directly addresses your identified gap in "${gap.raw}" by developing ${matchedStr} for your target role.`;
+      } else {
+        groundedRationale = `Builds practical ${matchedStr} skills related to your identified ${gapTopic} gap for your target role.`;
+      }
+
+      const matchScore = isDirect
+        ? (isDomainDirectMatch ? 500 : 250)
+        : (isDomainDirectMatch ? Math.round(250 + 200 * coverageRatio) : Math.round(150 + 100 * coverageRatio));
+
+      return {
+        isMatch: true,
+        isDirectGap: isDirect,
+        isPartialGap: isPartial,
+        matchScore,
+        matchedConcept: matchedStr,
+        matchedComponents: matched,
+        unmatchedComponents: unmatched,
+        coverageRatio,
+        groundedRationale,
+        evidence: {
+          gapSubjectOverlap: true,
+          competencyOverlap: true,
+          roleRelevance: isDomainDirectMatch,
+          genericKeywordOnly: false,
+          matchedConcept: matchedStr,
+        },
+      };
+    }
+
+    // If compound gap had multiple components and 0 matched, return early
+    if (total > 1) {
+      return {
+        isMatch: false,
+        isDirectGap: false,
+        isPartialGap: false,
+        matchScore: 0,
+        evidence: {
+          gapSubjectOverlap: false,
+          competencyOverlap: false,
+          roleRelevance: isRoleRelevant,
+          genericKeywordOnly: false,
+        },
+      };
+    }
+  }
 
   // Check 1: Substantive Domain Concept Match
   const substantiveConcepts = gap.substantiveConcepts || [gap.raw.toLowerCase()];
@@ -1782,6 +2247,7 @@ export interface RecommendationMatchParams {
   customCatalog?: LearningResource[];
   rawResumeText?: string;
   structuredResumeData?: any;
+  selfAssessmentRatings?: Record<string, string>;
 }
 
 /**
@@ -1927,6 +2393,32 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
       score += 15;
     }
 
+    // Self-Assessment Confidence Personalization
+    let selfAssessmentWeakBoost = false;
+    let selfAssessmentWeakSkill = "";
+    if (params.selfAssessmentRatings && Object.keys(params.selfAssessmentRatings).length > 0) {
+      for (const [sKey, rating] of Object.entries(params.selfAssessmentRatings)) {
+        const sLower = sKey.toLowerCase().trim();
+        const matchesSkill = resourceSkills.some((rs) => rs === sLower || rs.includes(sLower) || sLower.includes(rs));
+        if (matchesSkill) {
+          if (rating === "WEAK") {
+            score += 150;
+            selfAssessmentWeakBoost = true;
+            selfAssessmentWeakSkill = sKey;
+          } else if (rating === "STRONG") {
+            const isBeginner =
+              resource.level === "beginner" ||
+              /\b(for beginners|basics|fundamentals|introduction to|intro to)\b/i.test(resource.title);
+            if (isBeginner) {
+              score -= 50;
+            } else if (resource.level === "advanced" || resource.level === "intermediate") {
+              score += 30;
+            }
+          }
+        }
+      }
+    }
+
     let reason = "";
     let itemEvidence: MatchEvidence = {
       gapSubjectOverlap: false,
@@ -1935,9 +2427,20 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
       genericKeywordOnly: false,
     };
 
-    // TIER 1: DIRECT RESUME SKILL GAP MATCH
+    // TIER 1: DIRECT RESUME SKILL GAP MATCH (AND PARTIAL COMPOUND GAP MATCH)
     let bestGapScore = 0;
     let directGapEvaluated = false;
+    let bestPartialScore = 0;
+    let partialGapEvaluated = false;
+    let partialGapName = "";
+    let partialComp = "";
+    let partialRationale = "";
+    let partialEvidence: MatchEvidence = {
+      gapSubjectOverlap: false,
+      competencyOverlap: false,
+      roleRelevance: false,
+      genericKeywordOnly: false,
+    };
 
     for (const gap of normalizedGaps) {
       const evaluation = evaluateGapMatch(gap, resource, primaryDomain);
@@ -1947,6 +2450,15 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
         matchedComp = evaluation.matchedConcept || gap.raw;
         itemEvidence = evaluation.evidence;
         directGapEvaluated = true;
+      } else if (evaluation.isPartialGap && evaluation.matchScore > bestPartialScore) {
+        bestPartialScore = evaluation.matchScore;
+        partialGapName = gap.raw;
+        partialComp = evaluation.matchedConcept || gap.raw;
+        partialRationale = evaluation.groundedRationale
+          ? evaluation.groundedRationale.replace(/for your target role\.$/, `for ${params.targetPosition || "your target role"}.`)
+          : `Builds practical ${partialComp} skills related to your identified gap for ${params.targetPosition || "your target role"}.`;
+        partialEvidence = evaluation.evidence;
+        partialGapEvaluated = true;
       }
     }
 
@@ -1961,21 +2473,44 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
       } else {
         reason = `Directly addresses your identified gap in "${matchedGapName}" by developing ${matchedComp} for ${params.targetPosition || "your target role"}.`;
       }
+    } else if (partialGapEvaluated && bestPartialScore > 0) {
+      tier = "TIER_2_ROLE_COMPETENCY";
+      score += 250 + bestPartialScore;
+      matchedGapName = partialGapName;
+      matchedComp = partialComp;
+      itemEvidence = partialEvidence;
+      reason = partialRationale;
     } else {
-      // TIER 2: DIRECT TARGET ROLE CORE COMPETENCY OR ACADEMIC PROGRAM MATCH
+      const targetTokens = getCareerTitleTokens(targetPos);
+
       const isDirectCareerPathMatch = targetPos && resourceCareerPaths.some(
         (cp) => {
           const cpLower = cp.toLowerCase().trim();
           const targetLower = targetPos.toLowerCase().trim();
           if (cpLower === targetLower) return true;
-          
-          // Ambiguous career path disambiguation: "architect" for BS Architecture should NOT match cloud/software/solutions architect
-          if (targetLower === "architect" || targetLower === "architectural designer") {
-            if (cpLower.includes("cloud") || cpLower.includes("software") || cpLower.includes("systems") || cpLower.includes("solutions") || cpLower.includes("enterprise") || cpLower.includes("devops")) {
-              return false;
+
+          // Cross-domain safety: Partial/compound career path matches require domain compatibility
+          const isDomainCompatible =
+            !primaryDomainId ||
+            resourceDomainIds.length === 0 ||
+            resourceDomainIds.includes(primaryDomainId) ||
+            (academicDomain && resourceDomainIds.includes(academicDomain.id));
+
+          if (!isDomainCompatible) {
+            return false;
+          }
+
+          // Whole-token non-generic alignment
+          const cpTokens = getCareerTitleTokens(cpLower);
+          if (targetTokens.length > 0 && cpTokens.length > 0) {
+            const allTargetInCp = targetTokens.every((t) => cpTokens.includes(t));
+            const allCpInTarget = cpTokens.every((t) => targetTokens.includes(t));
+            if (allTargetInCp || allCpInTarget) {
+              return true;
             }
           }
-          return cpLower.includes(targetLower) || targetLower.includes(cpLower);
+
+          return false;
         }
       );
       const isAcademicProgramMatch = !!(params.degreeProgram && (resource.academicPrograms || []).some(
@@ -2007,15 +2542,13 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
         };
       } else if (
         // TIER 3: SUPPORTING COMPETENCY / OVERLAPPING DOMAIN
+        // Generic domain and competency compatibility: requires domain adjacency and substantive competency overlap
         primaryDomainId &&
         resourceDomainIds.some((id) => supportingDomainIds.includes(id)) &&
-        !resourceDomainIds.includes("data_analytics") &&
-        !resourceCareerPaths.includes("data analyst") &&
-        !resourceCareerPaths.includes("data scientist") &&
-        !resourceCareerPaths.includes("cybersecurity analyst") &&
-        !resourceCareerPaths.includes("ui/ux designer") &&
-        !resourceCareerPaths.includes("mobile developer") &&
-        !resourceCareerPaths.includes("qa engineer")
+        ((primaryDomain && resourceSkills.some((s) => primaryDomain.coreCompetencies.includes(s))) ||
+          (academicDomain && resourceSkills.some((s) => academicDomain.coreCompetencies.includes(s))) ||
+          (resource.type !== "certification" &&
+            (resource.level === "beginner" || (resource.tags || []).some((t) => t.includes("fundamental") || t.includes("foundation")))))
       ) {
         tier = "TIER_3_SUPPORTING";
         score += 90;
@@ -2055,6 +2588,20 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
         tier = "TIER_5_IRRELEVANT";
         score = -100;
       }
+    }
+
+    if (selfAssessmentWeakBoost && tier !== "TIER_1_DIRECT_GAP") {
+      tier = "TIER_2_ROLE_COMPETENCY";
+      if (!reason) {
+        reason = `Targeted remediation: Strengthens ${selfAssessmentWeakSkill} based on your self-assessment confidence rating.`;
+      }
+      itemEvidence = {
+        gapSubjectOverlap: false,
+        competencyOverlap: true,
+        roleRelevance: true,
+        genericKeywordOnly: false,
+        matchedConcept: selfAssessmentWeakSkill,
+      };
     }
 
     const isCategoryTab = params.categoryId && params.categoryId !== "for_you";
@@ -2149,7 +2696,7 @@ export interface GrowthPathResult {
 
 /**
  * Authoritative Growth Path recommendation service for the Resume tab.
- * Dynamically curates up to 5 Certifications, 5 Courses, and 3 Practical Resources
+ * Dynamically curates up to 3 Certifications, 3 Courses, and 3 Practical Resources
  * strictly matching the user's active target role, identified skill gaps, and deduplicated against the resume.
  */
 export function getGrowthPathRecommendations(params: GrowthPathParams): GrowthPathResult {
@@ -2186,10 +2733,9 @@ export function getGrowthPathRecommendations(params: GrowthPathParams): GrowthPa
   const practicalLearning: MatchedResourceItem[] = [];
   const globalSeenIds = new Set<string>();
 
-  const gapsCount = Math.max(skillGaps.length, skillsToLearn.length);
-  const maxCerts = gapsCount === 0 ? 3 : Math.min(gapsCount + 1, 5);
-  const maxCourses = gapsCount === 0 ? 3 : Math.min(gapsCount + 2, 5);
-  const maxPractice = gapsCount === 0 ? 3 : Math.min(gapsCount + 1, 5);
+  const maxCerts = 3;
+  const maxCourses = 3;
+  const maxPractice = 3;
 
   const certProviders = new Map<string, number>();
   const courseProviders = new Map<string, number>();

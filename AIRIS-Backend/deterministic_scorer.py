@@ -173,18 +173,16 @@ def calculate_official_ats_score(
     elif official_ats_score >= 50: level = "GettingThere"
     else: level = "NeedsImprovement"
 
-    # Separate secondary metric for mobile API compatibility (never alters official_ats_score)
-    secondary_resume_score = round((skills_score * 0.50) + (edu_score * 0.25) + (cert_score * 0.25))
-
     ats_score_payload = {
         "overallScore": official_ats_score,
         "level": level,
         "resumeScore": {
-            "total": secondary_resume_score,
+            "total": official_ats_score,
             "breakdown": {
-                "skills": {"rawScore": skills_score, "weight": 0.50, "weightedScore": round(skills_score * 0.50, 1)},
-                "education": {"rawScore": edu_score, "weight": 0.25, "weightedScore": round(edu_score * 0.25, 1)},
-                "certifications": {"rawScore": cert_score, "weight": 0.25, "weightedScore": round(cert_score * 0.25, 1)}
+                "skills": {"rawScore": skills_score, "weight": 0.40, "weightedScore": round(skills_score * 0.40, 1)},
+                "experience": {"rawScore": exp_score, "weight": 0.30, "weightedScore": round(exp_score * 0.30, 1)},
+                "education": {"rawScore": edu_score, "weight": 0.20, "weightedScore": round(edu_score * 0.20, 1)},
+                "certifications": {"rawScore": cert_score, "weight": 0.10, "weightedScore": round(cert_score * 0.10, 1)}
             }
         },
         "roleRelevance": {
@@ -198,7 +196,7 @@ def calculate_official_ats_score(
         },
         "breakdown": {
             "atsCompatibilityScore": official_ats_score,
-            "resumeQualityScore": secondary_resume_score,
+            "resumeQualityScore": official_ats_score,
             "experienceScore": exp_score,
             "skillsMatchScore": skills_score,
             "educationRelevanceScore": edu_score,

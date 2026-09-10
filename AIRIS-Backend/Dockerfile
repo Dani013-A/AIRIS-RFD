@@ -4,10 +4,11 @@ FROM python:3.10-slim
 # Set the working directory
 WORKDIR /app
 
-# Install system dependencies required by pypandoc
+# Install system dependencies required by pypandoc and local Tesseract OCR
 # Clean up apt cache to keep the image small
 RUN apt-get update && apt-get install -y \
     pandoc \
+    tesseract-ocr \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

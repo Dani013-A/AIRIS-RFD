@@ -18,6 +18,7 @@ import {
   evaluatePersonalizedCompetency,
   formatCanonicalCompetencyName,
   validateVerbatimEvidence,
+  extractTargetCompetenciesForSelfAssessment,
   type SkillSelfAssessmentMap,
   type PersonalizedCompetencyItem
 } from "../../services/resume/selfAssessmentService";
@@ -44,6 +45,7 @@ export default function DashboardScreen() {
 
   const [selfRatings, setSelfRatings] = useState<SkillSelfAssessmentMap>({});
   const [showSelfAssessmentModal, setShowSelfAssessmentModal] = useState(false);
+  const [dismissedZeroScoreModal, setDismissedZeroScoreModal] = useState(false);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -57,16 +59,18 @@ export default function DashboardScreen() {
     };
   }, [activeAnalysis]);
 
+  const pendingAnalysisData = useResumeStore((state) => state.pendingAnalysisData);
+
   // REQUIREMENT 3: HARD ROUTE GUARD
   // Renders self-assessment guard ONLY when target skills genuinely require completion.
-  if (processingStatus === "awaiting_self_assessment") {
+  if (processingStatus === "awaiting_self_assessment" || pendingAnalysisData !== null) {
     return (
       <SafeAreaView className="flex-1 bg-[#F4F8FB] px-6 justify-center items-center" edges={["top", "left", "right"]}>
         <View className="bg-white p-6 rounded-3xl border border-[#BFD6EA] items-center w-full max-w-sm">
           <Ionicons name="shield-checkmark" size={48} color="#CA5D25" />
           <Text className="text-xl font-extrabold text-[#1F3A5F] mt-4 text-center">Self-Assessment Required</Text>
           <Text className="text-xs text-[#4F6B82] leading-5 text-center mt-2 mb-6">
-            Please complete your target skill self-assessment on the upload screen before viewing your personalized dashboard.
+            Please complete your target skill self-assessment for your new resume before viewing your personalized dashboard.
           </Text>
           <TouchableOpacity
             onPress={() => router.replace("/(student)/resume-upload" as any)}
@@ -407,16 +411,20 @@ export default function DashboardScreen() {
                 </Text>
 
                 <View className="flex-row justify-between items-center mb-3">
-                  <Text className="text-xs font-bold text-[#4F6B82]">Skills Value</Text>
-                  <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.resumeScore.breakdown.skills.rawScore}/100 × 50% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.resumeScore.breakdown.skills.weightedScore}</Text></Text>
+                  <Text className="text-xs font-bold text-[#4F6B82]">Skills Match</Text>
+                  <Text className="text-[11px] font-medium text-[#8B95A5]">{(activeAnalysis.atsScore.resumeScore.breakdown.skills?.rawScore ?? 0)}/100 × 40% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.resumeScore.breakdown.skills?.weightedScore ?? 0}</Text></Text>
                 </View>
                 <View className="flex-row justify-between items-center mb-3">
-                  <Text className="text-xs font-bold text-[#4F6B82]">Education Value</Text>
-                  <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.resumeScore.breakdown.education.rawScore}/100 × 25% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.resumeScore.breakdown.education.weightedScore}</Text></Text>
+                  <Text className="text-xs font-bold text-[#4F6B82]">Experience & Internship</Text>
+                  <Text className="text-[11px] font-medium text-[#8B95A5]">{(activeAnalysis.atsScore.resumeScore.breakdown.experience?.rawScore ?? activeAnalysis.atsScore.roleRelevance?.breakdown?.experienceMatch?.rawScore ?? 0)}/100 × 30% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.resumeScore.breakdown.experience?.weightedScore ?? activeAnalysis.atsScore.roleRelevance?.breakdown?.experienceMatch?.weightedScore ?? 0}</Text></Text>
+                </View>
+                <View className="flex-row justify-between items-center mb-3">
+                  <Text className="text-xs font-bold text-[#4F6B82]">Education Relevance</Text>
+                  <Text className="text-[11px] font-medium text-[#8B95A5]">{(activeAnalysis.atsScore.resumeScore.breakdown.education?.rawScore ?? 0)}/100 × 20% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.resumeScore.breakdown.education?.weightedScore ?? 0}</Text></Text>
                 </View>
                 <View className="flex-row justify-between items-center mb-1">
-                  <Text className="text-xs font-bold text-[#4F6B82]">Certification Value</Text>
-                  <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.resumeScore.breakdown.certifications.rawScore}/100 × 25% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.resumeScore.breakdown.certifications.weightedScore}</Text></Text>
+                  <Text className="text-xs font-bold text-[#4F6B82]">Certifications</Text>
+                  <Text className="text-[11px] font-medium text-[#8B95A5]">{(activeAnalysis.atsScore.resumeScore.breakdown.certifications?.rawScore ?? 0)}/100 × 10% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.resumeScore.breakdown.certifications?.weightedScore ?? 0}</Text></Text>
                 </View>
               </View>
             )}
@@ -486,16 +494,22 @@ export default function DashboardScreen() {
 
                 {/* Personalized Competency Guidance Computation */}
                 {(() => {
-                  const personalizedItems: PersonalizedCompetencyItem[] = semanticAdjustments.map((adj) => {
-                    const rawConcept = getConcept(adj.ruleId);
-                    const conceptName = formatCanonicalCompetencyName(rawConcept);
-                    const status = adj.points === 10 ? "STRONG_MATCH" : adj.points === 5 ? "PARTIAL_MATCH" : "NO_RELEVANT_EVIDENCE";
-                    const userRating = selfRatings[rawConcept.toLowerCase()] || "SKIP";
-                    const verifiedChunk = validateVerbatimEvidence(conceptName, adj.matchedChunk, activeResume?.rawText);
+                  const candidateCompetencies = extractTargetCompetenciesForSelfAssessment(activeAnalysis);
+                  const personalizedItems: PersonalizedCompetencyItem[] = candidateCompetencies.map((comp) => {
+                    const conceptName = comp.name;
+                    const matchedAdj = semanticAdjustments.find((adj) => {
+                      const rawConcept = getConcept(adj.ruleId).toLowerCase();
+                      const lowerName = conceptName.toLowerCase();
+                      return rawConcept === lowerName || rawConcept.includes(lowerName) || lowerName.includes(rawConcept);
+                    });
+
+                    const status = matchedAdj ? (matchedAdj.points === 10 ? "STRONG_MATCH" : matchedAdj.points === 5 ? "PARTIAL_MATCH" : "STRONG_MATCH") : "STRONG_MATCH";
+                    const userRating = selfRatings[conceptName.toLowerCase()] || "SKIP";
+                    const verifiedChunk = matchedAdj ? validateVerbatimEvidence(conceptName, matchedAdj.matchedChunk, activeResume?.rawText) : null;
 
                     return evaluatePersonalizedCompetency({
                       competency: conceptName,
-                      targetRelevance: "HIGH",
+                      targetRelevance: comp.relevance,
                       resumeEvidenceStatus: status,
                       matchedChunk: verifiedChunk,
                       selfRating: userRating,
@@ -1067,12 +1081,7 @@ export default function DashboardScreen() {
         skills={
           pendingTargetSkills.length > 0
             ? pendingTargetSkills
-            : semanticAdjustments
-                .map((adj) => ({
-                  name: formatCanonicalCompetencyName(getConcept(adj.ruleId)),
-                  relevance: "HIGH" as const,
-                }))
-                .slice(0, 8)
+            : extractTargetCompetenciesForSelfAssessment(activeAnalysis)
         }
         initialRatings={selfRatings}
         onSave={async (newRatings) => {
@@ -1085,6 +1094,43 @@ export default function DashboardScreen() {
           setShowSelfAssessmentModal(false);
         }}
       />
+      {/* ZERO-SCORE ANALYSIS FALLBACK / ERROR MODAL */}
+      <Modal
+        visible={(overallScore === 0 || (activeAnalysis as any)?.isLocalFallback === true || (activeAnalysis as any)?.isFallback === true) && !dismissedZeroScoreModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDismissedZeroScoreModal(true)}
+      >
+        <View className="flex-1 items-center justify-center bg-black/60 px-6" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+          <View className="w-full rounded-3xl bg-white p-8 border border-[#BFD6EA] shadow-xl">
+            <View className="items-center">
+              <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-[#FEF5F1] border border-[#F4A47A]">
+                <Ionicons name="warning-outline" size={32} color="#CA5D25" />
+              </View>
+
+              <Text className="text-xl font-extrabold text-[#1F3A5F] mb-3 text-center">
+                Resume analysis could not be completed
+              </Text>
+
+              <Text className="text-center text-sm leading-6 text-[#4F6B82] mb-4 font-medium">
+                We couldn't reliably analyze your resume right now. Your score is temporarily shown as 0 because a complete analysis was not available.
+              </Text>
+
+              <Text className="text-center text-xs leading-5 text-[#4F6B82] mb-6 font-medium">
+                If you believe this is an error, or the problem continues after trying again, please contact our developer at <Text className="font-bold text-[#CA5D25]">tipmnlairis@gmail.com</Text>.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => setDismissedZeroScoreModal(true)}
+              className="w-full h-12 bg-[#CA5D25] rounded-xl items-center justify-center shadow-sm"
+            >
+              <Text className="text-xs font-bold text-white uppercase tracking-wider">Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <ProductTourOverlay />
     </SafeAreaView>
   );
