@@ -9,6 +9,8 @@ services:
       - ENVIRONMENT=production
     expose:
       - "8000"
+    volumes:
+      - /opt/airis/secrets/firebase-service-account.json:/opt/airis/secrets/firebase-service-account.json:ro
 
   caddy:
     image: caddy:2-alpine
