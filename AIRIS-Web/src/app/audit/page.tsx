@@ -162,12 +162,12 @@ export default function AuditLogsPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[750px]">
+              <table className="w-full text-left border-collapse min-w-[850px]">
                 <thead>
                   <tr className="bg-[#DCE6EE]/30 border-b border-[#A5C2DA]/30 text-xs font-black uppercase tracking-wider text-brand-primary">
-                    <th className="px-5 py-4">Timestamp</th>
-                    <th className="px-5 py-4">Event Category</th>
-                    <th className="px-5 py-4">Performed By</th>
+                    <th className="px-5 py-4 w-[210px] whitespace-nowrap">Timestamp</th>
+                    <th className="px-5 py-4 w-[220px] whitespace-nowrap">Event Category</th>
+                    <th className="px-5 py-4 w-[200px] whitespace-nowrap">Performed By</th>
                     <th className="px-5 py-4">Audit Event Description</th>
                   </tr>
                 </thead>
@@ -185,8 +185,8 @@ export default function AuditLogsPage() {
                         </td>
 
                         {/* Action Badge */}
-                        <td className="px-5 py-4">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black border ${actionInfo.color}`}>
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-black border whitespace-nowrap ${actionInfo.color}`}>
                             {actionInfo.label}
                           </span>
                         </td>

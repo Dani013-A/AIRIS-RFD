@@ -68,8 +68,11 @@ export function mapAuthError(error: unknown): string {
   if (testString.includes("auth/network-request-failed") || testString.includes("network-request-failed")) {
     return "Network error. Please check your internet connection.";
   }
-  if (testString.includes("auth/user-disabled")) {
-    return "This user account has been disabled.";
+  if (testString.includes("your account has been paused or deleted by the admin")) {
+    return "your account has been paused or deleted by the admin";
+  }
+  if (testString.includes("auth/user-disabled") || testString.includes("user-disabled")) {
+    return "your account has been paused or deleted by the admin";
   }
 
   if (testString.includes("firestore profile already exists")) {

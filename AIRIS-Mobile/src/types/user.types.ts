@@ -27,4 +27,5 @@ export interface AppUser {
   activeResumeId?: string | null;
   resumeVersionCounter?: number;
   photoURL?: string | null;
+  isDisabled?: boolean;
 }

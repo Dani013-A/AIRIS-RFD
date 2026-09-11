@@ -112,29 +112,9 @@ export const loginUser = async (email: string, password: string): Promise<AppUse
   const userDocRef = doc(db, USERS_COLLECTION, user.uid);
   const userDoc = await getDoc(userDocRef);
 
-  if (!userDoc.exists()) {
-    console.warn(`[AUTH][AUTO_HEAL] Recovering missing Firestore profile document for authenticated UID: ${user.uid}`);
-    const recoveredProfile: AppUser = {
-      uid: user.uid,
-      email: normalizedEmail,
-      fullName: user.displayName || (normalizedEmail.split("@")[0]),
-      role: "student",
-      isProfileComplete: false,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      hasCompletedOnboarding: false,
-      hasCompletedInitialSetup: false,
-      college: "",
-      degreeProgram: "",
-      targetPosition: "",
-      acceptedTerms: false,
-      acceptedPrivacy: false,
-      termsVersion: "",
-      privacyVersion: "",
-      activeResumeId: null,
-    };
-    await setDoc(userDocRef, recoveredProfile);
-    return recoveredProfile;
+  if (!userDoc.exists() || (userDoc.data() as AppUser).isDisabled === true) {
+    await signOut(auth);
+    throw new Error("your account has been paused or deleted by the admin");
   }
 
   return userDoc.data() as AppUser;

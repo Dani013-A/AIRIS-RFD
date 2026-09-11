@@ -35,8 +35,6 @@ export default function LoginScreen() {
   const resendVerification = useAuthStore((state) => state.resendVerification);
 
   useEffect(() => {
-    clearError();
-    clearEmailNotVerified();
     return () => {
       clearError();
       clearEmailNotVerified();

@@ -17,7 +17,9 @@ export default function LoginPage() {
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
-    clearError();
+    return () => {
+      clearError();
+    };
   }, [clearError]);
 
   useEffect(() => {

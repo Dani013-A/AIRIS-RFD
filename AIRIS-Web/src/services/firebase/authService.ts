@@ -24,9 +24,9 @@ export async function signInAdmin(email: string, password: string): Promise<Admi
   const userDocRef = doc(db, USERS_COLLECTION, user.uid);
   const userDocSnap = await getDoc(userDocRef);
 
-  if (!userDocSnap.exists()) {
+  if (!userDocSnap.exists() || userDocSnap.data().isDisabled === true) {
     await firebaseSignOut(auth);
-    throw new Error("Access Denied: Account not found in our database.");
+    throw new Error("your account has been paused or deleted by the admin");
   }
 
   const userData = userDocSnap.data();
@@ -100,7 +100,7 @@ export function subscribeToAuthState(callback: (admin: AdminUser | null) => void
       const userDocRef = doc(db, USERS_COLLECTION, user.uid);
       const userDocSnap = await getDoc(userDocRef);
 
-      if (userDocSnap.exists() && userDocSnap.data().role === "admin") {
+      if (userDocSnap.exists() && userDocSnap.data().role === "admin" && !userDocSnap.data().isDisabled) {
         const userData = userDocSnap.data();
         callback({
           uid: user.uid,
@@ -111,6 +111,7 @@ export function subscribeToAuthState(callback: (admin: AdminUser | null) => void
           updatedAt: userData.updatedAt,
         });
       } else {
+        await firebaseSignOut(auth);
         callback(null);
       }
     } catch {

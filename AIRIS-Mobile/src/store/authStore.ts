@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { Alert } from "react-native";
 
 import {
   onAuthStateChanged,
@@ -8,8 +9,8 @@ import {
   getAdditionalUserInfo,
   deleteUser,
 } from "firebase/auth";
-import { serverTimestamp } from "firebase/firestore";
-import { auth } from "../config/firebase";
+import { doc, onSnapshot, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../config/firebase";
 
 import {
   EmailNotVerifiedError,
@@ -36,6 +37,9 @@ import {
 import { useOnboardingStore } from "./onboardingStore";
 import { clearLearningMemoryCache } from "../services/learning/learningCatalogService";
 import { mapAuthError, sanitizeErrorForLogging } from "../utils/errorMapper";
+
+export const ACCOUNT_SUSPENDED_OR_DELETED_MSG = "your account has been paused or deleted by the admin";
+
 let GoogleSignin: any = null;
 let statusCodes: any = {};
 try {
@@ -45,6 +49,120 @@ try {
   statusCodes = googleModule.statusCodes;
 } catch {
   // Handle simulation environments.
+}
+
+let isLoggingOutDueToSuspension = false;
+let userDocUnsubscribe: (() => void) | null = null;
+let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+
+export function stopUserRealtimeListener() {
+  if (userDocUnsubscribe) {
+    userDocUnsubscribe();
+    userDocUnsubscribe = null;
+  }
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+}
+
+export async function handleAccountSuspendedOrDeleted(
+  customSet?: (state: Partial<AuthState> | ((prev: AuthState) => Partial<AuthState>)) => void
+) {
+  if (isLoggingOutDueToSuspension) return;
+  isLoggingOutDueToSuspension = true;
+
+  stopUserRealtimeListener();
+
+  try {
+    await signOut(auth).catch(() => {});
+    if (GoogleSignin) {
+      await GoogleSignin.signOut().catch(() => {});
+    }
+  } catch (err) {
+    console.warn("SignOut error during account suspension/deletion cleanup:", err);
+  } finally {
+    useOnboardingStore.getState().reset();
+    try {
+      clearLearningMemoryCache();
+    } catch {}
+
+    const updater = customSet || useAuthStore.setState;
+    updater({
+      currentUser: null,
+      loading: false,
+      isGoogleLoading: false,
+      error: ACCOUNT_SUSPENDED_OR_DELETED_MSG,
+      registrationSuccess: false,
+      emailNotVerified: false,
+    });
+
+    try {
+      Alert.alert(
+        "Account Inactive",
+        ACCOUNT_SUSPENDED_OR_DELETED_MSG,
+        [{ text: "OK" }],
+        { cancelable: false }
+      );
+    } catch (alertErr) {
+      console.warn("Could not display Alert:", alertErr);
+    }
+
+    isLoggingOutDueToSuspension = false;
+  }
+}
+
+export function startUserRealtimeListener(uid: string) {
+  stopUserRealtimeListener();
+  if (!uid) return;
+
+  try {
+    const userDocRef = doc(db, "users", uid);
+    userDocUnsubscribe = onSnapshot(
+      userDocRef,
+      (snapshot) => {
+        if (!snapshot.exists()) {
+          console.warn(`[AUTH] User document for ${uid} was deleted in Firestore. Logging out immediately.`);
+          handleAccountSuspendedOrDeleted();
+          return;
+        }
+        const data = snapshot.data();
+        if (data?.isDisabled === true) {
+          console.warn(`[AUTH] User document for ${uid} is disabled/paused in Firestore. Logging out immediately.`);
+          handleAccountSuspendedOrDeleted();
+          return;
+        }
+      },
+      (err) => {
+        if (err?.code === "permission-denied") {
+          handleAccountSuspendedOrDeleted();
+        }
+      }
+    );
+  } catch (listenerErr) {
+    console.warn("Failed to attach Firestore user onSnapshot listener:", listenerErr);
+  }
+
+  // Heartbeat check for Firebase Auth user deletion/disabling
+  heartbeatInterval = setInterval(async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+    try {
+      await user.reload();
+    } catch (err: any) {
+      const code = err?.code || "";
+      const str = String(err || "");
+      if (
+        code === "auth/user-not-found" ||
+        code === "auth/user-disabled" ||
+        str.includes("user-not-found") ||
+        str.includes("user-disabled")
+      ) {
+        console.warn(`[AUTH] Heartbeat detected user ${user.uid} was deleted/disabled in Firebase Auth.`);
+        handleAccountSuspendedOrDeleted();
+      }
+    }
+  }, 5000);
 }
 
 interface AuthState {
@@ -116,6 +234,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ loading: true, error: null, emailNotVerified: false });
 
       const user = await loginUser(normalizedEmail, password);
+      startUserRealtimeListener(user.uid);
 
       set({
         currentUser: user,
@@ -291,42 +410,20 @@ export const useAuthStore = create<AuthState>((set) => ({
           throw dbErr;
         }
 
+        startUserRealtimeListener(firebaseUser.uid);
         set({
           currentUser: newProfile,
           loading: false,
           error: null,
         });
       } else {
-        if (!existingProfile) {
-          console.warn(`[AUTH][AUTO_HEAL] Recovering missing profile during Google login for UID: ${firebaseUser.uid}`);
-          const recoveredProfile: AppUser = {
-            uid: firebaseUser.uid,
-            email: emailLower,
-            fullName: firebaseUser.displayName?.trim() || "TIP Student",
-            role: "student",
-            isProfileComplete: false,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-            hasCompletedOnboarding: false,
-            hasCompletedInitialSetup: false,
-            college: "",
-            degreeProgram: "",
-            targetPosition: "",
-            acceptedTerms: false,
-            acceptedPrivacy: false,
-            termsVersion: "",
-            privacyVersion: "",
-            activeResumeId: null,
-          };
-          await createProfileTransaction(firebaseUser.uid, recoveredProfile);
-          set({
-            currentUser: recoveredProfile,
-            loading: false,
-            error: null,
-          });
-          return;
+        if (!existingProfile || existingProfile.isDisabled === true) {
+          await clearAuthSessionSafely();
+          set({ error: ACCOUNT_SUSPENDED_OR_DELETED_MSG });
+          throw new Error(ACCOUNT_SUSPENDED_OR_DELETED_MSG);
         }
 
+        startUserRealtimeListener(firebaseUser.uid);
         set({
           currentUser: existingProfile,
           loading: false,
@@ -367,6 +464,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
+    stopUserRealtimeListener();
     set({ loading: true, error: null });
     try {
       await logoutUser();
@@ -438,6 +536,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
 
       if (!firebaseUser) {
+        stopUserRealtimeListener();
         set({
           currentUser: null,
           loading: false,
@@ -451,6 +550,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         await firebaseUser.reload();
 
         if (!firebaseUser.emailVerified) {
+          stopUserRealtimeListener();
           await signOut(auth);
           set({
             currentUser: null,
@@ -462,17 +562,12 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
 
         const appUser = await getUserById(firebaseUser.uid);
-        if (!appUser) {
-          await signOut(auth);
-          set({
-            currentUser: null,
-            loading: false,
-            isInitialized: true,
-            error: null,
-          });
+        if (!appUser || appUser.isDisabled === true) {
+          await handleAccountSuspendedOrDeleted(set);
           return;
         }
 
+        startUserRealtimeListener(firebaseUser.uid);
         set({
           currentUser: appUser,
           loading: false,
@@ -482,6 +577,17 @@ export const useAuthStore = create<AuthState>((set) => ({
       } catch (err: any) {
         const errCode = err?.code || "";
         const errStr = String(err || "");
+        if (
+          errCode === "auth/user-not-found" ||
+          errCode === "auth/user-disabled" ||
+          errStr.includes("user-not-found") ||
+          errStr.includes("user-disabled")
+        ) {
+          console.warn("[AUTH] User deleted or disabled in Firebase Auth on reload");
+          await handleAccountSuspendedOrDeleted(set);
+          return;
+        }
+
         if (
           errCode === "auth/network-request-failed" ||
           errCode === "auth/timeout" ||
@@ -494,6 +600,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
 
         console.error("Auth initialization error during session load:", sanitizeErrorForLogging(err));
+        stopUserRealtimeListener();
         try {
           await signOut(auth);
         } catch (signOutErr) {
@@ -508,7 +615,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      stopUserRealtimeListener();
+    };
   },
 
   clearError: () => {
@@ -949,20 +1059,32 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   checkSessionValidity: async () => {
     const firebaseUser = auth.currentUser;
-    if (!firebaseUser) return false;
+    if (!firebaseUser) {
+      stopUserRealtimeListener();
+      return false;
+    }
 
     try {
       await firebaseUser.reload();
       const appUser = await getUserById(firebaseUser.uid);
-      if (!appUser) {
-        await signOut(auth);
-        set({ currentUser: null });
+      if (!appUser || appUser.isDisabled === true) {
+        await handleAccountSuspendedOrDeleted();
         return false;
       }
       return true;
     } catch (err: any) {
       const errCode = err?.code || "";
       const errStr = String(err || "");
+      if (
+        errCode === "auth/user-not-found" ||
+        errCode === "auth/user-disabled" ||
+        errStr.includes("user-not-found") ||
+        errStr.includes("user-disabled")
+      ) {
+        await handleAccountSuspendedOrDeleted();
+        return false;
+      }
+
       if (
         errCode === "auth/network-request-failed" ||
         errCode === "auth/timeout" ||
@@ -974,6 +1096,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
 
       console.warn("Session validation encountered an unrecoverable auth error; logging out safely:", sanitizeErrorForLogging(err));
+      stopUserRealtimeListener();
       try {
         await signOut(auth);
       } catch (signOutErr) {

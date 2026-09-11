@@ -47,7 +47,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initializeSession: () => {
     set({ loading: true });
     const unsubscribe = subscribeToAuthState((admin) => {
-      set({ currentAdmin: admin, loading: false, initialized: true });
+      const prevAdmin = get().currentAdmin;
+      if (prevAdmin && !admin) {
+        set({ currentAdmin: null, loading: false, initialized: true, error: "your account has been paused or deleted by the admin" });
+      } else {
+        set({ currentAdmin: admin, loading: false, initialized: true });
+      }
     });
     return unsubscribe;
   },
