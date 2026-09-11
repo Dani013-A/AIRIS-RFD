@@ -1,16 +1,16 @@
 {
-    email mdaespela@tip.edu.ph
+	email mdaespela@tip.edu.ph
 }
 
-api.airis.app {
-    reverse_proxy backend:8000
+18-143-33-249.sslip.io {
+	reverse_proxy backend:8000
 
-    header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-        X-Content-Type-Options "nosniff"
-        X-Frame-Options "DENY"
-        Referrer-Policy "strict-origin-when-cross-origin"
-    }
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
 
-    encode gzip zstd
+	encode gzip zstd
 }

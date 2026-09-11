@@ -1,0 +1,113 @@
+name: Build AIRIS Standalone Release APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: airis-apk-build
+  cancel-in-progress: true
+
+jobs:
+  build-android-apk:
+    name: Build Standalone Release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: AIRIS-Mobile/package-lock.json
+
+      - name: Install dependencies
+        working-directory: AIRIS-Mobile
+        run: npm ci
+
+      - name: Verify TypeScript compilation
+        working-directory: AIRIS-Mobile
+        run: npx tsc --noEmit
+
+      - name: Run Jest test suites
+        working-directory: AIRIS-Mobile
+        run: npx jest --runInBand
+
+      - name: Set up Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Submit and Wait for EAS Android APK Build
+        id: eas-build
+        working-directory: AIRIS-Mobile
+        run: |
+          echo "Starting EAS preview APK build for Android..."
+          npx eas-cli build \
+            --platform android \
+            --profile preview \
+            --non-interactive \
+            --wait \
+            --json > build-output.json
+
+          cat build-output.json
+
+          BUILD_URL=$(node -e "
+            const fs = require('fs');
+            const data = JSON.parse(fs.readFileSync('build-output.json', 'utf8'));
+            const build = Array.isArray(data) ? data[0] : data;
+            const url = build.artifacts?.buildUrl || build.artifacts?.applicationArchiveUrl || '';
+            process.stdout.write(url);
+          ")
+
+          BUILD_ID=$(node -e "
+            const fs = require('fs');
+            const data = JSON.parse(fs.readFileSync('build-output.json', 'utf8'));
+            const build = Array.isArray(data) ? data[0] : data;
+            process.stdout.write(build.id || '');
+          ")
+
+          BUILD_LOGS_URL=$(node -e "
+            const fs = require('fs');
+            const data = JSON.parse(fs.readFileSync('build-output.json', 'utf8'));
+            const build = Array.isArray(data) ? data[0] : data;
+            process.stdout.write(build.logsUrl || '');
+          ")
+
+          echo "build_url=$BUILD_URL" >> "$GITHUB_OUTPUT"
+          echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
+          echo "logs_url=$BUILD_LOGS_URL" >> "$GITHUB_OUTPUT"
+
+          echo "### AIRIS Android Release APK Build Complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Build ID:** \`$BUILD_ID\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **EAS Logs:** [$BUILD_LOGS_URL]($BUILD_LOGS_URL)" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$BUILD_URL" ]; then
+            echo "- **Direct APK Download:** [Download AIRIS APK]($BUILD_URL)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- **Status:** Build completed but artifact URL not directly returned in JSON." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Download APK from EAS Artifacts
+        if: steps.eas-build.outputs.build_url != ''
+        working-directory: AIRIS-Mobile
+        run: |
+          echo "Downloading APK from: ${{ steps.eas-build.outputs.build_url }}"
+          curl -L -o AIRIS-Release.apk "${{ steps.eas-build.outputs.build_url }}"
+          ls -lh AIRIS-Release.apk
+
+      - name: Upload APK as GitHub Actions Artifact
+        if: steps.eas-build.outputs.build_url != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: airis-mobile-release-apk
+          path: AIRIS-Mobile/AIRIS-Release.apk
+          if-no-files-found: error
+          retention-days: 30
