@@ -1,6 +1,7 @@
 import os
 import re
-from typing import Dict, List, Any
+import unicodedata
+from typing import Dict, List, Any, Optional
 from evidence_chunker import chunk_resume_evidence, EvidenceChunk
 from output_validator import validate_ai_response, AuditedFinding
 from deterministic_scorer import calculate_official_ats_score
