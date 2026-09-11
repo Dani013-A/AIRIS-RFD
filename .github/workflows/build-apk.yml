@@ -39,18 +39,17 @@ jobs:
         working-directory: AIRIS-Mobile
         run: npx jest --runInBand
 
-      - name: Set up Expo and EAS
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
 
       - name: Submit and Wait for EAS Android APK Build
         id: eas-build
         working-directory: AIRIS-Mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           echo "Starting EAS preview APK build for Android..."
-          npx eas-cli build \
+          eas build \
             --platform android \
             --profile preview \
             --non-interactive \
