@@ -49,7 +49,46 @@ export default function ImmersiveInterviewScreen() {
 
   const [unityReady, setUnityReady] = useState(false);
   const [sceneLoaded, setSceneLoaded] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+
+  // ─── Two-stage processing badge (mutually exclusive) ───────────────────────
+  // Stage 1: isTranscribing — set on RECORDING_STOPPED (Whisper running).
+  //           Cleared at the top of TRANSCRIPT_READY before the API call begins.
+  // Stage 2: isEvaluating  — set when API call starts (TRANSCRIPT_READY).
+  //           Cleared in the finally{} block after SHOW_FEEDBACK is dispatched.
+  // The two flags are never true simultaneously by construction.
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+
+  // ─── Panel speaker rotation (SampleScene only) ────────────────────────────
+  // Replicates the EXACT [Claudia(1) → Eric(2) → Claudia(1) → Carla(0)] cycle
+  // from InterviewManager.cs:308-332 — 50% Claudia, 25% Eric, 25% Carla.
+  // Counter is incremented ONLY when a new base question is dispatched (not
+  // follow-ups or interstitial feedback), so the rotation stays in sync.
+  // Using useRef rather than useState to avoid unnecessary re-renders.
+  const panelQuestionCounterRef = useRef(0);
+
+  /** Panel speaker pattern — index maps directly to DialogueManager.ShowSpeaker(). */
+  const PANEL_SPEAKER_PATTERN: [number, string][] = [
+    [1, "Claudia"], // Q1, Q3, Q5 … (Lead — 50%)
+    [2, "Eric"],    // Q2, Q6 …     (Right — 25%)
+    [1, "Claudia"], // (repeated)
+    [0, "Carla"],   // Q4, Q8 …     (Left — 25%)
+  ];
+
+  /**
+   * Returns { speakerIndex, speakerName } for the NEXT base question in
+   * the panel rotation, then advances the counter.
+   * Call ONLY when dispatching a new top-level question in SampleScene.
+   */
+  const advancePanelSpeaker = useCallback((): { speakerIndex: number; speakerName: string } => {
+    const [speakerIndex, speakerName] =
+      PANEL_SPEAKER_PATTERN[panelQuestionCounterRef.current % PANEL_SPEAKER_PATTERN.length];
+    console.log(
+      `[Immersive] Panel rotation — Q${panelQuestionCounterRef.current + 1}: speakerIndex=${speakerIndex} (${speakerName})`
+    );
+    panelQuestionCounterRef.current += 1;
+    return { speakerIndex, speakerName };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Derive Unity scene name from the session's interviewType
   const sceneName =
@@ -98,11 +137,22 @@ export default function ImmersiveInterviewScreen() {
   useEffect(() => {
     if (sceneLoaded && session?.currentQuestion) {
       console.log("[Immersive] Scene loaded. Sending first question to Unity:", session.currentQuestion);
-      postToUnity("SHOW_QUESTION", {
-        questionText: session.currentQuestion,
-        speakerIndex: sceneName === "SampleScene" ? 1 : 0,
-        speakerName: sceneName === "SampleScene" ? "Claudia" : "Interviewer",
-      });
+      if (sceneName === "SampleScene") {
+        // Q1 always starts the rotation — advance the panel rotation counter.
+        const { speakerIndex, speakerName } = advancePanelSpeaker();
+        postToUnity("SHOW_QUESTION", {
+          questionText: session.currentQuestion,
+          speakerIndex,
+          speakerName,
+        });
+      } else {
+        // OneOnOne: single interviewer, always index 0.
+        postToUnity("SHOW_QUESTION", {
+          questionText: session.currentQuestion,
+          speakerIndex: 0,
+          speakerName: "Interviewer",
+        });
+      }
     }
   }, [sceneLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -187,16 +237,34 @@ export default function ImmersiveInterviewScreen() {
           break;
         }
 
+        // ── Mic stopped, Whisper running (informational) ───────────────────
+        case "RECORDING_STOPPED": {
+          // Stage 1: Whisper transcription in progress — switch badge to Transcribing.
+          setIsTranscribing(true);
+          break;
+        }
+
         // ── Feedback TTS finished speaking → show next question ───────────
         case "FEEDBACK_SPOKEN": {
           setUnityReady(true);
           setSceneLoaded(true);
           if (pendingNextQuestionRef.current) {
-            postToUnity("SHOW_QUESTION", {
-              questionText: pendingNextQuestionRef.current.question,
-              speakerIndex: sceneName === "SampleScene" ? 1 : 0,
-              speakerName: sceneName === "SampleScene" ? "Claudia" : "Interviewer",
-            });
+            if (sceneName === "SampleScene") {
+              // Advance the panel rotation for each new base question.
+              const { speakerIndex, speakerName } = advancePanelSpeaker();
+              postToUnity("SHOW_QUESTION", {
+                questionText: pendingNextQuestionRef.current.question,
+                speakerIndex,
+                speakerName,
+              });
+            } else {
+              // OneOnOne: single interviewer, always index 0.
+              postToUnity("SHOW_QUESTION", {
+                questionText: pendingNextQuestionRef.current.question,
+                speakerIndex: 0,
+                speakerName: "Interviewer",
+              });
+            }
             pendingNextQuestionRef.current = null;
           }
           break;
@@ -209,16 +277,16 @@ export default function ImmersiveInterviewScreen() {
           break;
         }
 
-        // ── Mic stopped, Whisper running (informational) ───────────────────
-        case "RECORDING_STOPPED": {
-          setIsProcessing(true);
-          break;
-        }
-
         // ── Whisper transcription complete ──────────────────────────────────
         case "TRANSCRIPT_READY": {
           setUnityReady(true);
           setSceneLoaded(true);
+
+          // Stage 1 → Stage 2: Whisper done, API evaluation begins.
+          // The two flags are never simultaneously true — isTranscribing clears
+          // before isEvaluating sets, so the badge text transitions atomically.
+          setIsTranscribing(false);
+          setIsEvaluating(true);
 
           let transcript = "";
           try {
@@ -229,7 +297,7 @@ export default function ImmersiveInterviewScreen() {
           }
 
           if (!session || !currentUser) {
-            setIsProcessing(false);
+            setIsEvaluating(false);
             break;
           }
 
@@ -303,7 +371,9 @@ export default function ImmersiveInterviewScreen() {
               ]
             );
           } finally {
-            setIsProcessing(false);
+            // Stage 2 complete — badge hides. SHOW_FEEDBACK was already dispatched
+            // inside the try block; this runs whether the API call succeeded or threw.
+            setIsEvaluating(false);
           }
           break;
         }
@@ -330,6 +400,7 @@ export default function ImmersiveInterviewScreen() {
     },
     [session, currentUser, postToUnity, sceneName, getParsedResumeDict, submitAnswer, router]
   );
+
 
   if (!session) {
     return (
@@ -363,8 +434,16 @@ export default function ImmersiveInterviewScreen() {
         </View>
       )}
 
-      {/* Processing badge — shown during AI evaluation (POST /interview/answer) */}
-      {sceneLoaded && isProcessing && (
+      {/* Transcribing badge — Stage 1: Whisper running (RECORDING_STOPPED → TRANSCRIPT_READY) */}
+      {sceneLoaded && isTranscribing && (
+        <View style={styles.processingBadge}>
+          <ActivityIndicator size="small" color="#F4A47A" />
+          <Text style={styles.processingText}>Transcribing your answer...</Text>
+        </View>
+      )}
+
+      {/* Evaluating badge — Stage 2: API call in flight (TRANSCRIPT_READY → SHOW_FEEDBACK) */}
+      {sceneLoaded && isEvaluating && (
         <View style={styles.processingBadge}>
           <ActivityIndicator size="small" color="#F4A47A" />
           <Text style={styles.processingText}>Evaluating response...</Text>

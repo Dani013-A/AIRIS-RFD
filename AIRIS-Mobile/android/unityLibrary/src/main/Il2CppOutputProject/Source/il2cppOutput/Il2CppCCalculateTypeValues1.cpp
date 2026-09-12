@@ -7199,12 +7199,12 @@ struct U3CU3Ec__DisplayClass45_1_t89C24314FCEA01A52645D8654FFA086FDBA3804F  : pu
 struct BindingsMarshaller_t4276DC0314F7D50954119ED442B47EFC390ACDD5  : public RuntimeObject
 {
 };
-struct U3CU3Ec__DisplayClass34_0_tA8294E48C8EB19502A2CF02B4C4E076E72BC8C88  : public RuntimeObject
+struct U3CU3Ec__DisplayClass35_0_t432607D72D016CFC337B7BFEC5F5006A6BC7CF6C  : public RuntimeObject
 {
 	RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* ___U3CU3E4__this;
 	String_t* ___fileName;
 };
-struct U3CMonitorSilenceU3Ed__27_t1F802C14E334DB333B5CD11BD96E303090CBBE5B  : public RuntimeObject
+struct U3CMonitorSilenceU3Ed__28_tBDD7312480CDBB9258C1A8FD1215A38F62E509DD  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
@@ -7213,7 +7213,7 @@ struct U3CMonitorSilenceU3Ed__27_t1F802C14E334DB333B5CD11BD96E303090CBBE5B  : pu
 	int32_t ___U3CnoiseSampleCountU3E5__3;
 	float ___U3ClastDebugLogTimeU3E5__4;
 };
-struct U3CStartRecordingAfterDelayU3Ed__29_t076045AF10E7DC71E7524E8DE5385DF4724ABA51  : public RuntimeObject
+struct U3CStartRecordingAfterDelayU3Ed__30_t85D8DEA4CA5874D73B11A0BC4A92813A807FD0B0  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
@@ -44868,7 +44868,7 @@ struct Settings_t635C231FDA8D35EBE9568F993ED1442F0E145D94_marshaled_com
 	int32_t ___U3CbuildFlagsDynamicGeometriesU3Ek__BackingField;
 	int32_t ___U3CenableCompactionU3Ek__BackingField;
 };
-struct U3CStopRecordingU3Ed__31_t4AA5189366961390B0E34777F0ED33C41090D15A 
+struct U3CStopRecordingU3Ed__32_t386C278B04FF8EEAD84BE2705ED855032DD4BFA6 
 {
 	int32_t ___U3CU3E1__state;
 	AsyncVoidMethodBuilder_t253E37B63E7E7B504878AE6563347C147F98EF2D ___U3CU3Et__builder;
@@ -54406,6 +54406,7 @@ struct RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349  : public Mono
 	float ___recordingStartTime;
 	SpeechToTextManager_t807967E26B3ADCFA3C6AFAD9B52FC2AA5BC7217B* ___speechToTextManager;
 	InterviewManager_t800FDF56616037A4453B598E0ADB27E0EA85ADC9* ___interviewManager;
+	DialogueManager_t9C5A5026BF70075C3D71B589FB5D5EA74A3B9B1E* ___cachedDialogueManager;
 	bool ___uploadAudioToFirebase;
 	String_t* ___storageFolder;
 };
@@ -69940,13 +69941,13 @@ const Il2CppTypeDefinitionSizes g_typeDefinitionSize9213 = { sizeof(InterviewerT
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize9214;
 const Il2CppTypeDefinitionSizes g_typeDefinitionSize9214 = { sizeof(PanelInterviewer_tD824A7BE3CC411E9FE6354081807CC6F6F15E476), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize9215;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize9215 = { sizeof(U3CU3Ec__DisplayClass34_0_tA8294E48C8EB19502A2CF02B4C4E076E72BC8C88), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize9215 = { sizeof(U3CU3Ec__DisplayClass35_0_t432607D72D016CFC337B7BFEC5F5006A6BC7CF6C), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize9216;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize9216 = { sizeof(U3CMonitorSilenceU3Ed__27_t1F802C14E334DB333B5CD11BD96E303090CBBE5B), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize9216 = { sizeof(U3CMonitorSilenceU3Ed__28_tBDD7312480CDBB9258C1A8FD1215A38F62E509DD), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize9217;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize9217 = { sizeof(U3CStartRecordingAfterDelayU3Ed__29_t076045AF10E7DC71E7524E8DE5385DF4724ABA51), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize9217 = { sizeof(U3CStartRecordingAfterDelayU3Ed__30_t85D8DEA4CA5874D73B11A0BC4A92813A807FD0B0), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize9218;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize9218 = { sizeof(U3CStopRecordingU3Ed__31_t4AA5189366961390B0E34777F0ED33C41090D15A)+ sizeof(RuntimeObject), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize9218 = { sizeof(U3CStopRecordingU3Ed__32_t386C278B04FF8EEAD84BE2705ED855032DD4BFA6)+ sizeof(RuntimeObject), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize9219;
 const Il2CppTypeDefinitionSizes g_typeDefinitionSize9219 = { sizeof(RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize9220;
