@@ -23735,7 +23735,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void StatsPanel_Dispose_m0DC178FBA125105D48F5
 #pragma clang diagnostic ignored "-Winvalid-offsetof"
 #pragma clang diagnostic ignored "-Wunused-variable"
 #endif
-// Method Definition Index: 78426
+// Method Definition Index: 78436
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void StorageProgress_1__ctor_m3DB9A7C3414510358EB88C2BDC21A012FBE2ED0C_gshared (StorageProgress_1_t62CE76B5783A878F2E709C954A92226E369EA5ED* __this, Action_1_t923A20D1D4F6B55B2ED5AE21B90F1A0CE0450D99* ___0_callback, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -23747,7 +23747,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void StorageProgress_1__ctor_m3DB9A7C34145103
 		return;
 	}
 }
-// Method Definition Index: 78427
+// Method Definition Index: 78437
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void StorageProgress_1_Report_m896AA6FD73CA54F2D42790DC5F067522C1E9990C_gshared (StorageProgress_1_t62CE76B5783A878F2E709C954A92226E369EA5ED* __this, Il2CppFullySharedGenericAny ___0_value, const RuntimeMethod* method) 
 {
 	static bool s_Il2CppMethodInitialized;

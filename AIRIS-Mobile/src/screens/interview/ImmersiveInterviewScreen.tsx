@@ -66,6 +66,8 @@ export default function ImmersiveInterviewScreen() {
   // follow-ups or interstitial feedback), so the rotation stays in sync.
   // Using useRef rather than useState to avoid unnecessary re-renders.
   const panelQuestionCounterRef = useRef(0);
+  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sceneLoadedRef = useRef(false);
 
   /** Panel speaker pattern — index maps directly to DialogueManager.ShowSpeaker(). */
   const PANEL_SPEAKER_PATTERN: [number, string][] = [
@@ -133,6 +135,10 @@ export default function ImmersiveInterviewScreen() {
     return dict;
   }, [activeAnalysis]);
 
+  useEffect(() => {
+    sceneLoadedRef.current = sceneLoaded;
+  }, [sceneLoaded]);
+
   // ─── Effect: send first question once scene is loaded ─────────────────────
   useEffect(() => {
     if (sceneLoaded && session?.currentQuestion) {
@@ -158,14 +164,19 @@ export default function ImmersiveInterviewScreen() {
 
   // ─── Fallback: Ping Unity / load scene if still waiting after mount ────────
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!sceneLoaded) {
-        console.log("[Immersive] Scene not yet confirmed loaded after 2.5s — actively sending LOAD_SCENE to Unity:", sceneName);
+    fallbackTimerRef.current = setTimeout(() => {
+      if (!sceneLoadedRef.current) {
+        console.log("[Immersive] Scene not yet confirmed loaded after 8.0s — actively sending LOAD_SCENE fallback to Unity:", sceneName);
         postToUnity("LOAD_SCENE", { sceneName });
       }
-    }, 2500);
-    return () => clearTimeout(timer);
-  }, [sceneLoaded, sceneName, postToUnity]);
+    }, 8000);
+    return () => {
+      if (fallbackTimerRef.current) {
+        clearTimeout(fallbackTimerRef.current);
+        fallbackTimerRef.current = null;
+      }
+    };
+  }, [sceneName, postToUnity]);
 
   // Ensure orientation is restored to Portrait whenever leaving the immersive screen
   useEffect(() => {
@@ -221,9 +232,22 @@ export default function ImmersiveInterviewScreen() {
             return;
           }
 
+          if (fallbackTimerRef.current) {
+            clearTimeout(fallbackTimerRef.current);
+            fallbackTimerRef.current = null;
+          }
+
+          if (sceneLoadedRef.current) {
+            console.log(
+              `[Immersive] Scene '${sceneName}' was already confirmed loaded. Ignoring duplicate SCENE_LOADED event.`
+            );
+            return;
+          }
+
           console.log(
             `[Immersive] Scene '${sceneName}' confirmed loaded. Dismissing loading overlay.`
           );
+          sceneLoadedRef.current = true;
           setSceneLoaded(true);
           // first SHOW_QUESTION is sent by the useEffect above
           break;
@@ -315,7 +339,6 @@ export default function ImmersiveInterviewScreen() {
               currentQuestion: session.currentQuestion,
               currentAnswer: transcript,
               currentQuestionType: session.currentQuestionType || "general",
-              currentBenchmarkAnswer: session.currentBenchmarkAnswer || "",
               totalQuestions: session.totalQuestions,
             });
 

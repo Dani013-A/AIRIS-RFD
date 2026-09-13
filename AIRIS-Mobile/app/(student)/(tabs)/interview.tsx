@@ -133,27 +133,12 @@ export default function ExperienceSelectionScreen() {
                   color={isSelected("immersive-one-on-one") ? "#CA5D25" : "#4F6B82"}
                 />
               </View>
-              <View>
-                <Text
-                  className="text-base font-extrabold"
-                  style={{ color: isSelected("immersive-one-on-one") ? "#CA5D25" : "#1F3A5F" }}
-                >
-                  Immersive One-on-One
-                </Text>
-                <View className="flex-row items-center mt-0.5">
-                  <View
-                    className="px-2 py-0.5 rounded-full border"
-                    style={{ backgroundColor: "#E8F8F6", borderColor: "#79D5C8" }}
-                  >
-                    <Text
-                      className="font-bold uppercase tracking-wider"
-                      style={{ fontSize: 10, color: "#1E5D53" }}
-                    >
-                      New
-                    </Text>
-                  </View>
-                </View>
-              </View>
+              <Text
+                className="text-base font-extrabold"
+                style={{ color: isSelected("immersive-one-on-one") ? "#CA5D25" : "#1F3A5F" }}
+              >
+                Immersive One-on-One
+              </Text>
             </View>
             <Ionicons
               name={isSelected("immersive-one-on-one") ? "radio-button-on" : "radio-button-off"}
@@ -184,27 +169,12 @@ export default function ExperienceSelectionScreen() {
                   color={isSelected("immersive-panel") ? "#CA5D25" : "#4F6B82"}
                 />
               </View>
-              <View>
-                <Text
-                  className="text-base font-extrabold"
-                  style={{ color: isSelected("immersive-panel") ? "#CA5D25" : "#1F3A5F" }}
-                >
-                  Immersive Panel Interview
-                </Text>
-                <View className="flex-row items-center mt-0.5">
-                  <View
-                    className="px-2 py-0.5 rounded-full border"
-                    style={{ backgroundColor: "#E8F8F6", borderColor: "#79D5C8" }}
-                  >
-                    <Text
-                      className="font-bold uppercase tracking-wider"
-                      style={{ fontSize: 10, color: "#1E5D53" }}
-                    >
-                      New
-                    </Text>
-                  </View>
-                </View>
-              </View>
+              <Text
+                className="text-base font-extrabold"
+                style={{ color: isSelected("immersive-panel") ? "#CA5D25" : "#1F3A5F" }}
+              >
+                Immersive Panel Interview
+              </Text>
             </View>
             <Ionicons
               name={isSelected("immersive-panel") ? "radio-button-on" : "radio-button-off"}
