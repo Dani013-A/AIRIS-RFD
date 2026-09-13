@@ -146,6 +146,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
         email: "student@gmail.com",
         emailVerified: true,
         displayName: "External Student",
+        getIdToken: jest.fn().mockResolvedValue("mock_token"),
       };
       (signInWithCredential as jest.Mock).mockResolvedValueOnce({
         user: mockFirebaseUser,
@@ -166,6 +167,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
         email: "newstudent@tip.edu.ph",
         emailVerified: true,
         displayName: "TIP New Student",
+        getIdToken: jest.fn().mockResolvedValue("mock_token"),
       };
       (signInWithCredential as jest.Mock).mockResolvedValueOnce({
         user: mockFirebaseUser,
@@ -175,6 +177,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
 
       await useAuthStore.getState().loginWithGoogle();
 
+      expect(mockFirebaseUser.getIdToken).toHaveBeenCalledWith(true);
       expect(mockCreateProfileTransaction).toHaveBeenCalledWith(
         "new_tip_uid",
         expect.objectContaining({
@@ -190,58 +193,100 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
       expect(useAuthStore.getState().error).toBeNull();
     });
 
-    it("should NOT auto-recreate and NOT blame admin for returning user with missing profile (isNewUser: false)", async () => {
+    it("should recover legitimate interrupted registration when Firebase Auth user exists but profile was not created", async () => {
       const mockFirebaseUser = {
-        uid: "orphan_uid",
-        email: "orphan@tip.edu.ph",
+        uid: "interrupted_uid",
+        email: "interrupted@tip.edu.ph",
         emailVerified: true,
-        displayName: "Orphan Student",
+        displayName: "Interrupted Student",
+        getIdToken: jest.fn().mockResolvedValue("mock_token"),
+      };
+      (signInWithCredential as jest.Mock).mockResolvedValueOnce({
+        user: mockFirebaseUser,
+      });
+      // Auth user exists (isNewUser: false), but Firestore profile is missing (interrupted setup)
+      (getAdditionalUserInfo as jest.Mock).mockReturnValueOnce({ isNewUser: false });
+      (getDoc as jest.Mock).mockResolvedValueOnce({ exists: () => false, data: () => null });
+
+      await useAuthStore.getState().loginWithGoogle();
+
+      expect(mockFirebaseUser.getIdToken).toHaveBeenCalledWith(true);
+      expect(mockCreateProfileTransaction).toHaveBeenCalledWith(
+        "interrupted_uid",
+        expect.objectContaining({
+          uid: "interrupted_uid",
+          email: "interrupted@tip.edu.ph",
+          role: "student",
+          accountState: "ACTIVE",
+          isDeleted: false,
+          isDisabled: false,
+        })
+      );
+      expect(useAuthStore.getState().currentUser).not.toBeNull();
+      expect(useAuthStore.getState().error).toBeNull();
+    });
+
+    it("should log in existing ACTIVE Google user without recreating profile", async () => {
+      const mockFirebaseUser = {
+        uid: "active_user_uid",
+        email: "active@tip.edu.ph",
+        emailVerified: true,
+        displayName: "Active Student",
+        getIdToken: jest.fn().mockResolvedValue("mock_token"),
       };
       (signInWithCredential as jest.Mock).mockResolvedValueOnce({
         user: mockFirebaseUser,
       });
       (getAdditionalUserInfo as jest.Mock).mockReturnValueOnce({ isNewUser: false });
-      (getDoc as jest.Mock).mockResolvedValueOnce({ exists: () => false, data: () => null }); // Missing Firestore profile
+      (getDoc as jest.Mock).mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({
+          uid: "active_user_uid",
+          email: "active@tip.edu.ph",
+          role: "student",
+          accountState: "ACTIVE",
+          isDeleted: false,
+          isDisabled: false,
+        }),
+      });
 
-      await expect(useAuthStore.getState().loginWithGoogle()).rejects.toThrow(ACCOUNT_MISSING_PROFILE_MSG);
+      await useAuthStore.getState().loginWithGoogle();
 
+      expect(mockFirebaseUser.getIdToken).toHaveBeenCalledWith(true);
       expect(mockCreateProfileTransaction).not.toHaveBeenCalled();
-      expect(signOut).toHaveBeenCalled();
-      expect(useAuthStore.getState().error).toBe(ACCOUNT_MISSING_PROFILE_MSG);
-      expect(useAuthStore.getState().error).not.toContain("paused or deleted by the admin");
+      expect(useAuthStore.getState().currentUser).toEqual(
+        expect.objectContaining({
+          uid: "active_user_uid",
+          email: "active@tip.edu.ph",
+          accountState: "ACTIVE",
+        })
+      );
+      expect(useAuthStore.getState().error).toBeNull();
     });
 
-    it("should handle distributed boundary: Google signup Auth succeeds but Firestore write fails, subsequent login fails safely without admin accusation", async () => {
+    it("should normalize permission-denied error without leaking raw technical strings", async () => {
       const mockFirebaseUser = {
-        uid: "boundary_uid",
-        email: "boundary@tip.edu.ph",
+        uid: "perm_err_uid",
+        email: "perm@tip.edu.ph",
         emailVerified: true,
-        displayName: "Boundary Student",
+        displayName: "Perm Student",
+        getIdToken: jest.fn().mockResolvedValue("mock_token"),
       };
 
-      // Attempt 1: Auth succeeds, Firestore transaction throws
       (signInWithCredential as jest.Mock).mockResolvedValueOnce({
         user: mockFirebaseUser,
       });
       (getAdditionalUserInfo as jest.Mock).mockReturnValueOnce({ isNewUser: true });
       (getDoc as jest.Mock).mockResolvedValueOnce({ exists: () => false, data: () => null });
-      mockCreateProfileTransaction.mockRejectedValueOnce(new Error("Firestore network write timeout"));
+      mockCreateProfileTransaction.mockRejectedValueOnce(new Error("Missing or insufficient permissions."));
 
       await expect(useAuthStore.getState().loginWithGoogle()).rejects.toThrow(
-        "A database configuration or connection error occurred. Please try again or contact support."
+        "We couldn't finish setting up your account. Please try again."
       );
       expect(signOut).toHaveBeenCalled();
-
-      // Attempt 2: User tries again. Firebase Auth user exists (isNewUser: false), Firestore profile still missing
-      (signInWithCredential as jest.Mock).mockResolvedValueOnce({
-        user: mockFirebaseUser,
-      });
-      (getAdditionalUserInfo as jest.Mock).mockReturnValueOnce({ isNewUser: false });
-      (getDoc as jest.Mock).mockResolvedValueOnce({ exists: () => false, data: () => null });
-
-      await expect(useAuthStore.getState().loginWithGoogle()).rejects.toThrow(ACCOUNT_MISSING_PROFILE_MSG);
-      expect(useAuthStore.getState().error).toBe(ACCOUNT_MISSING_PROFILE_MSG);
-      expect(useAuthStore.getState().error).not.toContain("paused");
+      expect(useAuthStore.getState().error).toBe(
+        "We couldn't finish setting up your account. Please try again."
+      );
     });
 
     it("should reject Google login for disabled/paused user with explicit admin paused message", async () => {
@@ -249,6 +294,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
         uid: "disabled_uid",
         email: "paused@tip.edu.ph",
         emailVerified: true,
+        getIdToken: jest.fn().mockResolvedValue("mock_token"),
       };
       (signInWithCredential as jest.Mock).mockResolvedValueOnce({
         user: mockFirebaseUser,
@@ -273,6 +319,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
         uid: "deleted_uid",
         email: "deleted@tip.edu.ph",
         emailVerified: true,
+        getIdToken: jest.fn().mockResolvedValue("mock_token"),
       };
       (signInWithCredential as jest.Mock).mockResolvedValueOnce({
         user: mockFirebaseUser,

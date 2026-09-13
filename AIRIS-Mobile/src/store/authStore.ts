@@ -413,17 +413,35 @@ export const useAuthStore = create<AuthState>((set) => ({
         throw err;
       }
 
-      const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser;
+      // Synchronize auth state: force ID token generation to ensure Firestore internal auth credentials provider has the token.
+      await firebaseUser.getIdToken(true);
+
       const existingProfile = await getUserById(firebaseUser.uid);
 
-      if (isNewUser) {
-        if (existingProfile) {
+      if (existingProfile) {
+        const lifecycle = determineAccountLifecycleState(true, existingProfile);
+
+        if (lifecycle === "DELETED_REMOVED") {
           await clearAuthSessionSafely();
-          const err = new Error("An account conflict was detected. A profile already exists for this email address. Please contact the AIRIS administrator.");
-          set({ error: err.message });
-          throw err;
+          set({ error: ACCOUNT_REMOVED_MSG });
+          throw new Error(ACCOUNT_REMOVED_MSG);
         }
 
+        if (lifecycle === "DISABLED_PAUSED") {
+          await clearAuthSessionSafely();
+          set({ error: ACCOUNT_PAUSED_MSG });
+          throw new Error(ACCOUNT_PAUSED_MSG);
+        }
+
+        startUserRealtimeListener(firebaseUser.uid);
+        set({
+          currentUser: existingProfile,
+          loading: false,
+          error: null,
+        });
+      } else {
+        // No existing Firestore profile document found (no active profile and no DELETED tombstone).
+        // Safely initialize the active student profile for first-time or interrupted Google registration.
         const newProfile: AppUser = {
           uid: firebaseUser.uid,
           email: emailLower,
@@ -457,36 +475,6 @@ export const useAuthStore = create<AuthState>((set) => ({
         startUserRealtimeListener(firebaseUser.uid);
         set({
           currentUser: newProfile,
-          loading: false,
-          error: null,
-        });
-      } else {
-        const lifecycle = determineAccountLifecycleState(!!existingProfile, existingProfile);
-
-        if (lifecycle === "DELETED_REMOVED") {
-          await clearAuthSessionSafely();
-          set({ error: ACCOUNT_REMOVED_MSG });
-          throw new Error(ACCOUNT_REMOVED_MSG);
-        }
-
-        if (lifecycle === "DISABLED_PAUSED") {
-          await clearAuthSessionSafely();
-          set({ error: ACCOUNT_PAUSED_MSG });
-          throw new Error(ACCOUNT_PAUSED_MSG);
-        }
-
-        if (lifecycle === "MISSING_PROFILE") {
-          // Distributed boundary: Auth user exists (isNewUser === false), but Firestore profile is missing.
-          // In accordance with security & lifecycle rules, DO NOT silently auto-recreate (which would resurrect
-          // deleted accounts), and DO NOT falsely accuse the admin of suspending them.
-          await clearAuthSessionSafely();
-          set({ error: ACCOUNT_MISSING_PROFILE_MSG });
-          throw new Error(ACCOUNT_MISSING_PROFILE_MSG);
-        }
-
-        startUserRealtimeListener(firebaseUser.uid);
-        set({
-          currentUser: existingProfile!,
           loading: false,
           error: null,
         });

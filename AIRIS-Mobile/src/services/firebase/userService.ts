@@ -10,6 +10,13 @@ export const createProfileTransaction = async (uid: string, profile: AppUser): P
   await runTransaction(db, async (transaction) => {
     const userSnap = await transaction.get(userRef);
     if (userSnap.exists()) {
+      const existingData = userSnap.data() as AppUser;
+      if (existingData?.isDeleted || existingData?.accountState === "DELETED") {
+        throw new Error("Cannot initialize profile for a deleted account.");
+      }
+      if (existingData?.isDisabled || existingData?.accountState === "DISABLED") {
+        throw new Error("Cannot initialize profile for a disabled account.");
+      }
       throw new Error("Firestore profile already exists.");
     }
     transaction.set(userRef, profile);

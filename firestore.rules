@@ -6,15 +6,58 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null && (
         (request.auth.token != null && request.auth.token.admin == true) ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
     }
 
-    // Student and Admin profiles collection rules (including all subcollections)
+    // Student and Admin profiles collection rules
     match /users/{userId} {
-      allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      
-      match /{allSubcollections=**} {
+      // 1. Read: Allow users to read their own profile, or admins
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      // 2. Create: Authenticated student initializing their own active profile
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.data.role == "student"
+                    && request.resource.data.accountState == "ACTIVE"
+                    && request.resource.data.isDeleted == false
+                    && request.resource.data.isDisabled == false;
+
+      // 3. Update:
+      // - Admins can update any account
+      // - Non-admin users can update their own profile ONLY IF:
+      //   a) Existing document is not deleted or disabled (cannot resurrect deleted/disabled account)
+      //   b) User does not escalate role
+      //   c) Either:
+      //      i) Normal profile update: cannot change role, accountState, isDeleted, isDisabled
+      //      ii) Self-account cascade deletion: transitions accountState to "DELETED", isDeleted to true, isDisabled to true
+      allow update: if request.auth != null && resource != null && (
+        isAdmin() || (
+          request.auth.uid == userId &&
+          resource.data.isDeleted != true &&
+          resource.data.accountState != "DELETED" &&
+          resource.data.isDisabled != true &&
+          resource.data.accountState != "DISABLED" &&
+          (!('role' in request.resource.data) || request.resource.data.role == resource.data.role) &&
+          (
+            (
+              (!('accountState' in request.resource.data) || request.resource.data.accountState == resource.data.accountState) &&
+              (!('isDeleted' in request.resource.data) || request.resource.data.isDeleted == resource.data.isDeleted) &&
+              (!('isDisabled' in request.resource.data) || request.resource.data.isDisabled == resource.data.isDisabled)
+            ) ||
+            (
+              request.resource.data.accountState == "DELETED" &&
+              request.resource.data.isDeleted == true &&
+              request.resource.data.isDisabled == true
+            )
+          )
+        )
+      );
+
+      // 4. Delete: Normal users cannot hard-delete user documents; admin only
+      allow delete: if request.auth != null && isAdmin();
+
+      // 5. User subcollections
+      match /{subcollection}/{docId} {
         allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
       }
     }

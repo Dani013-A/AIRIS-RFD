@@ -82,7 +82,7 @@ describe("Error Normalization Architecture & Security Boundary", () => {
     it("should sanitize and mask raw Firestore/database errors", () => {
       const rawDbError = new Error("FirebaseError: [code=permission-denied]: Missing or insufficient permissions at /users/secret_uid");
       const result = mapAuthError(rawDbError);
-      expect(result).toBe("A database configuration or connection error occurred. Please try again or contact support.");
+      expect(result).toBe("We couldn't finish setting up your account. Please try again.");
       expect(result).not.toContain("secret_uid");
       expect(result).not.toContain("FirebaseError");
     });

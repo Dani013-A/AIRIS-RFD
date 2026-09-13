@@ -101,15 +101,27 @@ export function mapAuthError(error: unknown): string {
     return "An account conflict was detected. A profile already exists for this email address. Please contact the AIRIS administrator.";
   }
 
+  if (
+    testString.includes("permission-denied") ||
+    testString.includes("missing or insufficient permissions") ||
+    testString.includes("insufficient permissions") ||
+    testString.includes("permission_denied")
+  ) {
+    return "We couldn't finish setting up your account. Please try again.";
+  }
+
   if (error instanceof Error) {
     const msg = error.message;
     if (
       msg.includes("FirebaseError") ||
       msg.toLowerCase().includes("permission-denied") ||
+      msg.toLowerCase().includes("missing or insufficient permissions") ||
+      msg.toLowerCase().includes("insufficient permissions") ||
+      (error as any)?.code === "permission-denied" ||
       msg.toLowerCase().includes("firestore") ||
       msg.toLowerCase().includes("unreachable")
     ) {
-      return "A database configuration or connection error occurred. Please try again or contact support.";
+      return "We couldn't finish setting up your account. Please try again.";
     }
     return msg;
   }
