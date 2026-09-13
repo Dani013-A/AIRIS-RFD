@@ -95,7 +95,9 @@ from rate_limiter import (
 def get_authenticated_user(authorization: Optional[str] = Header(None)) -> str:
     """
     Cryptographically verifies Firebase ID token from Authorization header.
-    Derives authoritative UID. Rejects unauthenticated requests with HTTP 401.
+    Derives authoritative UID, validates email verification and institutional @tip.edu.ph
+    domain for protected operations. Rejects unauthenticated requests with HTTP 401 and
+    unauthorized domains with HTTP 403.
     """
     if not authorization or not isinstance(authorization, str) or not authorization.startswith("Bearer "):
         raise HTTPException(
@@ -113,6 +115,35 @@ def get_authenticated_user(authorization: Optional[str] = Header(None)) -> str:
         uid = decoded_token.get("uid")
         if not uid:
             raise HTTPException(status_code=401, detail="Invalid token payload: missing UID.")
+
+        # Check admin exemption (custom claims or ADMIN_UIDS)
+        is_admin = decoded_token.get("admin") is True or decoded_token.get("role") == "admin"
+        admin_uids = [u.strip() for u in os.getenv("ADMIN_UIDS", "").split(",") if u.strip()]
+        if is_admin or (admin_uids and str(uid) in admin_uids):
+            return str(uid)
+
+        # Non-admin student security boundary: enforce authoritative email, verified identity, and TIP domain
+        email = decoded_token.get("email")
+        if not email or not isinstance(email, str):
+            raise HTTPException(
+                status_code=403,
+                detail="Forbidden: Authenticated token does not contain an authoritative email address."
+            )
+
+        email_lower = email.strip().lower()
+        if not email_lower.endswith("@tip.edu.ph"):
+            raise HTTPException(
+                status_code=403,
+                detail="Forbidden: Only verified TIP institutional accounts (@tip.edu.ph) are authorized to access AIRIS services."
+            )
+
+        email_verified = decoded_token.get("email_verified")
+        if email_verified is not True:
+            raise HTTPException(
+                status_code=403,
+                detail="Forbidden: Institutional email address has not been verified."
+            )
+
         return str(uid)
     except HTTPException:
         raise

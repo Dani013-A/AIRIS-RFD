@@ -10,13 +10,19 @@ client = TestClient(app)
 
 def mock_verify_id_token(token, *args, **kwargs):
     if token == "token-studentA":
-        return {"uid": "studentA"}
+        return {"uid": "studentA", "email": "studenta@tip.edu.ph", "email_verified": True}
     elif token == "token-studentB":
-        return {"uid": "studentB"}
+        return {"uid": "studentB", "email": "studentb@tip.edu.ph", "email_verified": True}
     elif token == "token-admin":
         return {"uid": "admin_uid_123", "admin": True}
     elif token == "token-non-admin":
-        return {"uid": "regular_user_456"}
+        return {"uid": "regular_user_456", "email": "regular@tip.edu.ph", "email_verified": True}
+    elif token == "token-non-tip":
+        return {"uid": "external_user", "email": "attacker@gmail.com", "email_verified": True}
+    elif token == "token-unverified-tip":
+        return {"uid": "unverified_student", "email": "student@tip.edu.ph", "email_verified": False}
+    elif token == "token-no-email":
+        return {"uid": "no_email_student"}
     raise Exception("Invalid token")
 
 
@@ -100,6 +106,39 @@ class TestSecurityRemediation(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 401)
         self.assertIn("Invalid or expired", response.json().get("detail", ""))
+
+    # Domain Gate Test: Non-TIP email token attempting protected endpoint -> MUST return 403
+    @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)
+    def test_non_tip_token_rejected_403(self, mock_auth):
+        response = client.post(
+            "/analyze",
+            headers={"Authorization": "Bearer token-non-tip"},
+            json={"rawText": "Dummy content", "targetPosition": "Software Engineer"}
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("Only verified TIP institutional accounts (@tip.edu.ph) are authorized", response.json().get("detail", ""))
+
+    # Domain Gate Test: Unverified TIP email token attempting protected endpoint -> MUST return 403
+    @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)
+    def test_unverified_tip_token_rejected_403(self, mock_auth):
+        response = client.post(
+            "/analyze",
+            headers={"Authorization": "Bearer token-unverified-tip"},
+            json={"rawText": "Dummy content", "targetPosition": "Software Engineer"}
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("Institutional email address has not been verified", response.json().get("detail", ""))
+
+    # Domain Gate Test: Missing email token attempting protected endpoint -> MUST return 403
+    @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)
+    def test_missing_email_token_rejected_403(self, mock_auth):
+        response = client.post(
+            "/analyze",
+            headers={"Authorization": "Bearer token-no-email"},
+            json={"rawText": "Dummy content", "targetPosition": "Software Engineer"}
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("does not contain an authoritative email address", response.json().get("detail", ""))
 
 
 if __name__ == "__main__":

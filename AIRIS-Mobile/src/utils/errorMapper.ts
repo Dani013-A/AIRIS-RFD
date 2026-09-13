@@ -28,6 +28,20 @@ export function sanitizeErrorForLogging(error: unknown): string {
   return "Unknown error";
 }
 
+import {
+  ACCOUNT_PAUSED_MSG,
+  ACCOUNT_REMOVED_MSG,
+  ACCOUNT_MISSING_PROFILE_MSG,
+} from "./accountLifecycle";
+
+export const MSG_INVALID_CREDENTIAL =
+  "The email or password you entered is incorrect. If you signed up with Google, please use the Google Sign-In button.";
+export const MSG_EMAIL_ALREADY_IN_USE =
+  "An account with this TIP email already exists. Try logging in instead, or use Google Sign-In if you registered with Google.";
+export const MSG_ACCOUNT_PAUSED = ACCOUNT_PAUSED_MSG;
+export const MSG_ACCOUNT_REMOVED = ACCOUNT_REMOVED_MSG;
+export const MSG_MISSING_PROFILE = ACCOUNT_MISSING_PROFILE_MSG;
+
 /**
  * Translate technical Firebase error codes into friendly, helpful messages that any student can understand.
  */
@@ -51,13 +65,13 @@ export function mapAuthError(error: unknown): string {
     return "Please verify your current password before deleting your account.";
   }
   if (testString.includes("auth/user-not-found")) {
-    return "No account found with this email. Please check your email address or sign up to create a new account.";
+    return MSG_INVALID_CREDENTIAL;
   }
   if (testString.includes("auth/invalid-credential") || testString.includes("auth/wrong-password")) {
-    return "No account found with this email, or the password entered is incorrect. Please check your credentials or sign up.";
+    return MSG_INVALID_CREDENTIAL;
   }
   if (testString.includes("auth/email-already-in-use") || testString.includes("email-already-in-use")) {
-    return "This TIP email is already registered.";
+    return MSG_EMAIL_ALREADY_IN_USE;
   }
   if (testString.includes("auth/weak-password")) {
     return "Password is too weak. Must meet all security requirements.";
@@ -68,11 +82,19 @@ export function mapAuthError(error: unknown): string {
   if (testString.includes("auth/network-request-failed") || testString.includes("network-request-failed")) {
     return "Network error. Please check your internet connection.";
   }
-  if (testString.includes("your account has been paused or deleted by the admin")) {
-    return "your account has been paused or deleted by the admin";
+  if (testString.includes("this account has been removed")) {
+    return MSG_ACCOUNT_REMOVED;
   }
-  if (testString.includes("auth/user-disabled") || testString.includes("user-disabled")) {
-    return "your account has been paused or deleted by the admin";
+  if (testString.includes("account profile not found")) {
+    return MSG_MISSING_PROFILE;
+  }
+  if (
+    testString.includes("your account has been paused or deleted by the admin") ||
+    testString.includes("your account has been paused by an administrator") ||
+    testString.includes("auth/user-disabled") ||
+    testString.includes("user-disabled")
+  ) {
+    return MSG_ACCOUNT_PAUSED;
   }
 
   if (testString.includes("firestore profile already exists")) {

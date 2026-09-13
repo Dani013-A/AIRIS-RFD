@@ -28,4 +28,7 @@ export interface AppUser {
   resumeVersionCounter?: number;
   photoURL?: string | null;
   isDisabled?: boolean;
+  isDeleted?: boolean;
+  accountState?: "ACTIVE" | "DISABLED" | "DELETED";
+  deletedAt?: FieldValue | Timestamp;
 }

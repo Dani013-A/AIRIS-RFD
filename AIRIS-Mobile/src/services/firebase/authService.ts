@@ -26,7 +26,7 @@ export class EmailNotVerifiedError extends Error {
 export const getUserById = async (uid: string): Promise<AppUser | null> => {
   const userDoc = await getDoc(doc(db, USERS_COLLECTION, uid));
 
-  if (!userDoc.exists()) {
+  if (!userDoc || !userDoc.exists()) {
     return null;
   }
 
@@ -37,11 +37,19 @@ const isTipEmail = (email: string) => {
   return email.trim().toLowerCase().endsWith("@tip.edu.ph");
 };
 
+import {
+  determineAccountLifecycleState,
+  ACCOUNT_PAUSED_MSG,
+  ACCOUNT_REMOVED_MSG,
+  ACCOUNT_MISSING_PROFILE_MSG,
+} from "../../utils/accountLifecycle";
+
 /**
- * Register a new student account.
- * 1. Creates Firebase Auth account.
- * 2. Sends Firebase email verification.
- * 3. Creates Firestore users/{uid} document.
+ * Register a new student with email/password.
+ * 1. Validates the email ends with @tip.edu.ph.
+ * 2. Creates the user in Firebase Auth.
+ * 3. Sends a verification email.
+ * 4. Creates the Firestore document in users/{uid}.
  * 4. Signs out immediately — user must verify email before first login.
  */
 export const registerStudent = async (
@@ -67,6 +75,9 @@ export const registerStudent = async (
     fullName: fullName.trim(),
     role: "student",
     isProfileComplete: false,
+    accountState: "ACTIVE",
+    isDeleted: false,
+    isDisabled: false,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     hasCompletedOnboarding: false,
@@ -85,7 +96,7 @@ export const registerStudent = async (
  * 1. Signs in with email/password.
  * 2. Reloads the Firebase user to get fresh emailVerified status.
  * 3. If email is not verified, throws EmailNotVerifiedError (UI shows modal).
- * 4. If verified, reads the Firestore user document and returns it.
+ * 4. If verified, reads the Firestore user document and checks account lifecycle state.
  */
 export const loginUser = async (email: string, password: string): Promise<AppUser> => {
   const normalizedEmail = email.trim().toLowerCase();
@@ -112,12 +123,26 @@ export const loginUser = async (email: string, password: string): Promise<AppUse
   const userDocRef = doc(db, USERS_COLLECTION, user.uid);
   const userDoc = await getDoc(userDocRef);
 
-  if (!userDoc.exists() || (userDoc.data() as AppUser).isDisabled === true) {
+  const docExists = userDoc.exists();
+  const userData = docExists ? (userDoc.data() as AppUser) : null;
+  const lifecycle = determineAccountLifecycleState(docExists, userData);
+
+  if (lifecycle === "DELETED_REMOVED") {
     await signOut(auth);
-    throw new Error("your account has been paused or deleted by the admin");
+    throw new Error(ACCOUNT_REMOVED_MSG);
   }
 
-  return userDoc.data() as AppUser;
+  if (lifecycle === "DISABLED_PAUSED") {
+    await signOut(auth);
+    throw new Error(ACCOUNT_PAUSED_MSG);
+  }
+
+  if (lifecycle === "MISSING_PROFILE") {
+    await signOut(auth);
+    throw new Error(ACCOUNT_MISSING_PROFILE_MSG);
+  }
+
+  return userData as AppUser;
 };
 
 /**

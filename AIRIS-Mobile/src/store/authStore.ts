@@ -38,7 +38,24 @@ import { useOnboardingStore } from "./onboardingStore";
 import { clearLearningMemoryCache } from "../services/learning/learningCatalogService";
 import { mapAuthError, sanitizeErrorForLogging } from "../utils/errorMapper";
 
-export const ACCOUNT_SUSPENDED_OR_DELETED_MSG = "your account has been paused or deleted by the admin";
+import {
+  determineAccountLifecycleState,
+  AccountLifecycleState,
+  ACCOUNT_PAUSED_MSG,
+  ACCOUNT_REMOVED_MSG,
+  ACCOUNT_MISSING_PROFILE_MSG,
+} from "../utils/accountLifecycle";
+
+export {
+  determineAccountLifecycleState,
+  AccountLifecycleState,
+  ACCOUNT_PAUSED_MSG,
+  ACCOUNT_REMOVED_MSG,
+  ACCOUNT_MISSING_PROFILE_MSG,
+};
+
+// Backward-compatibility constant for tests and external callers
+export const ACCOUNT_SUSPENDED_OR_DELETED_MSG = ACCOUNT_PAUSED_MSG;
 
 let GoogleSignin: any = null;
 let statusCodes: any = {};
@@ -66,7 +83,8 @@ export function stopUserRealtimeListener() {
   }
 }
 
-export async function handleAccountSuspendedOrDeleted(
+export async function handleAccountTermination(
+  reason: "DISABLED_PAUSED" | "DELETED_REMOVED" | "MISSING_PROFILE",
   customSet?: (state: Partial<AuthState> | ((prev: AuthState) => Partial<AuthState>)) => void
 ) {
   if (isLoggingOutDueToSuspension) return;
@@ -74,13 +92,24 @@ export async function handleAccountSuspendedOrDeleted(
 
   stopUserRealtimeListener();
 
+  let title = "Account Inactive";
+  let message = ACCOUNT_PAUSED_MSG;
+
+  if (reason === "DELETED_REMOVED") {
+    title = "Account Removed";
+    message = ACCOUNT_REMOVED_MSG;
+  } else if (reason === "MISSING_PROFILE") {
+    title = "Account Profile Unavailable";
+    message = ACCOUNT_MISSING_PROFILE_MSG;
+  }
+
   try {
     await signOut(auth).catch(() => {});
     if (GoogleSignin) {
       await GoogleSignin.signOut().catch(() => {});
     }
   } catch (err) {
-    console.warn("SignOut error during account suspension/deletion cleanup:", err);
+    console.warn("SignOut error during account lifecycle cleanup:", err);
   } finally {
     useOnboardingStore.getState().reset();
     try {
@@ -92,15 +121,15 @@ export async function handleAccountSuspendedOrDeleted(
       currentUser: null,
       loading: false,
       isGoogleLoading: false,
-      error: ACCOUNT_SUSPENDED_OR_DELETED_MSG,
+      error: message,
       registrationSuccess: false,
       emailNotVerified: false,
     });
 
     try {
       Alert.alert(
-        "Account Inactive",
-        ACCOUNT_SUSPENDED_OR_DELETED_MSG,
+        title,
+        message,
         [{ text: "OK" }],
         { cancelable: false }
       );
@@ -112,6 +141,12 @@ export async function handleAccountSuspendedOrDeleted(
   }
 }
 
+export async function handleAccountSuspendedOrDeleted(
+  customSet?: (state: Partial<AuthState> | ((prev: AuthState) => Partial<AuthState>)) => void
+) {
+  return handleAccountTermination("DISABLED_PAUSED", customSet);
+}
+
 export function startUserRealtimeListener(uid: string) {
   stopUserRealtimeListener();
   if (!uid) return;
@@ -121,21 +156,26 @@ export function startUserRealtimeListener(uid: string) {
     userDocUnsubscribe = onSnapshot(
       userDocRef,
       (snapshot) => {
-        if (!snapshot.exists()) {
-          console.warn(`[AUTH] User document for ${uid} was deleted in Firestore. Logging out immediately.`);
-          handleAccountSuspendedOrDeleted();
+        const lifecycle = determineAccountLifecycleState(snapshot.exists(), snapshot.data() as AppUser);
+        if (lifecycle === "MISSING_PROFILE") {
+          console.warn(`[AUTH] User document for ${uid} was removed or missing in Firestore. Logging out safely.`);
+          handleAccountTermination("MISSING_PROFILE");
           return;
         }
-        const data = snapshot.data();
-        if (data?.isDisabled === true) {
+        if (lifecycle === "DELETED_REMOVED") {
+          console.warn(`[AUTH] User document for ${uid} is marked deleted in Firestore. Logging out immediately.`);
+          handleAccountTermination("DELETED_REMOVED");
+          return;
+        }
+        if (lifecycle === "DISABLED_PAUSED") {
           console.warn(`[AUTH] User document for ${uid} is disabled/paused in Firestore. Logging out immediately.`);
-          handleAccountSuspendedOrDeleted();
+          handleAccountTermination("DISABLED_PAUSED");
           return;
         }
       },
       (err) => {
         if (err?.code === "permission-denied") {
-          handleAccountSuspendedOrDeleted();
+          handleAccountTermination("DISABLED_PAUSED");
         }
       }
     );
@@ -290,8 +330,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   loginWithGoogle: async () => {
     const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
     if (!webClientId) {
-      const err = new Error("Google Sign-In is not configured: Client ID is missing.");
-      set({ error: err.message });
+      console.error("[AUTH][CONFIG] Google Sign-In is not configured: Client ID is missing.");
+      const err = new Error("Google Sign-In is currently unavailable. Please try again later.");
+      set({ error: err.message, isGoogleLoading: false });
       throw err;
     }
 
@@ -389,6 +430,9 @@ export const useAuthStore = create<AuthState>((set) => ({
           fullName: firebaseUser.displayName?.trim() || "TIP Student",
           role: "student",
           isProfileComplete: false,
+          accountState: "ACTIVE",
+          isDeleted: false,
+          isDisabled: false,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
           hasCompletedOnboarding: false,
@@ -417,15 +461,32 @@ export const useAuthStore = create<AuthState>((set) => ({
           error: null,
         });
       } else {
-        if (!existingProfile || existingProfile.isDisabled === true) {
+        const lifecycle = determineAccountLifecycleState(!!existingProfile, existingProfile);
+
+        if (lifecycle === "DELETED_REMOVED") {
           await clearAuthSessionSafely();
-          set({ error: ACCOUNT_SUSPENDED_OR_DELETED_MSG });
-          throw new Error(ACCOUNT_SUSPENDED_OR_DELETED_MSG);
+          set({ error: ACCOUNT_REMOVED_MSG });
+          throw new Error(ACCOUNT_REMOVED_MSG);
+        }
+
+        if (lifecycle === "DISABLED_PAUSED") {
+          await clearAuthSessionSafely();
+          set({ error: ACCOUNT_PAUSED_MSG });
+          throw new Error(ACCOUNT_PAUSED_MSG);
+        }
+
+        if (lifecycle === "MISSING_PROFILE") {
+          // Distributed boundary: Auth user exists (isNewUser === false), but Firestore profile is missing.
+          // In accordance with security & lifecycle rules, DO NOT silently auto-recreate (which would resurrect
+          // deleted accounts), and DO NOT falsely accuse the admin of suspending them.
+          await clearAuthSessionSafely();
+          set({ error: ACCOUNT_MISSING_PROFILE_MSG });
+          throw new Error(ACCOUNT_MISSING_PROFILE_MSG);
         }
 
         startUserRealtimeListener(firebaseUser.uid);
         set({
-          currentUser: existingProfile,
+          currentUser: existingProfile!,
           loading: false,
           error: null,
         });
@@ -562,8 +623,18 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
 
         const appUser = await getUserById(firebaseUser.uid);
-        if (!appUser || appUser.isDisabled === true) {
-          await handleAccountSuspendedOrDeleted(set);
+        const lifecycle = determineAccountLifecycleState(!!appUser, appUser);
+
+        if (lifecycle === "DELETED_REMOVED") {
+          await handleAccountTermination("DELETED_REMOVED", set);
+          return;
+        }
+        if (lifecycle === "DISABLED_PAUSED") {
+          await handleAccountTermination("DISABLED_PAUSED", set);
+          return;
+        }
+        if (lifecycle === "MISSING_PROFILE") {
+          await handleAccountTermination("MISSING_PROFILE", set);
           return;
         }
 
@@ -584,7 +655,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           errStr.includes("user-disabled")
         ) {
           console.warn("[AUTH] User deleted or disabled in Firebase Auth on reload");
-          await handleAccountSuspendedOrDeleted(set);
+          await handleAccountTermination(errCode === "auth/user-disabled" ? "DISABLED_PAUSED" : "DELETED_REMOVED", set);
           return;
         }
 
@@ -1067,8 +1138,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       await firebaseUser.reload();
       const appUser = await getUserById(firebaseUser.uid);
-      if (!appUser || appUser.isDisabled === true) {
-        await handleAccountSuspendedOrDeleted();
+      const lifecycle = determineAccountLifecycleState(!!appUser, appUser);
+      if (lifecycle !== "ACTIVE") {
+        await handleAccountTermination(lifecycle);
         return false;
       }
       return true;
@@ -1081,7 +1153,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         errStr.includes("user-not-found") ||
         errStr.includes("user-disabled")
       ) {
-        await handleAccountSuspendedOrDeleted();
+        await handleAccountTermination(errCode === "auth/user-disabled" ? "DISABLED_PAUSED" : "DELETED_REMOVED");
         return false;
       }
 

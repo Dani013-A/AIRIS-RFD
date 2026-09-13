@@ -43,7 +43,7 @@ describe("Account Deletion and Suspension Immediate Logout", () => {
   });
 
   it("should have exact required suspension/deletion message constant", () => {
-    expect(ACCOUNT_SUSPENDED_OR_DELETED_MSG).toBe("your account has been paused or deleted by the admin");
+    expect(ACCOUNT_SUSPENDED_OR_DELETED_MSG).toBe("Your account has been paused by an administrator. Please contact your department for assistance.");
   });
 
   it("should log out immediately and set exact error message when account is paused or deleted", async () => {
@@ -56,12 +56,12 @@ describe("Account Deletion and Suspension Immediate Logout", () => {
       expect.objectContaining({
         currentUser: null,
         loading: false,
-        error: "your account has been paused or deleted by the admin",
+        error: "Your account has been paused by an administrator. Please contact your department for assistance.",
       })
     );
     expect(Alert.alert).toHaveBeenCalledWith(
       "Account Inactive",
-      "your account has been paused or deleted by the admin",
+      "Your account has been paused by an administrator. Please contact your department for assistance.",
       expect.any(Array),
       expect.any(Object)
     );
@@ -70,12 +70,12 @@ describe("Account Deletion and Suspension Immediate Logout", () => {
   it("should map auth/user-disabled to the exact required message in errorMapper", () => {
     const errorObj = { code: "auth/user-disabled", message: "The user account has been disabled." };
     const mapped = mapAuthError(errorObj);
-    expect(mapped).toBe("your account has been paused or deleted by the admin");
+    expect(mapped).toBe("Your account has been paused by an administrator. Please contact your department for assistance.");
   });
 
   it("should map explicit suspension error to the exact required message in errorMapper", () => {
     const errorObj = new Error("your account has been paused or deleted by the admin");
     const mapped = mapAuthError(errorObj);
-    expect(mapped).toBe("your account has been paused or deleted by the admin");
+    expect(mapped).toBe("Your account has been paused by an administrator. Please contact your department for assistance.");
   });
 });

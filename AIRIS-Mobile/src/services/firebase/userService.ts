@@ -127,20 +127,27 @@ export const updateProfileDetails = async (
 };
 
 export const deleteUserAccountCascade = async (uid: string): Promise<void> => {
-  const { deleteDoc } = await import("firebase/firestore");
+  const { setDoc } = await import("firebase/firestore");
   const { deleteUser } = await import("firebase/auth");
   const { auth } = await import("../../config/firebase");
 
   console.log(`[AUTH][ACCOUNT_DELETE][START] Initiating account cascade deletion for user UID: ${uid}`);
 
-  // 1. Delete Firestore user document
+  // 1. Record minimal non-sensitive tombstone record (no personal data retained)
   try {
-    console.log(`[AUTH][ACCOUNT_DELETE][FIRESTORE_DELETE] Deleting Firestore user document users/${uid}...`);
+    console.log(`[AUTH][ACCOUNT_DELETE][TOMBSTONE] Writing minimal non-sensitive lifecycle tombstone for users/${uid}...`);
     const userRef = doc(db, USERS_COLLECTION, uid);
-    await deleteDoc(userRef);
-    console.log(`[AUTH][ACCOUNT_DELETE][FIRESTORE_SUCCESS] Firestore user document removed.`);
+    await setDoc(userRef, {
+      uid,
+      accountState: "DELETED",
+      isDeleted: true,
+      isDisabled: true,
+      deletedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    console.log(`[AUTH][ACCOUNT_DELETE][TOMBSTONE_SUCCESS] Minimal lifecycle tombstone recorded.`);
   } catch (fsErr: any) {
-    console.warn(`[AUTH][ACCOUNT_DELETE][FIRESTORE_WARN] Firestore delete notice (proceeding):`, fsErr?.message || fsErr);
+    console.warn(`[AUTH][ACCOUNT_DELETE][TOMBSTONE_WARN] Firestore tombstone write notice:`, fsErr?.message || fsErr);
   }
 
   // 2. Clean up local persistent profile photo for this account

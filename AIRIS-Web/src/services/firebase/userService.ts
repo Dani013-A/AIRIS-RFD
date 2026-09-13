@@ -5,6 +5,8 @@ import {
   getDoc,
   updateDoc,
   deleteDoc,
+  setDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import {
@@ -356,11 +358,20 @@ export async function toggleStudentAccountState(
 }
 
 /**
- * Delete a student account permanently from Firestore.
+ * Delete a student account permanently from Firestore while retaining a minimal,
+ * non-sensitive lifecycle tombstone (no PII) to prevent unauthorized account resurrection.
  */
 export async function deleteStudentAccount(studentId: string, adminName: string): Promise<void> {
   const userRef = doc(db, USERS_COLLECTION, studentId);
-  await deleteDoc(userRef);
+  await setDoc(userRef, {
+    uid: studentId,
+    accountState: "DELETED",
+    isDeleted: true,
+    isDisabled: true,
+    deletedAt: serverTimestamp(),
+    deletedBy: adminName,
+    updatedAt: serverTimestamp(),
+  });
 
   await logAuditEvent(
     "UserDeleted",
