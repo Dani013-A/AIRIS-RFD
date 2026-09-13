@@ -29,6 +29,8 @@ venv.bak/
 *.jks
 google-services.json
 airis-development-firebase-adminsdk-*.json
+gemini_config.json
+ai_config.json
 
 # OS files
 .DS_Store
