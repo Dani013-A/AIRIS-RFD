@@ -41,12 +41,16 @@ export const MSG_EMAIL_ALREADY_IN_USE =
 export const MSG_ACCOUNT_PAUSED = ACCOUNT_PAUSED_MSG;
 export const MSG_ACCOUNT_REMOVED = ACCOUNT_REMOVED_MSG;
 export const MSG_MISSING_PROFILE = ACCOUNT_MISSING_PROFILE_MSG;
+export const MSG_PROFILE_INIT_FAILED =
+  "We couldn't finish setting up your account. Please try again.";
+export const MSG_NETWORK_ERROR =
+  "Network error. Please check your internet connection.";
 
 /**
  * Translate technical Firebase error codes into friendly, helpful messages that any student can understand.
  */
 export function mapAuthError(error: unknown): string {
-  const defaultMessage = "Authentication failed. Please try again.";
+  const defaultMessage = "We couldn't sign you in. Please check your credentials and try again.";
   if (!error) return defaultMessage;
 
   const candidate = error as { message?: unknown; code?: unknown };
@@ -55,8 +59,8 @@ export function mapAuthError(error: unknown): string {
 
   const testString = `${code} ${message}`.toLowerCase();
 
-  if (testString.includes("only verified tip email accounts")) {
-    return "Only verified TIP email accounts ending in @tip.edu.ph can be used to access AIRIS. Please choose your TIP Google account.";
+  if (testString.includes("only verified tip email accounts") || testString.includes("please choose your tip google account")) {
+    return "Please use your official @tip.edu.ph account.";
   }
   if (testString.includes("auth/account-exists-with-different-credential") || testString.includes("account-exists-with-different-credential")) {
     return "An AIRIS account already exists for this TIP email using another sign-in method. Please log in using your original method first.";
@@ -79,18 +83,16 @@ export function mapAuthError(error: unknown): string {
   if (testString.includes("auth/too-many-requests")) {
     return "Too many attempts. Please try again later.";
   }
-  if (testString.includes("auth/network-request-failed") || testString.includes("network-request-failed")) {
-    return "Network error. Please check your internet connection.";
+  if (testString.includes("auth/network-request-failed") || testString.includes("network-request-failed") || testString.includes("network error")) {
+    return MSG_NETWORK_ERROR;
   }
-  if (testString.includes("this account has been removed")) {
+  if (testString.includes("this airis account is no longer available") || testString.includes("this account has been removed")) {
     return MSG_ACCOUNT_REMOVED;
   }
-  if (testString.includes("account profile not found")) {
-    return MSG_MISSING_PROFILE;
-  }
   if (
-    testString.includes("your account has been paused or deleted by the admin") ||
+    testString.includes("this airis account is currently paused") ||
     testString.includes("your account has been paused by an administrator") ||
+    testString.includes("your account has been paused or deleted by the admin") ||
     testString.includes("auth/user-disabled") ||
     testString.includes("user-disabled")
   ) {
@@ -101,11 +103,16 @@ export function mapAuthError(error: unknown): string {
     return "An account conflict was detected. A profile already exists for this email address. Please contact the AIRIS administrator.";
   }
 
+  if (testString.includes("account profile not found")) {
+    return MSG_MISSING_PROFILE;
+  }
+
   if (
     testString.includes("permission-denied") ||
     testString.includes("missing or insufficient permissions") ||
     testString.includes("insufficient permissions") ||
-    testString.includes("permission_denied")
+    testString.includes("permission_denied") ||
+    testString.includes("setting up your airis profile")
   ) {
     return "We couldn't finish setting up your account. Please try again.";
   }
@@ -121,7 +128,7 @@ export function mapAuthError(error: unknown): string {
       msg.toLowerCase().includes("firestore") ||
       msg.toLowerCase().includes("unreachable")
     ) {
-      return "We couldn't finish setting up your account. Please try again.";
+      return MSG_PROFILE_INIT_FAILED;
     }
     return msg;
   }

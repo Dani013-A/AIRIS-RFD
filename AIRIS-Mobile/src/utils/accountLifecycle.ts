@@ -1,10 +1,20 @@
 import type { AppUser } from "../types/user.types";
 
 export type AccountLifecycleState =
+  | "NEW_AUTH_USER"
   | "ACTIVE"
   | "DISABLED_PAUSED"
   | "DELETED_REMOVED"
-  | "MISSING_PROFILE";
+  | "MISSING_PROFILE"
+  | "AUTHENTICATION_FAILED"
+  | "PROFILE_INITIALIZATION_FAILED";
+
+export type AuthTransactionState =
+  | "IDLE"
+  | "AUTHENTICATING"
+  | "INITIALIZING_PROFILE"
+  | "COMPLETED"
+  | "FAILED";
 
 export const ACCOUNT_PAUSED_MSG =
   "Your account has been paused by an administrator. Please contact your department for assistance.";
@@ -13,7 +23,10 @@ export const ACCOUNT_REMOVED_MSG =
   "This account has been removed. Please contact the administrator if you believe this is an error.";
 
 export const ACCOUNT_MISSING_PROFILE_MSG =
-  "Account profile not found. If your registration was interrupted or your account was modified, please contact your department administrator or support to initialize your profile.";
+  "Your account was created, but we couldn't finish setting up your AIRIS profile. Please try again.";
+
+export const MSG_PROFILE_INIT_FAILED =
+  "Your account was created, but we couldn't finish setting up your AIRIS profile. Please try again.";
 
 /**
  * Deterministic account state precedence:

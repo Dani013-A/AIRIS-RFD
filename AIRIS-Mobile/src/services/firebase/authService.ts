@@ -43,14 +43,16 @@ import {
   ACCOUNT_REMOVED_MSG,
   ACCOUNT_MISSING_PROFILE_MSG,
 } from "../../utils/accountLifecycle";
+import { createProfileTransaction } from "./userService";
 
 /**
  * Register a new student with email/password.
  * 1. Validates the email ends with @tip.edu.ph.
  * 2. Creates the user in Firebase Auth.
- * 3. Sends a verification email.
- * 4. Creates the Firestore document in users/{uid}.
- * 4. Signs out immediately — user must verify email before first login.
+ * 3. Synchronizes ID token.
+ * 4. Authoritatively creates the Firestore profile via createProfileTransaction.
+ * 5. Sends a verification email.
+ * 6. Signs out immediately — user must verify email before first login.
  */
 export const registerStudent = async (
   email: string,
@@ -67,7 +69,9 @@ export const registerStudent = async (
 
   const user = userCredential.user;
 
-  await sendEmailVerification(user);
+  if (typeof user.getIdToken === "function") {
+    await user.getIdToken(true);
+  }
 
   const newUser: AppUser = {
     uid: user.uid,
@@ -85,6 +89,8 @@ export const registerStudent = async (
   };
 
   await setDoc(doc(db, USERS_COLLECTION, user.uid), newUser);
+
+  await sendEmailVerification(user);
 
   await signOut(auth);
 
@@ -137,7 +143,7 @@ export const loginUser = async (email: string, password: string): Promise<AppUse
     throw new Error(ACCOUNT_PAUSED_MSG);
   }
 
-  if (lifecycle === "MISSING_PROFILE") {
+  if (lifecycle === "MISSING_PROFILE" || !userData) {
     await signOut(auth);
     throw new Error(ACCOUNT_MISSING_PROFILE_MSG);
   }

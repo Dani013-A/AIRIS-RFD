@@ -41,17 +41,21 @@ import { mapAuthError, sanitizeErrorForLogging } from "../utils/errorMapper";
 import {
   determineAccountLifecycleState,
   AccountLifecycleState,
+  AuthTransactionState,
   ACCOUNT_PAUSED_MSG,
   ACCOUNT_REMOVED_MSG,
   ACCOUNT_MISSING_PROFILE_MSG,
+  MSG_PROFILE_INIT_FAILED,
 } from "../utils/accountLifecycle";
 
 export {
   determineAccountLifecycleState,
   AccountLifecycleState,
+  AuthTransactionState,
   ACCOUNT_PAUSED_MSG,
   ACCOUNT_REMOVED_MSG,
   ACCOUNT_MISSING_PROFILE_MSG,
+  MSG_PROFILE_INIT_FAILED,
 };
 
 // Backward-compatibility constant for tests and external callers
@@ -84,7 +88,7 @@ export function stopUserRealtimeListener() {
 }
 
 export async function handleAccountTermination(
-  reason: "DISABLED_PAUSED" | "DELETED_REMOVED" | "MISSING_PROFILE",
+  reason: "DISABLED_PAUSED" | "DELETED_REMOVED",
   customSet?: (state: Partial<AuthState> | ((prev: AuthState) => Partial<AuthState>)) => void
 ) {
   if (isLoggingOutDueToSuspension) return;
@@ -98,9 +102,6 @@ export async function handleAccountTermination(
   if (reason === "DELETED_REMOVED") {
     title = "Account Removed";
     message = ACCOUNT_REMOVED_MSG;
-  } else if (reason === "MISSING_PROFILE") {
-    title = "Account Profile Unavailable";
-    message = ACCOUNT_MISSING_PROFILE_MSG;
   }
 
   try {
@@ -121,6 +122,7 @@ export async function handleAccountTermination(
       currentUser: null,
       loading: false,
       isGoogleLoading: false,
+      authTransactionState: "FAILED",
       error: message,
       registrationSuccess: false,
       emailNotVerified: false,
@@ -157,11 +159,6 @@ export function startUserRealtimeListener(uid: string) {
       userDocRef,
       (snapshot) => {
         const lifecycle = determineAccountLifecycleState(snapshot.exists(), snapshot.data() as AppUser);
-        if (lifecycle === "MISSING_PROFILE") {
-          console.warn(`[AUTH] User document for ${uid} was removed or missing in Firestore. Logging out safely.`);
-          handleAccountTermination("MISSING_PROFILE");
-          return;
-        }
         if (lifecycle === "DELETED_REMOVED") {
           console.warn(`[AUTH] User document for ${uid} is marked deleted in Firestore. Logging out immediately.`);
           handleAccountTermination("DELETED_REMOVED");
@@ -211,6 +208,8 @@ interface AuthState {
   isGoogleLoading: boolean;
   isInitialized: boolean;
   isRegistering: boolean;
+  authTransactionState: AuthTransactionState;
+  setAuthTransactionState: (state: AuthTransactionState) => void;
   error: string | null;
 
   registrationSuccess: boolean;
@@ -263,6 +262,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   isGoogleLoading: false,
   isInitialized: false,
   isRegistering: false,
+  authTransactionState: "IDLE",
+  setAuthTransactionState: (authTransactionState) => set({ authTransactionState }),
   error: null,
   registrationSuccess: false,
   emailNotVerified: false,
@@ -271,13 +272,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email, password) => {
     try {
       const normalizedEmail = email.trim().toLowerCase();
-      set({ loading: true, error: null, emailNotVerified: false });
+      set({ authTransactionState: "AUTHENTICATING", loading: true, error: null, emailNotVerified: false });
 
       const user = await loginUser(normalizedEmail, password);
       startUserRealtimeListener(user.uid);
 
       set({
         currentUser: user,
+        authTransactionState: "COMPLETED",
         loading: false,
         error: null,
         emailNotVerified: false,
@@ -286,6 +288,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (error instanceof EmailNotVerifiedError) {
         set({
           currentUser: null,
+          authTransactionState: "FAILED",
           loading: false,
           error: null,
           emailNotVerified: true,
@@ -295,6 +298,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       set({
         currentUser: null,
+        authTransactionState: "FAILED",
         loading: false,
         error: mapAuthError(error),
         emailNotVerified: false,
@@ -305,12 +309,19 @@ export const useAuthStore = create<AuthState>((set) => ({
   register: async (email, password, fullName) => {
     try {
       const normalizedEmail = email.trim().toLowerCase();
-      set({ loading: true, error: null, registrationSuccess: false, isRegistering: true });
+      set({
+        authTransactionState: "AUTHENTICATING",
+        loading: true,
+        error: null,
+        registrationSuccess: false,
+        isRegistering: true,
+      });
 
       await registerStudent(normalizedEmail, password, fullName);
 
       set({
         currentUser: null,
+        authTransactionState: "COMPLETED",
         loading: false,
         error: null,
         registrationSuccess: true,
@@ -319,6 +330,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (error) {
       set({
         currentUser: null,
+        authTransactionState: "FAILED",
         loading: false,
         registrationSuccess: false,
         error: mapAuthError(error),
@@ -332,18 +344,17 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (!webClientId) {
       console.error("[AUTH][CONFIG] Google Sign-In is not configured: Client ID is missing.");
       const err = new Error("Google Sign-In is currently unavailable. Please try again later.");
-      set({ error: err.message, isGoogleLoading: false });
+      set({ error: err.message, isGoogleLoading: false, authTransactionState: "FAILED" });
       throw err;
     }
 
-    set({ isGoogleLoading: true, error: null });
+    set({ authTransactionState: "AUTHENTICATING", isGoogleLoading: true, error: null, isRegistering: true });
     let firebaseSessionCreated = false;
 
     const clearAuthSessionSafely = async () => {
       try {
         await signOut(auth);
         try {
-      // Verify Google Play Services support.
           if (GoogleSignin) {
             await GoogleSignin.signOut();
           }
@@ -360,6 +371,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({
           currentUser: null,
           loading: false,
+          isRegistering: false,
         });
       }
     };
@@ -375,6 +387,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       const userInfo = await GoogleSignin.signIn();
       if (userInfo.type !== "success") {
+        set({ authTransactionState: "IDLE", isRegistering: false });
         return;
       }
       const idToken = userInfo.data.idToken;
@@ -407,78 +420,83 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
         await clearAuthSessionSafely();
         const err = new Error(
-          "Only verified TIP email accounts ending in @tip.edu.ph can be used to access AIRIS. Please choose your TIP Google account."
+          "Please use your official @tip.edu.ph account."
         );
-        set({ error: err.message });
+        set({ error: err.message, authTransactionState: "FAILED" });
         throw err;
       }
 
       // Synchronize auth state: force ID token generation to ensure Firestore internal auth credentials provider has the token.
-      await firebaseUser.getIdToken(true);
+      set({ authTransactionState: "INITIALIZING_PROFILE" });
+      if (typeof firebaseUser.getIdToken === "function") {
+        await firebaseUser.getIdToken(true);
+      }
 
       const existingProfile = await getUserById(firebaseUser.uid);
-
       if (existingProfile) {
         const lifecycle = determineAccountLifecycleState(true, existingProfile);
-
         if (lifecycle === "DELETED_REMOVED") {
           await clearAuthSessionSafely();
-          set({ error: ACCOUNT_REMOVED_MSG });
+          set({ error: ACCOUNT_REMOVED_MSG, authTransactionState: "FAILED" });
           throw new Error(ACCOUNT_REMOVED_MSG);
         }
-
         if (lifecycle === "DISABLED_PAUSED") {
           await clearAuthSessionSafely();
-          set({ error: ACCOUNT_PAUSED_MSG });
+          set({ error: ACCOUNT_PAUSED_MSG, authTransactionState: "FAILED" });
           throw new Error(ACCOUNT_PAUSED_MSG);
         }
-
         startUserRealtimeListener(firebaseUser.uid);
         set({
           currentUser: existingProfile,
+          authTransactionState: "COMPLETED",
           loading: false,
+          isGoogleLoading: false,
+          isRegistering: false,
           error: null,
         });
-      } else {
-        // No existing Firestore profile document found (no active profile and no DELETED tombstone).
-        // Safely initialize the active student profile for first-time or interrupted Google registration.
-        const newProfile: AppUser = {
-          uid: firebaseUser.uid,
-          email: emailLower,
-          fullName: firebaseUser.displayName?.trim() || "TIP Student",
-          role: "student",
-          isProfileComplete: false,
-          accountState: "ACTIVE",
-          isDeleted: false,
-          isDisabled: false,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          hasCompletedOnboarding: false,
-          hasCompletedInitialSetup: false,
-          college: "",
-          degreeProgram: "",
-          targetPosition: "",
-          acceptedTerms: false,
-          acceptedPrivacy: false,
-          termsVersion: "",
-          privacyVersion: "",
-          activeResumeId: null,
-        };
-
-        try {
-          await createProfileTransaction(firebaseUser.uid, newProfile);
-        } catch (dbErr) {
-          await clearAuthSessionSafely();
-          throw dbErr;
-        }
-
-        startUserRealtimeListener(firebaseUser.uid);
-        set({
-          currentUser: newProfile,
-          loading: false,
-          error: null,
-        });
+        return;
       }
+
+      const newProfile: AppUser = {
+        uid: firebaseUser.uid,
+        email: emailLower,
+        fullName: firebaseUser.displayName?.trim() || "TIP Student",
+        role: "student",
+        isProfileComplete: false,
+        accountState: "ACTIVE",
+        isDeleted: false,
+        isDisabled: false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        hasCompletedOnboarding: false,
+        hasCompletedInitialSetup: false,
+        college: "",
+        degreeProgram: "",
+        targetPosition: "",
+        acceptedTerms: false,
+        acceptedPrivacy: false,
+        termsVersion: "",
+        privacyVersion: "",
+        activeResumeId: null,
+      };
+
+      let activeProfile: AppUser;
+      try {
+        activeProfile = await createProfileTransaction(firebaseUser.uid, newProfile);
+      } catch (dbErr: any) {
+        await clearAuthSessionSafely();
+        throw dbErr;
+      }
+
+      startUserRealtimeListener(firebaseUser.uid);
+      set({
+        currentUser: activeProfile,
+        authTransactionState: "COMPLETED",
+        loading: false,
+        isGoogleLoading: false,
+        isRegistering: false,
+        error: null,
+      });
     } catch (error: unknown) {
       const errorCode =
         error && typeof error === "object" && "code" in error
@@ -486,6 +504,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           : undefined;
 
       if (errorCode === statusCodes.SIGN_IN_CANCELLED) {
+        set({ authTransactionState: "IDLE", isRegistering: false });
         return;
       }
       if (errorCode === statusCodes.IN_PROGRESS) {
@@ -494,6 +513,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (errorCode === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
         set({
           error: "Google Play Services are not available or outdated on this device.",
+          authTransactionState: "FAILED",
+          isRegistering: false,
         });
         return;
       }
@@ -505,6 +526,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       const friendlyMsg = mapAuthError(error);
       set({
         error: friendlyMsg,
+        authTransactionState: "FAILED",
+        isRegistering: false,
       });
       throw new Error(friendlyMsg);
     } finally {
@@ -514,7 +537,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     stopUserRealtimeListener();
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, authTransactionState: "IDLE" });
     try {
       await logoutUser();
       try {
@@ -538,6 +561,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         currentUser: null,
         loading: false,
         isGoogleLoading: false,
+        authTransactionState: "IDLE",
         error: null,
         registrationSuccess: false,
         emailNotVerified: false,
@@ -580,7 +604,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       const state = useAuthStore.getState();
-      if (state.isRegistering) {
+      if (
+        state.authTransactionState === "AUTHENTICATING" ||
+        state.authTransactionState === "INITIALIZING_PROFILE" ||
+        state.isRegistering
+      ) {
         return;
       }
 
@@ -621,9 +649,70 @@ export const useAuthStore = create<AuthState>((set) => ({
           await handleAccountTermination("DISABLED_PAUSED", set);
           return;
         }
-        if (lifecycle === "MISSING_PROFILE") {
-          await handleAccountTermination("MISSING_PROFILE", set);
-          return;
+
+        if (lifecycle === "MISSING_PROFILE" || !appUser) {
+          const email = firebaseUser.email?.trim().toLowerCase() || "";
+          if (email.endsWith("@tip.edu.ph")) {
+            const recoveredProfile: AppUser = {
+              uid: firebaseUser.uid,
+              email: email,
+              fullName: firebaseUser.displayName?.trim() || "TIP Student",
+              role: "student",
+              isProfileComplete: false,
+              accountState: "ACTIVE",
+              isDeleted: false,
+              isDisabled: false,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              hasCompletedOnboarding: false,
+              hasCompletedInitialSetup: false,
+              college: "",
+              degreeProgram: "",
+              targetPosition: "",
+              acceptedTerms: false,
+              acceptedPrivacy: false,
+              termsVersion: "",
+              privacyVersion: "",
+              activeResumeId: null,
+            };
+            try {
+              await firebaseUser.getIdToken(true);
+              const activeProfile = await createProfileTransaction(firebaseUser.uid, recoveredProfile);
+              startUserRealtimeListener(firebaseUser.uid);
+              set({
+                currentUser: activeProfile,
+                loading: false,
+                isInitialized: true,
+                error: null,
+              });
+              return;
+            } catch (recoveryErr: any) {
+              if (recoveryErr?.message === ACCOUNT_REMOVED_MSG) {
+                await handleAccountTermination("DELETED_REMOVED", set);
+                return;
+              }
+              if (recoveryErr?.message === ACCOUNT_PAUSED_MSG) {
+                await handleAccountTermination("DISABLED_PAUSED", set);
+                return;
+              }
+              set({
+                currentUser: null,
+                loading: false,
+                isInitialized: true,
+                error: MSG_PROFILE_INIT_FAILED,
+              });
+              return;
+            }
+          } else {
+            await signOut(auth);
+            set({
+              currentUser: null,
+              loading: false,
+              isInitialized: true,
+              error: "Please use your official @tip.edu.ph account.",
+            });
+            return;
+          }
         }
 
         startUserRealtimeListener(firebaseUser.uid);
@@ -669,7 +758,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           currentUser: null,
           loading: false,
           isInitialized: true,
-          error: null,
+          error: MSG_PROFILE_INIT_FAILED,
         });
       }
     });
@@ -1127,8 +1216,48 @@ export const useAuthStore = create<AuthState>((set) => ({
       await firebaseUser.reload();
       const appUser = await getUserById(firebaseUser.uid);
       const lifecycle = determineAccountLifecycleState(!!appUser, appUser);
-      if (lifecycle !== "ACTIVE") {
-        await handleAccountTermination(lifecycle);
+      if (lifecycle === "DELETED_REMOVED") {
+        await handleAccountTermination("DELETED_REMOVED");
+        return false;
+      }
+      if (lifecycle === "DISABLED_PAUSED") {
+        await handleAccountTermination("DISABLED_PAUSED");
+        return false;
+      }
+      if (lifecycle === "MISSING_PROFILE" || !appUser) {
+        const email = firebaseUser.email?.trim().toLowerCase() || "";
+        if (email.endsWith("@tip.edu.ph")) {
+          const recoveredProfile: AppUser = {
+            uid: firebaseUser.uid,
+            email: email,
+            fullName: firebaseUser.displayName?.trim() || "TIP Student",
+            role: "student",
+            isProfileComplete: false,
+            accountState: "ACTIVE",
+            isDeleted: false,
+            isDisabled: false,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            hasCompletedOnboarding: false,
+            hasCompletedInitialSetup: false,
+            college: "",
+            degreeProgram: "",
+            targetPosition: "",
+            acceptedTerms: false,
+            acceptedPrivacy: false,
+            termsVersion: "",
+            privacyVersion: "",
+            activeResumeId: null,
+          };
+          try {
+            await firebaseUser.getIdToken(true);
+            const activeProfile = await createProfileTransaction(firebaseUser.uid, recoveredProfile);
+            set({ currentUser: activeProfile });
+            return true;
+          } catch {
+            return false;
+          }
+        }
         return false;
       }
       return true;

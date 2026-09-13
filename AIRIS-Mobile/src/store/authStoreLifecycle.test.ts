@@ -69,7 +69,7 @@ jest.mock("firebase/firestore", () => ({
 }));
 
 jest.mock("../services/firebase/userService", () => ({
-  createProfileTransaction: jest.fn().mockResolvedValue(undefined),
+  createProfileTransaction: jest.fn().mockImplementation((_uid: string, profile: any) => Promise.resolve(profile)),
   updateProfileDetails: jest.fn(),
   deleteUserAccountCascade: jest.fn(),
   completeUserOnboardingWithConsents: jest.fn(),
@@ -154,7 +154,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
       (getAdditionalUserInfo as jest.Mock).mockReturnValueOnce({ isNewUser: true });
 
       await expect(useAuthStore.getState().loginWithGoogle()).rejects.toThrow(
-        "Only verified TIP email accounts ending in @tip.edu.ph can be used to access AIRIS."
+        "Please use your official @tip.edu.ph account."
       );
       expect(deleteUser).toHaveBeenCalledWith(mockFirebaseUser);
       expect(signOut).toHaveBeenCalled();
@@ -300,14 +300,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
         user: mockFirebaseUser,
       });
       (getAdditionalUserInfo as jest.Mock).mockReturnValueOnce({ isNewUser: false });
-      (getDoc as jest.Mock).mockResolvedValueOnce({
-        exists: () => true,
-        data: () => ({
-          uid: "disabled_uid",
-          email: "paused@tip.edu.ph",
-          isDisabled: true,
-        }),
-      });
+      mockCreateProfileTransaction.mockRejectedValueOnce(new Error(ACCOUNT_PAUSED_MSG));
 
       await expect(useAuthStore.getState().loginWithGoogle()).rejects.toThrow(ACCOUNT_PAUSED_MSG);
       expect(signOut).toHaveBeenCalled();
@@ -325,14 +318,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
         user: mockFirebaseUser,
       });
       (getAdditionalUserInfo as jest.Mock).mockReturnValueOnce({ isNewUser: false });
-      (getDoc as jest.Mock).mockResolvedValueOnce({
-        exists: () => true,
-        data: () => ({
-          uid: "deleted_uid",
-          isDeleted: true,
-          accountState: "DELETED",
-        }),
-      });
+      mockCreateProfileTransaction.mockRejectedValueOnce(new Error(ACCOUNT_REMOVED_MSG));
 
       await expect(useAuthStore.getState().loginWithGoogle()).rejects.toThrow(ACCOUNT_REMOVED_MSG);
       expect(signOut).toHaveBeenCalled();
@@ -450,25 +436,6 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
       expect(Alert.alert).toHaveBeenCalledWith(
         "Account Removed",
         ACCOUNT_REMOVED_MSG,
-        expect.any(Array),
-        expect.any(Object)
-      );
-    });
-
-    it("should terminate session safely when account profile is MISSING_PROFILE", async () => {
-      const mockSet = jest.fn();
-      await handleAccountTermination("MISSING_PROFILE", mockSet);
-
-      expect(signOut).toHaveBeenCalled();
-      expect(mockSet).toHaveBeenCalledWith(
-        expect.objectContaining({
-          currentUser: null,
-          error: ACCOUNT_MISSING_PROFILE_MSG,
-        })
-      );
-      expect(Alert.alert).toHaveBeenCalledWith(
-        "Account Profile Unavailable",
-        ACCOUNT_MISSING_PROFILE_MSG,
         expect.any(Array),
         expect.any(Object)
       );

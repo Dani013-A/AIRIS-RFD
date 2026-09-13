@@ -2,24 +2,27 @@ import { doc, serverTimestamp, updateDoc, runTransaction } from "firebase/firest
 
 import { db } from "../../config/firebase";
 import type { AppUser } from "../../types/user.types";
+import { ACCOUNT_PAUSED_MSG, ACCOUNT_REMOVED_MSG } from "../../utils/accountLifecycle";
 
 const USERS_COLLECTION = "users";
 
-export const createProfileTransaction = async (uid: string, profile: AppUser): Promise<void> => {
+export const createProfileTransaction = async (uid: string, profile: AppUser): Promise<AppUser> => {
   const userRef = doc(db, USERS_COLLECTION, uid);
-  await runTransaction(db, async (transaction) => {
+  return await runTransaction(db, async (transaction) => {
     const userSnap = await transaction.get(userRef);
     if (userSnap.exists()) {
       const existingData = userSnap.data() as AppUser;
       if (existingData?.isDeleted || existingData?.accountState === "DELETED") {
-        throw new Error("Cannot initialize profile for a deleted account.");
+        throw new Error(ACCOUNT_REMOVED_MSG);
       }
       if (existingData?.isDisabled || existingData?.accountState === "DISABLED") {
-        throw new Error("Cannot initialize profile for a disabled account.");
+        throw new Error(ACCOUNT_PAUSED_MSG);
       }
-      throw new Error("Firestore profile already exists.");
+      // Idempotent recovery / concurrent creation: return existing valid active profile
+      return existingData;
     }
     transaction.set(userRef, profile);
+    return profile;
   });
 };
 
