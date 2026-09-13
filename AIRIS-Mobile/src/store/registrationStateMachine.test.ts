@@ -4,7 +4,7 @@ jest.mock("react-native", () => ({
   },
 }));
 
-import { useAuthStore } from "./authStore";
+import { useAuthStore, stopUserRealtimeListener } from "./authStore";
 import {
   determineAccountLifecycleState,
   ACCOUNT_PAUSED_MSG,
@@ -87,6 +87,7 @@ const mockCreateProfileTransaction = createProfileTransaction as jest.MockedFunc
 describe("Registration State Machine Comprehensive Verification", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    stopUserRealtimeListener();
     process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID = "mock_client_id.apps.googleusercontent.com";
     useAuthStore.setState({
       currentUser: null,
@@ -99,6 +100,14 @@ describe("Registration State Machine Comprehensive Verification", () => {
       registrationSuccess: false,
       emailNotVerified: false,
     });
+  });
+
+  afterEach(() => {
+    stopUserRealtimeListener();
+  });
+
+  afterAll(() => {
+    stopUserRealtimeListener();
   });
 
   // 1. Fresh email registration
