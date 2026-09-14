@@ -61,8 +61,15 @@ const withCleartextTraffic = (config) => {
 };
 
 module.exports = ({ config }) => {
+  const resolvedApiUrl = (process.env.EXPO_PUBLIC_API_URL || "").trim() || "https://18-143-33-249.sslip.io";
+
   let updatedConfig = {
     ...config,
+    extra: {
+      ...config.extra,
+      apiUrl: resolvedApiUrl,
+      EXPO_PUBLIC_API_URL: resolvedApiUrl,
+    },
     android: {
       ...config.android,
       versionCode: process.env.GITHUB_RUN_NUMBER

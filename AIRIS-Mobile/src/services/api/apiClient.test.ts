@@ -1,4 +1,4 @@
-import { getApiBaseUrl, getApiEndpoint } from "./apiClient";
+import { getApiBaseUrl, getApiEndpoint, PRODUCTION_API_URL, getAuthenticatedIdToken } from "./apiClient";
 
 describe("Authoritative API Endpoint Resolver (apiClient)", () => {
   const originalEnv = process.env.EXPO_PUBLIC_API_URL;
@@ -23,16 +23,18 @@ describe("Authoritative API Endpoint Resolver (apiClient)", () => {
   });
 
   test("Sanitizes trailing slashes in EXPO_PUBLIC_API_URL", () => {
-    process.env.EXPO_PUBLIC_API_URL = "https://api.airis.edu///";
-    expect(getApiBaseUrl()).toBe("https://api.airis.edu");
-    expect(getApiEndpoint("/interview/start")).toBe("https://api.airis.edu/interview/start");
+    process.env.EXPO_PUBLIC_API_URL = "https://18-143-33-249.sslip.io///";
+    expect(getApiBaseUrl()).toBe("https://18-143-33-249.sslip.io");
+    expect(getApiEndpoint("/interview/start")).toBe("https://18-143-33-249.sslip.io/interview/start");
   });
 
-  test("Defaults to production error when EXPO_PUBLIC_API_URL is missing in production", () => {
+  test("Resolves to authoritative production endpoint https://18-143-33-249.sslip.io when EXPO_PUBLIC_API_URL is unset in production", () => {
     delete process.env.EXPO_PUBLIC_API_URL;
     (globalThis as any).__DEV__ = false;
 
-    expect(() => getApiBaseUrl()).toThrow(/AIRIS Production Configuration Error: EXPO_PUBLIC_API_URL is not configured/);
+    expect(getApiBaseUrl()).toBe(PRODUCTION_API_URL);
+    expect(getApiBaseUrl()).toBe("https://18-143-33-249.sslip.io");
+    expect(getApiEndpoint("/upload")).toBe("https://18-143-33-249.sslip.io/upload");
   });
 
   test("Rejects localhost in production mode with clear diagnostic error", () => {
@@ -64,7 +66,7 @@ describe("Authoritative API Endpoint Resolver (apiClient)", () => {
 
   test("Rejects insecure HTTP production endpoint with clear diagnostic error", () => {
     (globalThis as any).__DEV__ = false;
-    process.env.EXPO_PUBLIC_API_URL = "http://api.airis.app";
+    process.env.EXPO_PUBLIC_API_URL = "http://insecure-backend.example";
     expect(() => getApiBaseUrl()).toThrow(/Insecure or invalid protocol/);
   });
 
@@ -75,17 +77,17 @@ describe("Authoritative API Endpoint Resolver (apiClient)", () => {
 
     expect(() => getApiBaseUrl()).toThrow(/Insecure or invalid protocol/);
 
-    process.env.EXPO_PUBLIC_API_URL = "https://api.airis.app";
-    expect(getApiBaseUrl()).toBe("https://api.airis.app");
+    process.env.EXPO_PUBLIC_API_URL = "https://18-143-33-249.sslip.io";
+    expect(getApiBaseUrl()).toBe("https://18-143-33-249.sslip.io");
 
     delete process.env.EAS_BUILD_PROFILE;
   });
 
   test("Resolves valid HTTPS production endpoint cleanly in production mode", () => {
     (globalThis as any).__DEV__ = false;
-    process.env.EXPO_PUBLIC_API_URL = "https://api.airis.app";
-    expect(getApiBaseUrl()).toBe("https://api.airis.app");
-    expect(getApiEndpoint("/upload")).toBe("https://api.airis.app/upload");
+    process.env.EXPO_PUBLIC_API_URL = "https://18-143-33-249.sslip.io";
+    expect(getApiBaseUrl()).toBe("https://18-143-33-249.sslip.io");
+    expect(getApiEndpoint("/upload")).toBe("https://18-143-33-249.sslip.io/upload");
   });
 
   test("Allows dev fallbacks ONLY when running in development mode (__DEV__ = true)", () => {
@@ -99,5 +101,10 @@ describe("Authoritative API Endpoint Resolver (apiClient)", () => {
     expect(devUrl).toBeDefined();
     expect(typeof devUrl).toBe("string");
     expect(devUrl.length).toBeGreaterThan(0);
+  });
+
+  test("Retrieves mock Firebase token in test environment via getAuthenticatedIdToken", async () => {
+    const token = await getAuthenticatedIdToken();
+    expect(token).toBe("test-mock-firebase-token");
   });
 });

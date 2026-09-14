@@ -1,39 +1,6 @@
-import { getApiBaseUrl } from "../api/apiClient";
+import { getApiBaseUrl, getAuthenticatedIdToken, getAuthInstance } from "../api/apiClient";
 import { analyzeResume, parseResumeSections, detectResumeSections, type ResumeAnalysisResult } from "./resumeAnalysisEngine";
 import { isResumeValidDocument } from "./resumeNormalizer";
-function getAuthInstance() {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const fb = require("../../config/firebase");
-    return fb?.auth || null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Retrieves cryptographically verified Firebase ID token for backend authentication.
- * Fails closed if no active user session exists.
- */
-async function getAuthenticatedIdToken(): Promise<string> {
-  const authInstance = getAuthInstance();
-  const currentUser = authInstance?.currentUser;
-  if (currentUser) {
-    const token = await currentUser.getIdToken();
-    if (token) return token;
-  }
-
-  // Safe mock in unit test environments where auth session is not initialized
-  if (typeof process !== "undefined" && process.env && process.env.JEST_WORKER_ID) {
-    return "test-mock-firebase-token";
-  }
-
-  const authErr = new Error("Authentication required. Please sign in to upload and analyze your resume.");
-  (authErr as any).isHttpError = true;
-  (authErr as any).status = 401;
-  (authErr as any).code = "AUTHENTICATION_REQUIRED";
-  throw authErr;
-}
 
 /**
  * Returns the authoritative backend base URL using the centralized resolver.

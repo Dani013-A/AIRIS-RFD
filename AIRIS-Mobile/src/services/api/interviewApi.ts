@@ -1,4 +1,5 @@
-import { getApiBaseUrl } from './apiClient';
+import { getApiBaseUrl, getAuthenticatedIdToken } from './apiClient';
+import * as FileSystem from 'expo-file-system/legacy';
 
 // Get authoritative backend URL from centralized apiClient resolver
 export const getBaseUrl = (): string => {
@@ -42,9 +43,13 @@ export interface InterviewReportRequest {
 export const startInterviewSimulation = async (payload: InterviewStartRequest) => {
   try {
     const BASE_URL = getBaseUrl();
+    const idToken = await getAuthenticatedIdToken();
     const response = await fetch(`${BASE_URL}/interview/start`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`,
+      },
       body: JSON.stringify(payload),
     });
     if (!response.ok) {
@@ -69,9 +74,13 @@ export const startInterviewSimulation = async (payload: InterviewStartRequest) =
 export const submitInterviewAnswer = async (payload: InterviewAnswerRequest) => {
   try {
     const BASE_URL = getBaseUrl();
+    const idToken = await getAuthenticatedIdToken();
     const response = await fetch(`${BASE_URL}/interview/answer`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`,
+      },
       body: JSON.stringify(payload),
     });
     if (!response.ok) {
@@ -96,9 +105,13 @@ export const submitInterviewAnswer = async (payload: InterviewAnswerRequest) => 
 export const generateInterviewReport = async (payload: InterviewReportRequest) => {
   try {
     const BASE_URL = getBaseUrl();
+    const idToken = await getAuthenticatedIdToken();
     const response = await fetch(`${BASE_URL}/interview/report`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`,
+      },
       body: JSON.stringify(payload),
     });
     if (!response.ok) {
@@ -120,16 +133,18 @@ export const generateInterviewReport = async (payload: InterviewReportRequest) =
   }
 };
 
-import * as FileSystem from 'expo-file-system/legacy';
-
 export const transcribeAudio = async (uri: string, mimeType: string): Promise<{ transcription: string; pauseMetrics?: PauseMetrics }> => {
   try {
     const BASE_URL = getBaseUrl();
+    const idToken = await getAuthenticatedIdToken();
     const response = await FileSystem.uploadAsync(`${BASE_URL}/interview/transcribe`, uri, {
       fieldName: 'audio',
       httpMethod: 'POST',
       uploadType: FileSystem.FileSystemUploadType?.MULTIPART ?? 1,
       mimeType: mimeType || 'audio/mp4',
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+      },
     });
 
     if (response.status !== 200) {
