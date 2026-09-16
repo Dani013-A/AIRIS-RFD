@@ -74,6 +74,8 @@ export function sanitizeLearningResource(resource: LearningResource): LearningRe
 
   return {
     ...resource,
+    source: resource.source || "curated",
+    verificationStatus: resource.verificationStatus || (resource.isVerified ? "verified" : "unverified"),
     thumbnailUrl: cleanThumb,
     skills: Array.isArray(resource.skills) ? resource.skills.map((s) => s.toLowerCase().trim()) : [],
     subskills: Array.isArray(resource.subskills) ? resource.subskills.map((s) => s.toLowerCase().trim()) : [],

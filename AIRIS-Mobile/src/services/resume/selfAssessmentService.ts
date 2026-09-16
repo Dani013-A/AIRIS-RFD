@@ -188,6 +188,31 @@ export const CANONICAL_SKILL_MAP: Record<string, string> = {
   "revit": "Revit",
   "autodesk revit": "Revit",
   "sketchup": "SketchUp",
+  "python": "Python",
+  "python programming": "Python",
+  "python language": "Python",
+  "python development": "Python",
+  "programming in python": "Python",
+  "python3": "Python",
+  "python 3": "Python",
+  "java": "Java",
+  "java programming": "Java",
+  "java language": "Java",
+  "java development": "Java",
+  "c": "C",
+  "c language": "C",
+  "c programming": "C",
+  "c++ programming": "C++",
+  "c# programming": "C#",
+  "asp.net": "ASP.NET",
+  "asp.net core": "ASP.NET",
+  "aspnet": "ASP.NET",
+  "angular": "Angular",
+  "angularjs": "Angular",
+  "angular.js": "Angular",
+  "react native web": "React Native Web",
+  "r": "R",
+  "r programming": "R",
   "spss": "SPSS",
 };
 
@@ -312,29 +337,30 @@ export function extractTargetCompetenciesForSelfAssessment(
     analysisResult.parsedSections?.Internship || "",
   ].join("\n").toLowerCase();
 
-  const candidateItems: Array<{
+  const candidateItemsMap = new Map<string, {
     name: string;
     canonicalKey: string;
     relevance: "HIGH" | "MEDIUM" | "LOW";
     priorityScore: number;
     evidenceCount: number;
-  }> = [];
-
-  const seen = new Set<string>();
+  }>();
 
   for (const rawSkill of allCandidateSkills) {
     const cleanSkill = rawSkill.trim();
     if (!cleanSkill || cleanSkill.length < 2) continue;
 
-    // Strict Grounding Check when raw text is present
-    if (rawResumeText && !isSkillGroundedInText(cleanSkill, rawResumeText)) {
-      continue;
-    }
-
     const displayName = formatCanonicalCompetencyName(cleanSkill);
     const canonicalKey = displayName.toLowerCase();
-    if (seen.has(canonicalKey)) continue;
-    seen.add(canonicalKey);
+    if (!canonicalKey || canonicalKey.length < 2) continue;
+
+    // Strict Grounding Check when raw text is present
+    if (
+      rawResumeText &&
+      !isSkillGroundedInText(displayName, rawResumeText) &&
+      !isSkillGroundedInText(cleanSkill, rawResumeText)
+    ) {
+      continue;
+    }
 
     // Calculate generalized, domain-neutral prioritization score
     let priorityScore = 0;
@@ -384,19 +410,38 @@ export function extractTargetCompetenciesForSelfAssessment(
     }
     priorityScore += Math.min(evidenceCount * 3, 15);
 
-    // 4. Existing Self-Assessment Stability
-    if (existingRatings[canonicalKey] || (analysisResult.selfRatings && analysisResult.selfRatings[canonicalKey])) {
+    // 4. Existing Self-Assessment Stability (reconcile canonical and alias keys)
+    const hasExistingRating =
+      existingRatings[canonicalKey] ||
+      existingRatings[cleanSkill.toLowerCase()] ||
+      (analysisResult.selfRatings &&
+        (analysisResult.selfRatings[canonicalKey] || analysisResult.selfRatings[cleanSkill.toLowerCase()]));
+
+    if (hasExistingRating) {
       priorityScore += 10;
     }
 
-    candidateItems.push({
-      name: displayName,
-      canonicalKey,
-      relevance,
-      priorityScore,
-      evidenceCount,
-    });
+    if (candidateItemsMap.has(canonicalKey)) {
+      // Merge evidence into existing canonical item
+      const existing = candidateItemsMap.get(canonicalKey)!;
+      existing.evidenceCount += evidenceCount;
+      existing.priorityScore = Math.max(existing.priorityScore, priorityScore);
+      const rank = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+      if (rank[relevance] > rank[existing.relevance]) {
+        existing.relevance = relevance;
+      }
+    } else {
+      candidateItemsMap.set(canonicalKey, {
+        name: displayName,
+        canonicalKey,
+        relevance,
+        priorityScore,
+        evidenceCount,
+      });
+    }
   }
+
+  const candidateItems = Array.from(candidateItemsMap.values());
 
   // Principled Top-10 Selection Rule:
   // IF candidate skills <= maxItems (10): return all candidate skills.
@@ -432,7 +477,19 @@ export function extractTargetCompetenciesForSelfAssessment(
 export function formatCanonicalCompetencyName(rawName: string): string {
   if (!rawName) return "";
   let trimmed = rawName.trim();
-  
+
+  // Strip section headers: e.g. "Languages: Python", "Technical Skills: React"
+  trimmed = trimmed.replace(
+    /^(?:languages?|skills?|technical skills?|technologies|tools?|frameworks?|proficiencies|tech stack)\s*:\s*/i,
+    ""
+  );
+
+  // Strip leading action verbs or experience phrases: e.g. "Proficient in Python", "Experience with Node.js"
+  trimmed = trimmed.replace(
+    /^(?:proficient in|experienced in|experience with|skilled in|knowledge of|using|with|via|built with|developed with|hands-on with)\s+/i,
+    ""
+  );
+
   // Clean synthetic long benchmark rule strings if present
   if (trimmed.toLowerCase().includes("relational and nosql databases")) {
     return "SQL & NoSQL Databases";
@@ -444,58 +501,49 @@ export function formatCanonicalCompetencyName(rawName: string): string {
     return "Express.js & REST APIs";
   }
 
-  const KNOWN_EXCEPTIONS: Record<string, string> = {
-    ".net": ".NET",
-    "net": ".NET",
-    "dotnet": ".NET",
-    "dot net": ".NET",
-    "vb.net": "VB.NET",
-    "vb net": "VB.NET",
-    "fastapi": "FastAPI",
-    "typescript": "TypeScript",
-    "javascript": "JavaScript",
-    "sql": "SQL",
-    "rest api": "REST API",
-    "api": "API",
-    "html": "HTML",
-    "css": "CSS",
-    "autocad": "AutoCAD",
-    "staad.pro": "STAAD.Pro",
-    "staad pro": "STAAD.Pro",
-    "sketchup": "SketchUp",
-    "power bi": "Power BI",
-    "aws": "AWS",
-    "etl": "ETL",
-    "cpa": "CPA",
-    "bim": "BIM",
-    "node.js": "Node.js",
-    "react": "React",
-    "react.js": "React",
-    "reactjs": "React",
-    "express.js": "Express.js",
-    "react native": "React Native",
-    "vue.js": "Vue.js",
-    "next.js": "Next.js"
-  };
+  // Strip non-discriminating generic skill suffixes (e.g. "Python Programming" -> "Python", "Java Language" -> "Java")
+  // Do NOT strip from names where the token is distinct (e.g. "React Native", "React Native Web", etc.)
+  trimmed = trimmed.replace(
+    /\s+(?:programming|language|development|fundamentals|concepts)$/i,
+    ""
+  );
+
+  // Strip non-alphanumeric punctuation from edges (except +, #, etc.)
+  trimmed = trimmed.replace(/^[^\w#\+]+|[^\w#\+\.]+$|\.$/g, "").trim();
+  if (!trimmed) return "";
 
   const lower = trimmed.toLowerCase();
-  if (KNOWN_EXCEPTIONS[lower]) {
-    return KNOWN_EXCEPTIONS[lower];
+
+  // 1. Authoritative canonical map lookup
+  if (CANONICAL_SKILL_MAP[lower]) {
+    return CANONICAL_SKILL_MAP[lower];
+  }
+
+  // 2. Acronym & special token handling
+  const ACRONYMS = new Set([
+    "api", "sql", "aws", "gcp", "etl", "cpa", "bim", "cad", "seo", "sdk", "cli",
+    "sbert", "ocr", "iot", "hvac", "spss", "erp", "sap", "html", "css", "rest"
+  ]);
+
+  if (ACRONYMS.has(lower)) {
+    return lower.toUpperCase();
   }
 
   if (trimmed.length <= 4 && trimmed === trimmed.toUpperCase()) {
     return trimmed;
   }
 
+  // 3. Domain-neutral word title casing (preserving internal dots, hashes, pluses)
   return trimmed
     .split(/\s+/)
     .map((word) => {
       const wLower = word.toLowerCase();
-      if (KNOWN_EXCEPTIONS[wLower]) return KNOWN_EXCEPTIONS[wLower];
-      if (word.length <= 3 && /^[a-z]+$/i.test(word) && ["api", "sql", "aws", "etl", "cpa", "bim", "cad", "seo"].includes(wLower)) {
-        return word.toUpperCase();
+      if (CANONICAL_SKILL_MAP[wLower]) return CANONICAL_SKILL_MAP[wLower];
+      if (ACRONYMS.has(wLower)) return wLower.toUpperCase();
+      if (word.length <= 4 && word === word.toUpperCase() && !/^[a-z]+$/i.test(word)) {
+        return word;
       }
-      return word.charAt(0).toUpperCase() + word.slice(1);
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
     })
     .join(" ");
 }

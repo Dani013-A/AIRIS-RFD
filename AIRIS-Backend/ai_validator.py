@@ -251,7 +251,8 @@ def validate_and_enhance_analysis(
         sbert_edu_sim_score=edu_sim_score,
         audit_status_metadata="VERIFIED",
         role_profile_metadata=role_profile_meta,
-        detected_skills=authoritative_skills
+        detected_skills=authoritative_skills,
+        parsed_sections=parsed_sections
     )
 
     # Populate adjustments for Role Relevance Diagnostic
@@ -308,56 +309,60 @@ def validate_and_enhance_analysis(
                 "reason": f"Missing core section: {canon.replace('([A-Z])', ' $1').strip()}"
             })
 
-    # 6. Concise, Scannable Suggestions (Top 5 Max)
-    suggestions = []
-    missing_comps = [ev["concept"] for ev in evidence_list if ev["status"] == "NO_RELEVANT_EVIDENCE"]
-    partial_comps = [ev["concept"] for ev in evidence_list if ev["status"] == "PARTIAL_MATCH"]
+    # 6. ATS Formatting & Machine-Readability Suggestions
+    ats_suggestions = []
+    for ms in missing_sections_list:
+        ats_suggestions.append({
+            "id": f"ats_sug_{len(ats_suggestions)+1}",
+            "section": ms["name"],
+            "type": "structure",
+            "priority": "high",
+            "title": f"Add Standard {ms['name']} Heading",
+            "why": "Applicant tracking systems look for standard section headings to parse resume sections reliably.",
+            "action": f"Use standard heading: {ms['name']}.",
+            "example": f"Add a '{ms['name']}' section heading above your {ms['name'].lower()} content.",
+            "reason": "Standard section headings enhance automated parseability."
+        })
 
-    sug_idx = 1
-    for ev in evidence_list:
-        comp = ev["concept"]
-        status = ev["status"]
-
-        if status == "NO_RELEVANT_EVIDENCE" and sug_idx <= 3:
-            suggestions.append({
-                "id": f"sug_{sug_idx}",
-                "section": "Skills",
-                "type": "skill_gap",
-                "priority": "high",
-                "title": f"Add {comp} Evidence",
-                "why": f"Core requirement missing for target role: {target_position}.",
-                "action": f"WHAT TO ADD:\nDescribe the project, coursework, or task where you actually implemented {comp}.",
-                "example": f"Include specific details of your {comp} implementation in your Projects or Work Experience section.",
-                "reason": f"Core requirement missing for {target_position}."
-            })
-            sug_idx += 1
-        elif status == "PARTIAL_MATCH" and sug_idx <= 5:
-            matched_quote = ev.get("matchedChunk")
-            ex_text = f"Verbatim evidence from your resume: \"{matched_quote}\". Add measurable metrics or results achieved." if matched_quote else f"Specify your exact technical ownership and deliverables when applying {comp}."
-            suggestions.append({
-                "id": f"sug_{sug_idx}",
-                "section": "Projects",
-                "type": "improvement",
-                "priority": "medium",
-                "title": f"Strengthen {comp} Outcome",
-                "why": f"Partial evidence found for {comp}.",
-                "action": f"WHAT TO IMPROVE:\nDetail your specific role and outcomes when applying {comp}.",
-                "example": ex_text,
-                "reason": f"Partial evidence found for {comp}."
-            })
-            sug_idx += 1
-
-    if not suggestions:
-        suggestions.append({
-            "id": "sug_1",
-            "section": "General",
-            "type": "improvement",
+    skills_text = str(parsed_sections.get("Skills", "")).strip()
+    if skills_text and not re.search(r'[,•\|\*\-\n/]', skills_text) and len(skills_text.split()) > 20:
+        ats_suggestions.append({
+            "id": f"ats_sug_{len(ats_suggestions)+1}",
+            "section": "Skills",
+            "type": "formatting",
             "priority": "medium",
-            "title": "Optimize Portfolio Demonstration",
-            "why": "Resume has solid core alignment.",
-            "action": "- Ensure capstone and lab deliverables are clearly highlighted.\n- Add public portfolio or repository link.",
-            "example": "Included github repository link for project.",
-            "reason": "Enhance competitive positioning."
+            "title": "Use Clear Delimiters in Skills Section",
+            "why": "Bullet points, commas, or pipes allow ATS parsers to tokenize individual skills cleanly.",
+            "action": "Separate individual skills using commas, bullet points, or pipes.",
+            "example": "Python, SQL, React, Docker",
+            "reason": "Improves automatic skill extraction accuracy."
+        })
+
+    exp_text = str(parsed_sections.get("WorkExperience", "") or parsed_sections.get("Projects", "")).strip()
+    if exp_text and not re.search(r'\b(19|20)\d{2}\b', exp_text):
+        ats_suggestions.append({
+            "id": f"ats_sug_{len(ats_suggestions)+1}",
+            "section": "Projects",
+            "type": "formatting",
+            "priority": "medium",
+            "title": "Include Standard Date Ranges",
+            "why": "Chronological dates help ATS software accurately calculate your project duration and experience timeline.",
+            "action": "Add date ranges (e.g. Month Year – Month Year or Year – Present) to each project or role.",
+            "example": "Jan 2024 – May 2024",
+            "reason": "Enhances chronological timeline parsing."
+        })
+
+    if not ats_suggestions:
+        ats_suggestions.append({
+            "id": "ats_sug_1",
+            "section": "General",
+            "type": "formatting",
+            "priority": "low",
+            "title": "Maintain Machine-Readable Structure",
+            "why": "Resume structure and headings follow ATS best practices.",
+            "action": "Ensure all text remains selectable and avoid embedding important text in graphical images.",
+            "example": "Use standard fonts and clean layout.",
+            "reason": "Maintains high machine-readability."
         })
 
     from ai_service import generate_learning_snapshot
@@ -371,13 +376,30 @@ def validate_and_enhance_analysis(
     import datetime
     analyzed_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
+    alignment_suggestions = ats_score_payload.get("roleRelevance", {}).get("alignmentSuggestions", [])
+    priority_gaps = ats_score_payload.get("roleRelevance", {}).get("priorityGaps", [])
+    if not priority_gaps and learning_snapshot and isinstance(learning_snapshot, dict):
+        priority_gaps = [g.get("skill") for g in learning_snapshot.get("skillGaps", []) if isinstance(g, dict) and g.get("skill")]
+
+    from ai_recommendation_verifier import generate_and_verify_ai_recommendations
+    ai_recommended_resources = generate_and_verify_ai_recommendations(
+        target_position=target_position,
+        priority_gaps=priority_gaps,
+        degree_program=str(parsed_sections.get("Education", "")),
+        raw_text=raw_text
+    )
+    if learning_snapshot and isinstance(learning_snapshot, dict):
+        learning_snapshot["aiRecommendedResources"] = ai_recommended_resources
+
     return {
         "atsScore": ats_score_payload,
         "detectedSkills": authoritative_skills,
         "detectedSections": detected_sections_list,
         "missingSections": missing_sections_list,
-        "suggestions": suggestions[:5],
-        "recommendations": suggestions[:5],
+        "suggestions": ats_suggestions[:5],
+        "alignmentSuggestions": alignment_suggestions,
+        "recommendations": ats_suggestions[:5],
+        "aiRecommendedResources": ai_recommended_resources,
         "learningSnapshot": learning_snapshot,
         "isAnalysisComplete": True,
         "analyzedAt": analyzed_at,

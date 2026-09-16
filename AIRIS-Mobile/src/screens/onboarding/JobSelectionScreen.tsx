@@ -177,7 +177,7 @@ export default function JobSelectionScreen() {
     setShowCompatibilityModal(false);
     setCompatibilityResult(null);
     await completeInitialSetup(college, degreeProgram, targetPosition);
-    router.replace("/(student)/onboarding");
+    router.replace("/(student)/(tabs)/dashboard" as any);
   }
 
   async function handleContinue() {

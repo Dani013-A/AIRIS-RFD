@@ -32,22 +32,53 @@ export default function SkillSelfAssessmentModal({
 }: SkillSelfAssessmentModalProps) {
   const [ratings, setRatings] = useState<SkillSelfAssessmentMap>({});
 
+  // Defensive deduplication guard before rendering: ONE CANONICAL COMPETENCY = ONE RATING ITEM
+  const uniqueSkills = React.useMemo(() => {
+    const map = new Map<string, SkillAssessmentTarget>();
+    for (const skill of skills || []) {
+      const canonicalName = formatCanonicalCompetencyName(skill.name);
+      const canonicalKey = canonicalName.toLowerCase();
+      if (!canonicalKey) continue;
+      if (!map.has(canonicalKey)) {
+        map.set(canonicalKey, {
+          name: canonicalName,
+          relevance: skill.relevance,
+        });
+      } else {
+        const existing = map.get(canonicalKey)!;
+        const rank = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+        if (rank[skill.relevance] > rank[existing.relevance]) {
+          existing.relevance = skill.relevance;
+        }
+      }
+    }
+    return Array.from(map.values());
+  }, [skills]);
+
   useEffect(() => {
     if (visible) {
-      // Pre-fill with initial stored ratings
+      // Pre-fill with initial stored ratings, reconciling canonical and alias keys
       const prefill: SkillSelfAssessmentMap = {};
-      skills.forEach((s) => {
-        const k = s.name.toLowerCase();
-        if (initialRatings[k]) {
-          prefill[k] = initialRatings[k];
+      uniqueSkills.forEach((s) => {
+        const canonicalKey = s.name.toLowerCase();
+        if (initialRatings[canonicalKey]) {
+          prefill[canonicalKey] = initialRatings[canonicalKey];
+        } else {
+          // Fallback check: reconcile any alias key in initialRatings
+          for (const [key, rating] of Object.entries(initialRatings)) {
+            if (formatCanonicalCompetencyName(key).toLowerCase() === canonicalKey) {
+              prefill[canonicalKey] = rating;
+              break;
+            }
+          }
         }
       });
       setRatings(prefill);
     }
-  }, [visible, skills, initialRatings]);
+  }, [visible, uniqueSkills, initialRatings]);
 
   const handleSelect = (skillName: string, rating: SelfRating) => {
-    const k = skillName.toLowerCase();
+    const k = formatCanonicalCompetencyName(skillName).toLowerCase();
     setRatings((prev) => ({
       ...prev,
       [k]: prev[k] === rating ? "SKIP" : rating,
@@ -87,13 +118,13 @@ export default function SkillSelfAssessmentModal({
           {/* Skill List */}
           <ScrollView className="max-h-[380px] my-2" showsVerticalScrollIndicator={false}>
             <View className="gap-4 pr-1">
-              {skills.map((skill, idx) => {
-                const displayName = formatCanonicalCompetencyName(skill.name);
-                const k = skill.name.toLowerCase();
+              {uniqueSkills.map((skill) => {
+                const displayName = skill.name;
+                const k = displayName.toLowerCase();
                 const currentRating = ratings[k] || "SKIP";
 
                 return (
-                  <View key={idx} className="bg-[#F8FAFC] p-4 rounded-2xl border border-[#E2E8F0]">
+                  <View key={k} className="bg-[#F8FAFC] p-4 rounded-2xl border border-[#E2E8F0]">
                     <View className="flex-row justify-between items-center mb-2.5">
                       <Text className="text-sm font-bold text-[#1F3A5F] flex-1 mr-2">{displayName}</Text>
                       <View

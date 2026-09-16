@@ -1026,6 +1026,8 @@ export const useAuthStore = create<AuthState>((set) => ({
           degreeProgram,
           targetPosition,
           hasCompletedInitialSetup: true,
+          hasCompletedOnboarding: true,
+          isProfileComplete: true,
         },
         loading: false,
         error: null,
@@ -1118,6 +1120,16 @@ export const useAuthStore = create<AuthState>((set) => ({
       const err = new Error("No user is currently signed in to save terms acceptance.");
       set({ error: err.message });
       throw err;
+    }
+
+    // Idempotent guard: avoid duplicate writes if already persisted with matching versions
+    if (
+      currentUser.acceptedTerms === acceptedTerms &&
+      currentUser.acceptedPrivacy === acceptedPrivacy &&
+      currentUser.termsVersion === termsVersion &&
+      currentUser.privacyVersion === privacyVersion
+    ) {
+      return;
     }
 
     try {

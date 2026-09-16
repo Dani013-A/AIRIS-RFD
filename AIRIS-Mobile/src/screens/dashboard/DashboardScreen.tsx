@@ -591,21 +591,38 @@ export default function DashboardScreen() {
                   const candidateCompetencies = extractTargetCompetenciesForSelfAssessment(activeAnalysis);
                   const personalizedItems: PersonalizedCompetencyItem[] = candidateCompetencies.map((comp) => {
                     const conceptName = comp.name;
-                    const matchedAdj = semanticAdjustments.find((adj) => {
+                    const lowerName = conceptName.toLowerCase();
+                    const matchingAdjs = semanticAdjustments.filter((adj) => {
                       const rawConcept = getConcept(adj.ruleId).toLowerCase();
-                      const lowerName = conceptName.toLowerCase();
                       return rawConcept === lowerName || rawConcept.includes(lowerName) || lowerName.includes(rawConcept);
                     });
 
-                    const status = matchedAdj ? (matchedAdj.points === 10 ? "STRONG_MATCH" : matchedAdj.points === 5 ? "PARTIAL_MATCH" : "STRONG_MATCH") : "STRONG_MATCH";
-                    const userRating = selfRatings[conceptName.toLowerCase()] || "SKIP";
-                    const verifiedChunk = matchedAdj ? validateVerbatimEvidence(conceptName, matchedAdj.matchedChunk, activeResume?.rawText) : null;
+                    const hasTenPoints = matchingAdjs.some((a) => a.points === 10);
+                    const hasFivePoints = matchingAdjs.some((a) => a.points === 5);
+                    const status = matchingAdjs.length > 0 ? (hasTenPoints ? "STRONG_MATCH" : hasFivePoints ? "PARTIAL_MATCH" : "STRONG_MATCH") : "STRONG_MATCH";
+
+                    let userRating = selfRatings[lowerName] || "SKIP";
+                    if (userRating === "SKIP") {
+                      // Alias fallback check
+                      for (const [k, r] of Object.entries(selfRatings)) {
+                        if (formatCanonicalCompetencyName(k).toLowerCase() === lowerName) {
+                          userRating = r;
+                          break;
+                        }
+                      }
+                    }
+
+                    const verifiedChunks = matchingAdjs
+                      .map((adj) => validateVerbatimEvidence(conceptName, adj.matchedChunk, activeResume?.rawText))
+                      .filter((c): c is string => Boolean(c));
+                    const uniqueChunks = Array.from(new Set(verifiedChunks));
+                    const mergedChunk = uniqueChunks.length > 0 ? uniqueChunks.join(" • ") : null;
 
                     return evaluatePersonalizedCompetency({
                       competency: conceptName,
                       targetRelevance: comp.relevance,
                       resumeEvidenceStatus: status,
-                      matchedChunk: verifiedChunk,
+                      matchedChunk: mergedChunk,
                       selfRating: userRating,
                     });
                   });

@@ -65,6 +65,8 @@ export const completeInitialSetup = async (
     degreeProgram,
     targetPosition,
     hasCompletedInitialSetup: true,
+    hasCompletedOnboarding: true,
+    isProfileComplete: true,
     updatedAt: serverTimestamp(),
   });
 };

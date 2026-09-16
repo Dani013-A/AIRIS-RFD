@@ -31,7 +31,7 @@ export default function ResumeUploadIntroScreen() {
   const router = useRouter();
 
   const currentUser = useAuthStore((state) => state.currentUser);
-  const completeOnboarding = useAuthStore((state) => state.completeOnboarding);
+  const saveAcceptedConsents = useAuthStore((state) => state.saveAcceptedConsents);
   const authLoading = useAuthStore((state) => state.loading);
   const authError = useAuthStore((state) => state.error);
 
@@ -356,7 +356,8 @@ export default function ResumeUploadIntroScreen() {
   };
 
   const handleUploadResume = async () => {
-    if (!agreeTerms || !agreePrivacy) {
+    const hasAcceptedConsents = Boolean(currentUser?.acceptedTerms && currentUser?.acceptedPrivacy);
+    if (!hasAcceptedConsents && (!agreeTerms || !agreePrivacy)) {
       Alert.alert(
         "Consent Required",
         "Please check and agree to both the Terms of Service and Privacy Policy before uploading your resume."
@@ -365,6 +366,10 @@ export default function ResumeUploadIntroScreen() {
     }
 
     if (!currentUser) return;
+
+    if (!hasAcceptedConsents && agreeTerms && agreePrivacy) {
+      await saveAcceptedConsents(true, true, "1.0.0", "1.0.0");
+    }
 
     Alert.alert(
       "Choose Resume Source",
@@ -456,21 +461,21 @@ export default function ResumeUploadIntroScreen() {
       return;
     }
 
-    if (!agreeTerms || !agreePrivacy) {
+    const hasAcceptedConsents = Boolean(currentUser?.acceptedTerms && currentUser?.acceptedPrivacy);
+    if (!hasAcceptedConsents && (!agreeTerms || !agreePrivacy)) {
       Alert.alert("Consent Required", "Please check and agree to both the Terms of Service and Privacy Policy to proceed.");
       return;
     }
 
     try {
-      await completeOnboarding(agreeTerms, agreePrivacy, "1.0.0", "1.0.0");
-      const latestUser = useAuthStore.getState().currentUser;
-      if (latestUser?.hasCompletedOnboarding) {
-        router.replace("/(student)/(tabs)/dashboard" as any);
+      if (!hasAcceptedConsents && agreeTerms && agreePrivacy) {
+        await saveAcceptedConsents(true, true, "1.0.0", "1.0.0");
       }
+      router.replace("/(student)/(tabs)/dashboard" as any);
     } catch (err) {
       Alert.alert(
-        "Onboarding Error",
-        err instanceof Error ? err.message : "Failed to complete onboarding. Please try again."
+        "Upload Notice",
+        err instanceof Error ? err.message : "Failed to proceed to dashboard. Please try again."
       );
     }
   };
@@ -491,9 +496,10 @@ export default function ResumeUploadIntroScreen() {
     processingStatus === "awaiting_self_assessment" ||
     uploadStage === "awaiting_assessment";
 
+  const hasAcceptedConsents = Boolean(currentUser?.acceptedTerms && currentUser?.acceptedPrivacy);
+
   const isSubmitEnabled =
-    agreeTerms &&
-    agreePrivacy &&
+    (hasAcceptedConsents || (agreeTerms && agreePrivacy)) &&
     !isProcessing &&
     !isAwaitingAssessment &&
     !isInvalidDocument &&
@@ -660,55 +666,58 @@ export default function ResumeUploadIntroScreen() {
           </View>
         </View>
 
-        <View className="mt-6 gap-3">
-          <TouchableOpacity
-            className="flex-row items-center bg-white p-4 rounded-xl border border-[#BFD6EA]"
-            activeOpacity={0.85}
-            onPress={handleToggleTerms}
-          >
-            <Ionicons
-              name={agreeTerms ? "checkbox" : "square-outline"}
-              size={24}
-              color={agreeTerms ? "#F4A47A" : "#8B95A5"}
-            />
-            <Text className="ml-3 text-sm font-medium text-[#1F3A5F] flex-1">
-              I agree to the{" "}
-              <Text
-                className="font-bold text-[#CA5D25] underline"
-                onPress={(e) => {
-                  e.stopPropagation();
-                  setShowTermsModal(true);
-                }}
-              >
-                Terms of Service
+        {/* Consents & Agreements: ONLY displayed if user has not yet accepted at account level */}
+        {!hasAcceptedConsents && (
+          <View className="mt-6 gap-3">
+            <TouchableOpacity
+              className="flex-row items-center bg-white p-4 rounded-xl border border-[#BFD6EA]"
+              activeOpacity={0.85}
+              onPress={handleToggleTerms}
+            >
+              <Ionicons
+                name={agreeTerms ? "checkbox" : "square-outline"}
+                size={24}
+                color={agreeTerms ? "#F4A47A" : "#8B95A5"}
+              />
+              <Text className="ml-3 text-sm font-medium text-[#1F3A5F] flex-1">
+                I agree to the{" "}
+                <Text
+                  className="font-bold text-[#CA5D25] underline"
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    setShowTermsModal(true);
+                  }}
+                >
+                  Terms of Service
+                </Text>
               </Text>
-            </Text>
-          </TouchableOpacity>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            className="flex-row items-center bg-white p-4 rounded-xl border border-[#BFD6EA]"
-            activeOpacity={0.85}
-            onPress={handleTogglePrivacy}
-          >
-            <Ionicons
-              name={agreePrivacy ? "checkbox" : "square-outline"}
-              size={24}
-              color={agreePrivacy ? "#F4A47A" : "#8B95A5"}
-            />
-            <Text className="ml-3 text-sm font-medium text-[#1F3A5F] flex-1">
-              I agree to the{" "}
-              <Text
-                className="font-bold text-[#CA5D25] underline"
-                onPress={(e) => {
-                  e.stopPropagation();
-                  setShowPrivacyModal(true);
-                }}
-              >
-                Privacy Policy (EULA)
+            <TouchableOpacity
+              className="flex-row items-center bg-white p-4 rounded-xl border border-[#BFD6EA]"
+              activeOpacity={0.85}
+              onPress={handleTogglePrivacy}
+            >
+              <Ionicons
+                name={agreePrivacy ? "checkbox" : "square-outline"}
+                size={24}
+                color={agreePrivacy ? "#F4A47A" : "#8B95A5"}
+              />
+              <Text className="ml-3 text-sm font-medium text-[#1F3A5F] flex-1">
+                I agree to the{" "}
+                <Text
+                  className="font-bold text-[#CA5D25] underline"
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    setShowPrivacyModal(true);
+                  }}
+                >
+                  Privacy Policy (EULA)
+                </Text>
               </Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {resumeError ? (
           <View className="mt-6 p-4 bg-[#FEF5F1] rounded-xl border border-[#FDEEE6]">

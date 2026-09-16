@@ -224,6 +224,7 @@ export interface LearningSnapshot {
   certifications: CertificationItem[];
   seminars?: RecommendedCourseItem[];
   interviewPrep: InterviewPrepItem[];
+  aiRecommendedResources?: any[];
 }
 
 export interface ResumeAnalysisResult {
@@ -233,6 +234,7 @@ export interface ResumeAnalysisResult {
   atsScore: ATSScore;
   suggestions: ResumeSuggestion[];
   learningSnapshot?: LearningSnapshot;
+  aiRecommendedResources?: any[];
   isAnalysisComplete: boolean;
   analyzedAt: string | null;
   analysisVersion: string;

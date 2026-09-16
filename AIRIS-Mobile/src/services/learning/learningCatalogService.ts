@@ -17,6 +17,7 @@ import {
 } from "../../types/learning.types";
 import { validateAndSanitizeCatalog, validateLearningResource } from "./catalogValidator";
 import { evaluateCareerTargetCompatibility } from "../ai/careerCompatibilityGuardrail";
+import { filterAndVerifyAiCandidates } from "./aiRecommendationValidator";
 
 const CACHE_STORAGE_KEY = "@airis_learning_catalog_v4";
 const CACHE_VERSION = 4;
@@ -2780,6 +2781,7 @@ export interface GrowthPathParams {
   activeResume?: any;
   activeAnalysis?: any;
   customCatalog?: LearningResource[];
+  aiCandidates?: Array<Partial<LearningResource>>;
 }
 
 /**
@@ -2793,8 +2795,11 @@ export interface GrowthPathResult {
 
 /**
  * Authoritative Growth Path recommendation service for the Resume tab.
- * Dynamically curates up to 3 Certifications, 3 Courses, and 3 Practical Resources
- * strictly matching the user's active target role, identified skill gaps, and deduplicated against the resume.
+ * Dynamically curates:
+ * - Up to 3 Curated/Verified resources per category
+ * - Up to 3 AI-Generated & Verified resources per category (passing the 13-stage validation pipeline)
+ * Total max 6 per category (up to 3 curated + up to 3 AI-verified).
+ * Never mutates the static VERIFIED_LEARNING_CATALOG.
  */
 export function getGrowthPathRecommendations(params: GrowthPathParams): GrowthPathResult {
   const targetPos = params.targetPosition || params.activeAnalysis?.learningSnapshot?.targetPosition || "";
@@ -2825,14 +2830,13 @@ export function getGrowthPathRecommendations(params: GrowthPathParams): GrowthPa
     categoryId: "for_you",
   });
 
-  const certifications: MatchedResourceItem[] = [];
-  const courses: MatchedResourceItem[] = [];
-  const practicalLearning: MatchedResourceItem[] = [];
+  const certificationsCurated: MatchedResourceItem[] = [];
+  const coursesCurated: MatchedResourceItem[] = [];
+  const practicalCurated: MatchedResourceItem[] = [];
   const globalSeenIds = new Set<string>();
 
-  const maxCerts = 3;
-  const maxCourses = 3;
-  const maxPractice = 3;
+  const maxCurated = 3;
+  const maxAi = 3;
 
   const certProviders = new Map<string, number>();
   const courseProviders = new Map<string, number>();
@@ -2843,59 +2847,106 @@ export function getGrowthPathRecommendations(params: GrowthPathParams): GrowthPa
     if (item.relevanceTier === "TIER_5_IRRELEVANT") continue;
 
     const providerNorm = (item.provider || "unknown").toLowerCase().trim();
+    const curatedItem: MatchedResourceItem = {
+      ...item,
+      source: item.source || "curated",
+      verificationStatus: item.verificationStatus || "verified",
+    };
 
-    if (item.type === "certification") {
+    if (curatedItem.type === "certification") {
       const pCount = certProviders.get(providerNorm) || 0;
-      if (certifications.length < maxCerts && pCount < 2) {
-        globalSeenIds.add(item.id);
+      if (certificationsCurated.length < maxCurated && pCount < 2) {
+        globalSeenIds.add(curatedItem.id);
         certProviders.set(providerNorm, pCount + 1);
-        certifications.push({
-          ...item,
+        certificationsCurated.push({
+          ...curatedItem,
           gapRationale:
-            item.recommendationReason ||
+            curatedItem.recommendationReason ||
             `Industry recognized credential for ${targetPos || "your career"}.`,
         });
       }
-    } else if (item.type === "course") {
+    } else if (curatedItem.type === "course") {
       const pCount = courseProviders.get(providerNorm) || 0;
-      if (courses.length < maxCourses && pCount < 2) {
-        globalSeenIds.add(item.id);
+      if (coursesCurated.length < maxCurated && pCount < 2) {
+        globalSeenIds.add(curatedItem.id);
         courseProviders.set(providerNorm, pCount + 1);
-        courses.push({
-          ...item,
+        coursesCurated.push({
+          ...curatedItem,
           gapRationale:
-            item.recommendationReason ||
+            curatedItem.recommendationReason ||
             `Addresses key competencies for ${targetPos || "your career"}.`,
         });
       }
     } else if (
-      item.type === "video" ||
-      item.type === "guide" ||
-      item.type === "practice" ||
-      item.type === "documentation" ||
-      item.type === "seminar" ||
-      item.type === "article" ||
-      item.type === "example" ||
-      item.type === "module"
+      curatedItem.type === "video" ||
+      curatedItem.type === "guide" ||
+      curatedItem.type === "practice" ||
+      curatedItem.type === "documentation" ||
+      curatedItem.type === "seminar" ||
+      curatedItem.type === "article" ||
+      curatedItem.type === "example" ||
+      curatedItem.type === "module"
     ) {
       const pCount = practiceProviders.get(providerNorm) || 0;
-      if (practicalLearning.length < maxPractice && pCount < 2) {
-        globalSeenIds.add(item.id);
+      if (practicalCurated.length < maxCurated && pCount < 2) {
+        globalSeenIds.add(curatedItem.id);
         practiceProviders.set(providerNorm, pCount + 1);
-        practicalLearning.push({
-          ...item,
+        practicalCurated.push({
+          ...curatedItem,
           gapRationale:
-            item.recommendationReason ||
+            curatedItem.recommendationReason ||
             `Hands-on practical resource to close gaps for ${targetPos || "your career"}.`,
         });
       }
     }
   }
 
+  // Process AI Candidates (Up to 3 verified per category)
+  const certificationsAi: MatchedResourceItem[] = [];
+  const coursesAi: MatchedResourceItem[] = [];
+  const practicalAi: MatchedResourceItem[] = [];
+
+  const rawAiCandidates =
+    params.aiCandidates ||
+    params.activeAnalysis?.aiRecommendedResources ||
+    params.activeAnalysis?.learningSnapshot?.aiRecommendedResources ||
+    [];
+  if (Array.isArray(rawAiCandidates) && rawAiCandidates.length > 0) {
+    const verifiedAi = filterAndVerifyAiCandidates(rawAiCandidates, {
+      targetGaps: skillGaps,
+      targetPosition: targetPos,
+      existingCatalog: params.customCatalog || VERIFIED_LEARNING_CATALOG,
+      rawResumeText,
+    });
+
+    for (const aiItem of verifiedAi) {
+      if (globalSeenIds.has(aiItem.id)) continue;
+      globalSeenIds.add(aiItem.id);
+
+      const matchedAiItem: MatchedResourceItem = {
+        ...aiItem,
+        source: "ai_generated",
+        verificationStatus: "verified",
+        relevanceScore: 92,
+        relevanceTier: "TIER_1_DIRECT_GAP",
+        isPersonalizedGap: true,
+        gapRationale: `AI-recommended & verified resource addressing validated skill gaps in ${targetPos || "your target role"}.`,
+      };
+
+      if (aiItem.type === "certification" && certificationsAi.length < maxAi) {
+        certificationsAi.push(matchedAiItem);
+      } else if (aiItem.type === "course" && coursesAi.length < maxAi) {
+        coursesAi.push(matchedAiItem);
+      } else if (practicalAi.length < maxAi) {
+        practicalAi.push(matchedAiItem);
+      }
+    }
+  }
+
   return {
-    certifications,
-    courses,
-    practicalLearning,
+    certifications: [...certificationsCurated, ...certificationsAi],
+    courses: [...coursesCurated, ...coursesAi],
+    practicalLearning: [...practicalCurated, ...practicalAi],
   };
 }
 

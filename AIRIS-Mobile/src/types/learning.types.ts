@@ -75,9 +75,10 @@ export interface LearningResource {
   seminarMetadata?: SeminarMetadata;
   accreditation?: AccreditationMetadata;
   verification?: VerificationMetadata;
+  verificationStatus?: VerificationStatus;
   credentialCode?: string;
   aliases?: string[];
-  source?: string;
+  source?: "curated" | "ai_generated" | string;
   lastVerifiedAt?: string;
   lastReviewedAt?: string;
   reviewNotes?: string;

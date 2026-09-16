@@ -293,6 +293,7 @@ async def analyze_resume(request: Request, auth_uid: str = Depends(get_authentic
                 "detectedSections": enhanced_result.get("detectedSections", []),
                 "missingSections": enhanced_result.get("missingSections", []),
                 "recommendations": enhanced_result.get("recommendations", []),
+                "aiRecommendedResources": enhanced_result.get("aiRecommendedResources", []),
                 "learningSnapshot": enhanced_result.get("learningSnapshot"),
                 "isAnalysisComplete": True,
                 "analyzedAt": enhanced_result.get("analyzedAt", ""),
@@ -306,6 +307,21 @@ async def analyze_resume(request: Request, auth_uid: str = Depends(get_authentic
         except Exception as e:
             print("Analysis error:", e)
             raise HTTPException(status_code=500, detail="An internal error occurred during analysis.")
+
+@app.post("/verify-resource-url")
+async def verify_resource_url_endpoint(request: Request, auth_uid: str = Depends(get_authenticated_user)):
+    check_rate_limit("uid", auth_uid, PER_USER_EXPENSIVE_REQUEST_LIMIT)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    url = str(body.get("url") or "").strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="Resource URL is required.")
+
+    from ai_recommendation_verifier import verify_external_resource_url
+    result = await run_in_threadpool(verify_external_resource_url, url)
+    return result
 
 @app.post("/upload")
 async def upload_resume(
