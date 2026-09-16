@@ -253,6 +253,30 @@ def evaluate_answer_and_generate_next(
             "whereas repeated long pauses (over 2.0s) indicate hesitation."
         )
 
+    if is_skip:
+        task_1_instruction = (
+            "The candidate requested to SKIP this question. Do not evaluate it. Leave the evaluation object strictly as null."
+        )
+        task_2_instruction = (
+            "Since the candidate skipped, move on to a new topic by ADAPTING the provided KNOWLEDGE BASE QUESTION to fit the candidate's context."
+        )
+    else:
+        task_1_instruction = (
+            "Evaluate the candidate's answer strictly. Score out of 100 on multiple dimensions.\n"
+            "Be rigorous. If the answer is vague, generic, extremely short, or lacks evidence, penalize it heavily.\n"
+            "Do NOT give high scores just for participating."
+        )
+        task_2_instruction = (
+            "If the answer was extremely vague, contradictory, or unsupported, you MUST ask a challenging follow-up question. Do not use the KNOWLEDGE BASE QUESTION in this case.\n"
+            "Otherwise, move on to a new topic by ADAPTING the provided KNOWLEDGE BASE QUESTION to fit the candidate's context."
+        )
+
+    closing_instruction = (
+        "Since this is the final question, the next question should be a concluding remark or asking if they have questions."
+        if is_final_question
+        else ""
+    )
+
     prompt = f"""
     You are an expert, professional, and rigorous technical interviewer. You are conducting an interview for the role of '{target_role}'.
 
@@ -283,20 +307,11 @@ def evaluate_answer_and_generate_next(
     "{next_base.get("text")}"
 
     TASK 1: EVALUATE THE ANSWER
-    {
-    "The candidate requested to SKIP this question. Do not evaluate it. Leave the evaluation object strictly as null." if is_skip else
-    "Evaluate the candidate's answer strictly. Score out of 100 on multiple dimensions.\n"
-    "Be rigorous. If the answer is vague, generic, extremely short, or lacks evidence, penalize it heavily.\n"
-    "Do NOT give high scores just for participating."
-    }
+    {task_1_instruction}
 
     TASK 2: DECIDE ON FOLLOW-UP OR NEXT TOPIC
-    {
-    "Since the candidate skipped, move on to a new topic by ADAPTING the provided KNOWLEDGE BASE QUESTION to fit the candidate's context." if is_skip else
-    "If the answer was extremely vague, contradictory, or unsupported, you MUST ask a challenging follow-up question. Do not use the KNOWLEDGE BASE QUESTION in this case.\n"
-    "Otherwise, move on to a new topic by ADAPTING the provided KNOWLEDGE BASE QUESTION to fit the candidate's context."
-    }
-    {"Since this is the final question, the next question should be a concluding remark or asking if they have questions." if is_final_question else ""}
+    {task_2_instruction}
+    {closing_instruction}
 
     OUTPUT FORMAT (Strict JSON):
     {{
