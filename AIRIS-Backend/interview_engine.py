@@ -3,7 +3,7 @@ import os
 import re
 import random
 import numpy as np
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from ai_service import generate_text_with_fallback
 from sbert_matcher import _cached_encode, calculate_cosine_similarity
 
