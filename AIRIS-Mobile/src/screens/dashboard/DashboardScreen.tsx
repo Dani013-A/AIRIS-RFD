@@ -297,9 +297,9 @@ export default function DashboardScreen() {
                   setInfoModalContent({
                     title: "Overall ATS Score",
                     explanation:
-                      "Combines your resume's intrinsic strength with how well it matches your current target role.",
+                      "Evaluates your resume against your target role using the authoritative Capstone ATS formula.",
                     roleDependence:
-                      "Calculated as 50% Intrinsic Resume Score + 50% Target Match / Role Relevance.",
+                      "Calculated as: Skills Match (40%) + Experience & Projects (30%) + Education Relevance (20%) + Certifications (10%).",
                   })
                 }
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -325,24 +325,41 @@ export default function DashboardScreen() {
                 </View>
                 <View className="p-5 gap-3">
                   {/* Official Manuscript Formula Display */}
-                  {activeAnalysis.atsScore.roleRelevance?.breakdown ? (
+                  {(activeAnalysis.atsScore.resumeScore?.breakdown || (activeAnalysis.atsScore as any).roleRelevance?.breakdown) ? (
                     <>
-                      <View className="flex-row justify-between items-center">
-                        <Text className="text-xs font-bold text-[#4F6B82]">Skills Match</Text>
-                        <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.breakdown.skillsMatch.rawScore}/100 x 40% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.roleRelevance.breakdown.skillsMatch.weightedScore}</Text></Text>
-                      </View>
-                      <View className="flex-row justify-between items-center">
-                        <Text className="text-xs font-bold text-[#4F6B82]">Experience & Projects</Text>
-                        <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.breakdown.experienceMatch.rawScore}/100 x 30% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.roleRelevance.breakdown.experienceMatch.weightedScore}</Text></Text>
-                      </View>
-                      <View className="flex-row justify-between items-center">
-                        <Text className="text-xs font-bold text-[#4F6B82]">Education Relevance</Text>
-                        <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.breakdown.educationMatch.rawScore}/100 x 20% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.roleRelevance.breakdown.educationMatch.weightedScore}</Text></Text>
-                      </View>
-                      <View className="flex-row justify-between items-center">
-                        <Text className="text-xs font-bold text-[#4F6B82]">Certifications</Text>
-                        <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.breakdown.certificationsMatch.rawScore}/100 x 10% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.roleRelevance.breakdown.certificationsMatch.weightedScore}</Text></Text>
-                      </View>
+                      {(() => {
+                        const rb = activeAnalysis.atsScore.resumeScore?.breakdown;
+                        const rrb = (activeAnalysis.atsScore as any).roleRelevance?.breakdown;
+                        const sklRaw = rb?.skills?.rawScore ?? rrb?.skillsMatch?.rawScore ?? 0;
+                        const sklW = rb?.skills?.weightedScore ?? rrb?.skillsMatch?.weightedScore ?? 0;
+                        const expRaw = rb?.experience?.rawScore ?? rrb?.experienceMatch?.rawScore ?? 0;
+                        const expW = rb?.experience?.weightedScore ?? rrb?.experienceMatch?.weightedScore ?? 0;
+                        const eduRaw = rb?.education?.rawScore ?? rrb?.educationMatch?.rawScore ?? 0;
+                        const eduW = rb?.education?.weightedScore ?? rrb?.educationMatch?.weightedScore ?? 0;
+                        const certRaw = rb?.certifications?.rawScore ?? rrb?.certificationsMatch?.rawScore ?? 0;
+                        const certW = rb?.certifications?.weightedScore ?? rrb?.certificationsMatch?.weightedScore ?? 0;
+
+                        return (
+                          <>
+                            <View className="flex-row justify-between items-center">
+                              <Text className="text-xs font-bold text-[#4F6B82]">Skills Match</Text>
+                              <Text className="text-[11px] font-medium text-[#8B95A5]">{sklRaw}/100 x 40% = <Text className="font-bold text-[#1F3A5F] text-xs">{sklW}</Text></Text>
+                            </View>
+                            <View className="flex-row justify-between items-center">
+                              <Text className="text-xs font-bold text-[#4F6B82]">Experience & Projects</Text>
+                              <Text className="text-[11px] font-medium text-[#8B95A5]">{expRaw}/100 x 30% = <Text className="font-bold text-[#1F3A5F] text-xs">{expW}</Text></Text>
+                            </View>
+                            <View className="flex-row justify-between items-center">
+                              <Text className="text-xs font-bold text-[#4F6B82]">Education Relevance</Text>
+                              <Text className="text-[11px] font-medium text-[#8B95A5]">{eduRaw}/100 x 20% = <Text className="font-bold text-[#1F3A5F] text-xs">{eduW}</Text></Text>
+                            </View>
+                            <View className="flex-row justify-between items-center">
+                              <Text className="text-xs font-bold text-[#4F6B82]">Certifications</Text>
+                              <Text className="text-[11px] font-medium text-[#8B95A5]">{certRaw}/100 x 10% = <Text className="font-bold text-[#1F3A5F] text-xs">{certW}</Text></Text>
+                            </View>
+                          </>
+                        );
+                      })()}
                     </>
                   ) : (
                     /* Legacy Architecture Display Fallback */
@@ -371,21 +388,21 @@ export default function DashboardScreen() {
             <Text className="text-sm text-center font-medium text-[#4F6B82] mt-4 px-6 leading-5">{scoreInterpretation}</Text>
           </View>
 
-          {/* Resume Score Intrinsic Card */}
+          {/* Dimension Breakdown Card (Component 2 of 3) */}
           <View className="bg-white rounded-2xl border border-[#BFD6EA] mx-6 mb-4 overflow-hidden" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
             <TouchableOpacity onPress={() => setShowAtsCompatDetails(!showAtsCompatDetails)} className="flex-row items-center justify-between p-5">
               <View className="flex-1 pr-3">
                 <View className="flex-row items-center gap-1.5 mb-1">
-                  <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-widest">Intrinsic Strength</Text>
+                  <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-widest">Dimension Breakdown</Text>
                   <TouchableOpacity
                     onPress={(e) => {
                       e.stopPropagation();
                       setInfoModalContent({
-                        title: "Intrinsic Resume Score",
+                        title: "Dimension Breakdown",
                         explanation:
-                          "Measures the strength of your resume itself, independent of your target role.",
+                          "Shows the evidenced score across the 4 authoritative dimensions of the Capstone formula.",
                         roleDependence:
-                          "It does NOT change when you switch your target career. Evaluates format completeness, action verbs, and skill depth.",
+                          "Evaluates Skills Match (40%), Experience & Projects (30%), Education Relevance (20%), and Certifications (10%).",
                       });
                     }}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -393,44 +410,56 @@ export default function DashboardScreen() {
                     <Ionicons name="information-circle-outline" size={15} color="#4F6B82" />
                   </TouchableOpacity>
                 </View>
-                <View className="flex-row items-baseline">
-                  <Text className="text-3xl font-black text-[#1F3A5F]">{activeAnalysis.atsScore.resumeScore?.total ?? 0}</Text>
-                  <Text className="text-lg font-bold text-[#8B95A5]">/100</Text>
-                </View>
-                <Text className="text-xs font-bold text-[#1F3A5F] mt-1">Intrinsic Resume Score</Text>
-                <Text className="text-[11px] text-[#8B95A5] mt-0.5">Independent of target role</Text>
+                <Text className="text-sm font-bold text-[#1F3A5F]">4 Evaluated Dimensions</Text>
+                <Text className="text-[11px] text-[#8B95A5] mt-0.5">Skills 40% · Experience 30% · Education 20% · Certifications 10%</Text>
               </View>
               <Ionicons name={showAtsCompatDetails ? "chevron-up" : "chevron-down"} size={20} color="#8B95A5" />
             </TouchableOpacity>
 
-            {showAtsCompatDetails && activeAnalysis.atsScore.resumeScore && (
+            {showAtsCompatDetails && (
               <View className="px-5 pb-5 pt-2 border-t border-[#EAF2F7]">
-                <Text className="text-sm font-bold text-[#1F3A5F] mb-1">Resume Strength Breakdown</Text>
-                <Text className="text-xs text-[#4F6B82] mb-5 flex-wrap" style={{ flexShrink: 1 }}>
-                  This measures the strength of your resume's evidence entirely independent of your target role.
+                <Text className="text-xs text-[#4F6B82] mb-4 flex-wrap" style={{ flexShrink: 1 }}>
+                  These four dimensions mathematically produce your authoritative composite ATS score.
                 </Text>
 
-                <View className="flex-row justify-between items-center mb-3">
-                  <Text className="text-xs font-bold text-[#4F6B82]">Skills Match</Text>
-                  <Text className="text-[11px] font-medium text-[#8B95A5]">{(activeAnalysis.atsScore.resumeScore.breakdown.skills?.rawScore ?? 0)}/100 × 40% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.resumeScore.breakdown.skills?.weightedScore ?? 0}</Text></Text>
-                </View>
-                <View className="flex-row justify-between items-center mb-3">
-                  <Text className="text-xs font-bold text-[#4F6B82]">Experience & Internship</Text>
-                  <Text className="text-[11px] font-medium text-[#8B95A5]">{(activeAnalysis.atsScore.resumeScore.breakdown.experience?.rawScore ?? activeAnalysis.atsScore.roleRelevance?.breakdown?.experienceMatch?.rawScore ?? 0)}/100 × 30% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.resumeScore.breakdown.experience?.weightedScore ?? activeAnalysis.atsScore.roleRelevance?.breakdown?.experienceMatch?.weightedScore ?? 0}</Text></Text>
-                </View>
-                <View className="flex-row justify-between items-center mb-3">
-                  <Text className="text-xs font-bold text-[#4F6B82]">Education Relevance</Text>
-                  <Text className="text-[11px] font-medium text-[#8B95A5]">{(activeAnalysis.atsScore.resumeScore.breakdown.education?.rawScore ?? 0)}/100 × 20% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.resumeScore.breakdown.education?.weightedScore ?? 0}</Text></Text>
-                </View>
-                <View className="flex-row justify-between items-center mb-1">
-                  <Text className="text-xs font-bold text-[#4F6B82]">Certifications</Text>
-                  <Text className="text-[11px] font-medium text-[#8B95A5]">{(activeAnalysis.atsScore.resumeScore.breakdown.certifications?.rawScore ?? 0)}/100 × 10% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.resumeScore.breakdown.certifications?.weightedScore ?? 0}</Text></Text>
-                </View>
+                {(() => {
+                  const rb = activeAnalysis.atsScore.resumeScore?.breakdown;
+                  const rrb = (activeAnalysis.atsScore as any).roleRelevance?.breakdown;
+                  const sklRaw = rb?.skills?.rawScore ?? rrb?.skillsMatch?.rawScore ?? 0;
+                  const sklW = rb?.skills?.weightedScore ?? rrb?.skillsMatch?.weightedScore ?? 0;
+                  const expRaw = rb?.experience?.rawScore ?? rrb?.experienceMatch?.rawScore ?? 0;
+                  const expW = rb?.experience?.weightedScore ?? rrb?.experienceMatch?.weightedScore ?? 0;
+                  const eduRaw = rb?.education?.rawScore ?? rrb?.educationMatch?.rawScore ?? 0;
+                  const eduW = rb?.education?.weightedScore ?? rrb?.educationMatch?.weightedScore ?? 0;
+                  const certRaw = rb?.certifications?.rawScore ?? rrb?.certificationsMatch?.rawScore ?? 0;
+                  const certW = rb?.certifications?.weightedScore ?? rrb?.certificationsMatch?.weightedScore ?? 0;
+
+                  return (
+                    <>
+                      <View className="flex-row justify-between items-center mb-3">
+                        <Text className="text-xs font-bold text-[#4F6B82]">Skills Match</Text>
+                        <Text className="text-[11px] font-medium text-[#8B95A5]">{sklRaw}/100 × 40% = <Text className="font-bold text-[#1F3A5F] text-xs">+{sklW} pts</Text></Text>
+                      </View>
+                      <View className="flex-row justify-between items-center mb-3">
+                        <Text className="text-xs font-bold text-[#4F6B82]">Experience & Projects</Text>
+                        <Text className="text-[11px] font-medium text-[#8B95A5]">{expRaw}/100 × 30% = <Text className="font-bold text-[#1F3A5F] text-xs">+{expW} pts</Text></Text>
+                      </View>
+                      <View className="flex-row justify-between items-center mb-3">
+                        <Text className="text-xs font-bold text-[#4F6B82]">Education Relevance</Text>
+                        <Text className="text-[11px] font-medium text-[#8B95A5]">{eduRaw}/100 × 20% = <Text className="font-bold text-[#1F3A5F] text-xs">+{eduW} pts</Text></Text>
+                      </View>
+                      <View className="flex-row justify-between items-center mb-1">
+                        <Text className="text-xs font-bold text-[#4F6B82]">Certifications</Text>
+                        <Text className="text-[11px] font-medium text-[#8B95A5]">{certRaw}/100 × 10% = <Text className="font-bold text-[#1F3A5F] text-xs">+{certW} pts</Text></Text>
+                      </View>
+                    </>
+                  );
+                })()}
               </View>
             )}
           </View>
 
-          {/* Role Relevance Diagnostic */}
+          {/* Target Alignment Card (Component 3 of 3 - Qualitative Role-Fit Diagnostic) */}
           <View className="bg-white rounded-2xl border border-[#BFD6EA] mx-6 mb-4 overflow-hidden" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
             <TouchableOpacity onPress={() => setShowAtsMatchDetails(!showAtsMatchDetails)} className="flex-row items-center justify-between p-5">
               <View className="flex-1 pr-3">
@@ -440,10 +469,10 @@ export default function DashboardScreen() {
                     onPress={(e) => {
                       e.stopPropagation();
                       setInfoModalContent({
-                        title: "Target Match / Role Relevance",
-                        explanation: `Measures how closely your resume matches your current target position (${currentUser?.targetPosition || "target role"}).`,
+                        title: "Target Alignment Diagnostic",
+                        explanation: `Provides qualitative diagnostics evaluating how your demonstrated competencies align with ${currentUser?.targetPosition || "your target position"}.`,
                         roleDependence:
-                          "Dynamically recalculates whenever you switch your preferred career in Profile settings.",
+                          "Analyzes direct competency matches, transferable capabilities, and priority growth areas against authoritative career benchmarks.",
                       });
                     }}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -451,46 +480,111 @@ export default function DashboardScreen() {
                     <Ionicons name="information-circle-outline" size={15} color="#4F6B82" />
                   </TouchableOpacity>
                 </View>
-                <View className="flex-row items-baseline">
-                  <Text className="text-3xl font-black text-[#1F3A5F]">{activeAnalysis.atsScore.roleRelevance?.total ?? 0}</Text>
-                  <Text className="text-lg font-bold text-[#8B95A5]">/100</Text>
-                </View>
-                <Text className="text-xs font-bold text-[#1F3A5F] mt-1">Target Match / Role Relevance</Text>
+                <Text className="text-sm font-bold text-[#1F3A5F]">{currentUser?.targetPosition || "Information Technology Specialist"}</Text>
                 <Text className="text-[11px] text-[#CA5D25] font-semibold mt-0.5">
-                  Match to {currentUser?.targetPosition || "Target Role"}
+                  Qualitative Role-Fit Diagnostic
                 </Text>
+                {Boolean((activeAnalysis.atsScore as any)?.traceability?.isDegraded) && (
+                  <View className="mt-1 bg-[#FDEEE6] px-2 py-0.5 rounded border border-[#F4A47A] self-start">
+                    <Text className="text-[9px] font-bold text-[#CA5D25]">Domain Benchmark (Degraded)</Text>
+                  </View>
+                )}
               </View>
               <Ionicons name={showAtsMatchDetails ? "chevron-up" : "chevron-down"} size={20} color="#8B95A5" />
             </TouchableOpacity>
 
             {showAtsMatchDetails && (
               <View className="px-5 pb-5 pt-2 border-t border-[#EAF2F7]">
+                {/* Alignment Summary */}
+                <View className="bg-[#F8FAFC] p-3.5 rounded-xl border border-[#E2E8F0] mb-4">
+                  <Text className="text-[10px] font-bold text-[#1F3A5F] uppercase tracking-wider mb-1">
+                    Role Alignment Summary
+                  </Text>
+                  <Text className="text-xs text-[#4F6B82] leading-5">
+                    {activeAnalysis.atsScore.roleRelevance?.alignmentSummary ||
+                      `Evidenced assessment against ${currentUser?.targetPosition || "target role"} competencies. Review matched capabilities and priority gaps below.`}
+                  </Text>
+                </View>
 
-                {/* Math Breakdown */}
-                {activeAnalysis.atsScore.roleRelevance && (
-                  <View className="mb-5 pb-4 border-b border-[#EAF2F7]">
-                    <Text className="text-sm font-bold text-[#1F3A5F] mb-1">Semantic Match Breakdown</Text>
-                    <Text className="text-xs text-[#4F6B82] mb-4 flex-wrap" style={{ flexShrink: 1 }}>
-                      This calculates how much of your resume directly aligns with {currentUser?.targetPosition || 'your target role'}.
-                    </Text>
-                    <View className="flex-row justify-between items-center mb-3">
-                      <Text className="text-xs font-bold text-[#4F6B82]">Skills Match</Text>
-                      <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.breakdown.skillsMatch.rawScore}/100 × 40% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.roleRelevance.breakdown.skillsMatch.weightedScore}</Text></Text>
+                {/* Qualitative Competency Chips (Matched, Transferable, Relevant Tech, Priority Gaps) */}
+                {(() => {
+                  const rr = activeAnalysis.atsScore.roleRelevance;
+                  const matched = rr?.matchedCompetencies || [];
+                  const transferable = rr?.transferableCompetencies || [];
+                  const relevantTech = (rr as any)?.relevantTechnicalSkills || [];
+                  const gaps = rr?.priorityGaps || [];
+
+                  if (!matched.length && !transferable.length && !relevantTech.length && !gaps.length) {
+                    return null;
+                  }
+
+                  return (
+                    <View className="mb-4 pb-3 border-b border-[#EAF2F7] gap-3">
+                      {matched.length > 0 && (
+                        <View>
+                          <Text className="text-[10px] font-bold text-[#1E5D53] uppercase tracking-wider mb-1.5">
+                            Matched Competencies ({matched.length})
+                          </Text>
+                          <View className="flex-row flex-wrap gap-1.5">
+                            {matched.map((comp, idx) => (
+                              <View key={idx} className="bg-[#D7F1ED] px-2.5 py-1 rounded-md border border-[#79D5C8]">
+                                <Text className="text-[11px] font-bold text-[#1E5D53]">{comp}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      )}
+
+                      {transferable.length > 0 && (
+                        <View>
+                          <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-wider mb-1.5">
+                            Transferable Competencies ({transferable.length})
+                          </Text>
+                          <View className="flex-row flex-wrap gap-1.5">
+                            {transferable.map((comp, idx) => (
+                              <View key={idx} className="bg-[#FFF3ED] px-2.5 py-1 rounded-md border border-[#F4A47A]">
+                                <Text className="text-[11px] font-bold text-[#CA5D25]">{comp}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      )}
+
+                      {relevantTech.length > 0 && (
+                        <View>
+                          <Text className="text-[10px] font-bold text-[#4B5563] uppercase tracking-wider mb-1">
+                            Relevant Technical Evidence ({relevantTech.length})
+                          </Text>
+                          <Text className="text-[10px] text-[#6B7280] italic mb-1.5">
+                            Demonstrated technical capabilities outside target role profile
+                          </Text>
+                          <View className="flex-row flex-wrap gap-1.5">
+                            {relevantTech.map((comp: string, idx: number) => (
+                              <View key={idx} className="bg-[#F3F4F6] px-2.5 py-1 rounded-md border border-[#D1D5DB]">
+                                <Text className="text-[11px] font-medium text-[#374151]">{comp}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      )}
+
+                      {gaps.length > 0 && (
+                        <View>
+                          <Text className="text-[10px] font-bold text-[#8B95A5] uppercase tracking-wider mb-1.5">
+                            Priority Target Gaps ({gaps.length})
+                          </Text>
+                          <View className="flex-row flex-wrap gap-1.5">
+                            {gaps.map((comp, idx) => (
+                              <View key={idx} className="bg-[#F1F5F9] px-2.5 py-1 rounded-md border border-[#CBD5E1]">
+                                <Text className="text-[11px] font-medium text-[#475569]">{comp}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      )}
                     </View>
-                    <View className="flex-row justify-between items-center mb-3">
-                      <Text className="text-xs font-bold text-[#4F6B82]">Experience Match</Text>
-                      <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.breakdown.experienceMatch.rawScore}/100 × 30% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.roleRelevance.breakdown.experienceMatch.weightedScore}</Text></Text>
-                    </View>
-                    <View className="flex-row justify-between items-center mb-3">
-                      <Text className="text-xs font-bold text-[#4F6B82]">Education Match</Text>
-                      <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.breakdown.educationMatch.rawScore}/100 × 20% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.roleRelevance.breakdown.educationMatch.weightedScore}</Text></Text>
-                    </View>
-                    <View className="flex-row justify-between items-center">
-                      <Text className="text-xs font-bold text-[#4F6B82]">Certifications Match</Text>
-                      <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.roleRelevance.breakdown.certificationsMatch.rawScore}/100 × 10% = <Text className="font-bold text-[#1F3A5F] text-xs">{activeAnalysis.atsScore.roleRelevance.breakdown.certificationsMatch.weightedScore}</Text></Text>
-                    </View>
-                  </View>
-                )}
+                  );
+                })()}
 
                 {/* Personalized Competency Guidance Computation */}
                 {(() => {

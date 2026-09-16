@@ -300,7 +300,7 @@ Infrastructure & Auditing Specialist
         def mock_verify_id_token(token, *args, **kwargs):
             if token.startswith("token-"):
                 uid = token.replace("token-", "")
-                return {"uid": uid}
+                return {"uid": uid, "email": f"{uid}@tip.edu.ph", "email_verified": True}
             raise Exception("Invalid token")
 
         with patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token):

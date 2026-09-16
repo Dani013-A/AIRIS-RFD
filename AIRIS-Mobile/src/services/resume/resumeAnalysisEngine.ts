@@ -83,10 +83,10 @@ export interface ResumeScoreBreakdown {
 }
 
 export interface RoleRelevanceBreakdown {
-  skillsMatch: ScoreComponent;
-  experienceMatch: ScoreComponent;
-  educationMatch: ScoreComponent;
-  certificationsMatch: ScoreComponent;
+  skillsMatch?: ScoreComponent;
+  experienceMatch?: ScoreComponent;
+  educationMatch?: ScoreComponent;
+  certificationsMatch?: ScoreComponent;
 }
 
 export type ATSScoreCategory =
@@ -114,9 +114,14 @@ export interface ATSScore {
     breakdown: ResumeScoreBreakdown;
   };
   roleRelevance?: {
-    total: number;
-    breakdown: RoleRelevanceBreakdown;
-    adjustments: ATSScoreAdjustment[];
+    total?: number;
+    breakdown?: RoleRelevanceBreakdown;
+    adjustments?: ATSScoreAdjustment[];
+    matchedCompetencies?: string[];
+    transferableCompetencies?: string[];
+    relevantTechnicalSkills?: string[];
+    priorityGaps?: string[];
+    alignmentSummary?: string;
   };
   // Fallback properties for older cached reports
   breakdown?: any;

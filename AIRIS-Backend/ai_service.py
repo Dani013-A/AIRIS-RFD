@@ -426,10 +426,16 @@ CANONICAL_SKILL_MAP: Dict[str, str] = {
     "c#": "C#",
     "csharp": "C#",
     "c sharp": "C#",
+    "c": "C",
+    "c language": "C",
+    "c programming": "C",
     "vb.net": "VB.NET",
     "vb net": "VB.NET",
     "visual basic .net": "VB.NET",
     "visual basic": "VB.NET",
+    "asp.net": "ASP.NET",
+    "asp.net core": "ASP.NET",
+    "aspnet": "ASP.NET",
     ".net": ".NET",
     "net": ".NET",
     "dotnet": ".NET",
@@ -520,7 +526,7 @@ def is_skill_grounded_in_text(skill_name: str, raw_text: str) -> bool:
     raw_norm = raw_norm.replace('“', '"').replace('”', '"').replace('’', "'").replace('–', '-').replace('—', '-')
 
     skill_clean = skill_name.strip()
-    if not skill_clean or len(skill_clean) < 2:
+    if not skill_clean or (len(skill_clean) < 2 and skill_clean.lower() not in ("c", "r")):
         return False
     skill_lower = skill_clean.lower()
 
@@ -539,7 +545,23 @@ def is_skill_grounded_in_text(skill_name: str, raw_text: str) -> bool:
         if not clean_t:
             continue
 
-        if re.match(r'^[a-zA-Z0-9\s]+$', clean_t):
+        if clean_t == "c":
+            pat = r'(?:\b|(?<=[\s,;:(•|\n\r]))c(?![+#])(?:\b|(?=[\s,;:.)•|\n\r]))'
+            if re.search(pat, raw_norm, re.IGNORECASE):
+                return True
+        elif clean_t in ("react", "react.js", "reactjs"):
+            pat = r'\breact(?:\.js|js)?(?!\s*-?\s*native\b)\b'
+            if re.search(pat, raw_norm, re.IGNORECASE):
+                return True
+        elif clean_t in (".net", "net"):
+            pat = r'(?<!asp)(?<!asp\.)(?:\.net|\bnet)\b'
+            if re.search(pat, raw_norm, re.IGNORECASE):
+                return True
+        elif clean_t in ("dotnet", "dot net"):
+            pat = r'\bdot\s*net\b'
+            if re.search(pat, raw_norm, re.IGNORECASE):
+                return True
+        elif re.match(r'^[a-zA-Z0-9\s]+$', clean_t):
             # Purely alphanumeric: enforce word boundaries so e.g. "java" does not match "javascript"
             words = clean_t.split()
             escaped_words = [re.escape(w) for w in words]

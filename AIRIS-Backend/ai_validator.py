@@ -210,6 +210,9 @@ def validate_and_enhance_analysis(
     all_target_comps = req_skills + rec_skills
     evidence_list = sbert_results.get("evidence", [])
     edu_sim_score = sbert_results.get("eduSimilarityScore", 0.0)
+    role_profile_meta = sbert_results.get("roleProfileMetadata", {})
+    if role_profile_meta.get("isDegraded"):
+        print(f"[AUDIT NOTICE] Target role '{target_position}' scored using DEGRADED approved domain fallback: {role_profile_meta.get('roleProfileId')}")
 
     # 1. Chunk resume evidence
     evidence_chunks = chunk_resume_evidence(parsed_sections)
@@ -231,7 +234,14 @@ def validate_and_enhance_analysis(
     # 3. Deterministically validate AI response
     audited_findings = validate_ai_response(raw_evaluations, evidence_chunks, all_target_comps)
 
-    # 4. Calculate Authoritative ATS Score via Pure Python Math
+    # 4. Extract authoritative resume skills for Category C evidence separation
+    from ai_service import extract_authoritative_resume_skills
+    authoritative_skills = extract_authoritative_resume_skills(
+        raw_text=raw_text,
+        parsed_sections=parsed_sections
+    )
+
+    # 5. Calculate Authoritative ATS Score via Pure Python Math
     ats_score_payload = calculate_official_ats_score(
         audited_findings=audited_findings,
         evidence_chunks=evidence_chunks,
@@ -239,7 +249,9 @@ def validate_and_enhance_analysis(
         required_competencies=req_skills,
         recommended_competencies=rec_skills,
         sbert_edu_sim_score=edu_sim_score,
-        audit_status_metadata="VERIFIED"
+        audit_status_metadata="VERIFIED",
+        role_profile_metadata=role_profile_meta,
+        detected_skills=authoritative_skills
     )
 
     # Populate adjustments for Role Relevance Diagnostic
@@ -348,12 +360,7 @@ def validate_and_enhance_analysis(
             "reason": "Enhance competitive positioning."
         })
 
-    from ai_service import generate_learning_snapshot, extract_authoritative_resume_skills
-    authoritative_skills = extract_authoritative_resume_skills(
-        raw_text=raw_text,
-        parsed_sections=parsed_sections
-    )
-
+    from ai_service import generate_learning_snapshot
     learning_snapshot = generate_learning_snapshot(
         target_position=target_position,
         parsed_sections=parsed_sections,

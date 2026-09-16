@@ -17,7 +17,7 @@ client = TestClient(app)
 def mock_verify_id_token(token, *args, **kwargs):
     if token.startswith("token-"):
         uid = token.replace("token-", "")
-        return {"uid": uid}
+        return {"uid": uid, "email": f"{uid}@tip.edu.ph", "email_verified": True}
     raise Exception("Invalid token")
 
 

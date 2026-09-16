@@ -1315,6 +1315,50 @@ export const CANONICAL_TOOL_MAP: Record<string, ToolOntology> = {
   "k8s": { canonical: "Kubernetes", parentConcept: "orchestration" },
   "orchestration": { canonical: "orchestration", isBroadDiscipline: true },
 
+  // Infrastructure Automation & Configuration Management
+  "ansible": { canonical: "Ansible", parentConcept: "infrastructure automation" },
+  "terraform": { canonical: "Terraform", parentConcept: "infrastructure automation" },
+  "puppet": { canonical: "Puppet", parentConcept: "infrastructure automation" },
+  "chef": { canonical: "Chef", parentConcept: "infrastructure automation" },
+  "infrastructure automation": { canonical: "infrastructure automation", isBroadDiscipline: true },
+  "automation": { canonical: "automation", isBroadDiscipline: true },
+
+  // Systems, Networks & Administration
+  "powershell": { canonical: "PowerShell", parentConcept: "system administration" },
+  "bash": { canonical: "Bash", parentConcept: "system administration" },
+  "shell scripting": { canonical: "Shell Scripting", parentConcept: "system administration" },
+  "linux": { canonical: "Linux", parentConcept: "system administration" },
+  "active directory": { canonical: "Active Directory", parentConcept: "system administration" },
+  "windows server": { canonical: "Windows Server", parentConcept: "system administration" },
+  "system administration": { canonical: "system administration", isBroadDiscipline: true },
+  "it infrastructure": { canonical: "it infrastructure", isBroadDiscipline: true },
+  "network administration": { canonical: "network administration", isBroadDiscipline: true },
+  "networking": { canonical: "networking", isBroadDiscipline: true },
+  "ccna": { canonical: "CCNA", parentConcept: "network administration" },
+  "cisco": { canonical: "Cisco", parentConcept: "network administration" },
+  "vmware": { canonical: "VMware", parentConcept: "virtualization" },
+  "virtualization": { canonical: "virtualization", isBroadDiscipline: true },
+  "itil": { canonical: "ITIL", parentConcept: "it service management" },
+  "it service management": { canonical: "it service management", isBroadDiscipline: true },
+
+  // Testing & Quality Assurance
+  "cypress": { canonical: "Cypress", parentConcept: "qa testing" },
+  "selenium": { canonical: "Selenium", parentConcept: "qa testing" },
+  "qa testing": { canonical: "qa testing", isBroadDiscipline: true },
+  "end-to-end testing": { canonical: "qa testing", isBroadDiscipline: true },
+
+  // Data Science & Machine Learning
+  "pandas": { canonical: "Pandas", parentConcept: "data analytics" },
+  "numpy": { canonical: "NumPy", parentConcept: "data analytics" },
+  "scikit-learn": { canonical: "Scikit-Learn", parentConcept: "machine learning" },
+  "sklearn": { canonical: "Scikit-Learn", parentConcept: "machine learning" },
+  "tensorflow": { canonical: "TensorFlow", parentConcept: "machine learning" },
+  "pytorch": { canonical: "PyTorch", parentConcept: "machine learning" },
+  "machine learning": { canonical: "machine learning", isBroadDiscipline: true },
+  "deep learning": { canonical: "deep learning", isBroadDiscipline: true },
+  "data analytics": { canonical: "data analytics", isBroadDiscipline: true },
+  "data science": { canonical: "data science", isBroadDiscipline: true },
+
   // CI/CD & Version Control
   "jenkins": { canonical: "Jenkins", parentConcept: "ci/cd" },
   "github actions": { canonical: "GitHub Actions", parentConcept: "ci/cd" },
@@ -1640,7 +1684,8 @@ export interface GapEvaluationResult {
 export function evaluateGapMatch(
   gap: NormalizedGap,
   resource: LearningResource,
-  userPrimaryDomain: CareerDomainProfile | null
+  userPrimaryDomain: CareerDomainProfile | null,
+  profile?: ResumeCredentialProfile
 ): GapEvaluationResult {
   const resourceSkills = (resource.skills || []).map((s) => s.toLowerCase().trim());
   const resourceSubskills = (resource.subskills || []).map((s) => s.toLowerCase().trim());
@@ -1722,6 +1767,25 @@ export function evaluateGapMatch(
         isCompMatched = false;
       }
 
+      // QA Testing (Cypress, Selenium) NEVER matches infrastructure automation or systems/network administration
+      if (
+        (compNorm.includes("automation") || compNorm.includes("infrastructure") || compNorm.includes("system") || compNorm.includes("network")) &&
+        !compNorm.includes("test") && !compNorm.includes("qa") &&
+        (resourceSkills.includes("cypress") || resourceSkills.includes("selenium") || resourceTags.includes("cypress") || resourceTags.includes("selenium")) &&
+        !resourceSkills.some((s) => s.includes("ansible") || s.includes("terraform") || s.includes("powershell") || s.includes("bash") || s.includes("infrastructure"))
+      ) {
+        isCompMatched = false;
+      }
+
+      // Machine Learning / Data Science (Pandas, Scikit-Learn, TensorFlow, PyTorch) NEVER matches infrastructure automation or network/system administration
+      if (
+        (compNorm.includes("automation") || compNorm.includes("infrastructure") || compNorm.includes("system") || compNorm.includes("network") || compNorm.includes("active directory") || compNorm.includes("virtualization")) &&
+        !compNorm.includes("machine learning") && !compNorm.includes("data") && !compNorm.includes("ai") &&
+        (resourceSkills.includes("pandas") || resourceSkills.includes("scikit-learn") || resourceSkills.includes("tensorflow") || resourceSkills.includes("pytorch") || resourceSkills.includes("deep learning"))
+      ) {
+        isCompMatched = false;
+      }
+
       // Broad concept match (e.g. "database management", "api design"):
       if (!isCompMatched) {
         if (compNorm === "database management" || compNorm === "databases") {
@@ -1767,7 +1831,24 @@ export function evaluateGapMatch(
         ? matched.length === 1 && isDomainDirectMatch
         : isDomainDirectMatch &&
           (coverageRatio >= 0.75 || (substantiveUnmatched.length === 0 && hasSubstantiveMatch));
-    const isPartial = !isDirect && matched.length > 0;
+
+    // A partial gap match must either have substantive component match or be domain-relevant
+    // It is strictly rejected if it only matches generic technology words while having no role/domain relevance
+    let isPartial = !isDirect && matched.length > 0;
+    if (!hasSubstantiveMatch && !isDomainDirectMatch) {
+      isPartial = false;
+    }
+
+    // Candidate-owned skill gate: If candidate already demonstrates every single matched component,
+    // and the gap has remaining unmatched components, this resource offers zero new remediation for this gap.
+    if (profile && profile.demonstratedSkills && profile.demonstratedSkills.size > 0 && matched.length > 0 && unmatched.length > 0) {
+      const allMatchedAlreadyDemonstrated = matched.every((m) =>
+        profile.demonstratedSkills.has(m.toLowerCase().trim())
+      );
+      if (allMatchedAlreadyDemonstrated) {
+        isPartial = false;
+      }
+    }
 
     if (isDirect || isPartial) {
       let matchedStr = "";
@@ -1858,7 +1939,7 @@ export function evaluateGapMatch(
         (concept.includes("staad") && (skill.includes("structural analysis") || skill.includes("staad.pro") || skill.includes("concrete"))) ||
         (concept.includes("authoring") && (skill.includes("e-learning authoring tools") || skill.includes("articulate storyline"))) ||
         (concept.includes("audit") && (skill.includes("internal audit") || skill.includes("internal controls") || skill.includes("bookkeeping"))) ||
-        ((concept.includes("python") || concept === "programming in python") && (skill === "python" || skill === "python programming" || skill === "python development"));
+        ((concept === "programming in python" || concept === "python programming" || concept === "python fundamentals") && (skill === "python" || skill === "python programming" || skill === "python development"));
 
       if (isExactMatch || isCompoundMatch) {
         return {
@@ -2219,11 +2300,18 @@ export function isResourceDemotedForSkillDepth(
   const isDemonstrated = profile.demonstratedSkills.has(primarySkill);
   if (!isDemonstrated) return false;
 
-  // Check if this specific skill is explicitly flagged as an identified gap
-  const isExplicitGap = gaps.some((g) =>
-    g.raw.toLowerCase().includes(primarySkill) ||
-    g.substantiveConcepts.some((c) => c.includes(primarySkill))
-  );
+  // Check if this specific skill is an isolated missing gap.
+  // If the candidate already demonstrates this skill on their resume,
+  // beginner tutorials in this skill are NOT suitable remediation for compound or adjacent gaps.
+  const isExplicitGap = gaps.some((g) => {
+    // If the gap has multiple atomic components (e.g. "Automation with Python and Ansible"),
+    // candidate possessing Python does NOT make a beginner Python course an explicit gap remediation.
+    if (g.atomicComponents && g.atomicComponents.length > 1) {
+      return false;
+    }
+    const cleanRaw = g.raw.toLowerCase().trim();
+    return cleanRaw === primarySkill || cleanRaw === `skills in ${primarySkill}`;
+  });
 
   return !isExplicitGap;
 }
@@ -2443,7 +2531,7 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
     };
 
     for (const gap of normalizedGaps) {
-      const evaluation = evaluateGapMatch(gap, resource, primaryDomain);
+      const evaluation = evaluateGapMatch(gap, resource, primaryDomain, resumeProfile);
       if (evaluation.isDirectGap && evaluation.matchScore > bestGapScore) {
         bestGapScore = evaluation.matchScore;
         matchedGapName = gap.raw;
@@ -2474,12 +2562,19 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
         reason = `Directly addresses your identified gap in "${matchedGapName}" by developing ${matchedComp} for ${params.targetPosition || "your target role"}.`;
       }
     } else if (partialGapEvaluated && bestPartialScore > 0) {
-      tier = "TIER_2_ROLE_COMPETENCY";
-      score += 250 + bestPartialScore;
-      matchedGapName = partialGapName;
-      matchedComp = partialComp;
-      itemEvidence = partialEvidence;
-      reason = partialRationale;
+      if (partialEvidence.roleRelevance) {
+        tier = "TIER_2_ROLE_COMPETENCY";
+        score += 250 + bestPartialScore;
+        matchedGapName = partialGapName;
+        matchedComp = partialComp;
+        itemEvidence = partialEvidence;
+        reason = partialRationale;
+      } else {
+        // Enforce role relevance gate: a resource lacking role relevance must NOT be Tier 2
+        tier = "TIER_4_GENERIC";
+        score = 50;
+        itemEvidence = partialEvidence;
+      }
     } else {
       const targetTokens = getCareerTitleTokens(targetPos);
 
@@ -2631,41 +2726,43 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
   // MULTI-COMPETENCY SLOT ALLOCATION (Prevent Single-Gap Dominance)
   if (normalizedGaps.length >= 2) {
     const tier1Items = scoredItems.filter((i) => i.relevanceTier === "TIER_1_DIRECT_GAP");
-    const otherItems = scoredItems.filter((i) => i.relevanceTier !== "TIER_1_DIRECT_GAP");
+    const tier2Items = scoredItems.filter((i) => i.relevanceTier === "TIER_2_ROLE_COMPETENCY");
+    const otherItems = scoredItems.filter((i) => i.relevanceTier !== "TIER_1_DIRECT_GAP" && i.relevanceTier !== "TIER_2_ROLE_COMPETENCY");
 
-    if (tier1Items.length > 0) {
+    const balanceItemsByGap = (items: MatchedResourceItem[], maxPerGap: number): MatchedResourceItem[] => {
+      if (items.length === 0) return [];
       const gapBuckets = new Map<string, MatchedResourceItem[]>();
-      for (const item of tier1Items) {
-        const gapKey = (item.matchedSkillGap || "DEFAULT").toLowerCase().trim();
+      for (const item of items) {
+        const gapKey = (item.matchedSkillGap || item.matchedCompetency || "DEFAULT").toLowerCase().trim();
         if (!gapBuckets.has(gapKey)) {
           gapBuckets.set(gapKey, []);
         }
         gapBuckets.get(gapKey)!.push(item);
       }
 
-      const balancedTier1: MatchedResourceItem[] = [];
-      const MAX_PER_GAP = 2; // Cap per gap to guarantee multi-gap distribution
-
-      // Round-robin selection across distinct gaps
+      const balanced: MatchedResourceItem[] = [];
       let addedInRound = true;
       let roundCount = 0;
-      while (addedInRound && roundCount < MAX_PER_GAP) {
+      while (addedInRound && roundCount < maxPerGap) {
         addedInRound = false;
         roundCount++;
-        for (const [_, items] of gapBuckets) {
-          if (items.length >= roundCount) {
-            balancedTier1.push(items[roundCount - 1]);
+        for (const [_, bucketItems] of gapBuckets) {
+          if (bucketItems.length >= roundCount) {
+            balanced.push(bucketItems[roundCount - 1]);
             addedInRound = true;
           }
         }
       }
 
-      // Add remaining Tier 1 items that were capped
-      const balancedIds = new Set(balancedTier1.map((i) => i.id));
-      const remainingTier1 = tier1Items.filter((i) => !balancedIds.has(i.id));
+      const balancedIds = new Set(balanced.map((i) => i.id));
+      const remaining = items.filter((i) => !balancedIds.has(i.id));
+      return [...balanced, ...remaining];
+    };
 
-      return [...balancedTier1, ...otherItems, ...remainingTier1];
-    }
+    const balancedTier1 = balanceItemsByGap(tier1Items, 2);
+    const balancedTier2 = balanceItemsByGap(tier2Items, 2);
+
+    return [...balancedTier1, ...balancedTier2, ...otherItems];
   }
 
   return scoredItems;

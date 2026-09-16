@@ -32,187 +32,38 @@ def calculate_cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
 def _cached_encode(text: str) -> np.ndarray:
     return get_sbert_model().encode(text)
 
-# --- GENERIC DATA-DRIVEN BENCHMARK CATALOG (Domain-Neutral) ---
-# Expandable catalog for standard roles; unlisted roles fetch dynamic profiles
+# --- AUTHORITATIVE DATA-DRIVEN BENCHMARK CATALOG (Domain-Neutral) ---
+from role_profile_registry import (
+    resolve_role_profile,
+    RoleProfile,
+    RoleProfileUnresolvedError,
+    AUTHORITATIVE_STATIC_PROFILES,
+    canonicalize_role_title
+)
+
+# Export for backward compatibility with normalizer.py and entity lookups
 CAREER_BENCHMARKS: Dict[str, Dict[str, List[str]]] = {
-    "software engineer": {
-        "required_skills": ["Python", "FastAPI", "React Native", "TypeScript", "SQL"],
-        "recommended_skills": ["Firebase", "REST API", "Docker", "Git"],
-        "education_benchmarks": ["Bachelor of Science in Information Technology", "Bachelor of Science in Computer Science", "Software Engineering Fundamentals", "Computer Science Discipline"],
-        "certification_benchmarks": ["AWS Certified Developer", "CompTIA Security+", "Microsoft Certified Developer"]
-    },
-    "senior software engineer": {
-        "required_skills": ["Python", "FastAPI", "PostgreSQL", "React", "TypeScript"],
-        "recommended_skills": ["Docker", "Kubernetes", "AWS", "System Design"],
-        "education_benchmarks": ["Bachelor of Science in Computer Science", "Computer Science Degree", "Software Architecture"],
-        "certification_benchmarks": ["AWS Certified Solutions Architect", "AWS Certified Developer"]
-    },
-    "data analyst": {
-        "required_skills": ["SQL", "Python", "Data Visualization", "Excel", "Financial Reporting"],
-        "recommended_skills": ["Power BI", "Tableau", "Statistical Analysis", "ETL"],
-        "education_benchmarks": ["Bachelor of Science in Information Technology", "Statistics", "Computer Science", "Business Analytics"],
-        "certification_benchmarks": ["Google Data Analytics Professional Certificate", "Microsoft Certified Power BI Data Analyst"]
-    },
-    "accountant": {
-        "required_skills": ["Financial Auditing", "Bookkeeping", "Tax Compliance", "Excel", "Financial Reporting"],
-        "recommended_skills": ["Bank Reconciliation", "Accounting Software", "Internal Controls"],
-        "education_benchmarks": ["Bachelor of Science in Accountancy", "Accounting Discipline", "Financial Management Degree"],
-        "certification_benchmarks": ["Certified Public Accountant", "Certified Bookkeeper"]
-    },
-    "civil engineer": {
-        "required_skills": ["Structural Analysis", "AutoCAD", "STAAD.Pro", "Quantity Estimation", "Construction Planning"],
-        "recommended_skills": ["Concrete Structure Design", "Site Safety"],
-        "education_benchmarks": ["Bachelor of Science in Civil Engineering", "Civil Engineering Discipline", "Structural Engineering"],
-        "certification_benchmarks": ["Licensed Civil Engineer", "Professional Engineer"]
-    },
-    "architectural designer": {
-        "required_skills": ["AutoCAD", "SketchUp", "Architectural Design", "3D Modeling", "Technical Drawing"],
-        "recommended_skills": ["Building Information Modeling", "Drafting"],
-        "education_benchmarks": ["Bachelor of Science in Architecture", "Architectural Studies", "Design Studio"],
-        "certification_benchmarks": ["Registered Architect", "Autodesk Certified Professional"]
-    },
-    "marketing specialist": {
-        "required_skills": ["Digital Marketing", "Social Media Marketing", "Excel", "Market Research", "Content Creation"],
-        "recommended_skills": ["Google Analytics", "Campaign Planning", "Customer Personas"],
-        "education_benchmarks": ["Bachelor of Science in Business Administration", "Marketing Management", "Business Administration"],
-        "certification_benchmarks": ["Google Analytics Certificate", "HubSpot Marketing Certified"]
-    },
-    "psychometrician": {
-        "required_skills": ["Psychological Assessment & Testing", "Psychometrics", "Test Construction", "Statistical Analysis", "Developmental Psychology"],
-        "recommended_skills": ["Cognitive Psychology", "Research Methods", "Data Analysis"],
-        "education_benchmarks": ["Bachelor of Science in Psychology", "Psychology Discipline", "Behavioral Sciences"],
-        "certification_benchmarks": ["Board Licensure Examination for Psychometricians (BLEP)", "Certified Psychometrician"]
-    },
-    "psychologist": {
-        "required_skills": ["Psychological Assessment", "Abnormal Psychology", "Clinical Psychology", "Psychometrics", "Counseling Techniques"],
-        "recommended_skills": ["Research Methods", "Ethics in Psychology", "Behavioral Analysis"],
-        "education_benchmarks": ["Bachelor of Science in Psychology", "Master of Arts in Psychology", "Clinical Psychology Discipline"],
-        "certification_benchmarks": ["Licensed Psychologist", "Registered Psychologist"]
-    },
-    "instructional designer": {
-        "required_skills": ["E-Learning Authoring Tools", "Articulate Storyline", "ADDIE Model", "Universal Design for Learning (UDL)", "Curriculum Development"],
-        "recommended_skills": ["Multimedia Development", "Learning Analytics", "Instructional Systems"],
-        "education_benchmarks": ["Bachelor of Secondary Education", "Instructional Design Degree", "Education Discipline"],
-        "certification_benchmarks": ["Certified Instructional Designer", "E-Learning Professional Certification"]
-    },
-    "cybersecurity analyst": {
-        "required_skills": ["Network Security", "Information Security", "Threat Analysis", "SIEM", "Incident Response"],
-        "recommended_skills": ["Cryptography", "Vulnerability Management", "Penetration Testing"],
-        "education_benchmarks": ["Bachelor of Science in Information Technology", "Cybersecurity Discipline", "Computer Science"],
-        "certification_benchmarks": ["CompTIA Security+", "Certified Information Systems Security Professional (CISSP)"]
-    },
-    "ux designer": {
-        "required_skills": ["Figma", "UX Design", "User Research", "Wireframing", "Prototyping"],
-        "recommended_skills": ["Human-Computer Interaction", "Information Architecture", "Visual Design"],
-        "education_benchmarks": ["Bachelor of Science in Information Technology", "Multimedia Arts", "User Experience Design"],
-        "certification_benchmarks": ["Google UX Design Professional Certificate", "Nielsen Norman Group UX Certification"]
-    },
-    "auditor": {
-        "required_skills": ["Internal Audit", "Internal Controls", "Financial Auditing", "IFRS/GAAP Standards", "Risk Assessment"],
-        "recommended_skills": ["Bookkeeping", "Advanced Excel", "Fraud Examination"],
-        "education_benchmarks": ["Bachelor of Science in Accountancy", "Auditing Discipline", "Accounting"],
-        "certification_benchmarks": ["Certified Internal Auditor (CIA)", "Certified Public Accountant (CPA)"]
-    },
-    "structural engineer": {
-        "required_skills": ["STAAD.Pro", "Structural Analysis", "Concrete Structure Design", "Autodesk Revit Structural", "Building Information Modeling (BIM)"],
-        "recommended_skills": ["Steel Structure Design", "AutoCAD", "Structural Dynamics"],
-        "education_benchmarks": ["Bachelor of Science in Civil Engineering", "Structural Engineering Discipline"],
-        "certification_benchmarks": ["Licensed Structural Engineer", "Professional Engineer (PE)"]
-    },
-    "chemist": {
-        "required_skills": ["Organic Chemistry", "Laboratory Safety & Analysis", "Chemical Kinetics", "Quantitative Chemical Analysis", "Spectroscopy"],
-        "recommended_skills": ["Inorganic Chemistry", "Analytical Instrumentation", "Quality Control"],
-        "education_benchmarks": ["Bachelor of Science in Chemistry", "Chemical Science Discipline"],
-        "certification_benchmarks": ["Licensed Chemist", "Chemical Laboratory Analyst"]
+    role.lower(): {
+        "required_skills": list(data["required_skills"]),
+        "recommended_skills": list(data["recommended_skills"]),
+        "education_benchmarks": list(data["education_benchmarks"]),
+        "certification_benchmarks": list(data["certification_benchmarks"]),
     }
+    for role, data in AUTHORITATIVE_STATIC_PROFILES.items()
 }
 
-# Backward-compatibility export for normalizer.py and entity normalizer lookup
 CAREER_CONCEPTS: Dict[str, List[str]] = {
     role: data.get("required_skills", []) + data.get("recommended_skills", [])
     for role, data in CAREER_BENCHMARKS.items()
 }
 
-GENERIC_DISALLOWED_TOKENS = {
-    "core competency", "technical skills", "problem solving", "execution",
-    "domain knowledge", "industry best practices", "tools", "relevant academic discipline"
-}
-
-def validate_dynamic_profile(profile: Dict[str, List[str]], target_position: str) -> bool:
-    """Verifies that an AI-generated dynamic profile contains substantive, domain-specific competencies."""
-    if not isinstance(profile, dict):
-        return False
-    req_skills = profile.get("required_skills", [])
-    if not req_skills or not isinstance(req_skills, list) or len(req_skills) == 0:
-        return False
-
-    substantive_count = 0
-    norm_pos = target_position.lower()
-
-    for skill in req_skills:
-        skill_str = str(skill).strip().lower()
-        if not skill_str:
-            continue
-        # Reject generic string templates or exact matches with disallowed generic terms
-        if any(token in skill_str for token in GENERIC_DISALLOWED_TOKENS) or skill_str == f"{norm_pos} core competency":
-            continue
-        if len(skill_str) >= 3:
-            substantive_count += 1
-
-    return substantive_count >= 2
-
-def fetch_dynamic_profile_from_ai(target_position: str) -> Dict[str, List[str]]:
-    """Uses LLM to dynamically resolve benchmark profiles for arbitrary professional roles."""
-    prompt = f"""
-    You are an expert technical recruiter and occupational domain specialist.
-    Provide authentic, industry-standard benchmark competencies for a professional working as '{target_position}'.
-
-    Return ONLY a JSON object with this exact structure:
-    {{
-        "required_skills": ["Substantive Technical/Domain Skill 1", "Substantive Skill 2", "Substantive Skill 3", "Substantive Skill 4", "Substantive Skill 5"],
-        "recommended_skills": ["Recommended Skill 1", "Recommended Skill 2"],
-        "education_benchmarks": ["Bachelor of Science in Relevant Field", "Specific Academic Discipline"],
-        "certification_benchmarks": ["Official Professional Certification Title"]
-    }}
-
-    IMPORTANT:
-    Do NOT return generic terms like "Technical Skills", "Problem Solving", "Domain Knowledge", or "Core Competency".
-    Provide specific, professional tools, methods, frameworks, and domain knowledge required for '{target_position}'.
-    Do not include markdown formatting or extra text.
+def get_target_benchmark_profile(target_position: str) -> Dict[str, Any]:
     """
-    try:
-        response_text = generate_text_with_fallback(prompt)
-        if response_text.startswith("```"):
-            lines = response_text.split("\n")
-            if lines[0].startswith("```json") or lines[0].startswith("```"):
-                response_text = "\n".join(lines[1:-1]).strip()
-        parsed = json.loads(response_text)
-        if validate_dynamic_profile(parsed, target_position):
-            return parsed
-        else:
-            print(f"Dynamic profile validation failed for '{target_position}': Generic or insufficient skills returned.")
-    except Exception as e:
-        print(f"Dynamic profile fetch failed for '{target_position}': {e}")
-
-    # Safe-fail: Return empty benchmark profile rather than emitting fabricated generic filler
-    return {
-        "required_skills": [],
-        "recommended_skills": [],
-        "education_benchmarks": [],
-        "certification_benchmarks": []
-    }
-
-def get_target_benchmark_profile(target_position: str) -> Dict[str, List[str]]:
-    norm_pos = target_position.strip().lower()
-    if norm_pos in CAREER_BENCHMARKS:
-        return CAREER_BENCHMARKS[norm_pos]
-
-    # Partial matching check for standard roles
-    for key, profile in CAREER_BENCHMARKS.items():
-        if key in norm_pos or norm_pos in key:
-            return profile
-
-    return fetch_dynamic_profile_from_ai(target_position)
+    Authoritative resolution wrapper for target role profiles.
+    Returns dictionary with required_skills, recommended_skills, education_benchmarks, certification_benchmarks.
+    """
+    profile = resolve_role_profile(target_position)
+    return profile.to_dict()
 
 def evaluate_semantic_alignment(
     parsed_sections: Dict[str, str],
@@ -220,19 +71,19 @@ def evaluate_semantic_alignment(
 ) -> Dict[str, Any]:
     """
     SBERT Semantic Measurement Layer.
-    Encodes candidate evidence chunks and compares them against target-career-specific benchmark references
+    Encodes candidate evidence chunks and compares them against immutable target-career benchmark references
     using cosine similarity to produce semantic evidence retrieval maps.
     """
     start_time = time.time()
     model = get_sbert_model()
 
-    # 1. Fetch data-driven target profile
-    profile = get_target_benchmark_profile(target_position)
-    req_skills = profile.get("required_skills", [])
-    rec_skills = profile.get("recommended_skills", [])
+    # 1. Resolve authoritative immutable role profile (Tier 1-4)
+    profile = resolve_role_profile(target_position)
+    req_skills = list(profile.required_skills)
+    rec_skills = list(profile.recommended_skills)
     all_skill_concepts = req_skills + rec_skills
-    edu_benchmarks = profile.get("education_benchmarks", [])
-    cert_benchmarks = profile.get("certification_benchmarks", [])
+    edu_benchmarks = list(profile.education_benchmarks)
+    cert_benchmarks = list(profile.certification_benchmarks)
 
     # 2. Extract Traceable Evidence Chunks
     evidence_chunks = chunk_resume_evidence(parsed_sections)
@@ -242,9 +93,21 @@ def evaluate_semantic_alignment(
             "evidence": [],
             "requiredSkills": req_skills,
             "recommendedSkills": rec_skills,
+            "educationBenchmarks": edu_benchmarks,
+            "certificationBenchmarks": cert_benchmarks,
             "educationScore": 0,
             "certificationsScore": 0,
-            "chunks": []
+            "eduSimilarityScore": 0,
+            "chunks": [],
+            "roleProfileMetadata": {
+                "roleProfileId": profile.profile_id,
+                "roleProfileVersion": profile.version,
+                "canonicalRole": profile.canonical_role,
+                "domain": profile.domain,
+                "profileSource": profile.profile_source,
+                "isDegraded": profile.is_degraded,
+                "lastUpdated": profile.last_updated
+            }
         }
 
     # 3. Encode all Evidence Chunks
@@ -271,31 +134,51 @@ def evaluate_semantic_alignment(
             "orchestration", "containerization", "databases", "front", "end", "backend",
             "management", "tools", "systems", "guide", "fundamentals", "overview", "level"
         }
+        ROLE_GENERIC_TERMS = {
+            "administration", "specialist", "engineer", "management", "developer",
+            "operations", "fundamentals", "practices", "principles", "scripting",
+            "programming", "analysis"
+        }
         # Disallow single generic/subsidiary tokens (e.g. "github") from matching compound requirements (e.g. "CI/CD Pipelines using Jenkins, GitHub Actions...")
         raw_tokens = [t.strip() for t in re.split(r'[,;•|\(\)\[\]]+|\s+or\s+|\s+and\s+|\s+using\s+|\s+with\s+', c_lower) if len(t.strip()) >= 2]
         concept_candidates = [t for t in raw_tokens if t not in STOP_WORDS]
         if not concept_candidates:
             concept_candidates = [c_lower]
 
+        # Extract constituent technical terms for transferable competency grounding
+        constituent_tokens = [w for w in re.findall(r'[a-zA-Z0-9\+\#\.]+', c_lower) if len(w) >= 3 and w not in STOP_WORDS and w not in ROLE_GENERIC_TERMS]
+
         for idx, chunk in enumerate(evidence_chunks):
             raw_sim = calculate_cosine_similarity(c_emb, chunk_embs[idx])
             chunk_text = chunk.text
 
-            # Exact concept or grounded alias match in chunk
-            has_verbatim = is_skill_grounded_in_text(concept, chunk_text)
-            if not has_verbatim and concept_candidates:
-                # Require at least one distinct competency candidate to pass grounding
-                has_verbatim = any(is_skill_grounded_in_text(cand, chunk_text) for cand in concept_candidates)
+            # 1. Direct concept or authoritative alias match in chunk
+            has_direct = is_skill_grounded_in_text(concept, chunk_text)
+            if not has_direct and concept_candidates:
+                has_direct = any(is_skill_grounded_in_text(cand, chunk_text) for cand in concept_candidates)
 
-            sim = min(1.0, raw_sim + 0.25) if has_verbatim else raw_sim
+            # 2. Transferable constituent technical competency match
+            has_transferable = False
+            if not has_direct and constituent_tokens:
+                has_transferable = any(is_skill_grounded_in_text(tok, chunk_text) for tok in constituent_tokens)
+
+            if has_direct:
+                sim = min(1.0, raw_sim + 0.25)
+                grounding_type = "DIRECT"
+            elif has_transferable:
+                sim = min(1.0, raw_sim + 0.15)
+                grounding_type = "TRANSFERABLE"
+            else:
+                sim = raw_sim
+                grounding_type = "NONE"
 
             if sim > best_sim:
                 best_sim = sim
                 best_chunk = chunk
-                best_has_verbatim = has_verbatim
+                best_grounding_type = grounding_type
 
-        if best_chunk and best_has_verbatim:
-            if best_sim >= 0.45:
+        if best_chunk and best_grounding_type in ("DIRECT", "TRANSFERABLE"):
+            if best_grounding_type == "DIRECT" and best_sim >= 0.35:
                 status = "STRONG_MATCH"
             elif best_sim >= 0.25:
                 status = "PARTIAL_MATCH"
@@ -347,5 +230,14 @@ def evaluate_semantic_alignment(
         "educationBenchmarks": edu_benchmarks,
         "certificationBenchmarks": cert_benchmarks,
         "eduSimilarityScore": edu_similarity_score,
-        "chunks": [c.dict() for c in evidence_chunks]
+        "chunks": [c.dict() for c in evidence_chunks],
+        "roleProfileMetadata": {
+            "roleProfileId": profile.profile_id,
+            "roleProfileVersion": profile.version,
+            "canonicalRole": profile.canonical_role,
+            "domain": profile.domain,
+            "profileSource": profile.profile_source,
+            "isDegraded": profile.is_degraded,
+            "lastUpdated": profile.last_updated
+        }
     }
