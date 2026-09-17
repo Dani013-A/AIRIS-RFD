@@ -8,11 +8,10 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation(name: 'GfxPluginCardboard', ext:'aar')
     implementation project(':unityLibrary:xrmanifest.androidlib')
-    implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.core:core:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.games:games-activity:4.4.0'
-
+    implementation 'com.google.protobuf:protobuf-javalite:3.19.4'
 }
 
 // Android Resolver Exclusions Start

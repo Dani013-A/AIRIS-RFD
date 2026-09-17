@@ -1,6 +1,8 @@
 -keep class bitter.jnibridge.* { *; }
 -keep class com.unity3d.player.* { *; }
 -keep interface com.unity3d.player.IUnityPlayerLifecycleEvents { *; }
+-keep class com.google.protobuf.** { *; }
+-keep class com.google.cardboard.** { *; }
 -keep class org.fmod.* { *; }
 -keep class androidx.core.graphics.Insets** { *; }
 -keep class androidx.core.view.WindowInsetsCompat** { *; }
