@@ -8,7 +8,7 @@ export interface InterviewSession {
   targetRole: string;
   program: string;
   resumeId: string;
-  interviewType: 'one-on-one' | 'panel' | 'vr';
+  interviewType: 'one-on-one' | 'panel' | 'vr' | 'immersive-one-on-one' | 'immersive-panel';
   startedAt: number;
   completedAt?: number;
   totalQuestions: number;

@@ -6,6 +6,8 @@ export default function InterviewSessionLayout() {
     <Stack screenOptions={{ headerShown: false, gestureEnabled: false }}>
       <Stack.Screen name="briefing" />
       <Stack.Screen name="active" />
+      <Stack.Screen name="immersive-briefing" />
+      <Stack.Screen name="immersive-active" />
       <Stack.Screen name="summary" />
     </Stack>
   );

@@ -171,6 +171,43 @@ def classify_interaction_intent(current_question: str, current_answer: str) -> d
         print("Intent classification failed:", e)
         return {"intent": "ANSWER", "suggestedResponse": ""}
 
+def calculate_filler_metrics(text: str) -> dict:
+    """
+    Analyzes transcript for speech filler words in a bounded, explainable manner.
+    Counts standard conversational fillers: um, uh, ah, er, you know.
+    """
+    if not text:
+        return {"fillerCount": 0, "fillerRatio": 0.0, "excessive": False, "moderate": False, "natural": True, "fillers": []}
+
+    words = re.findall(r"\b[A-Za-z'-]+\b", text.lower())
+    total_words = len(words)
+    if total_words == 0:
+        return {"fillerCount": 0, "fillerRatio": 0.0, "excessive": False, "moderate": False, "natural": True, "fillers": []}
+
+    filler_patterns = [
+        r"\bum+\b",
+        r"\buh+\b",
+        r"\bah+\b",
+        r"\ber+\b",
+        r"\byou know\b",
+    ]
+    matches: List[str] = []
+    for pattern in filler_patterns:
+        found = re.findall(pattern, text.lower())
+        matches.extend(found)
+
+    count = len(matches)
+    ratio = count / total_words
+
+    return {
+        "fillerCount": count,
+        "fillerRatio": round(ratio, 3),
+        "natural": count <= 3,
+        "moderate": 4 <= count <= 6,
+        "excessive": count > 6,
+        "fillers": matches
+    }
+
 def evaluate_answer_and_generate_next(
     target_role: str,
     program: str,
@@ -193,29 +230,39 @@ def evaluate_answer_and_generate_next(
                 "question": "I'm sorry, I didn't quite catch that. Could you please repeat yourself?",
                 "questionType": "interaction",
                 "difficulty": 0,
-                "isFollowUp": True,
-                "benchmarkAnswer": ""
+                "isFollowUp": False,
+                "targetCompetencies": []
             },
             "evaluation": None,
             "isComplete": False
         }
 
-    # 2. AI Intent Classification
-    intent_res = classify_interaction_intent(current_question, current_answer)
-    if not isinstance(intent_res, dict):
-        intent_res = {}
-    intent = intent_res.get("intent", "ANSWER")
+    # 2. Pre-filter Conversational Interruptions / Meta-Requests
+    intent_data = classify_interaction_intent(current_question, current_answer)
+    intent = intent_data.get("intent", "ANSWER")
 
     if intent in ["REPEAT_REQUEST", "CLARIFICATION_REQUEST", "TIME_REQUEST", "UNRELATED_QUESTION", "RESTART_ANSWER"]:
-        suggested_response = intent_res.get("suggestedResponse", "Could you please elaborate?")
+        suggested = intent_data.get("suggestedResponse", "")
+        if not suggested:
+            if intent == "REPEAT_REQUEST":
+                suggested = current_question
+            elif intent == "CLARIFICATION_REQUEST":
+                suggested = "Let's focus on your core experience. How would you approach this problem?"
+            elif intent == "TIME_REQUEST":
+                suggested = "Take your time. Whenever you are ready."
+            elif intent == "UNRELATED_QUESTION":
+                suggested = "Let's return to the interview topic. Please answer the original question."
+            else:
+                suggested = "Please go ahead and begin your answer."
+
         return {
             "isInteractionEvent": True,
             "nextQuestion": {
-                "question": suggested_response,
+                "question": suggested,
                 "questionType": "interaction",
                 "difficulty": 0,
-                "isFollowUp": True,
-                "benchmarkAnswer": ""
+                "isFollowUp": False,
+                "targetCompetencies": []
             },
             "evaluation": None,
             "isComplete": False
@@ -248,9 +295,22 @@ def evaluate_answer_and_generate_next(
             f"- Pause Period Equivalent (1s = 1.00 period): {p_eq}\n"
             f"- Longest Pause: {p_long}s\n"
             f"- Average Pause Duration: {p_avg}s\n"
-            "EVALUATION INSTRUCTION: Interpret these measured audio values together with filler-word frequency for communication scoring. "
-            "Do NOT invent pause values. Do NOT automatically penalize every pause—natural short pauses (under 1.5s) are expected and natural, "
-            "whereas repeated long pauses (over 2.0s) indicate hesitation."
+            "EVALUATION INSTRUCTION FOR 'communication' SCORE: Interpret these measured audio values together with filler-word frequency for communication scoring. "
+            "Do NOT invent pause values. Minor filler words and pauses within a normal range (under 1.5s) should be ignored and NOT penalized — "
+            "only flag/deduct when filler frequency or pause duration is severe enough to actually impair communication clarity."
+        )
+
+    filler_metrics = calculate_filler_metrics(current_answer)
+    filler_info = ""
+    if filler_metrics["fillerCount"] > 0:
+        f_count = filler_metrics["fillerCount"]
+        f_status = "excessive" if filler_metrics["excessive"] else ("moderate" if filler_metrics["moderate"] else "natural")
+        filler_info = (
+            f"\nMEASURED TRANSCRIPT FILLER WORDS:\n"
+            f"- Count: {f_count} (classification: {f_status})\n"
+            f"- Fillers detected: {', '.join(filler_metrics['fillers'][:5])}\n"
+            f"- Guideline: Natural occasional fillers (1-3) should NOT be penalized. "
+            f"Only apply a modest deduction (-5 to -15 on 'communication' dimension specifically) if filler frequency is excessive and impairs delivery clarity."
         )
 
     if is_skip:
@@ -262,9 +322,14 @@ def evaluate_answer_and_generate_next(
         )
     else:
         task_1_instruction = (
-            "Evaluate the candidate's answer strictly. Score out of 100 on multiple dimensions.\n"
-            "Be rigorous. If the answer is vague, generic, extremely short, or lacks evidence, penalize it heavily.\n"
-            "Do NOT give high scores just for participating."
+            "Evaluate the candidate's answer strictly. Score out of 100 on multiple dimensions (clarity, relevance, technicalAccuracy, specificity, communication, evidence, overall).\n"
+            "EVALUATION & FEEDBACK CONSTRAINTS:\n"
+            "- Under the 'communication' dimension specifically: minor filler words and pauses within a normal range should be ignored and NOT penalized — only flag/deduct when filler frequency or pause duration is severe enough to actually impair communication clarity.\n"
+            "- Feedback must be grounded only in the content of the candidate's actual response — do not introduce assumptions about their experience or background not stated in the answer.\n"
+            "- Feedback tone must be constructive and encouraging, appropriate for fresh graduates building interview confidence.\n"
+            "- Well-answered components should not be flagged as issues unnecessarily.\n"
+            "- Feedback length: Explicitly generate constructive observation of 2–4 sentences (not a single line, not a long paragraph).\n"
+            "- If the answer is vague, generic, extremely short, or lacks evidence, score it accurately and provide actionable guidance to improve, while maintaining an encouraging coaching tone."
         )
         task_2_instruction = (
             "If the answer was extremely vague, contradictory, or unsupported, you MUST ask a challenging follow-up question. Do not use the KNOWLEDGE BASE QUESTION in this case.\n"
@@ -302,6 +367,7 @@ def evaluate_answer_and_generate_next(
     {current_answer}
     </candidate_answer>
     {pause_info}
+    {filler_info}
 
     KNOWLEDGE BASE QUESTION FOR NEXT TOPIC:
     "{next_base.get("text")}"
@@ -315,7 +381,7 @@ def evaluate_answer_and_generate_next(
 
     OUTPUT FORMAT (Strict JSON):
     {{
-        "evaluation": {{"overall": 80, "clarity": 85, "relevance": 70, "technicalAccuracy": 90, "specificity": 60, "communication": 75, "evidence": 50, "strengths": ["Clear communication"], "weaknesses": ["Lacked quantifiable evidence"], "feedback": "Internal observation of the candidate's performance on this question."}} if this is NOT a skip request, otherwise null,
+        "evaluation": {{"overall": 80, "clarity": 85, "relevance": 70, "technicalAccuracy": 90, "specificity": 60, "communication": 75, "evidence": 50, "strengths": ["Clear communication"], "weaknesses": ["Lacked quantifiable evidence"], "feedback": "Constructive observation of the candidate's performance on this question (explicitly 2–4 sentences)."}} if this is NOT a skip request, otherwise null,
         "nextQuestion": {{
             "question": "The adapted dataset question OR a follow-up question",
             "questionType": "behavioral | technical | situational | follow-up | closing",
@@ -417,7 +483,7 @@ def generate_final_report(target_role: str, program: str, parsed_resume: dict, h
 
     EVALUATION METRICS TO CALCULATE:
     1. aiHolisticEvaluation (0-100): Evaluate coherence, professionalism, completeness, and overall response quality.
-    2. communicationClarity (0-100): Based on transcript text, evaluate speaking pace, filler word frequency ("um", "uh"), fluency, response length, and pause duration proxies. Penalize heavy filler words and disjointed sentences.
+    2. communicationClarity (0-100): Based on transcript text and measured audio metrics (if available), evaluate fluency, delivery clarity, and speaking pace. Natural occasional fillers (1-3) should NOT be penalized. Only apply a modest deduction if filler frequency or pauses are excessive and genuinely impair clarity. Communication delivery must NOT overpower technical correctness or relevance.
 
     OUTPUT FORMAT (Strict JSON):
     {{

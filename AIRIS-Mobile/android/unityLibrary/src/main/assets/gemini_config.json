@@ -1,0 +1,13 @@
+{
+  "groqApiKey": "",
+  "groqModel": "llama-3.3-70b-versatile",
+  "openRouterApiKey": "",
+  "openRouterModel": "meta-llama/llama-3.3-70b-instruct",
+  "geminiApiKey": "",
+  "geminiModel": "gemini-2.5-flash",
+  "temperature": 0.7,
+  "maxOutputTokens": 1024,
+  "timeoutSeconds": 15.0,
+  "allowFollowUpQuestions": true,
+  "maxFollowUpsPerQuestion": 1
+}

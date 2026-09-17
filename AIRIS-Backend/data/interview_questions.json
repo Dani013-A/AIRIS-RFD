@@ -1,183 +1,142 @@
 [
   {
-    "id": "intro-1",
+    "id": "survey-1",
     "category": "introductory",
     "competency": "communication",
     "tags": [
       "general",
-      "all roles"
+      "all roles",
+      "introductory",
+      "background",
+      "self introduction"
     ],
-    "text": "Tell me about yourself and your journey into this field.",
-    "idealAnswer": "I am a recent graduate with a degree in [Degree] and a strong passion for [Field]. During my studies, I focused on [Key Skill 1] and [Key Skill 2], completing several projects such as [Project Name]. I am eager to apply my academic background and internships to a professional role and continue growing in this industry."
+    "text": "Can you please tell us about yourself.",
+    "idealAnswer": "I am a recent graduate with a degree in my field, where I developed a strong foundation in both core academic principles and practical project work. Throughout my studies, I took the initiative to apply my skills to hands-on projects and collaborative coursework, focusing on solving concrete problems and continuously expanding my capabilities. I am enthusiastic about beginning my professional career, bringing a strong work ethic, adaptability, and an eagerness to contribute meaningfully to the team while continuing to learn and grow."
   },
   {
-    "id": "intro-2",
-    "category": "introductory",
-    "competency": "motivation",
+    "id": "survey-2",
+    "category": "technical",
+    "competency": "academic and technical alignment",
     "tags": [
       "general",
-      "all roles"
+      "all roles",
+      "education",
+      "technical background",
+      "qualifications"
     ],
-    "text": "Why are you interested in this specific role, and how does it align with your long-term career goals?",
-    "idealAnswer": "I am interested in this role because it perfectly aligns with my background in [Field] and my goal to develop expertise in [Specific Area]. I admire the company's commitment to [Company Value/Goal], and I see this position as an opportunity to contribute to meaningful projects while building a long-term career here."
+    "text": "How does your educational background relate to the position you are applying for?",
+    "idealAnswer": "My degree program provided me with specialized coursework, foundational theory, and practical project experience that directly align with the core requirements of this position. Through coursework and laboratory deliverables, I developed competencies in industry-relevant methodologies and modern problem-solving tools. In my capstone and major project work, I worked on end-to-end deliverables that closely reflect the day-to-day responsibilities of this role, giving me a solid practical transition from academic preparation to industry execution."
   },
   {
-    "id": "behav-1",
+    "id": "survey-3",
     "category": "behavioral",
-    "competency": "problem solving",
+    "competency": "motivation and company alignment",
     "tags": [
       "general",
-      "all roles"
+      "all roles",
+      "motivation",
+      "company culture",
+      "career interest"
     ],
-    "text": "Tell me about a time you encountered an unexpected problem in a project. How did you handle it?",
-    "idealAnswer": "In a recent project, we encountered an unexpected issue when [describe problem]. I immediately communicated the issue to the team, analyzed the root cause, and proposed a workaround by [action taken]. We adjusted our timeline, implemented the fix, and successfully delivered the project on time."
+    "text": "Why are you applying for this position and why did you choose our company?",
+    "idealAnswer": "I am applying for this position because it aligns with my long-term career goals and offers the opportunity to contribute my skills to high-impact initiatives. I specifically chose your company because of your track record of excellence, your forward-thinking projects, and your supportive work environment that values continuous professional development. I want to be part of an organization where I can deliver measurable value from day one while expanding my expertise alongside experienced mentors and colleagues."
   },
   {
-    "id": "behav-2",
+    "id": "survey-4",
     "category": "behavioral",
-    "competency": "teamwork",
+    "competency": "self-awareness and growth mindset",
     "tags": [
       "general",
-      "all roles"
+      "all roles",
+      "strengths",
+      "weaknesses",
+      "self improvement"
     ],
-    "text": "Describe a situation where you had a disagreement with a team member. How did you resolve it?",
-    "idealAnswer": "When a team member and I disagreed on the approach for [task], I scheduled a quick meeting to discuss our perspectives. I listened actively to their concerns, explained the reasoning behind my proposal, and we found a compromise that combined the best of both ideas, ensuring the project moved forward smoothly."
+    "text": "What are your strengths, and what is one area you are actively working to improve?",
+    "idealAnswer": "One of my greatest strengths is my analytical problem-solving ability and structured approach to deliverables—when faced with complex tasks, I break them down methodically and follow through with attention to detail. On the other hand, an area I have been actively working to improve is delegating tasks and seeking feedback earlier rather than trying to resolve every challenge independently. I have been practicing clearer check-ins with teammates to ensure collaborative alignment and efficient execution."
   },
   {
-    "id": "behav-3",
+    "id": "survey-5",
     "category": "behavioral",
-    "competency": "time management",
+    "competency": "career planning and goal orientation",
     "tags": [
       "general",
-      "all roles"
+      "all roles",
+      "career goals",
+      "future planning",
+      "professional growth"
     ],
-    "text": "Tell me about a time you had to juggle multiple tight deadlines. How did you prioritize your tasks?",
-    "idealAnswer": "During my final semester, I had to balance multiple major assignments and a part-time internship. I used a task management tool to prioritize my workload based on deadlines and impact. By breaking down large tasks into smaller milestones and communicating my availability clearly, I met all deadlines without compromising quality."
+    "text": "Where do you see yourself in the next three to five years?",
+    "idealAnswer": "My long-term goal is to grow into a senior role where I can contribute more strategically and mentor others. In the first few years, I plan to master my core responsibilities, take ownership of complex projects, and consistently deliver high-quality outcomes for the team. As I expand my technical and domain expertise, I want to take on greater leadership responsibilities, help guide newer team members, and bridge hands-on technical execution with high-level strategic problem solving."
   },
   {
-    "id": "tech-se-1",
-    "category": "technical",
-    "competency": "software architecture",
-    "tags": [
-      "software developer",
-      "software engineer",
-      "full stack"
-    ],
-    "text": "How do you decide between a microservices architecture versus a monolithic architecture for a new web application?",
-    "idealAnswer": "I would evaluate the project's scale, team size, and time-to-market. A monolithic architecture is often best for simple, quick-to-launch applications with small teams. However, if the application requires high scalability, independent deployment of components, and we have the infrastructure to support it, I would choose a microservices architecture."
-  },
-  {
-    "id": "tech-se-2",
-    "category": "technical",
-    "competency": "version control",
-    "tags": [
-      "software developer",
-      "software engineer",
-      "git"
-    ],
-    "text": "Explain your typical Git workflow when working on a new feature in a team setting.",
-    "idealAnswer": "My typical workflow starts with pulling the latest changes from the main branch. I then create a new feature branch, write the code, and make atomic, descriptive commits. Once the feature is complete and tested locally, I push the branch and open a Pull Request, requesting code reviews before merging it into the main branch."
-  },
-  {
-    "id": "tech-se-3",
-    "category": "technical",
-    "competency": "api design",
-    "tags": [
-      "software developer",
-      "backend engineer"
-    ],
-    "text": "What are the core principles of RESTful API design, and how do you handle versioning?",
-    "idealAnswer": "Core principles of REST include statelessness, client-server separation, uniform interface, and resource-based URIs using standard HTTP methods (GET, POST, PUT, DELETE). For versioning, I prefer including the version number in the URL path (e.g., /api/v1/resource) to ensure backward compatibility as the API evolves."
-  },
-  {
-    "id": "tech-da-1",
-    "category": "technical",
-    "competency": "database management",
-    "tags": [
-      "data analyst",
-      "sql",
-      "database"
-    ],
-    "text": "Explain the difference between an INNER JOIN and a LEFT JOIN, and describe a specific scenario where you would use each.",
-    "idealAnswer": "An INNER JOIN returns only the rows that have matching values in both tables, useful when you only want complete records (e.g., customers who have made an order). A LEFT JOIN returns all rows from the left table and the matched rows from the right table, which is useful when you want a list of all customers and any orders they might have made, leaving NULL if they haven't ordered."
-  },
-  {
-    "id": "tech-da-2",
-    "category": "technical",
-    "competency": "data cleaning",
-    "tags": [
-      "data analyst",
-      "data scientist",
-      "python"
-    ],
-    "text": "Walk me through your process for identifying and handling missing or corrupt data in a large dataset.",
-    "idealAnswer": "I start by profiling the data to identify the extent of missing or corrupt values. For missing data, I decide whether to drop the rows (if insignificant), impute them using statistical measures like mean/median, or flag them, depending on the context. For corrupt data, I trace the source, apply data type casting, or use regex to clean and standardize the formats before proceeding with analysis."
-  },
-  {
-    "id": "tech-da-3",
-    "category": "technical",
-    "competency": "data visualization",
-    "tags": [
-      "data analyst",
-      "power bi",
-      "tableau"
-    ],
-    "text": "When building a dashboard for executive stakeholders, how do you decide which metrics to highlight?",
-    "idealAnswer": "I begin by understanding the executives' core business objectives and the KPIs that directly measure success against those goals. I prioritize high-level, actionable metrics and present them using clear, intuitive visualizations like KPIs, line charts for trends, and bar charts for comparisons, avoiding clutter and allowing for drill-down if they need more details."
-  },
-  {
-    "id": "tech-ce-1",
-    "category": "technical",
-    "competency": "civil engineering",
-    "tags": [
-      "civil engineer",
-      "structural engineer"
-    ],
-    "text": "Describe the process you follow for analyzing the load-bearing capacity of a structural beam.",
-    "idealAnswer": "I would start by determining the design loads, including dead, live, and environmental loads. Next, I'd calculate the shear forces and bending moments using structural analysis principles. Finally, I would select a beam material and cross-section, ensuring the maximum stresses and deflections are within the allowable limits defined by the relevant design codes."
-  },
-  {
-    "id": "tech-ce-2",
-    "category": "technical",
-    "competency": "project management",
-    "tags": [
-      "civil engineer",
-      "construction management"
-    ],
-    "text": "How do you ensure compliance with local building codes and safety regulations during a construction project?",
-    "idealAnswer": "I ensure compliance by thoroughly reviewing local building codes and zoning laws during the planning phase and securing all necessary permits. During construction, I conduct regular site inspections, maintain a strict safety protocol (like OSHA standards), and coordinate with designated safety officers and municipal inspectors to verify that all work meets the approved plans."
-  },
-  {
-    "id": "sit-1",
-    "category": "situational",
-    "competency": "adaptability",
+    "id": "survey-6",
+    "category": "behavioral",
+    "competency": "time management and prioritization",
     "tags": [
       "general",
-      "all roles"
+      "all roles",
+      "prioritization",
+      "time management",
+      "deadlines"
     ],
-    "text": "You are halfway through a project and the client completely changes the requirements. What is your immediate response?",
-    "idealAnswer": "I would immediately pause work on the affected areas and schedule a meeting with the client and project stakeholders to clarify the new requirements. I would then assess the impact on the timeline and budget, communicate these changes transparently, and revise the project plan and deliverables to align with the new direction."
+    "text": "How do you prioritize your tasks when you have multiple deadlines approaching?",
+    "idealAnswer": "I follow a structured workflow and use tools like Jira, Trello, or Notion to organize and track my deliverables. When multiple deadlines converge, I evaluate tasks based on urgency, impact, and cross-team dependencies to establish a clear priority queue. I break large objectives into manageable milestones, eliminate non-essential distractions, and communicate proactively with stakeholders if expectations need alignment. This methodical approach ensures that I consistently deliver high-quality results on time without sacrificing accuracy."
   },
   {
-    "id": "sit-2",
-    "category": "situational",
-    "competency": "communication",
+    "id": "survey-7",
+    "category": "behavioral",
+    "competency": "problem solving and adaptability",
     "tags": [
       "general",
-      "all roles"
+      "all roles",
+      "problem solving",
+      "resilience",
+      "adaptability"
     ],
-    "text": "You need to explain a highly complex technical issue to a non-technical stakeholder. How do you approach this?",
-    "idealAnswer": "I approach this by avoiding jargon and using relatable analogies to explain the core concept. I focus on the business impact of the technical issue\u2014how it affects cost, timeline, or users\u2014rather than the technical minutiae, and I pause frequently to check for understanding and answer any questions they might have."
+    "text": "Tell me about a challenge or difficult situation you faced and how you handled it.",
+    "idealAnswer": "I am always eager to learn and embrace change, so when an unexpected bottleneck or technical hurdle arose during a major project, I approached it with an open mindset rather than frustration. I systematically analyzed the root cause, researched potential alternative methodologies, and collaborated with peers and advisors to validate the solution. By pivoting quickly, adjusting our timeline, and maintaining transparent communication, we resolved the issue and delivered the project successfully, reinforcing my commitment to adaptability and resilience."
   },
   {
-    "id": "close-1",
+    "id": "survey-8",
+    "category": "technical",
+    "competency": "value proposition and competitiveness",
+    "tags": [
+      "general",
+      "all roles",
+      "value proposition",
+      "hiring justification",
+      "skills"
+    ],
+    "text": "Why should we hire you over other applicants?",
+    "idealAnswer": "You should hire me because I combine rigorous academic grounding with practical hands-on project experience, a strong work ethic, and a high degree of adaptability. I am deeply committed to doing thorough, dependable work and take personal ownership of the tasks assigned to me. Beyond my technical competencies, I bring strong collaboration skills, a positive attitude, and an eagerness to ramp up quickly so that I can provide tangible value to your team from day one."
+  },
+  {
+    "id": "survey-9",
+    "category": "behavioral",
+    "competency": "teamwork and collaboration",
+    "tags": [
+      "general",
+      "all roles",
+      "teamwork",
+      "collaboration",
+      "leadership"
+    ],
+    "text": "Tell me about a time you worked as part of a team. What was your role?",
+    "idealAnswer": "In a recent capstone team project, I served as a core contributor responsible for coordinating key deliverables and ensuring cross-functional alignment. Throughout the collaboration, I led by example and encouraged open communication and accountability across the team. When differing opinions or workflow bottlenecks arose, I facilitated constructive discussions to find common ground and keep everyone focused on our shared goal. As a result, our team met all milestones on schedule and delivered a polished final product."
+  },
+  {
+    "id": "survey-10",
     "category": "closing",
-    "competency": "professionalism",
+    "competency": "stress management and composure",
     "tags": [
       "general",
-      "all roles"
+      "all roles",
+      "stress management",
+      "emotional intelligence",
+      "closing"
     ],
-    "text": "That concludes the technical portion of our interview. Do you have any questions for me about the role or the company?",
-    "idealAnswer": "Yes, I have a couple of questions. Could you tell me more about the day-to-day responsibilities of this role? And what are the biggest challenges the team is currently facing?"
+    "text": "How do you handle stress or pressure at work or school?",
+    "idealAnswer": "When faced with conflict, tight deadlines, or high pressure, I approach the situation calmly and objectively. I take a moment to deconstruct the pressure points, prioritize the critical next actions, and engage in direct, professional communication with team members to resolve ambiguities. Outside of work, I maintain structured routines and healthy habits that keep my perspective balanced. This discipline enables me to stay composed, focused, and effective even in fast-paced or demanding environments."
   }
 ]

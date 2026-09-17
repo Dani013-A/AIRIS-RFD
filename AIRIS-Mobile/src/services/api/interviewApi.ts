@@ -24,10 +24,11 @@ export interface InterviewAnswerRequest {
   targetRole: string;
   program: string;
   parsedResume: Record<string, any>;
-  history: Array<{ question: string; answer: string; questionType?: string }>;
+  history: Array<{ question: string; answer: string; questionType?: string; benchmarkAnswer?: string }>;
   currentQuestion: string;
   currentAnswer: string;
   currentQuestionType: string;
+  currentBenchmarkAnswer?: string;
   totalQuestions: number;
   pauseMetrics?: PauseMetrics;
 }
