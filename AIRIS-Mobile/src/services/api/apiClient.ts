@@ -96,8 +96,8 @@ export function getApiBaseUrl(): string {
   const devCandidate = staticEnvUrl || expoExtraUrl;
   const trimmedDevUrl = devCandidate ? devCandidate.replace(/\/+$/, "") : "";
 
-  // If explicitly set to a non-localhost remote URL, prioritize it
-  if (trimmedDevUrl && !trimmedDevUrl.includes("localhost") && !trimmedDevUrl.includes("127.0.0.1")) {
+  // If explicitly set, prioritize it
+  if (trimmedDevUrl) {
     return trimmedDevUrl;
   }
 

@@ -34,7 +34,8 @@ export function extractCandidateNameFromResume(resumeText: string): string | und
     .filter((l) => l.length > 0);
 
   for (let i = 0; i < Math.min(lines.length, 10); i++) {
-    const line = lines[i];
+    const rawLine = lines[i];
+    const line = rawLine.replace(/[\u200b\u200c\u200d\ufeff]/g, "").trim();
     // Skip lines with emails, phone numbers, or URLs
     if (line.includes("@") || line.includes("http") || line.includes("www.") || line.includes("github.com") || line.includes("linkedin.com") || /^\+?\d[\d\s\-()]+$/.test(line)) {
       continue;

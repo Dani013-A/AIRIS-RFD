@@ -6,7 +6,13 @@ import { isResumeValidDocument } from "./resumeNormalizer";
  * Returns the authoritative backend base URL using the centralized resolver.
  */
 export function getBackendBaseUrls(): string[] {
-  return [getApiBaseUrl()];
+  const primary = getApiBaseUrl();
+  const urls = [primary];
+  if (typeof __DEV__ !== "undefined" && __DEV__) {
+    if (!urls.includes("http://127.0.0.1:8000")) urls.push("http://127.0.0.1:8000");
+    if (!urls.includes("http://localhost:8000")) urls.push("http://localhost:8000");
+  }
+  return urls;
 }
 
 export interface UploadProgressEvent {

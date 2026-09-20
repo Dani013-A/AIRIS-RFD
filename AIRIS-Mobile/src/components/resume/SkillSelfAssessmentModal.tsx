@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SelfRating, SkillSelfAssessmentMap } from "../../services/resume/selfAssessmentService";
 import { formatCanonicalCompetencyName } from "../../services/resume/selfAssessmentService";
 
@@ -30,6 +31,7 @@ export default function SkillSelfAssessmentModal({
   onSave,
   onSkip,
 }: SkillSelfAssessmentModalProps) {
+  const insets = useSafeAreaInsets();
   const [ratings, setRatings] = useState<SkillSelfAssessmentMap>({});
 
   // Defensive deduplication guard before rendering: ONE CANONICAL COMPETENCY = ONE RATING ITEM
@@ -94,7 +96,10 @@ export default function SkillSelfAssessmentModal({
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View className="flex-1 justify-end bg-black/50">
-        <View className="bg-white rounded-t-3xl max-h-[85%] p-6 shadow-xl border-t border-[#BFD6EA]">
+        <View
+          className="bg-white rounded-t-3xl p-6 shadow-xl border-t border-[#BFD6EA]"
+          style={{ maxHeight: "90%", paddingBottom: Math.max(insets.bottom, 16) + 16 }}
+        >
           {/* Header */}
           <View className="flex-row justify-between items-start mb-3">
             <View className="flex-1 pr-4">

@@ -1,31 +1,39 @@
 import { create } from "zustand";
 import {
   StudentListItem,
-  StudentFullProfile,
   ScoreHistoryEvent,
   StudentActivityEvent,
+  StoredResumeAnalysis,
 } from "../types/user.types";
 import {
   fetchStudentsList,
   fetchStudentDetails,
   toggleStudentAccountState,
   deleteStudentAccount,
+  StudentFilterOptions,
 } from "../services/firebase/userService";
+
+interface ActorInfo {
+  name: string;
+  uid: string;
+  role: string;
+}
 
 interface StudentState {
   students: StudentListItem[];
   selectedStudent: StudentListItem | null;
-  selectedAnalysis: any | null;
+  selectedAnalysis: StoredResumeAnalysis | null;
   selectedResume: any | null;
+  selectedInterview: any | null;
   scoreHistory: ScoreHistoryEvent[];
   activityLogs: StudentActivityEvent[];
   loading: boolean;
   actionLoading: boolean;
   error: string | null;
-  loadStudents: () => Promise<void>;
+  loadStudents: (filters?: StudentFilterOptions, force?: boolean) => Promise<void>;
   loadStudentProfile: (studentId: string) => Promise<void>;
-  toggleAccountStatus: (studentId: string, isDisabled: boolean, adminName: string) => Promise<void>;
-  deleteStudent: (studentId: string, adminName: string) => Promise<void>;
+  toggleAccountStatus: (studentId: string, isDisabled: boolean, actor: ActorInfo) => Promise<void>;
+  deleteStudent: (studentId: string, actor: ActorInfo) => Promise<void>;
   clearSelectedStudent: () => void;
 }
 
@@ -34,19 +42,22 @@ export const useStudentStore = create<StudentState>((set, get) => ({
   selectedStudent: null,
   selectedAnalysis: null,
   selectedResume: null,
+  selectedInterview: null,
   scoreHistory: [],
   activityLogs: [],
   loading: false,
   actionLoading: false,
   error: null,
 
-  loadStudents: async () => {
+  loadStudents: async (filters, force = false) => {
+    if (!force && get().loading) return;
     set({ loading: true, error: null });
     try {
-      const list = await fetchStudentsList();
-      set({ students: list, loading: false });
+      const list = await fetchStudentsList(filters);
+      set({ students: list, loading: false, error: null });
     } catch (err: any) {
-      set({ error: err.message || "Failed to load student profiles.", loading: false });
+      console.error("Failed to load students list from Firestore:", err);
+      set({ error: err.message || "Failed to query Firestore student records.", loading: false });
     }
   },
 
@@ -57,6 +68,7 @@ export const useStudentStore = create<StudentState>((set, get) => ({
       selectedStudent: null,
       selectedAnalysis: null,
       selectedResume: null,
+      selectedInterview: null,
       scoreHistory: [],
       activityLogs: [],
     });
@@ -66,6 +78,7 @@ export const useStudentStore = create<StudentState>((set, get) => ({
         selectedStudent: profile.student,
         selectedAnalysis: profile.latestResumeAnalysis,
         selectedResume: profile.latestResume,
+        selectedInterview: profile.latestInterview,
         scoreHistory: profile.scoreHistory,
         activityLogs: profile.activityLogs,
         loading: false,
@@ -75,13 +88,16 @@ export const useStudentStore = create<StudentState>((set, get) => ({
     }
   },
 
-  toggleAccountStatus: async (studentId, isDisabled, adminName) => {
+  toggleAccountStatus: async (studentId, isDisabled, actor) => {
     set({ actionLoading: true, error: null });
     try {
-      await toggleStudentAccountState(studentId, isDisabled, adminName);
+      await toggleStudentAccountState(studentId, isDisabled, actor);
       set((state) => ({
         students: state.students.map((s) => (s.uid === studentId ? { ...s, isDisabled } : s)),
-        selectedStudent: state.selectedStudent && state.selectedStudent.uid === studentId ? { ...state.selectedStudent, isDisabled } : state.selectedStudent,
+        selectedStudent:
+          state.selectedStudent && state.selectedStudent.uid === studentId
+            ? { ...state.selectedStudent, isDisabled }
+            : state.selectedStudent,
         actionLoading: false,
       }));
     } catch (err: any) {
@@ -90,13 +106,14 @@ export const useStudentStore = create<StudentState>((set, get) => ({
     }
   },
 
-  deleteStudent: async (studentId, adminName) => {
+  deleteStudent: async (studentId, actor) => {
     set({ actionLoading: true, error: null });
     try {
-      await deleteStudentAccount(studentId, adminName);
+      await deleteStudentAccount(studentId, actor);
       set((state) => ({
         students: state.students.filter((s) => s.uid !== studentId),
-        selectedStudent: state.selectedStudent && state.selectedStudent.uid === studentId ? null : state.selectedStudent,
+        selectedStudent:
+          state.selectedStudent && state.selectedStudent.uid === studentId ? null : state.selectedStudent,
         actionLoading: false,
       }));
     } catch (err: any) {
@@ -105,5 +122,13 @@ export const useStudentStore = create<StudentState>((set, get) => ({
     }
   },
 
-  clearSelectedStudent: () => set({ selectedStudent: null, selectedAnalysis: null, selectedResume: null, scoreHistory: [], activityLogs: [] }),
+  clearSelectedStudent: () =>
+    set({
+      selectedStudent: null,
+      selectedAnalysis: null,
+      selectedResume: null,
+      selectedInterview: null,
+      scoreHistory: [],
+      activityLogs: [],
+    }),
 }));

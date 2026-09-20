@@ -214,6 +214,12 @@ export const CANONICAL_SKILL_MAP: Record<string, string> = {
   "r": "R",
   "r programming": "R",
   "spss": "SPSS",
+  "git version control": "Git",
+  "git version control & github workflow": "Git",
+  "git version control & github": "Git",
+  "aws or cloud infrastructure": "AWS",
+  "typescript (es6+)": "TypeScript",
+  "restful api design & integration with express/fastapi": "REST API",
 };
 
 export function isSkillGroundedInText(skillName: string, rawText: string): boolean {
@@ -244,6 +250,12 @@ export function isSkillGroundedInText(skillName: string, rawText: string): boole
   for (const term of searchTerms) {
     const cleanT = term.trim();
     if (!cleanT) continue;
+
+    if (cleanT.toLowerCase() === ".net" || cleanT.toLowerCase() === "net") {
+      const pat = /(?<!asp)(?<!asp\.)(?<!vb)(?<!vb\.)(?:\.net|\bnet)\b/i;
+      if (pat.test(rawNorm)) return true;
+      continue;
+    }
 
     if (/^[a-zA-Z0-9\s]+$/.test(cleanT)) {
       // Purely alphanumeric: enforce word boundaries so e.g. "java" does not match "javascript"
@@ -284,12 +296,23 @@ export function extractTargetCompetenciesForSelfAssessment(
     "";
 
   // 1. Extract raw candidate skills directly detected/extracted from user's submitted resume
-  const allCandidateSkills: string[] = [
+  const rawCandidateSkills: string[] = [
     ...(analysisResult.detectedSkills || []),
     ...((analysisResult.structuredData?.skills || []).map((s: any) => typeof s === "string" ? s : s.name || s.title || "")),
     ...(analysisResult.learningSnapshot?.careerContext?.detectedSkills || []),
     ...(analysisResult.parsedSections?.Skills ? String(analysisResult.parsedSections.Skills).split(/[,;\n•|]+/) : []),
   ].filter(Boolean);
+
+  const allCandidateSkills: string[] = [];
+  for (const raw of rawCandidateSkills) {
+    let clean = raw.trim();
+    if (clean.includes(":")) {
+      clean = clean.split(":").pop()?.trim() || "";
+    }
+    if (clean && clean.length >= 2) {
+      allCandidateSkills.push(clean);
+    }
+  }
 
   // Gauge target-role relevance if benchmark adjustments exist
   const adjustments =
@@ -478,11 +501,25 @@ export function formatCanonicalCompetencyName(rawName: string): string {
   if (!rawName) return "";
   let trimmed = rawName.trim();
 
-  // Strip section headers: e.g. "Languages: Python", "Technical Skills: React"
-  trimmed = trimmed.replace(
-    /^(?:languages?|skills?|technical skills?|technologies|tools?|frameworks?|proficiencies|tech stack)\s*:\s*/i,
-    ""
-  );
+  // Strip any section or category headers: e.g. "Languages: Python", "Frameworks & Tools: React"
+  if (trimmed.includes(":")) {
+    trimmed = trimmed.split(":").pop()?.trim() || "";
+  }
+
+  const GENERIC_CATEGORY_NAMES = new Set([
+    "frameworks", "languages", "programming languages", "tools", "developer tools",
+    "databases", "cloud", "databases & cloud", "databases/cloud", "ai/ml", "ai & ml",
+    "aiml", "core competencies", "technologies", "tech stack", "frameworks & tools",
+    "libraries", "skills", "technical skills", "methodologies", "platforms"
+  ]);
+  if (GENERIC_CATEGORY_NAMES.has(trimmed.toLowerCase())) {
+    return "";
+  }
+
+  // Early lookup in canonical map (preserves compound terms with parentheses like "TypeScript (ES6+)")
+  if (CANONICAL_SKILL_MAP[trimmed.toLowerCase()]) {
+    return CANONICAL_SKILL_MAP[trimmed.toLowerCase()];
+  }
 
   // Strip leading action verbs or experience phrases: e.g. "Proficient in Python", "Experience with Node.js"
   trimmed = trimmed.replace(
@@ -610,6 +647,10 @@ export function evaluatePersonalizedCompetency(params: {
   // Case 1 & Case 2 & Case 5: Self-Rated STRONG
   if (selfRating === "STRONG") {
     if (resumeEvidenceStatus === "STRONG_MATCH" || resumeEvidenceStatus === "PARTIAL_MATCH") {
+      const desc =
+        resumeEvidenceStatus === "STRONG_MATCH"
+          ? `Your resume shows direct project or experience evidence for ${competency}, and you indicated high confidence.`
+          : `Your resume provides supporting evidence for ${competency}, and you indicated high confidence.`;
       return {
         competency,
         targetRelevance,
@@ -618,7 +659,7 @@ export function evaluatePersonalizedCompetency(params: {
         selfRating,
         personalizedStatus: "STRONG_POINT",
         headline: "STRONG POINT",
-        description: "Your resume clearly demonstrates this competency and you feel confident using it.",
+        description: desc,
         actionRecommendation: "Preserve and strengthen your evidence with specific, measurable outcomes where possible.",
         actionType: "DOCUMENT_EXISTING",
         matchedChunk,

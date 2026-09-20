@@ -34,8 +34,13 @@ def _is_header_line(line: str) -> bool:
     has_date_range = bool(re.search(r'\b(19|20)\d{2}\b', stripped))
     if has_dash_separator or (has_date_range and len(stripped) < 80):
         return True
-    # Short uppercase or titlecase header line (< 45 chars without ending punctuation)
-    if len(stripped) < 45 and not stripped.endswith((".", ";", ",")):
+    # Project / entry titles like "ProjectName: Subtitle" or "ProjectName (Context)"
+    if ":" in stripped and not stripped.endswith((".", ";", ",")):
+        prefix = stripped.split(":", 1)[0].strip()
+        if len(prefix) <= 35 and not any(p in prefix.lower() for p in ["http", "https", "note"]):
+            return True
+    # Short uppercase or titlecase header line (< 65 chars without ending punctuation)
+    if len(stripped) < 65 and not stripped.endswith((".", ";", ",")):
         if stripped.isupper() or stripped.istitle():
             return True
     return False

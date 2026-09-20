@@ -502,6 +502,12 @@ CANONICAL_SKILL_MAP: Dict[str, str] = {
     "autodesk revit": "Revit",
     "sketchup": "SketchUp",
     "spss": "SPSS",
+    "git version control": "Git",
+    "git version control & github workflow": "Git",
+    "git version control & github": "Git",
+    "aws or cloud infrastructure": "AWS",
+    "typescript (es6+)": "TypeScript",
+    "restful api design & integration with express/fastapi": "REST API",
 }
 
 CANONICAL_SKILL_ALIASES = {k: [k] for k in CANONICAL_SKILL_MAP}
@@ -554,7 +560,7 @@ def is_skill_grounded_in_text(skill_name: str, raw_text: str) -> bool:
             if re.search(pat, raw_norm, re.IGNORECASE):
                 return True
         elif clean_t in (".net", "net"):
-            pat = r'(?<!asp)(?<!asp\.)(?:\.net|\bnet)\b'
+            pat = r'(?<!asp)(?<!asp\.)(?<!vb)(?<!vb\.)(?:\.net|\bnet)\b'
             if re.search(pat, raw_norm, re.IGNORECASE):
                 return True
         elif clean_t in ("dotnet", "dot net"):
@@ -596,13 +602,25 @@ def _format_skill_display_name(skill_str: str) -> str:
         return s
     return " ".join(word.capitalize() for word in s.split())
 
+GENERIC_CATEGORY_LABELS = {
+    "frameworks", "languages", "programming languages", "tools", "developer tools",
+    "databases", "cloud", "databases cloud", "databases/cloud", "ai/ml", "ai ml", "aiml",
+    "core competencies", "technologies", "tech stack", "frameworks tools", "libraries",
+    "skills", "technical skills", "methodologies", "platforms"
+}
+
 def _sanitize_and_split_candidate_tokens(raw_token: str, known_catalog_lower: set = None) -> List[str]:
     if not raw_token:
         return []
+    # Strip any leading category header: e.g. "Frameworks & Tools: React" -> "React"
+    raw_token = re.sub(r'^[A-Za-z0-9\s/&\-\(\)]+:\s*', '', raw_token.strip())
     # Strip non-alphanumeric punctuation from borders, preserving terminal +, # for C++, C#
     t = re.sub(r'^[^\w#\+]+|[^\w#\+\.]+$', '', raw_token.strip())
     # Strip trailing periods
     t = re.sub(r'\.+$', '', t).strip()
+
+    if t.lower() in GENERIC_CATEGORY_LABELS:
+        return []
 
     # Strip leading action verbs, conjunctions, prepositions
     prefix_pattern = r'^(?:(?:and|or|with|using|via|in|for|built\s+(?:with|using)|developed\s+(?:with|using)|implemented\s+(?:using|with)|created\s+(?:with|using)|integrated|automated|deployed|managed|designed|engineered|utilized|leveraged|proficient\s+in|skilled\s+in|experience\s+with|experienced\s+(?:with|in)|hands-on\s+with)\s+)+'

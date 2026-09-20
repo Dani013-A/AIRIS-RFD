@@ -164,9 +164,14 @@ def evaluate_semantic_alignment(
 
             if has_direct:
                 sim = min(1.0, raw_sim + 0.25)
+                # Prioritize demonstrated, contextual project/work evidence over raw comma-separated skill lists
+                if chunk.section in ("Projects", "WorkExperience", "Internships"):
+                    sim = min(1.0, sim + 0.12)
                 grounding_type = "DIRECT"
             elif has_transferable:
                 sim = min(1.0, raw_sim + 0.15)
+                if chunk.section in ("Projects", "WorkExperience", "Internships"):
+                    sim = min(1.0, sim + 0.08)
                 grounding_type = "TRANSFERABLE"
             else:
                 sim = raw_sim

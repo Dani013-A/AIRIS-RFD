@@ -73,6 +73,75 @@ export interface ScoreComponent {
   rawScore: number;
   weight: number;
   weightedScore: number;
+  label?: string;
+  status?: string;
+}
+
+export interface ATSDimensionBreakdown {
+  rawScore: number;
+  weight: number;
+  weightedScore: number;
+  label: string;
+  status: "OptimalParseability" | "GoodParseability" | "ModerateParseability" | "LowParseability" | string;
+}
+
+export interface ATSBreakdown {
+  sectionStructure: ATSDimensionBreakdown;
+  contactRecognition: ATSDimensionBreakdown;
+  skillsFormatting: ATSDimensionBreakdown;
+  experienceStructure: ATSDimensionBreakdown;
+  educationStructure: ATSDimensionBreakdown;
+  dateRecognition: ATSDimensionBreakdown;
+  [key: string]: ATSDimensionBreakdown | any;
+}
+
+export interface AlignmentComponentBreakdown {
+  rawScore: number;
+  weight: number;
+  weightedScore: number;
+  label: string;
+}
+
+export interface AlignmentBreakdown {
+  skillsMatch: AlignmentComponentBreakdown;
+  experienceProjects: AlignmentComponentBreakdown;
+  educationRelevance: AlignmentComponentBreakdown;
+  certifications: AlignmentComponentBreakdown;
+  [key: string]: AlignmentComponentBreakdown | any;
+}
+
+export interface AlignmentCompetencyItem {
+  name: string;
+  status: "DEMONSTRATED" | "RELATED" | "NOT_EVIDENCED";
+  icon: "✓" | "~" | "○" | string;
+  isRequired: boolean;
+}
+
+export interface AlignmentEvidenceSummary {
+  strongestEvidence: string[];
+  areasWithLimitedEvidence: string[];
+}
+
+export interface AlignmentScorePayload {
+  overallScore: number;
+  targetPosition: string;
+  level: string;
+  levelLabel?: string;
+  breakdown: AlignmentBreakdown;
+  competencies: AlignmentCompetencyItem[];
+  evidenceSummary: AlignmentEvidenceSummary;
+  alignmentSummary: string;
+  priorityGaps?: string[];
+}
+
+export interface ResumeScorePayload {
+  overallScore: number;
+  level: string;
+  atsContribution: number;
+  alignmentContribution: number;
+  formula: string;
+  total?: number;
+  breakdown?: any;
 }
 
 export interface ResumeScoreBreakdown {
@@ -108,7 +177,9 @@ export interface ATSScoreAdjustment {
 
 export interface ATSScore {
   overallScore: number;
-  level: ATSCompatibilityLevel;
+  level: ATSCompatibilityLevel | string;
+  levelLabel?: string;
+  breakdown?: ATSBreakdown | any;
   resumeScore?: {
     total: number;
     breakdown: ResumeScoreBreakdown;
@@ -124,7 +195,6 @@ export interface ATSScore {
     alignmentSummary?: string;
   };
   // Fallback properties for older cached reports
-  breakdown?: any;
   adjustments?: ATSScoreAdjustment[];
 }
 
@@ -232,6 +302,10 @@ export interface ResumeAnalysisResult {
   detectedSections: DetectedSection[];
   missingSections: MissingSection[];
   atsScore: ATSScore;
+  resumeScore?: ResumeScorePayload;
+  alignmentScore?: AlignmentScorePayload;
+  overallScore?: number;
+  scoringModelVersion?: string;
   suggestions: ResumeSuggestion[];
   learningSnapshot?: LearningSnapshot;
   aiRecommendedResources?: any[];

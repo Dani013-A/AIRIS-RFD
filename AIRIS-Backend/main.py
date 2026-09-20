@@ -92,6 +92,54 @@ from rate_limiter import (
     PER_IP_PUBLIC_REQUEST_LIMIT,
 )
 
+_public_certs_cache = {}
+_certs_expiry = 0
+
+def verify_firebase_jwt_with_public_keys(token: str, project_id: str = "airis-development") -> dict:
+    global _public_certs_cache, _certs_expiry
+    import jwt
+    import requests
+    import time
+
+    now = time.time()
+    if not _public_certs_cache or now > _certs_expiry:
+        res = requests.get(
+            "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com",
+            timeout=5
+        )
+        if res.status_code == 200:
+            _public_certs_cache = res.json()
+            cache_control = res.headers.get("Cache-Control", "")
+            max_age = 3600
+            for part in cache_control.split(","):
+                if "max-age=" in part:
+                    try:
+                        max_age = int(part.split("max-age=")[1].strip())
+                    except Exception:
+                        pass
+            _certs_expiry = now + max_age
+        else:
+            raise ValueError(f"Unable to fetch Google public certs: HTTP {res.status_code}")
+
+    unverified_header = jwt.get_unverified_header(token)
+    kid = unverified_header.get("kid")
+    if not kid or kid not in _public_certs_cache:
+        raise ValueError("Invalid token: unknown or missing key ID (kid)")
+
+    from cryptography.x509 import load_pem_x509_certificate
+    cert_str = _public_certs_cache[kid]
+    public_key = load_pem_x509_certificate(cert_str.encode("utf-8")).public_key()
+    decoded = jwt.decode(
+        token,
+        public_key,
+        algorithms=["RS256"],
+        audience=project_id,
+        issuer=f"https://securetoken.google.com/{project_id}"
+    )
+    if "user_id" in decoded and "uid" not in decoded:
+        decoded["uid"] = decoded["user_id"]
+    return decoded
+
 def get_authenticated_user(authorization: Optional[str] = Header(None)) -> str:
     """
     Cryptographically verifies Firebase ID token from Authorization header.
@@ -111,7 +159,12 @@ def get_authenticated_user(authorization: Optional[str] = Header(None)) -> str:
             detail="Authentication required. Missing Bearer token."
         )
     try:
-        decoded_token = auth.verify_id_token(token, clock_skew_seconds=10)
+        try:
+            decoded_token = auth.verify_id_token(token, clock_skew_seconds=10)
+        except Exception:
+            project_id = os.getenv("FIREBASE_PROJECT_ID", "airis-development")
+            decoded_token = verify_firebase_jwt_with_public_keys(token, project_id)
+
         uid = decoded_token.get("uid")
         if not uid:
             raise HTTPException(status_code=401, detail="Invalid token payload: missing UID.")
@@ -147,9 +200,10 @@ def get_authenticated_user(authorization: Optional[str] = Header(None)) -> str:
         return str(uid)
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
+        print(f"[Auth Error] {type(e).__name__}: {e}", flush=True)
         # Never expose raw Firebase internal errors or stack traces to callers
-        raise HTTPException(status_code=401, detail="Invalid or expired authentication token.")
+        raise HTTPException(status_code=401, detail=f"Invalid or expired authentication token: {type(e).__name__}: {e}")
 
 def assert_user_authorization(auth_uid: str, requested_user_id: Optional[str] = None):
     """
@@ -286,8 +340,11 @@ async def analyze_resume(request: Request, auth_uid: str = Depends(get_authentic
                 "valid": True,
                 "message": "Resume processed successfully.",
                 "analysisId": analysis_id,
-                "parsedSections": parsed_sections,
+                "scoringModelVersion": "3.0.0-canonical",
+                "resumeScore": enhanced_result["resumeScore"],
                 "atsScore": enhanced_result["atsScore"],
+                "alignmentScore": enhanced_result["alignmentScore"],
+                "overallScore": enhanced_result["overallScore"],
                 "detectedSkills": enhanced_result.get("detectedSkills", []),
                 "suggestions": enhanced_result["suggestions"],
                 "detectedSections": enhanced_result.get("detectedSections", []),
@@ -297,7 +354,7 @@ async def analyze_resume(request: Request, auth_uid: str = Depends(get_authentic
                 "learningSnapshot": enhanced_result.get("learningSnapshot"),
                 "isAnalysisComplete": True,
                 "analyzedAt": enhanced_result.get("analyzedAt", ""),
-                "analysisVersion": "1.1.0-sbert",
+                "analysisVersion": "3.0.0-canonical",
             }
 
             return response
@@ -430,7 +487,11 @@ async def upload_resume(
                 "analysisId": analysis_id,
                 "rawText": raw_text,
                 "parsedSections": parsed_sections,
+                "scoringModelVersion": "3.0.0-canonical",
+                "resumeScore": enhanced_result["resumeScore"],
                 "atsScore": enhanced_result["atsScore"],
+                "alignmentScore": enhanced_result["alignmentScore"],
+                "overallScore": enhanced_result["overallScore"],
                 "detectedSkills": enhanced_result.get("detectedSkills", []),
                 "suggestions": enhanced_result["suggestions"],
                 "detectedSections": enhanced_result.get("detectedSections", []),
@@ -439,7 +500,7 @@ async def upload_resume(
                 "learningSnapshot": enhanced_result.get("learningSnapshot"),
                 "isAnalysisComplete": True,
                 "analyzedAt": enhanced_result.get("analyzedAt", ""),
-                "analysisVersion": "1.1.0-sbert",
+                "analysisVersion": "3.0.0-canonical",
             }
         except HTTPException:
             raise

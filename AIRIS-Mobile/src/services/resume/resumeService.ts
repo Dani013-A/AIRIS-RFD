@@ -87,14 +87,17 @@ export async function saveResumeAndAnalysisTransaction(
       latestAnalysisId: analysisDocRef.id,
     };
 
+    const modelVersion = analysisResult.scoringModelVersion || "3.0.0-canonical";
+
     const analysisDoc = {
       analysisId: analysisDocRef.id,
       userId,
       resumeId: resumeDocRef.id,
       targetPosition: userData.targetPosition || "",
-      scoringModelVersion: "1.0.0",
+      scoringModelVersion: modelVersion,
       result: cleanUndefined({
         ...analysisResult,
+        scoringModelVersion: modelVersion,
         recommendations,
       }),
       createdAt: serverTimestamp() as any,
@@ -196,14 +199,17 @@ export async function saveRetargetedAnalysisTransaction(
       targetPosition
     );
 
+    const modelVersion = analysisResult.scoringModelVersion || "3.0.0-canonical";
+
     const analysisDoc = {
       analysisId: analysisDocRef.id,
       userId,
       resumeId,
       targetPosition,
-      scoringModelVersion: "1.0.0",
+      scoringModelVersion: modelVersion,
       result: cleanUndefined({
         ...analysisResult,
+        scoringModelVersion: modelVersion,
         recommendations,
       }),
       createdAt: serverTimestamp() as any,

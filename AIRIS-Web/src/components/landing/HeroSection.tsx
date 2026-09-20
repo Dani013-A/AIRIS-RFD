@@ -84,7 +84,7 @@ export function HeroSection() {
               <div className="bg-white rounded-3xl border border-[#DCE6EE] p-3 shadow-xl overflow-hidden">
                 <div className="relative rounded-2xl overflow-hidden bg-[#1E3E6B]/5 aspect-[4/5] flex items-center justify-center">
                   <img
-                    src="/airis-app-new.png"
+                    src="/airis-logo-final.png"
                     alt="AIRIS Mobile Application Interface Preview"
                     className="w-full h-full object-contain p-2"
                   />

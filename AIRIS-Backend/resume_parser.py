@@ -26,8 +26,10 @@ SECTION_ALIASES = {
 
 SKILL_SUBCATEGORY_PREFIXES = [
     "programming languages", "languages", "frameworks", "libraries", "frameworks & libraries",
-    "databases", "databases & cloud", "tools", "developer tools", "tools & platforms",
-    "devops", "cloud", "platforms", "technologies", "methodologies", "core competencies"
+    "frameworks & tools", "frameworks/tools", "databases", "databases & cloud", "databases/cloud",
+    "cloud", "tools", "developer tools", "tools & platforms", "tools & technologies",
+    "ai/ml", "ai & ml", "ai", "ml", "aiml", "artificial intelligence", "machine learning",
+    "devops", "platforms", "technologies", "methodologies", "core competencies"
 ]
 
 def _normalize_heading(text: str) -> str:
@@ -51,14 +53,19 @@ def _is_probable_heading(line: str) -> bool:
     return False
 
 def _detect_section_heading(line: str, current_key: str = None) -> str:
-    stripped = line.strip()
-    header_part = stripped.split(":", 1)[0].strip() if ":" in stripped else stripped
+    stripped = line.replace('\u200b', '').replace('\ufeff', '').strip()
+    has_colon = ":" in stripped
+    header_part = stripped.split(":", 1)[0].strip() if has_colon else stripped
+    body_part = stripped.split(":", 1)[1].strip() if has_colon else ""
     header_lower = header_part.lower()
 
-    # If already inside Skills section, subcategories like "Languages:" or "Frameworks:" stay in Skills
-    if current_key == "Skills" and ":" in stripped:
+    # If already inside Skills section, subcategories like "Languages:", "Frameworks:", "AI/ML:" stay in Skills
+    if current_key == "Skills":
         clean_sub = re.sub(r'[^a-z0-9\s\&]', '', header_lower).strip()
         if any(clean_sub == sub or clean_sub.startswith(sub) for sub in SKILL_SUBCATEGORY_PREFIXES):
+            return "Skills"
+        clean_sub_slash = re.sub(r'[^a-z0-9\s\&\/]', '', header_lower).strip()
+        if any(clean_sub_slash == sub or clean_sub_slash.startswith(sub) for sub in SKILL_SUBCATEGORY_PREFIXES):
             return "Skills"
 
     norm = _normalize_heading(header_part)
@@ -68,6 +75,14 @@ def _detect_section_heading(line: str, current_key: str = None) -> str:
     full_norm = _normalize_heading(stripped)
     if full_norm in NORMALIZED_ALIASES:
         return NORMALIZED_ALIASES[full_norm]
+
+    # If there is content after the colon, this is an entry item, NOT a top-level section heading!
+    if has_colon and len(body_part) > 0:
+        return None
+
+    # If already inside experience, projects, or education, do not let item titles create Custom_ sections!
+    if current_key in ("Projects", "WorkExperience", "Internships", "Education"):
+        return None
 
     if _is_probable_heading(header_part):
         for alias_norm, section in NORMALIZED_ALIASES.items():
@@ -82,6 +97,7 @@ def parse_resume(text: str) -> Dict[str, str]:
     sections: Dict[str, List[str]] = {}
     current_key = None
 
+    text = text.replace('\u200b', '').replace('\ufeff', '')
     lines = text.splitlines()
     for i, raw_line in enumerate(lines):
         line = raw_line.strip()
@@ -101,7 +117,7 @@ def parse_resume(text: str) -> Dict[str, str]:
 
         if heading:
             # If subcategory detected while already in Skills, treat line as Skills content
-            if heading == "Skills" and current_key == "Skills" and ":" in line:
+            if heading == "Skills" and current_key == "Skills":
                 sections.setdefault("Skills", []).append(line)
                 continue
 

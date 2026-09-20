@@ -72,7 +72,7 @@ const TRUSTED_DOMAINS = [
 export function validateAiRecommendationCandidate(
   candidate: Partial<LearningResource>,
   context: {
-    targetGaps: string[];
+    targetGaps: Array<string | { skill?: string; name?: string }>;
     targetPosition: string;
     existingCatalog: LearningResource[];
     rawResumeText?: string;
@@ -158,10 +158,19 @@ export function validateAiRecommendationCandidate(
   }
 
   // Stage 10: Competency & Skill Gap Grounding (Gap-First Condition)
-  const candidateSkills = (candidate.skills || []).map((s) => s.toLowerCase().trim());
+  const candidateSkills = (candidate.skills || [])
+    .map((s: any) => (typeof s === "string" ? s.toLowerCase().trim() : String(s?.name || "").toLowerCase().trim()))
+    .filter(Boolean);
   const candidateTitleLower = title.toLowerCase();
   const candidateDescLower = description.toLowerCase();
-  const targetGapsLower = (context.targetGaps || []).map((g) => g.toLowerCase().trim());
+  const targetGapsLower = (context.targetGaps || [])
+    .map((g: any) => {
+      if (typeof g === "string") return g.toLowerCase().trim();
+      if (g && typeof g.skill === "string") return g.skill.toLowerCase().trim();
+      if (g && typeof g.name === "string") return g.name.toLowerCase().trim();
+      return "";
+    })
+    .filter((g) => g.length > 0);
   const targetPosLower = (context.targetPosition || "").toLowerCase().trim();
 
   const matchesGap = targetGapsLower.some((gap) =>
@@ -243,7 +252,7 @@ export function validateAiRecommendationCandidate(
 export function filterAndVerifyAiCandidates(
   candidates: Array<Partial<LearningResource>>,
   context: {
-    targetGaps: string[];
+    targetGaps: Array<string | { skill?: string; name?: string }>;
     targetPosition: string;
     existingCatalog: LearningResource[];
     rawResumeText?: string;

@@ -118,7 +118,11 @@ export default function HistoricalResumeViewScreen() {
 
         if (loadedAnalysisDoc) {
           requestedResumeId = loadedAnalysisDoc.resumeId || requestedResumeId;
-          setAnalysisResult(loadedAnalysisDoc.result || null);
+          const res = loadedAnalysisDoc.result || null;
+          if (res && !res.scoringModelVersion && loadedAnalysisDoc.scoringModelVersion) {
+            res.scoringModelVersion = loadedAnalysisDoc.scoringModelVersion;
+          }
+          setAnalysisResult(res);
           setTargetPosition(
             loadedAnalysisDoc.targetPosition || params.targetPosition || ""
           );
@@ -155,7 +159,11 @@ export default function HistoricalResumeViewScreen() {
               loadedResumeDoc.latestAnalysisId
             );
             if (loadedAnalysisDoc) {
-              setAnalysisResult(loadedAnalysisDoc.result || null);
+              const res = loadedAnalysisDoc.result || null;
+              if (res && !res.scoringModelVersion && loadedAnalysisDoc.scoringModelVersion) {
+                res.scoringModelVersion = loadedAnalysisDoc.scoringModelVersion;
+              }
+              setAnalysisResult(res);
               setTargetPosition(
                 loadedAnalysisDoc.targetPosition || params.targetPosition || ""
               );
@@ -256,6 +264,14 @@ export default function HistoricalResumeViewScreen() {
   const overallScore = analysisResult?.atsScore?.overallScore;
   const intrinsicScore = analysisResult?.atsScore?.breakdown?.resumeQualityScore;
 
+  const isCanonicalV3 = Boolean(
+    analysisResult?.scoringModelVersion === "3.0.0-canonical" ||
+    (analysisResult?.resumeScore && analysisResult?.alignmentScore)
+  );
+  const displayResumeScore = analysisResult?.resumeScore?.overallScore ?? overallScore;
+  const atsScoreVal = analysisResult?.atsScore?.overallScore ?? overallScore;
+  const alignScoreVal = analysisResult?.alignmentScore?.overallScore;
+
   return (
     <SafeAreaView className="flex-1 bg-[#F4F8FB] px-6" edges={["top", "left", "right"]}>
       {/* HEADER */}
@@ -277,7 +293,7 @@ export default function HistoricalResumeViewScreen() {
         <View className="items-center">
           <Text className="text-lg font-extrabold text-[#1F3A5F]">Resume Details</Text>
           <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-wider">
-            Historical Activity Record
+            {isCanonicalV3 ? "Canonical Activity Record" : "Historical Legacy Record"}
           </Text>
         </View>
 
@@ -317,6 +333,16 @@ export default function HistoricalResumeViewScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 100 }}
         >
+          {!isCanonicalV3 && (
+            <View className="mb-4 p-3 bg-[#FEF5F1] rounded-2xl border border-[#F4A47A] flex-row items-center">
+              <Ionicons name="time-outline" size={18} color="#CA5D25" className="mr-2" />
+              <Text className="text-[11px] text-[#4F6B82] flex-1 leading-4">
+                <Text className="font-bold text-[#CA5D25]">Historical Record: </Text>
+                This resume was analyzed under a legacy model. Re-upload or re-analyze to view canonical 6-dimension ATS and 4-component Role Alignment breakdowns.
+              </Text>
+            </View>
+          )}
+
           {/* HERO SUMMARY CARD */}
           <View
             className="rounded-3xl bg-white p-6 border border-[#BFD6EA] mb-5"
@@ -337,15 +363,20 @@ export default function HistoricalResumeViewScreen() {
                 </View>
               </View>
 
-              {typeof overallScore === "number" && (
+              {typeof displayResumeScore === "number" && (
                 <View className="items-end">
                   <View className="bg-[#FEF5F1] border border-[#F4A47A] px-3 py-1.5 rounded-2xl items-center">
                     <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-wider">
-                      ATS Score
+                      {isCanonicalV3 ? "Resume Score" : "ATS Score"}
                     </Text>
-                    <Text className="text-xl font-black text-[#1F3A5F]">{overallScore}</Text>
+                    <Text className="text-xl font-black text-[#1F3A5F]">{displayResumeScore}</Text>
                   </View>
-                  {typeof intrinsicScore === "number" && (
+                  {isCanonicalV3 && typeof alignScoreVal === "number" && (
+                    <Text className="text-[10px] font-semibold text-[#8B95A5] mt-1">
+                      ATS: {atsScoreVal} · Alignment: {alignScoreVal}
+                    </Text>
+                  )}
+                  {!isCanonicalV3 && typeof intrinsicScore === "number" && (
                     <Text className="text-[10px] font-semibold text-[#8B95A5] mt-1">
                       Intrinsic: {intrinsicScore}/100
                     </Text>

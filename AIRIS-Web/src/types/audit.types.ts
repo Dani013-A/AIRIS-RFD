@@ -1,15 +1,26 @@
+export type AuditAction =
+  | "AdminLogin"
+  | "AdminLogout"
+  | "UserBlocked"
+  | "UserUnblocked"
+  | "UserDeleted"
+  | "StudentUpdated"
+  | "ReportsGenerated"
+  | "StudentProfileViewed"
+  | "LearningMaterialChanges"
+  | "AuthenticationEvents";
+
+export type AuditResult = "SUCCESS" | "FAILURE";
+
 export interface AuditLogEntry {
   id: string;
-  action:
-    | "AdminLogin"
-    | "UserLogin"
-    | "UserDeleted"
-    | "StudentUpdated"
-    | "ReportsGenerated"
-    | "LearningMaterialChanges"
-    | "AuthenticationEvents";
+  actor: string;
+  actorId: string;
+  role: string;
+  action: AuditAction;
+  target: string;
+  timestamp: string;
+  result: AuditResult;
   details: string;
-  performedBy: string;
   ipAddress?: string;
-  timestamp: any;
 }

@@ -4,7 +4,7 @@ import unicodedata
 from typing import Dict, List, Any, Optional
 from evidence_chunker import chunk_resume_evidence, EvidenceChunk
 from output_validator import validate_ai_response, AuditedFinding
-from deterministic_scorer import calculate_official_ats_score
+from deterministic_scorer import calculate_official_ats_score, calculate_canonical_resume_score
 from sbert_matcher import evaluate_semantic_alignment
 
 from ai_service import generate_text_with_fallback, _extract_json
@@ -241,19 +241,29 @@ def validate_and_enhance_analysis(
         parsed_sections=parsed_sections
     )
 
-    # 5. Calculate Authoritative ATS Score via Pure Python Math
-    ats_score_payload = calculate_official_ats_score(
-        audited_findings=audited_findings,
+    # 5. Calculate Authoritative Canonical Resume Score (ATS 40% + Alignment 60%)
+    edu_benchmarks = sbert_results.get("educationBenchmarks", [])
+    cert_benchmarks = sbert_results.get("certificationBenchmarks", [])
+
+    canonical_score_result = calculate_canonical_resume_score(
         evidence_chunks=evidence_chunks,
+        parsed_sections=parsed_sections,
+        detected_skills=authoritative_skills,
         target_position=target_position,
         required_competencies=req_skills,
         recommended_competencies=rec_skills,
+        education_benchmarks=edu_benchmarks,
+        certification_benchmarks=cert_benchmarks,
+        audited_findings=audited_findings,
         sbert_edu_sim_score=edu_sim_score,
-        audit_status_metadata="VERIFIED",
         role_profile_metadata=role_profile_meta,
-        detected_skills=authoritative_skills,
-        parsed_sections=parsed_sections
+        audit_status_metadata="VERIFIED"
     )
+
+    ats_score_payload = canonical_score_result["atsScore"]
+    resume_score_payload = canonical_score_result["resumeScore"]
+    alignment_score_payload = canonical_score_result["alignmentScore"]
+    overall_score = canonical_score_result["overallScore"]
 
     # Populate adjustments for Role Relevance Diagnostic
     adjustments = []
@@ -392,7 +402,11 @@ def validate_and_enhance_analysis(
         learning_snapshot["aiRecommendedResources"] = ai_recommended_resources
 
     return {
+        "scoringModelVersion": "3.0.0-canonical",
+        "resumeScore": resume_score_payload,
         "atsScore": ats_score_payload,
+        "alignmentScore": alignment_score_payload,
+        "overallScore": overall_score,
         "detectedSkills": authoritative_skills,
         "detectedSections": detected_sections_list,
         "missingSections": missing_sections_list,
@@ -403,7 +417,7 @@ def validate_and_enhance_analysis(
         "learningSnapshot": learning_snapshot,
         "isAnalysisComplete": True,
         "analyzedAt": analyzed_at,
-        "analysisVersion": "2.0.0-sbert-deterministic"
+        "analysisVersion": "3.0.0-canonical"
     }
 
 HONORIFICS_AND_SUFFIXES = {

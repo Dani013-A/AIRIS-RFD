@@ -96,6 +96,9 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
         if (analysisDoc) {
           analysisResult = analysisDoc.result;
           if (analysisResult) {
+            if (!analysisResult.scoringModelVersion && (analysisDoc as any).scoringModelVersion) {
+              analysisResult.scoringModelVersion = (analysisDoc as any).scoringModelVersion;
+            }
             if (!analysisResult.detectedSections || analysisResult.detectedSections.length === 0) {
               const parsed = parseResumeSections(resume.rawText || "");
               analysisResult.detectedSections = detectResumeSections(parsed);
@@ -303,7 +306,7 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
         await saveUserActivity(userId, analysisId, {
           title: `Re-targeted resume for ${newTargetPosition}`,
           type: "Resume Analysis",
-          score: analysisResult.atsScore.overallScore,
+          score: analysisResult.resumeScore?.overallScore ?? analysisResult.atsScore.overallScore,
           resumeId: activeResume.resumeId,
           analysisId: analysisId,
           targetPosition: newTargetPosition,
@@ -324,9 +327,9 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
           activeResume.fileType,
           activeResume.rawText,
           activeResume.resumeId,
+          analysisResult.resumeScore?.overallScore ?? analysisResult.atsScore.overallScore,
           analysisResult.atsScore.overallScore,
-          analysisResult.atsScore.breakdown?.atsCompatibilityScore ?? 0,
-          analysisResult.atsScore.breakdown?.resumeQualityScore ?? 0
+          analysisResult.alignmentScore?.overallScore ?? (analysisResult.atsScore.breakdown?.resumeQualityScore ?? 0)
         );
 
         const newFinalized = new Set(get().finalizedSessionIds);
@@ -394,7 +397,7 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
         await saveUserActivity(userId, resume.latestAnalysisId!, {
           title: `Analyzed ${file.name}`,
           type: "Resume Analysis",
-          score: analysisResult.atsScore.overallScore,
+          score: analysisResult.resumeScore?.overallScore ?? analysisResult.atsScore.overallScore,
           resumeId: resume.resumeId,
           analysisId: resume.latestAnalysisId!,
           targetPosition: analysisResult.learningSnapshot?.targetPosition || targetPosition || "",
@@ -415,9 +418,9 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
           file.mimeType || "application/octet-stream",
           normalized,
           resume.resumeId,
+          analysisResult.resumeScore?.overallScore ?? analysisResult.atsScore.overallScore,
           analysisResult.atsScore.overallScore,
-          analysisResult.atsScore.breakdown?.atsCompatibilityScore ?? 0,
-          analysisResult.atsScore.breakdown?.resumeQualityScore ?? 0
+          analysisResult.alignmentScore?.overallScore ?? (analysisResult.atsScore.breakdown?.resumeQualityScore ?? 0)
         );
 
         const newFinalized = new Set(get().finalizedSessionIds);

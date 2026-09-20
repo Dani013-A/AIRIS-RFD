@@ -23,8 +23,15 @@ import {
   type PersonalizedCompetencyItem
 } from "../../services/resume/selfAssessmentService";
 
+import { isCanonicalRecord, isLegacyRecord } from "../../types/resume.types";
+
 export default function DashboardScreen() {
-  const router = useRouter();
+  let router: any = null;
+  try {
+    router = typeof useRouter === "function" ? useRouter() : null;
+  } catch {
+    router = null;
+  }
   const currentUser = useAuthStore((state) => state.currentUser);
   const loading = useAuthStore((state) => state.loading);
   const activeResume = useResumeStore((state) => state.activeResume);
@@ -34,6 +41,7 @@ export default function DashboardScreen() {
   const currentAnalysisSessionId = useResumeStore((state) => state.currentAnalysisSessionId);
   const completeSelfAssessmentAndFinalize = useResumeStore((state) => state.completeSelfAssessmentAndFinalize);
   const refreshPersonalizedGuidance = useResumeStore((state) => state.refreshPersonalizedGuidance);
+  const retargetActiveResume = useResumeStore((state) => state.retargetActiveResume);
 
   const [showAllSuggestions, setShowAllSuggestions] = useState(false);
   const [expandedBreakdown, setExpandedBreakdown] = useState<Record<string, boolean>>({});
@@ -46,6 +54,7 @@ export default function DashboardScreen() {
   const [selfRatings, setSelfRatings] = useState<SkillSelfAssessmentMap>({});
   const [showSelfAssessmentModal, setShowSelfAssessmentModal] = useState(false);
   const [dismissedZeroScoreModal, setDismissedZeroScoreModal] = useState(false);
+  const fetchActiveResume = useResumeStore((state) => state.fetchActiveResume);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -59,26 +68,48 @@ export default function DashboardScreen() {
     };
   }, [activeAnalysis]);
 
+  // Synchronize active resume from database if store state is stale or unaligned
+  React.useEffect(() => {
+    if (currentUser?.uid && currentUser?.activeResumeId) {
+      if (!activeResume || activeResume.resumeId !== currentUser.activeResumeId) {
+        if (processingStatus === "idle" || processingStatus === "completed") {
+          fetchActiveResume(currentUser.uid, currentUser.activeResumeId);
+        }
+      }
+    }
+  }, [currentUser?.uid, currentUser?.activeResumeId, activeResume?.resumeId, processingStatus, fetchActiveResume]);
+
   const pendingAnalysisData = useResumeStore((state) => state.pendingAnalysisData);
 
-  // REQUIREMENT 3: HARD ROUTE GUARD
-  // Renders self-assessment guard ONLY when target skills genuinely require completion.
+  // Dynamically compute authoritative growth path recommendations (gap-driven, deduplicated, validated)
+  const growthPaths = React.useMemo(() => {
+    return getGrowthPathRecommendations({
+      targetPosition: currentUser?.targetPosition || "",
+      degreeProgram: currentUser?.degreeProgram || "",
+      collegeDomain: currentUser?.college || "",
+      department: currentUser?.department || "",
+      activeResume,
+      activeAnalysis,
+    });
+  }, [currentUser?.targetPosition, currentUser?.degreeProgram, currentUser?.college, currentUser?.department, activeResume, activeAnalysis]);
+
+
+  // Self-Assessment Guard: renders self-assessment directly in-place with safe area support
   if (processingStatus === "awaiting_self_assessment" || pendingAnalysisData !== null) {
     return (
-      <SafeAreaView className="flex-1 bg-[#F4F8FB] px-6 justify-center items-center" edges={["top", "left", "right"]}>
-        <View className="bg-white p-6 rounded-3xl border border-[#BFD6EA] items-center w-full max-w-sm">
-          <Ionicons name="shield-checkmark" size={48} color="#CA5D25" />
-          <Text className="text-xl font-extrabold text-[#1F3A5F] mt-4 text-center">Self-Assessment Required</Text>
-          <Text className="text-xs text-[#4F6B82] leading-5 text-center mt-2 mb-6">
-            Please complete your target skill self-assessment for your new resume before viewing your personalized dashboard.
-          </Text>
-          <TouchableOpacity
-            onPress={() => router.replace("/(student)/resume-upload" as any)}
-            className="w-full h-12 bg-[#CA5D25] rounded-xl items-center justify-center"
-          >
-            <Text className="text-xs font-bold text-white uppercase tracking-wider">Complete Assessment</Text>
-          </TouchableOpacity>
-        </View>
+      <SafeAreaView className="flex-1 bg-[#F4F8FB]" edges={["top", "left", "right", "bottom"]}>
+        <SkillSelfAssessmentModal
+          visible={true}
+          skills={pendingTargetSkills}
+          onSave={async (ratings) => {
+            await completeSelfAssessmentAndFinalize(ratings);
+            setSelfRatings(ratings);
+          }}
+          onSkip={async () => {
+            await completeSelfAssessmentAndFinalize({});
+            setSelfRatings({});
+          }}
+        />
       </SafeAreaView>
     );
   }
@@ -191,7 +222,7 @@ export default function DashboardScreen() {
           </Text>
 
           <TouchableOpacity
-            onPress={() => router.push("/(student)/resume-upload")}
+            onPress={() => router?.push?.("/(student)/resume-upload")}
             className="h-14 px-8 items-center justify-center rounded-full bg-[#F4A47A] shadow-sm flex-row"
           >
             <Text className="text-base font-bold text-white mr-2">Upload Resume</Text>
@@ -203,8 +234,44 @@ export default function DashboardScreen() {
     );
   }
 
-  const overallScore = activeAnalysis.atsScore.overallScore;
-  const levelKey = activeAnalysis.atsScore.level;
+  const isCanonicalV3 = isCanonicalRecord(activeAnalysis);
+  const isLegacy = isLegacyRecord(activeAnalysis);
+
+  const atsScoreVal = activeAnalysis.atsScore.overallScore;
+  const alignScoreVal =
+    activeAnalysis.alignmentScore?.overallScore ??
+    (activeAnalysis.atsScore.roleRelevance as any)?.alignmentPercentage ??
+    0;
+
+  const displayResumeScore = isCanonicalV3
+    ? (activeAnalysis.resumeScore?.overallScore ?? Math.round(atsScoreVal * 0.40 + alignScoreVal * 0.60))
+    : activeAnalysis.atsScore.overallScore;
+
+  const atsContribution = isCanonicalV3
+    ? (activeAnalysis.resumeScore?.atsContribution ?? Math.round(atsScoreVal * 0.4 * 10) / 10)
+    : 0;
+  const alignContribution = isCanonicalV3
+    ? (activeAnalysis.resumeScore?.alignmentContribution ?? Math.round(alignScoreVal * 0.6 * 10) / 10)
+    : 0;
+
+  const overallScore = displayResumeScore;
+  const levelKey = activeAnalysis.resumeScore?.level || activeAnalysis.atsScore.level;
+
+  let resumeScoreLevelLabel = "Strong Foundation";
+  if (levelKey === "ExcellentMatch" || displayResumeScore >= 85) resumeScoreLevelLabel = "Excellent Match";
+  else if (levelKey === "StrongFoundation" || displayResumeScore >= 70) resumeScoreLevelLabel = "Strong Foundation";
+  else if (levelKey === "GettingThere" || displayResumeScore >= 50) resumeScoreLevelLabel = "Getting There";
+  else resumeScoreLevelLabel = "Needs Improvement";
+
+  const atsScoreLevelLabel =
+    activeAnalysis.atsScore.levelLabel ||
+    (atsScoreVal >= 85
+      ? "Optimal Parseability"
+      : atsScoreVal >= 70
+      ? "Good Parseability"
+      : atsScoreVal >= 50
+      ? "Moderate Parseability"
+      : "Low Parseability");
 
   let scoreInterpretation = "Good foundation. A few targeted improvements will make it even stronger.";
   if (overallScore >= 85) scoreInterpretation = "Outstanding! Your resume is highly effective and clearly highlights your strengths.";
@@ -235,18 +302,6 @@ export default function DashboardScreen() {
 
   const detectedSections = activeAnalysis.detectedSections || [];
 
-  // Dynamically compute authoritative growth path recommendations (gap-driven, deduplicated, validated)
-  const growthPaths = React.useMemo(() => {
-    return getGrowthPathRecommendations({
-      targetPosition: currentUser?.targetPosition || "",
-      degreeProgram: currentUser?.degreeProgram || "",
-      collegeDomain: currentUser?.college || "",
-      department: currentUser?.department || "",
-      activeResume,
-      activeAnalysis,
-    });
-  }, [currentUser?.targetPosition, currentUser?.degreeProgram, currentUser?.college, currentUser?.department, activeResume, activeAnalysis]);
-
   let filteredRecommendations: any[] = [];
   if (activeTab === "certification") {
     filteredRecommendations = growthPaths.certifications;
@@ -268,7 +323,7 @@ export default function DashboardScreen() {
               <Text className="text-xl font-extrabold text-[#1F3A5F]" numberOfLines={1}>{activeResume?.originalFileName}</Text>
               <Text className="text-xs font-semibold text-[#4F6B82] mt-1">Target: {currentUser?.targetPosition || "Not Selected"}</Text>
             </View>
-            <TouchableOpacity onPress={() => router.push("/(student)/resume-upload")} className="h-10 px-4 items-center justify-center rounded-full bg-white border border-[#BFD6EA] shadow-sm">
+            <TouchableOpacity onPress={() => router?.push?.("/(student)/resume-upload")} className="h-10 px-4 items-center justify-center rounded-full bg-white border border-[#BFD6EA] shadow-sm">
               <Text className="text-xs font-bold text-[#1F3A5F]">Update</Text>
             </TouchableOpacity>
           </View>
@@ -287,19 +342,52 @@ export default function DashboardScreen() {
             </View>
           )}
 
+          {/* HISTORICAL LEGACY BANNER IF OLD MODEL */}
+          {isLegacy && (
+            <View className="mb-4 p-4 bg-[#FEF5F1] rounded-2xl border border-[#F4A47A]">
+              <View className="flex-row items-center mb-1.5">
+                <Ionicons name="time-outline" size={18} color="#CA5D25" className="mr-2" />
+                <Text className="text-xs font-bold text-[#CA5D25] uppercase tracking-wider">
+                  Historical Record (Legacy Model)
+                </Text>
+              </View>
+              <Text className="text-xs text-[#4F6B82] leading-5 mb-3">
+                This resume was analyzed using an older model. Re-analyze with the canonical 3.0 model to evaluate ATS machine readability (40%) and role alignment (60%).
+              </Text>
+              <TouchableOpacity
+                onPress={async () => {
+                  try {
+                    await retargetActiveResume(currentUser?.targetPosition || "Software Developer");
+                  } catch (e: any) {
+                    Alert.alert("Analysis Error", e.message || "Failed to re-analyze resume.");
+                  }
+                }}
+                className="h-10 bg-[#CA5D25] rounded-xl flex-row items-center justify-center shadow-sm"
+              >
+                <Ionicons name="refresh-outline" size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text className="text-xs font-bold text-white uppercase tracking-wider">
+                  Re-analyze with v3 Canonical Model
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* PRIMARY RESUME SCORE (DOMINANT FOCAL POINT) */}
           <View className="items-center mb-6">
             <View className="flex-row items-center gap-1.5 mb-2">
               <Text className="text-[11px] font-bold text-[#4F6B82] uppercase tracking-widest">
-                Overall ATS Score
+                {isCanonicalV3 ? "Resume Score" : "Overall ATS Score (Legacy)"}
               </Text>
               <TouchableOpacity
                 onPress={() =>
                   setInfoModalContent({
-                    title: "Overall ATS Score",
-                    explanation:
-                      "Evaluates your resume against your target role using the authoritative Capstone ATS formula.",
-                    roleDependence:
-                      "Calculated as: Skills Match (40%) + Experience & Projects (30%) + Education Relevance (20%) + Certifications (10%).",
+                    title: isCanonicalV3 ? "Resume Score" : "Overall ATS Score (Legacy)",
+                    explanation: isCanonicalV3
+                      ? "The authoritative synthesized metric combining role-independent ATS machine readability (40%) and role-dependent job alignment (60%)."
+                      : "Evaluates your resume using an earlier scoring model.",
+                    roleDependence: isCanonicalV3
+                      ? "Formula: Resume Score = ATS Score × 0.40 + Alignment Score × 0.60."
+                      : "Legacy score.",
                   })
                 }
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -307,14 +395,57 @@ export default function DashboardScreen() {
                 <Ionicons name="information-circle-outline" size={16} color="#4F6B82" />
               </TouchableOpacity>
             </View>
-            <Text className="text-[80px] leading-[90px] font-black text-[#1F3A5F]">{overallScore}</Text>
-            <View className={`mt-2 px-5 py-2 rounded-full ${overallScore >= 70 ? 'bg-[#D7F1ED] border border-[#79D5C8]' : 'bg-[#FDEEE6] border border-[#F4A47A]'}`} style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1, elevation: 1 }}>
-               <Text className={`text-sm font-bold ${overallScore >= 70 ? 'text-[#1E5D53]' : 'text-[#CA5D25]'}`}>
-                 {levelKey === "ExcellentMatch" ? "Excellent Match" : levelKey === "StrongFoundation" ? "Strong Foundation" : levelKey === "GettingThere" ? "Getting There" : "Needs Improvement"}
-               </Text>
+
+            <Text className="text-[80px] leading-[90px] font-black text-[#1F3A5F]">{displayResumeScore}</Text>
+
+            <View className={`mt-2 px-5 py-2 rounded-full ${displayResumeScore >= 70 ? 'bg-[#D7F1ED] border border-[#79D5C8]' : 'bg-[#FDEEE6] border border-[#F4A47A]'}`} style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1, elevation: 1 }}>
+              <Text className={`text-sm font-bold ${displayResumeScore >= 70 ? 'text-[#1E5D53]' : 'text-[#CA5D25]'}`}>
+                {resumeScoreLevelLabel}
+              </Text>
             </View>
-            <TouchableOpacity onPress={() => setShowScoreMath(!showScoreMath)} className="mt-3 bg-[#F4F8FB] px-4 py-2 rounded-full border border-[#EAF2F7] flex-row items-center" style={{ alignSelf: 'center' }}>
-              <Text className="text-[10px] font-bold text-[#4F6B82] mr-2 text-center flex-shrink" style={{ flexShrink: 1 }}>ATS Score = Skills 40% + Exp 30% + Edu 20% + Cert 10%</Text>
+
+            {/* DUAL PILLARS: ATS (40%) & ALIGNMENT (60%) */}
+            {isCanonicalV3 && (
+              <View className="flex-row w-full justify-between mt-5 px-1">
+                {/* Pillar 1: ATS */}
+                <View className="flex-1 bg-white p-3.5 rounded-2xl border border-[#BFD6EA] mr-2 items-center shadow-sm">
+                  <View className="flex-row items-center gap-1 mb-1">
+                    <Ionicons name="hardware-chip-outline" size={14} color="#1F3A5F" />
+                    <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-wider">ATS Score</Text>
+                  </View>
+                  <Text className="text-2xl font-black text-[#1F3A5F]">
+                    {atsScoreVal} <Text className="text-xs font-semibold text-[#8B95A5]">/ 100</Text>
+                  </Text>
+                  <Text className="text-[10px] text-[#4F6B82] font-semibold mt-0.5">Machine Readability</Text>
+                  <View className="mt-2 bg-[#F4F8FB] px-2 py-1 rounded-md border border-[#EAF2F7] w-full items-center">
+                    <Text className="text-[10px] font-bold text-[#1F3A5F]">Contrib: +{atsContribution} pts</Text>
+                    <Text className="text-[9px] text-[#8B95A5]">40% weight</Text>
+                  </View>
+                </View>
+
+                {/* Pillar 2: Alignment */}
+                <View className="flex-1 bg-white p-3.5 rounded-2xl border border-[#BFD6EA] ml-2 items-center shadow-sm">
+                  <View className="flex-row items-center gap-1 mb-1">
+                    <Ionicons name="briefcase-outline" size={14} color="#CA5D25" />
+                    <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-wider">Role Alignment</Text>
+                  </View>
+                  <Text className="text-2xl font-black text-[#1F3A5F]">
+                    {alignScoreVal} <Text className="text-xs font-semibold text-[#8B95A5]">/ 100</Text>
+                  </Text>
+                  <Text className="text-[10px] text-[#4F6B82] font-semibold mt-0.5">Target Role Fit</Text>
+                  <View className="mt-2 bg-[#FDEEE6] px-2 py-1 rounded-md border border-[#F4A47A] w-full items-center">
+                    <Text className="text-[10px] font-bold text-[#CA5D25]">Contrib: +{alignContribution} pts</Text>
+                    <Text className="text-[9px] text-[#CA5D25]">60% weight</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Formula Toggle */}
+            <TouchableOpacity onPress={() => setShowScoreMath(!showScoreMath)} className="mt-4 bg-[#F4F8FB] px-4 py-2 rounded-full border border-[#EAF2F7] flex-row items-center" style={{ alignSelf: 'center' }}>
+              <Text className="text-[10px] font-bold text-[#4F6B82] mr-2 text-center flex-shrink" style={{ flexShrink: 1 }}>
+                {isCanonicalV3 ? `${atsScoreVal} × 40% + ${alignScoreVal} × 60% = ${displayResumeScore}` : "Legacy Score Formulation"}
+              </Text>
               <Ionicons name={showScoreMath ? "chevron-up" : "chevron-down"} size={14} color="#8B95A5" />
             </TouchableOpacity>
 
@@ -324,63 +455,38 @@ export default function DashboardScreen() {
                   <Text className="text-[10px] font-bold text-[#1F3A5F] uppercase tracking-widest text-center">How is this calculated?</Text>
                 </View>
                 <View className="p-5 gap-3">
-                  {/* Official Manuscript Formula Display */}
-                  {(activeAnalysis.atsScore.resumeScore?.breakdown || (activeAnalysis.atsScore as any).roleRelevance?.breakdown) ? (
+                  {isCanonicalV3 ? (
                     <>
-                      {(() => {
-                        const rb = activeAnalysis.atsScore.resumeScore?.breakdown;
-                        const rrb = (activeAnalysis.atsScore as any).roleRelevance?.breakdown;
-                        const sklRaw = rb?.skills?.rawScore ?? rrb?.skillsMatch?.rawScore ?? 0;
-                        const sklW = rb?.skills?.weightedScore ?? rrb?.skillsMatch?.weightedScore ?? 0;
-                        const expRaw = rb?.experience?.rawScore ?? rrb?.experienceMatch?.rawScore ?? 0;
-                        const expW = rb?.experience?.weightedScore ?? rrb?.experienceMatch?.weightedScore ?? 0;
-                        const eduRaw = rb?.education?.rawScore ?? rrb?.educationMatch?.rawScore ?? 0;
-                        const eduW = rb?.education?.weightedScore ?? rrb?.educationMatch?.weightedScore ?? 0;
-                        const certRaw = rb?.certifications?.rawScore ?? rrb?.certificationsMatch?.rawScore ?? 0;
-                        const certW = rb?.certifications?.weightedScore ?? rrb?.certificationsMatch?.weightedScore ?? 0;
-
-                        return (
-                          <>
-                            <View className="flex-row justify-between items-center">
-                              <Text className="text-xs font-bold text-[#4F6B82]">Skills Match</Text>
-                              <Text className="text-[11px] font-medium text-[#8B95A5]">{sklRaw}/100 x 40% = <Text className="font-bold text-[#1F3A5F] text-xs">{sklW}</Text></Text>
-                            </View>
-                            <View className="flex-row justify-between items-center">
-                              <Text className="text-xs font-bold text-[#4F6B82]">Experience & Projects</Text>
-                              <Text className="text-[11px] font-medium text-[#8B95A5]">{expRaw}/100 x 30% = <Text className="font-bold text-[#1F3A5F] text-xs">{expW}</Text></Text>
-                            </View>
-                            <View className="flex-row justify-between items-center">
-                              <Text className="text-xs font-bold text-[#4F6B82]">Education Relevance</Text>
-                              <Text className="text-[11px] font-medium text-[#8B95A5]">{eduRaw}/100 x 20% = <Text className="font-bold text-[#1F3A5F] text-xs">{eduW}</Text></Text>
-                            </View>
-                            <View className="flex-row justify-between items-center">
-                              <Text className="text-xs font-bold text-[#4F6B82]">Certifications</Text>
-                              <Text className="text-[11px] font-medium text-[#8B95A5]">{certRaw}/100 x 10% = <Text className="font-bold text-[#1F3A5F] text-xs">{certW}</Text></Text>
-                            </View>
-                          </>
-                        );
-                      })()}
+                      <View className="flex-row justify-between items-center">
+                        <View className="flex-1 pr-2">
+                          <Text className="text-xs font-bold text-[#1F3A5F]">ATS Machine Readability</Text>
+                          <Text className="text-[10px] text-[#8B95A5]">Layout, contact, sections, dates</Text>
+                        </View>
+                        <Text className="text-[11px] font-medium text-[#8B95A5]">{atsScoreVal}/100 × 40% = <Text className="font-bold text-[#1F3A5F] text-xs">+{atsContribution}</Text></Text>
+                      </View>
+                      <View className="flex-row justify-between items-center">
+                        <View className="flex-1 pr-2">
+                          <Text className="text-xs font-bold text-[#CA5D25]">Target Role Alignment</Text>
+                          <Text className="text-[10px] text-[#8B95A5]">Skills, experience, degree, certs</Text>
+                        </View>
+                        <Text className="text-[11px] font-medium text-[#8B95A5]">{alignScoreVal}/100 × 60% = <Text className="font-bold text-[#CA5D25] text-xs">+{alignContribution}</Text></Text>
+                      </View>
+                      <View className="h-[1px] bg-[#EAF2F7] my-1" />
+                      <View className="flex-row justify-between items-center bg-[#F4F8FB] -mx-5 -mb-5 p-5">
+                        <Text className="text-xs font-black text-[#1F3A5F] uppercase tracking-widest">Resume Score</Text>
+                        <Text className="text-lg font-black text-[#1F3A5F]">~ {displayResumeScore} / 100</Text>
+                      </View>
                     </>
                   ) : (
                     /* Legacy Architecture Display Fallback */
                     <>
                       <Text className="text-xs text-[#CA5D25] italic text-center mb-2">Displaying legacy analysis data</Text>
                       <View className="flex-row justify-between items-center">
-                        <Text className="text-xs font-bold text-[#4F6B82]">Role Match</Text>
-                        <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.breakdown?.semanticRoleMatch?.rawScore ?? 0}/100</Text>
-                      </View>
-                      <View className="flex-row justify-between items-center">
-                        <Text className="text-xs font-bold text-[#4F6B82]">Resume Quality</Text>
-                        <Text className="text-[11px] font-medium text-[#8B95A5]">{activeAnalysis.atsScore.breakdown?.resumeQuality?.rawScore ?? 0}/100</Text>
+                        <Text className="text-xs font-bold text-[#4F6B82]">Legacy ATS Score</Text>
+                        <Text className="text-[11px] font-medium text-[#8B95A5]">{overallScore}/100</Text>
                       </View>
                     </>
                   )}
-
-                  <View className="h-[1px] bg-[#EAF2F7] my-2" />
-                  <View className="flex-row justify-between items-center bg-[#F4F8FB] -mx-5 -mb-5 p-5">
-                    <Text className="text-xs font-black text-[#1F3A5F] uppercase tracking-widest">Overall ATS Score</Text>
-                    <Text className="text-lg font-black text-[#1F3A5F]">~ {overallScore}</Text>
-                  </View>
                 </View>
               </View>
             )}
@@ -388,21 +494,21 @@ export default function DashboardScreen() {
             <Text className="text-sm text-center font-medium text-[#4F6B82] mt-4 px-6 leading-5">{scoreInterpretation}</Text>
           </View>
 
-          {/* Dimension Breakdown Card (Component 2 of 3) */}
+          {/* CARD 1: ATS MACHINE-READABILITY BREAKDOWN (6 DIMENSIONS) */}
           <View className="bg-white rounded-2xl border border-[#BFD6EA] mx-6 mb-4 overflow-hidden" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
             <TouchableOpacity onPress={() => setShowAtsCompatDetails(!showAtsCompatDetails)} className="flex-row items-center justify-between p-5">
               <View className="flex-1 pr-3">
                 <View className="flex-row items-center gap-1.5 mb-1">
-                  <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-widest">Dimension Breakdown</Text>
+                  <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-widest">ATS Score</Text>
                   <TouchableOpacity
                     onPress={(e) => {
                       e.stopPropagation();
                       setInfoModalContent({
-                        title: "Dimension Breakdown",
+                        title: "ATS Machine-Readability",
                         explanation:
-                          "Shows the evidenced score across the 4 authoritative dimensions of the Capstone formula.",
+                          "Evaluates how cleanly applicant tracking systems can extract contact details, section headers, work history, and formatting from your resume.",
                         roleDependence:
-                          "Evaluates Skills Match (40%), Experience & Projects (30%), Education Relevance (20%), and Certifications (10%).",
+                          "100% role-independent. Measures standard section structure, contact recognition, skills formatting, experience structure, education structure, and date recognition.",
                       });
                     }}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -410,8 +516,12 @@ export default function DashboardScreen() {
                     <Ionicons name="information-circle-outline" size={15} color="#4F6B82" />
                   </TouchableOpacity>
                 </View>
-                <Text className="text-sm font-bold text-[#1F3A5F]">4 Evaluated Dimensions</Text>
-                <Text className="text-[11px] text-[#8B95A5] mt-0.5">Skills 40% · Experience 30% · Education 20% · Certifications 10%</Text>
+                <Text className="text-xl font-black text-[#1F3A5F]">
+                  {atsScoreVal} <Text className="text-xs font-semibold text-[#8B95A5]">/ 100</Text>
+                </Text>
+                <Text className="text-[11px] font-bold text-[#1E5D53] mt-0.5">
+                  {atsScoreLevelLabel} · Machine Readability
+                </Text>
               </View>
               <Ionicons name={showAtsCompatDetails ? "chevron-up" : "chevron-down"} size={20} color="#8B95A5" />
             </TouchableOpacity>
@@ -419,92 +529,282 @@ export default function DashboardScreen() {
             {showAtsCompatDetails && (
               <View className="px-5 pb-5 pt-2 border-t border-[#EAF2F7]">
                 <Text className="text-xs text-[#4F6B82] mb-4 flex-wrap" style={{ flexShrink: 1 }}>
-                  These four dimensions mathematically produce your authoritative composite ATS score.
+                  ATS measures how reliably your resume can be read and interpreted by automated systems. It does not measure your qualification for the target role.
                 </Text>
 
                 {(() => {
-                  const rb = activeAnalysis.atsScore.resumeScore?.breakdown;
-                  const rrb = (activeAnalysis.atsScore as any).roleRelevance?.breakdown;
-                  const sklRaw = rb?.skills?.rawScore ?? rrb?.skillsMatch?.rawScore ?? 0;
-                  const sklW = rb?.skills?.weightedScore ?? rrb?.skillsMatch?.weightedScore ?? 0;
-                  const expRaw = rb?.experience?.rawScore ?? rrb?.experienceMatch?.rawScore ?? 0;
-                  const expW = rb?.experience?.weightedScore ?? rrb?.experienceMatch?.weightedScore ?? 0;
-                  const eduRaw = rb?.education?.rawScore ?? rrb?.educationMatch?.rawScore ?? 0;
-                  const eduW = rb?.education?.weightedScore ?? rrb?.educationMatch?.weightedScore ?? 0;
-                  const certRaw = rb?.certifications?.rawScore ?? rrb?.certificationsMatch?.rawScore ?? 0;
-                  const certW = rb?.certifications?.weightedScore ?? rrb?.certificationsMatch?.weightedScore ?? 0;
+                  const b = activeAnalysis.atsScore.breakdown;
+                  const dimensions = [
+                    { key: "sectionStructure", label: "Standard Section Structure", defaultWeight: 0.20 },
+                    { key: "contactRecognition", label: "Contact Recognition", defaultWeight: 0.15 },
+                    { key: "skillsFormatting", label: "Skills Formatting", defaultWeight: 0.20 },
+                    { key: "experienceStructure", label: "Experience Structure", defaultWeight: 0.20 },
+                    { key: "educationStructure", label: "Education Structure", defaultWeight: 0.15 },
+                    { key: "dateRecognition", label: "Date Recognition", defaultWeight: 0.10 },
+                  ];
 
+                  const hasSixDims = Boolean(b && (b.sectionStructure || b.contactRecognition));
+
+                  if (hasSixDims) {
+                    return (
+                      <View className="gap-3">
+                        {dimensions.map((dim) => {
+                          const item = b[dim.key] || {};
+                          const raw = item.rawScore ?? 0;
+                          const weight = item.weight ?? dim.defaultWeight;
+                          const weighted = item.weightedScore ?? Math.round(raw * weight * 10) / 10;
+                          const label = item.label || dim.label;
+                          const status = item.status || (raw >= 85 ? "OptimalParseability" : raw >= 70 ? "GoodParseability" : raw >= 50 ? "ModerateParseability" : "LowParseability");
+
+                          const isGood = raw >= 70;
+                          const isModerate = raw >= 50 && raw < 70;
+
+                          return (
+                            <View key={dim.key} className="flex-row justify-between items-center">
+                              <View className="flex-1 pr-2">
+                                <Text className="text-xs font-bold text-[#4F6B82]">{label}</Text>
+                                <Text className="text-[10px] text-[#8B95A5]">
+                                  {status.replace("Parseability", " Parseability")}
+                                </Text>
+                              </View>
+                              <View className="items-end">
+                                <Text className="text-[11px] font-medium text-[#8B95A5]">
+                                  {raw}/100 × {Math.round(weight * 100)}% ={" "}
+                                  <Text className={`font-bold text-xs ${isGood ? 'text-[#1E5D53]' : isModerate ? 'text-[#CA5D25]' : 'text-[#CA5D25]'}`}>
+                                    +{weighted} pts
+                                  </Text>
+                                </Text>
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    );
+                  }
+
+                  /* Fallback for legacy 4-part structure if viewing older record */
                   return (
-                    <>
-                      <View className="flex-row justify-between items-center mb-3">
-                        <Text className="text-xs font-bold text-[#4F6B82]">Skills Match</Text>
-                        <Text className="text-[11px] font-medium text-[#8B95A5]">{sklRaw}/100 × 40% = <Text className="font-bold text-[#1F3A5F] text-xs">+{sklW} pts</Text></Text>
+                    <View className="gap-2">
+                      <Text className="text-xs text-[#CA5D25] italic mb-2">Displaying legacy breakdown</Text>
+                      <View className="flex-row justify-between items-center">
+                        <Text className="text-xs font-bold text-[#4F6B82]">Legacy ATS Compatibility</Text>
+                        <Text className="text-xs font-bold text-[#1F3A5F]">{b?.atsCompatibilityScore ?? b?.atsCompatibility?.rawScore ?? atsScoreVal}/100</Text>
                       </View>
-                      <View className="flex-row justify-between items-center mb-3">
-                        <Text className="text-xs font-bold text-[#4F6B82]">Experience & Projects</Text>
-                        <Text className="text-[11px] font-medium text-[#8B95A5]">{expRaw}/100 × 30% = <Text className="font-bold text-[#1F3A5F] text-xs">+{expW} pts</Text></Text>
-                      </View>
-                      <View className="flex-row justify-between items-center mb-3">
-                        <Text className="text-xs font-bold text-[#4F6B82]">Education Relevance</Text>
-                        <Text className="text-[11px] font-medium text-[#8B95A5]">{eduRaw}/100 × 20% = <Text className="font-bold text-[#1F3A5F] text-xs">+{eduW} pts</Text></Text>
-                      </View>
-                      <View className="flex-row justify-between items-center mb-1">
-                        <Text className="text-xs font-bold text-[#4F6B82]">Certifications</Text>
-                        <Text className="text-[11px] font-medium text-[#8B95A5]">{certRaw}/100 × 10% = <Text className="font-bold text-[#1F3A5F] text-xs">+{certW} pts</Text></Text>
-                      </View>
-                    </>
+                    </View>
                   );
                 })()}
+
+                {/* Educational Footnote */}
+                <View className="mt-4 bg-[#F4F8FB] p-3 rounded-xl border border-[#EAF2F7]">
+                  <Text className="text-[11px] text-[#4F6B82] leading-4">
+                    ATS measures how reliably your resume can be read and interpreted by automated systems. It does not measure your qualification for the target role.
+                  </Text>
+                </View>
               </View>
             )}
           </View>
 
-          {/* Target Alignment Card (Component 3 of 3 - Qualitative Role-Fit Diagnostic) */}
+          {/* CARD 2: TARGET ROLE ALIGNMENT (4 MANUSCRIPT COMPONENTS) */}
           <View className="bg-white rounded-2xl border border-[#BFD6EA] mx-6 mb-4 overflow-hidden" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
             <TouchableOpacity onPress={() => setShowAtsMatchDetails(!showAtsMatchDetails)} className="flex-row items-center justify-between p-5">
               <View className="flex-1 pr-3">
                 <View className="flex-row items-center gap-1.5 mb-1">
-                  <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-widest">Target Alignment</Text>
+                  <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-widest">Role Alignment</Text>
                   <TouchableOpacity
                     onPress={(e) => {
                       e.stopPropagation();
                       setInfoModalContent({
-                        title: "Target Alignment Diagnostic",
-                        explanation: `Provides qualitative diagnostics evaluating how your demonstrated competencies align with ${currentUser?.targetPosition || "your target position"}.`,
+                        title: "Role Alignment Score",
+                        explanation: `Measures demonstrated suitability for ${currentUser?.targetPosition || "your target position"} across the manuscript's 4 established components.`,
                         roleDependence:
-                          "Analyzes direct competency matches, transferable capabilities, and priority growth areas against authoritative career benchmarks.",
+                          "Evaluates Skills Match (40%), Experience & Projects (30%), Education Relevance (20%), and Certifications (10%) against authoritative career benchmarks.",
                       });
                     }}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Ionicons name="information-circle-outline" size={15} color="#4F6B82" />
+                    <Ionicons name="information-circle-outline" size={15} color="#CA5D25" />
                   </TouchableOpacity>
                 </View>
-                <Text className="text-sm font-bold text-[#1F3A5F]">{currentUser?.targetPosition || "Information Technology Specialist"}</Text>
-                <Text className="text-[11px] text-[#CA5D25] font-semibold mt-0.5">
-                  Qualitative Role-Fit Diagnostic
+                <Text className="text-xl font-black text-[#1F3A5F]">
+                  {alignScoreVal} <Text className="text-xs font-semibold text-[#8B95A5]">/ 100</Text>
                 </Text>
-                {Boolean((activeAnalysis.atsScore as any)?.traceability?.isDegraded) && (
-                  <View className="mt-1 bg-[#FDEEE6] px-2 py-0.5 rounded border border-[#F4A47A] self-start">
-                    <Text className="text-[9px] font-bold text-[#CA5D25]">Domain Benchmark (Degraded)</Text>
-                  </View>
-                )}
+                <Text className="text-[11px] font-bold text-[#CA5D25] mt-0.5">
+                  Target: {currentUser?.targetPosition || "Target Role"}
+                </Text>
               </View>
               <Ionicons name={showAtsMatchDetails ? "chevron-up" : "chevron-down"} size={20} color="#8B95A5" />
             </TouchableOpacity>
 
             {showAtsMatchDetails && (
               <View className="px-5 pb-5 pt-2 border-t border-[#EAF2F7]">
-                {/* Alignment Summary */}
+                {/* 4 Manuscript Components Breakdown */}
+                <View className="mb-4 pb-3 border-b border-[#EAF2F7] gap-3">
+                  <Text className="text-[10px] font-bold text-[#1F3A5F] uppercase tracking-wider">
+                    Alignment Components (Manuscript 40/30/20/10)
+                  </Text>
+                  {(() => {
+                    const alignBreakdown = activeAnalysis.alignmentScore?.breakdown;
+                    const legacyBreakdown = activeAnalysis.atsScore.resumeScore?.breakdown || (activeAnalysis.atsScore as any).roleRelevance?.breakdown;
+
+                    const sklRaw = alignBreakdown?.skillsMatch?.rawScore ?? legacyBreakdown?.skills?.rawScore ?? legacyBreakdown?.skillsMatch?.rawScore ?? 0;
+                    const sklW = alignBreakdown?.skillsMatch?.weightedScore ?? legacyBreakdown?.skills?.weightedScore ?? legacyBreakdown?.skillsMatch?.weightedScore ?? 0;
+                    const expRaw = alignBreakdown?.experienceProjects?.rawScore ?? legacyBreakdown?.experience?.rawScore ?? legacyBreakdown?.experienceMatch?.rawScore ?? 0;
+                    const expW = alignBreakdown?.experienceProjects?.weightedScore ?? legacyBreakdown?.experience?.weightedScore ?? legacyBreakdown?.experienceMatch?.weightedScore ?? 0;
+                    const eduRaw = alignBreakdown?.educationRelevance?.rawScore ?? legacyBreakdown?.education?.rawScore ?? legacyBreakdown?.educationMatch?.rawScore ?? 0;
+                    const eduW = alignBreakdown?.educationRelevance?.weightedScore ?? legacyBreakdown?.education?.weightedScore ?? legacyBreakdown?.educationMatch?.weightedScore ?? 0;
+                    const certRaw = alignBreakdown?.certifications?.rawScore ?? legacyBreakdown?.certifications?.rawScore ?? legacyBreakdown?.certificationsMatch?.rawScore ?? 0;
+                    const certW = alignBreakdown?.certifications?.weightedScore ?? legacyBreakdown?.certifications?.weightedScore ?? legacyBreakdown?.certificationsMatch?.weightedScore ?? 0;
+
+                    return (
+                      <>
+                        <View className="flex-row justify-between items-center">
+                          <Text className="text-xs font-bold text-[#4F6B82]">Skills Match</Text>
+                          <Text className="text-[11px] font-medium text-[#8B95A5]">{sklRaw}/100 × 40% = <Text className="font-bold text-[#1F3A5F] text-xs">+{sklW} pts</Text></Text>
+                        </View>
+                        <View className="flex-row justify-between items-center">
+                          <Text className="text-xs font-bold text-[#4F6B82]">Experience & Projects</Text>
+                          <Text className="text-[11px] font-medium text-[#8B95A5]">{expRaw}/100 × 30% = <Text className="font-bold text-[#1F3A5F] text-xs">+{expW} pts</Text></Text>
+                        </View>
+                        <View className="flex-row justify-between items-center">
+                          <Text className="text-xs font-bold text-[#4F6B82]">Education Relevance</Text>
+                          <Text className="text-[11px] font-medium text-[#8B95A5]">{eduRaw}/100 × 20% = <Text className="font-bold text-[#1F3A5F] text-xs">+{eduW} pts</Text></Text>
+                        </View>
+                        <View className="flex-row justify-between items-center">
+                          <Text className="text-xs font-bold text-[#4F6B82]">Certifications</Text>
+                          <Text className="text-[11px] font-medium text-[#8B95A5]">{certRaw}/100 × 10% = <Text className="font-bold text-[#1F3A5F] text-xs">+{certW} pts</Text></Text>
+                        </View>
+                      </>
+                    );
+                  })()}
+                </View>
+
+                {/* Alignment Summary Text */}
                 <View className="bg-[#F8FAFC] p-3.5 rounded-xl border border-[#E2E8F0] mb-4">
                   <Text className="text-[10px] font-bold text-[#1F3A5F] uppercase tracking-wider mb-1">
                     Role Alignment Summary
                   </Text>
                   <Text className="text-xs text-[#4F6B82] leading-5">
-                    {activeAnalysis.atsScore.roleRelevance?.alignmentSummary ||
+                    {activeAnalysis.alignmentScore?.alignmentSummary ||
+                      activeAnalysis.atsScore.roleRelevance?.alignmentSummary ||
                       `Evidenced assessment against ${currentUser?.targetPosition || "target role"} competencies. Review matched capabilities and priority gaps below.`}
                   </Text>
                 </View>
+
+                {/* Competencies Checklist (✓ Demonstrated, ~ Related, ○ Not Evidenced) */}
+                {(() => {
+                  const competenciesList = activeAnalysis.alignmentScore?.competencies || [];
+
+                  if (competenciesList.length > 0) {
+                    return (
+                      <View className="mb-4 pb-3 border-b border-[#EAF2F7]">
+                        <Text className="text-[10px] font-bold text-[#1F3A5F] uppercase tracking-wider mb-2">
+                          Competencies Checklist ({competenciesList.length})
+                        </Text>
+                        <View className="gap-2">
+                          {competenciesList.map((comp, idx) => {
+                            const isDem = comp.status === "DEMONSTRATED";
+                            const isRel = comp.status === "RELATED";
+                            const bgStyle = isDem ? "bg-[#D7F1ED] border-[#79D5C8]" : isRel ? "bg-[#FFF3ED] border-[#F4A47A]" : "bg-[#F1F5F9] border-[#CBD5E1]";
+                            const textStyle = isDem ? "text-[#1E5D53]" : isRel ? "text-[#CA5D25]" : "text-[#475569]";
+                            const iconSymbol = comp.icon || (isDem ? "✓" : isRel ? "~" : "○");
+
+                            return (
+                              <View key={idx} className={`flex-row items-center justify-between p-2.5 rounded-xl border ${bgStyle}`}>
+                                <View className="flex-row items-center flex-1 pr-2">
+                                  <Text className={`font-black text-sm mr-2 ${textStyle}`}>{iconSymbol}</Text>
+                                  <Text className={`text-xs font-bold ${textStyle}`}>{comp.name}</Text>
+                                  {comp.isRequired && (
+                                    <View className="ml-2 bg-white/60 px-1.5 py-0.5 rounded">
+                                      <Text className="text-[9px] font-semibold text-[#4F6B82]">Required</Text>
+                                    </View>
+                                  )}
+                                </View>
+                                <Text className={`text-[10px] font-extrabold uppercase ${textStyle}`}>
+                                  {isDem ? "Demonstrated" : isRel ? "Related" : "Not Evidenced"}
+                                </Text>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    );
+                  }
+
+                  // Fallback to legacy matched/gaps chips if older report
+                  const rr = activeAnalysis.atsScore.roleRelevance;
+                  const matched = rr?.matchedCompetencies || [];
+                  const gaps = rr?.priorityGaps || [];
+                  if (!matched.length && !gaps.length) return null;
+
+                  return (
+                    <View className="mb-4 pb-3 border-b border-[#EAF2F7] gap-3">
+                      {matched.length > 0 && (
+                        <View>
+                          <Text className="text-[10px] font-bold text-[#1E5D53] uppercase tracking-wider mb-1.5">
+                            Matched Competencies ({matched.length})
+                          </Text>
+                          <View className="flex-row flex-wrap gap-1.5">
+                            {matched.map((comp, idx) => (
+                              <View key={idx} className="bg-[#D7F1ED] px-2.5 py-1 rounded-md border border-[#79D5C8]">
+                                <Text className="text-[11px] font-bold text-[#1E5D53]">{comp}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      )}
+                      {gaps.length > 0 && (
+                        <View>
+                          <Text className="text-[10px] font-bold text-[#8B95A5] uppercase tracking-wider mb-1.5">
+                            Priority Target Gaps ({gaps.length})
+                          </Text>
+                          <View className="flex-row flex-wrap gap-1.5">
+                            {gaps.map((comp, idx) => (
+                              <View key={idx} className="bg-[#F1F5F9] px-2.5 py-1 rounded-md border border-[#CBD5E1]">
+                                <Text className="text-[11px] font-medium text-[#475569]">{comp}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })()}
+
+                {/* Evidence Summary Highlights */}
+                {(() => {
+                  const evSummary = activeAnalysis.alignmentScore?.evidenceSummary;
+                  const strongest = evSummary?.strongestEvidence || [];
+                  const limited = evSummary?.areasWithLimitedEvidence || [];
+
+                  if (!strongest.length && !limited.length) return null;
+
+                  return (
+                    <View className="mb-4 pb-3 border-b border-[#EAF2F7] gap-2">
+                      {strongest.length > 0 && (
+                        <View className="mb-2">
+                          <Text className="text-[10px] font-bold text-[#1E5D53] uppercase tracking-wider mb-1">
+                            Strongest Demonstrated Evidence
+                          </Text>
+                          {strongest.map((quote, idx) => (
+                            <Text key={idx} className="text-xs text-[#4F6B82] leading-4 mb-1 italic">
+                              • "{quote}"
+                            </Text>
+                          ))}
+                        </View>
+                      )}
+                      {limited.length > 0 && (
+                        <View>
+                          <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-wider mb-1">
+                            Areas with Limited Evidence
+                          </Text>
+                          <Text className="text-xs text-[#4F6B82] leading-4">
+                            Direct project evidence is limited for: {limited.join(", ")}.
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })()}
 
                 {/* Qualitative Competency Chips (Matched, Transferable, Relevant Tech, Priority Gaps) */}
                 {(() => {
@@ -599,7 +899,7 @@ export default function DashboardScreen() {
 
                     const hasTenPoints = matchingAdjs.some((a) => a.points === 10);
                     const hasFivePoints = matchingAdjs.some((a) => a.points === 5);
-                    const status = matchingAdjs.length > 0 ? (hasTenPoints ? "STRONG_MATCH" : hasFivePoints ? "PARTIAL_MATCH" : "STRONG_MATCH") : "STRONG_MATCH";
+                    const status = matchingAdjs.length > 0 ? (hasTenPoints ? "STRONG_MATCH" : hasFivePoints ? "PARTIAL_MATCH" : "NO_RELEVANT_EVIDENCE") : "NO_RELEVANT_EVIDENCE";
 
                     let userRating = selfRatings[lowerName] || "SKIP";
                     if (userRating === "SKIP") {
@@ -628,10 +928,7 @@ export default function DashboardScreen() {
                   });
 
                   const strongPoints = personalizedItems.filter(
-                    (item) =>
-                      item.personalizedStatus === "STRONG_POINT" ||
-                      item.personalizedStatus === "STRONG_POINT_LIMITED_EVIDENCE" ||
-                      item.personalizedStatus === "ADDITIONAL_STRENGTH"
+                    (item) => item.personalizedStatus === "STRONG_POINT"
                   );
 
                   const moderatePoints = personalizedItems.filter(
@@ -840,6 +1137,34 @@ export default function DashboardScreen() {
                 })()}
               </View>
             )}
+          </View>
+
+          {/* CARD 3: ATS VS ROLE ALIGNMENT COMPARISON */}
+          <View className="bg-white rounded-2xl border border-[#BFD6EA] mx-6 mb-4 p-5" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
+            <View className="flex-row items-center gap-2 mb-3">
+              <Ionicons name="git-compare-outline" size={18} color="#1F3A5F" />
+              <Text className="text-xs font-bold text-[#1F3A5F] uppercase tracking-wider">Understanding Your Scores</Text>
+            </View>
+            <View className="gap-2.5">
+              <View className="bg-[#F4F8FB] p-3 rounded-xl border border-[#EAF2F7]">
+                <Text className="text-xs text-[#1F3A5F] font-bold mb-1">ATS Score (40% Weight)</Text>
+                <Text className="text-[11px] text-[#4F6B82] leading-4">
+                  Measures machine readability and document hygiene. Can an automated parser read your sections, contact details, work history, and formatting without errors? Completely role-independent.
+                </Text>
+              </View>
+              <View className="bg-[#FEF5F1] p-3 rounded-xl border border-[#F4A47A]/40">
+                <Text className="text-xs text-[#CA5D25] font-bold mb-1">Role Alignment (60% Weight)</Text>
+                <Text className="text-[11px] text-[#4F6B82] leading-4">
+                  Measures demonstrated qualification fit for {currentUser?.targetPosition || "your target position"}. Evaluates required skills match, project evidence, degree relevance, and certifications.
+                </Text>
+              </View>
+              <View className="bg-[#EAF2F7] p-3 rounded-xl border border-[#BFD6EA]">
+                <Text className="text-xs text-[#1F3A5F] font-bold mb-1">Combined Resume Score</Text>
+                <Text className="text-[11px] text-[#1F3A5F] leading-4">
+                  The authoritative composite result: <Text className="font-bold">ATS Score × 0.40 + Alignment Score × 0.60</Text>.
+                </Text>
+              </View>
+            </View>
           </View>
 
           {/* Solid 50% width separator */}

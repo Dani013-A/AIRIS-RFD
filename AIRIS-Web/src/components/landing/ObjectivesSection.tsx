@@ -76,7 +76,7 @@ export function ObjectivesSection() {
 
                   {/* Authoritative Manuscript Formulation */}
                   <blockquote className="text-sm text-[#5F7E97] leading-relaxed italic border-l-2 border-[#F59E73] pl-3 py-0.5">
-                    "{obj.manuscriptText}"
+                    &quot;{obj.manuscriptText}&quot;
                   </blockquote>
                 </div>
 

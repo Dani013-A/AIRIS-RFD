@@ -4,7 +4,7 @@
     "slug": "AIRIS-Mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/airis-app-new.png",
+    "icon": "./assets/images/airis-logo-final.png",
     "scheme": "airismobile",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -18,7 +18,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/airis-app-new.png"
+      "favicon": "./assets/images/airis-logo-final.png"
     },
     "plugins": [
       "expo-router",
@@ -26,7 +26,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/airis-app-new.png",
+          "image": "./assets/images/airis-logo-final.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",

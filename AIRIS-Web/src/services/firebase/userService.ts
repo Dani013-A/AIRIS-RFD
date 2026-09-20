@@ -4,7 +4,6 @@ import {
   getDocs,
   getDoc,
   updateDoc,
-  deleteDoc,
   setDoc,
   serverTimestamp,
 } from "firebase/firestore";
@@ -14,8 +13,13 @@ import {
   StudentFullProfile,
   ScoreHistoryEvent,
   StudentActivityEvent,
+  StoredResumeAnalysis,
+  StoredInterviewSession,
+  EmployabilityStatus,
 } from "../../types/user.types";
+import { AdminRole } from "../../types/auth.types";
 import { logAuditEvent } from "./auditService";
+import { findCollegeByProgramName } from "../../config/tipManilaAcademic";
 
 const USERS_COLLECTION = "users";
 const RESUMES_SUBCOLLECTION = "resumes";
@@ -32,14 +36,12 @@ function parseTimestamp(ts: any): string {
 }
 
 /**
- * Deterministically calculates the canonical Employability Preparedness Score.
- * Formula: (Interview Score × 0.60) + (Resume ATS Score × 0.40)
+ * Deterministically computes the canonical composite Employability Preparedness Score.
+ * Formula: round(Resume ATS Score × 0.40 + Interview Score × 0.60)
  *
- * Strict Rules:
- * 1. Requires BOTH valid Resume ATS score (> 0) and valid Interview score (> 0).
- * 2. If interviewStatus is "not_started" or no completed interview session exists, returns undefined ("Not Yet Evaluated").
- * 3. Never substitutes single scores (e.g. resume score alone) into Employability Score.
- * 4. Never uses orphan/stale user document scores when 0 completed interview sessions exist.
+ * Strict Rule:
+ * Returns undefined ("Incomplete Data") if either score is missing/zero or interview is incomplete.
+ * Never synthesizes fake scores or partial substitutes.
  */
 export function calculateEmployabilityScore(
   resumeScore?: number,
@@ -47,9 +49,9 @@ export function calculateEmployabilityScore(
   interviewStatus?: string
 ): number | undefined {
   if (
-    resumeScore &&
+    resumeScore !== undefined &&
     resumeScore > 0 &&
-    interviewScore &&
+    interviewScore !== undefined &&
     interviewScore > 0 &&
     interviewStatus === "completed"
   ) {
@@ -58,91 +60,154 @@ export function calculateEmployabilityScore(
   return undefined;
 }
 
+export interface StudentFilterOptions {
+  program?: string;
+  coordinator?: string;
+  status?: string;
+  userRole?: AdminRole;
+  assignedProgram?: string;
+}
+
 /**
- * Fetches all registered students from the Firestore database.
- * Derives current scores and activity status directly from subcollections.
+ * Fetches all registered students from Firestore, respecting role-based scoping and filters.
+ * Consumes authoritative stored subcollection records without synthesizing scores.
  */
-export async function fetchStudentsList(): Promise<StudentListItem[]> {
+export async function fetchStudentsList(filters?: StudentFilterOptions): Promise<StudentListItem[]> {
   const usersCol = collection(db, USERS_COLLECTION);
   const snapshot = await getDocs(usersCol);
 
-  const students: StudentListItem[] = [];
+  // OJT Coordinator program scoping boundary
+  const effectiveProgramFilter =
+    filters?.userRole === "ojt_coordinator" && filters.assignedProgram
+      ? filters.assignedProgram
+      : filters?.program && filters.program !== "all"
+      ? filters.program
+      : undefined;
 
-  for (const docSnap of snapshot.docs) {
+  const eligibleDocs = snapshot.docs.filter((docSnap) => {
     const userData = docSnap.data();
-    if (userData.role === "admin") continue;
+    if (userData.role === "admin" || userData.role === "career_center" || userData.role === "ojt_coordinator") {
+      return false;
+    }
+    if (userData.isDeleted === true || userData.accountState === "DELETED") {
+      return false;
+    }
 
+    // Role-based program filter enforcement
+    if (effectiveProgramFilter && userData.degreeProgram !== effectiveProgramFilter) {
+      return false;
+    }
+
+    // Coordinator filter enforcement (department/college coordinator)
+    if (filters?.coordinator && filters.coordinator !== "all") {
+      const col = findCollegeByProgramName(userData.degreeProgram || "");
+      const matchesDepartment = col?.id === filters.coordinator;
+      const matchesCoordField = userData.coordinator === filters.coordinator;
+      if (!matchesDepartment && !matchesCoordField) {
+        return false;
+      }
+    }
+
+    // Account status filter enforcement
+    if (filters?.status === "active" && userData.isDisabled) {
+      return false;
+    }
+    if (filters?.status === "disabled" && !userData.isDisabled) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Fetch all student subcollections concurrently in parallel rather than blocking sequentially
+  const studentPromises = eligibleDocs.map(async (docSnap): Promise<StudentListItem> => {
     const studentId = docSnap.id;
-    let resumeScore = 0;
-    let interviewScore = 0;
+    const userData = docSnap.data();
+    let resumeScore: number | undefined = undefined;
+    let interviewScore: number | undefined = undefined;
     let resumeStatus: StudentListItem["resumeStatus"] = userData.hasUploadedResume ? "success" : "missing";
     let interviewStatus: StudentListItem["interviewStatus"] = "not_started";
     let resumesCount = 0;
     let interviewsCount = 0;
-    let lastActivityDate = parseTimestamp(userData.updatedAt || userData.createdAt);
+    const lastActivityDate = parseTimestamp(userData.updatedAt || userData.createdAt);
 
-    // 1. Check resumes subcollection
-    try {
-      const resumesColRef = collection(db, USERS_COLLECTION, studentId, RESUMES_SUBCOLLECTION);
-      const resumesSnap = await getDocs(resumesColRef);
-      resumesCount = resumesSnap.size;
+    const resumesColRef = collection(db, USERS_COLLECTION, studentId, RESUMES_SUBCOLLECTION);
+    const analysesColRef = collection(db, USERS_COLLECTION, studentId, RESUME_ANALYSES_SUBCOLLECTION);
+    const interviewsColRef = collection(db, USERS_COLLECTION, studentId, INTERVIEWS_SUBCOLLECTION);
 
+    const [resumesRes, analysesRes, interviewsRes] = await Promise.allSettled([
+      getDocs(resumesColRef),
+      getDocs(analysesColRef),
+      getDocs(interviewsColRef),
+    ]);
+
+    if (resumesRes.status === "fulfilled") {
+      resumesCount = resumesRes.value.size;
       if (resumesCount > 0) {
         resumeStatus = "success";
       }
-
-      // Fetch latest analysis
-      const analysesColRef = collection(db, USERS_COLLECTION, studentId, RESUME_ANALYSES_SUBCOLLECTION);
-      const analysesSnap = await getDocs(analysesColRef);
-      if (!analysesSnap.empty) {
-        let latestScore = 0;
-        let latestDate = 0;
-        analysesSnap.forEach((aDoc) => {
-          const aData = aDoc.data();
-          const score = aData.result?.atsScore?.overallScore ?? aData.result?.overallScore ?? 0;
-          const aTime = new Date(parseTimestamp(aData.createdAt)).getTime();
-          if (aTime > latestDate) {
-            latestDate = aTime;
-            latestScore = score;
-          }
-        });
-        resumeScore = latestScore;
-      }
-    } catch (e) {
-      console.warn(`Failed to parse resume analyses for ${studentId}:`, e);
     }
 
-    // 2. Check interviews subcollection
-    try {
-      const interviewsColRef = collection(db, USERS_COLLECTION, studentId, INTERVIEWS_SUBCOLLECTION);
-      const interviewsSnap = await getDocs(interviewsColRef);
-      interviewsCount = interviewsSnap.size;
-
-      if (interviewsCount > 0) {
-        interviewStatus = "completed";
-        let latestIntScore = 0;
-        let latestIntDate = 0;
-        interviewsSnap.forEach((iDoc) => {
-          const iData = iDoc.data();
-          const score = iData.overallScore ?? iData.score ?? 0;
-          const iTime = new Date(parseTimestamp(iData.completedAt || iData.createdAt)).getTime();
-          if (iTime > latestIntDate) {
-            latestIntDate = iTime;
-            latestIntScore = score;
-          }
-        });
-        if (latestIntScore > 0) {
-          interviewScore = latestIntScore;
+    if (analysesRes.status === "fulfilled" && !analysesRes.value.empty) {
+      let latestScore: number | undefined = undefined;
+      let latestDate = 0;
+      analysesRes.value.forEach((aDoc) => {
+        const aData = aDoc.data();
+        const score =
+          aData.result?.resumeScore?.overallScore ??
+          aData.result?.overallScore ??
+          aData.result?.atsScore?.overallScore ??
+          aData.resumeScore?.overallScore ??
+          aData.overallScore ??
+          aData.atsScore?.overallScore;
+        const aTime = new Date(parseTimestamp(aData.createdAt || aData.analyzedAt)).getTime();
+        if (aTime >= latestDate && score !== undefined && score !== null) {
+          latestDate = aTime;
+          latestScore = Number(score);
         }
-      }
-    } catch (e) {
-      console.warn(`Failed to parse interviews for ${studentId}:`, e);
+      });
+      resumeScore = latestScore;
     }
 
-    // Calculate canonical composite employability score (returns undefined if inputs incomplete)
+    if (interviewsRes.status === "fulfilled" && !interviewsRes.value.empty) {
+      interviewsCount = interviewsRes.value.size;
+      let latestIntScore: number | undefined = undefined;
+      let latestIntDate = 0;
+      interviewsRes.value.forEach((iDoc) => {
+        const iData = iDoc.data();
+        const score =
+          iData.finalReport?.overallPerformance ??
+          iData.overallPerformance ??
+          iData.overallScore ??
+          iData.score;
+        const iTime = new Date(parseTimestamp(iData.completedAt || iData.createdAt)).getTime();
+        if (iTime >= latestIntDate && score !== undefined && score !== null) {
+          latestIntDate = iTime;
+          latestIntScore = Number(score);
+        }
+      });
+
+      if (latestIntScore !== undefined) {
+        interviewScore = latestIntScore;
+        interviewStatus = "completed";
+      } else {
+        interviewStatus = "in_progress";
+      }
+    }
+
+    // Calculate canonical composite employability score (strictly undefined if incomplete)
     const employabilityScore = calculateEmployabilityScore(resumeScore, interviewScore, interviewStatus);
 
-    students.push({
+    let employabilityStatus: EmployabilityStatus = "not_started";
+    if (employabilityScore !== undefined) {
+      employabilityStatus = "completed";
+    } else if (resumeScore !== undefined && interviewScore === undefined) {
+      employabilityStatus = "interview_pending";
+    } else if (interviewScore !== undefined && resumeScore === undefined) {
+      employabilityStatus = "resume_pending";
+    }
+
+    return {
       uid: studentId,
       email: userData.email || "No email",
       fullName: userData.fullName || "Unnamed Student",
@@ -150,6 +215,7 @@ export async function fetchStudentsList(): Promise<StudentListItem[]> {
       college: userData.college || "General",
       degreeProgram: userData.degreeProgram || "Unspecified Program",
       targetPosition: userData.targetPosition || "Not set",
+      coordinator: userData.coordinator,
       activeResumeId: userData.activeResumeId || "",
       hasUploadedResume: userData.hasUploadedResume || resumesCount > 0,
       isProfileComplete: userData.isProfileComplete || false,
@@ -157,22 +223,24 @@ export async function fetchStudentsList(): Promise<StudentListItem[]> {
       createdAt: parseTimestamp(userData.createdAt),
       updatedAt: parseTimestamp(userData.updatedAt),
       employabilityScore,
+      employabilityStatus,
       resumeScore,
-      interviewScore: interviewStatus === "completed" ? interviewScore : 0,
+      interviewScore,
       resumeStatus,
       interviewStatus,
       resumesCount,
       interviewsCount,
       lastActivityDate,
-    });
-  }
+    };
+  });
 
+  const students = await Promise.all(studentPromises);
   // Sort students by creation date descending
   return students.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 /**
- * Retrieves the complete details of a specific student, including their complete resume,
+ * Retrieves the complete profile of a specific student, including their complete resume,
  * analyses history, interview history, activity logs, and chronological score timeline.
  */
 export async function fetchStudentDetails(studentId: string): Promise<StudentFullProfile> {
@@ -201,19 +269,27 @@ export async function fetchStudentDetails(studentId: string): Promise<StudentFul
   }
 
   // Sort analyses by date ascending to calculate chronological score deltas strictly within metric
-  analysesList.sort((a, b) => new Date(parseTimestamp(a.createdAt)).getTime() - new Date(parseTimestamp(b.createdAt)).getTime());
+  analysesList.sort(
+    (a, b) =>
+      new Date(parseTimestamp(a.createdAt || a.analyzedAt)).getTime() -
+      new Date(parseTimestamp(b.createdAt || b.analyzedAt)).getTime()
+  );
 
   // 2. Fetch Interviews
-  const interviewsList: any[] = [];
+  const interviewsList: StoredInterviewSession[] = [];
   try {
     const interviewsColRef = collection(db, USERS_COLLECTION, studentId, INTERVIEWS_SUBCOLLECTION);
     const interviewsSnap = await getDocs(interviewsColRef);
-    interviewsSnap.forEach((d) => interviewsList.push({ id: d.id, ...d.data() }));
+    interviewsSnap.forEach((d) => interviewsList.push({ sessionId: d.id, ...d.data() } as any));
   } catch (e) {
     console.warn("Failed to fetch student interviews:", e);
   }
 
-  interviewsList.sort((a, b) => new Date(parseTimestamp(a.completedAt || a.createdAt)).getTime() - new Date(parseTimestamp(b.completedAt || b.createdAt)).getTime());
+  interviewsList.sort(
+    (a, b) =>
+      new Date(parseTimestamp(a.completedAt || a.startedAt)).getTime() -
+      new Date(parseTimestamp(b.completedAt || b.startedAt)).getTime()
+  );
 
   // 3. Fetch Activity Logs
   const activityLogs: StudentActivityEvent[] = [];
@@ -239,68 +315,105 @@ export async function fetchStudentDetails(studentId: string): Promise<StudentFul
   // 4. Build Chronological Score History Timeline
   const scoreHistory: ScoreHistoryEvent[] = [];
 
-  // Resume score history (Delta calculated ONLY within Resume metric)
   let prevResumeScore: number | undefined = undefined;
   analysesList.forEach((a, idx) => {
-    const score = a.result?.atsScore?.overallScore ?? a.result?.overallScore ?? 0;
-    const version = idx + 1;
-    let delta: number | undefined = undefined;
-    if (prevResumeScore !== undefined) {
-      delta = score - prevResumeScore;
-    }
-    prevResumeScore = score;
+    const score =
+      a.result?.resumeScore?.overallScore ??
+      a.result?.overallScore ??
+      a.result?.atsScore?.overallScore ??
+      a.resumeScore?.overallScore ??
+      a.overallScore;
 
-    scoreHistory.push({
-      id: a.id || `resume_eval_${idx}`,
-      type: "resume",
-      title: `Resume Evaluation (v${version})`,
-      version,
-      score,
-      previousScore: prevResumeScore,
-      delta,
-      date: parseTimestamp(a.createdAt),
-      targetPosition: a.targetPosition || userData.targetPosition,
-      details: `Evaluated against ${a.targetPosition || userData.targetPosition || "Target Position"}`,
-    });
+    if (score !== undefined && score !== null) {
+      const numScore = Number(score);
+      const version = a.version || idx + 1;
+      let delta: number | undefined = undefined;
+      if (prevResumeScore !== undefined) {
+        delta = numScore - prevResumeScore;
+      }
+      prevResumeScore = numScore;
+
+      scoreHistory.push({
+        id: a.id || `resume_eval_${idx}`,
+        type: "resume",
+        title: `Resume Evaluation (v${version})`,
+        version,
+        score: numScore,
+        previousScore: prevResumeScore,
+        delta,
+        date: parseTimestamp(a.createdAt || a.analyzedAt),
+        targetPosition: a.targetPosition || userData.targetPosition,
+        details: `Evaluated against ${a.targetPosition || userData.targetPosition || "Target Position"}`,
+      });
+    }
   });
 
-  // Interview score history (Delta calculated ONLY within Interview metric)
   let prevInterviewScore: number | undefined = undefined;
   interviewsList.forEach((i, idx) => {
-    const score = i.overallScore ?? i.score ?? 0;
-    let delta: number | undefined = undefined;
-    if (prevInterviewScore !== undefined) {
-      delta = score - prevInterviewScore;
-    }
-    prevInterviewScore = score;
+    const score =
+      i.finalReport?.overallPerformance ??
+      i.overallScore ??
+      (i as any).score;
 
-    scoreHistory.push({
-      id: i.id || `interview_eval_${idx}`,
-      type: "interview",
-      title: `Mock Interview Session #${idx + 1}`,
-      version: idx + 1,
-      score,
-      previousScore: prevInterviewScore,
-      delta,
-      date: parseTimestamp(i.completedAt || i.createdAt),
-      targetPosition: i.targetPosition || userData.targetPosition,
-      details: i.roleTitle ? `Target Role: ${i.roleTitle}` : "Interactive Voice Simulation",
-    });
+    if (score !== undefined && score !== null) {
+      const numScore = Number(score);
+      let delta: number | undefined = undefined;
+      if (prevInterviewScore !== undefined) {
+        delta = numScore - prevInterviewScore;
+      }
+      prevInterviewScore = numScore;
+
+      scoreHistory.push({
+        id: i.sessionId || `interview_eval_${idx}`,
+        type: "interview",
+        title: `Mock Interview Session #${idx + 1}`,
+        version: idx + 1,
+        score: numScore,
+        previousScore: prevInterviewScore,
+        delta,
+        date: parseTimestamp(i.completedAt || i.startedAt),
+        targetPosition: i.targetRole || userData.targetPosition,
+        details: i.targetRole ? `Target Role: ${i.targetRole}` : "Interactive Voice Simulation",
+      });
+    }
   });
 
-  // Sort score history timeline by date descending for presentation
   scoreHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  // Derive latest Scores & Statuses
-  const latestAnalysis = analysesList.length > 0 ? analysesList[analysesList.length - 1] : null;
+  // Derive latest canonical analysis & evaluation
+  const latestRawAnalysis = analysesList.length > 0 ? analysesList[analysesList.length - 1] : null;
+  const latestAnalysis: StoredResumeAnalysis | null = latestRawAnalysis
+    ? (latestRawAnalysis.result ?? latestRawAnalysis)
+    : null;
   const latestResume = resumesList.length > 0 ? resumesList[resumesList.length - 1] : null;
   const latestInterview = interviewsList.length > 0 ? interviewsList[interviewsList.length - 1] : null;
 
-  const resumeScore = latestAnalysis ? (latestAnalysis.result?.atsScore?.overallScore ?? latestAnalysis.result?.overallScore ?? 0) : 0;
-  const interviewStatus = interviewsList.length > 0 ? "completed" : "not_started";
-  const interviewScore = latestInterview ? (latestInterview.overallScore ?? latestInterview.score ?? 0) : 0;
+  const resumeScore: number | undefined = latestAnalysis
+    ? latestAnalysis.resumeScore?.overallScore ?? latestAnalysis.overallScore ?? latestAnalysis.atsScore?.overallScore
+    : undefined;
+
+  const interviewStatus: StudentListItem["interviewStatus"] =
+    interviewsList.length > 0
+      ? latestInterview?.completedAt
+        ? "completed"
+        : "in_progress"
+      : "not_started";
+
+  const interviewScore: number | undefined =
+    latestInterview && interviewStatus === "completed"
+      ? latestInterview.finalReport?.overallPerformance ?? latestInterview.overallScore
+      : undefined;
 
   const employabilityScore = calculateEmployabilityScore(resumeScore, interviewScore, interviewStatus);
+
+  let employabilityStatus: EmployabilityStatus = "not_started";
+  if (employabilityScore !== undefined) {
+    employabilityStatus = "completed";
+  } else if (resumeScore !== undefined && interviewScore === undefined) {
+    employabilityStatus = "interview_pending";
+  } else if (interviewScore !== undefined && resumeScore === undefined) {
+    employabilityStatus = "resume_pending";
+  }
 
   const student: StudentListItem = {
     uid: studentId,
@@ -310,6 +423,7 @@ export async function fetchStudentDetails(studentId: string): Promise<StudentFul
     college: userData.college || "General",
     degreeProgram: userData.degreeProgram || "Unspecified Program",
     targetPosition: userData.targetPosition || "Not set",
+    coordinator: userData.coordinator,
     activeResumeId: userData.activeResumeId || "",
     hasUploadedResume: userData.hasUploadedResume || resumesList.length > 0,
     isProfileComplete: userData.isProfileComplete || false,
@@ -317,8 +431,9 @@ export async function fetchStudentDetails(studentId: string): Promise<StudentFul
     createdAt: parseTimestamp(userData.createdAt),
     updatedAt: parseTimestamp(userData.updatedAt),
     employabilityScore,
+    employabilityStatus,
     resumeScore,
-    interviewScore: interviewStatus === "completed" ? interviewScore : 0,
+    interviewScore,
     resumeStatus: resumesList.length > 0 ? "success" : "missing",
     interviewStatus,
     resumesCount: resumesList.length,
@@ -339,29 +454,36 @@ export async function fetchStudentDetails(studentId: string): Promise<StudentFul
 }
 
 /**
- * Toggle the disabled state of a student's account.
+ * Toggle the disabled state of a student's account and log an audit trail.
  */
 export async function toggleStudentAccountState(
   studentId: string,
   isDisabled: boolean,
-  adminName: string
+  actor: { name: string; uid: string; role: string }
 ): Promise<void> {
   const userRef = doc(db, USERS_COLLECTION, studentId);
   await updateDoc(userRef, { isDisabled });
 
-  const statusLabel = isDisabled ? "disabled" : "enabled";
-  await logAuditEvent(
-    "StudentUpdated",
-    `${adminName} ${statusLabel} a student account.`,
-    adminName
-  );
+  const action = isDisabled ? "UserBlocked" : "UserUnblocked";
+  await logAuditEvent({
+    action,
+    details: `${actor.name} (${actor.role}) ${isDisabled ? "blocked" : "unblocked"} student account ${studentId}.`,
+    actor: actor.name,
+    actorId: actor.uid,
+    role: actor.role,
+    target: studentId,
+    result: "SUCCESS",
+  });
 }
 
 /**
- * Delete a student account permanently from Firestore while retaining a minimal,
- * non-sensitive lifecycle tombstone (no PII) to prevent unauthorized account resurrection.
+ * Delete a student account permanently from Firestore while retaining a minimal tombstone.
+ * Strictly restricted to System Administrators.
  */
-export async function deleteStudentAccount(studentId: string, adminName: string): Promise<void> {
+export async function deleteStudentAccount(
+  studentId: string,
+  actor: { name: string; uid: string; role: string }
+): Promise<void> {
   const userRef = doc(db, USERS_COLLECTION, studentId);
   await setDoc(userRef, {
     uid: studentId,
@@ -369,13 +491,17 @@ export async function deleteStudentAccount(studentId: string, adminName: string)
     isDeleted: true,
     isDisabled: true,
     deletedAt: serverTimestamp(),
-    deletedBy: adminName,
+    deletedBy: actor.name,
     updatedAt: serverTimestamp(),
   });
 
-  await logAuditEvent(
-    "UserDeleted",
-    `${adminName} permanently deleted a student profile.`,
-    adminName
-  );
+  await logAuditEvent({
+    action: "UserDeleted",
+    details: `${actor.name} (${actor.role}) permanently deleted student profile ${studentId}.`,
+    actor: actor.name,
+    actorId: actor.uid,
+    role: actor.role,
+    target: studentId,
+    result: "SUCCESS",
+  });
 }

@@ -1,7 +1,6 @@
 import unittest
-from deterministic_scorer import calculate_official_ats_score
+from deterministic_scorer import calculate_official_ats_score, evaluate_ats_machine_readability
 from evidence_chunker import EvidenceChunk
-from output_validator import AuditedFinding, ACMOFlags
 
 
 class TestAtsMachineFriendliness(unittest.TestCase):
@@ -9,9 +8,9 @@ class TestAtsMachineFriendliness(unittest.TestCase):
     Test suite verifying ATS Score as a pure measure of Document Machine-Friendliness.
     Evaluates:
     - Normal fresh graduates with clean structure score naturally in 70-85+ range.
-    - Sparse but clean resumes score >= 50 without arbitrary score floors.
+    - Sparse but clean resumes score defensibly (>= 50) without arbitrary score floors.
     - Poorly structured documents, OCR corruption, and keyword stuffing are penalized.
-    - Zero career penalty in ATS score.
+    - ATS score is completely target-role independent.
     """
 
     def test_normal_fresh_graduate_clean_resume_scores_naturally_strong(self):
@@ -20,8 +19,8 @@ class TestAtsMachineFriendliness(unittest.TestCase):
         - Skills: 7 clean comma-separated skills
         - Experience: 2 capstone/academic projects with dates and action verbs
         - Education: BS Information Technology from recognized college with dates
-        - Certifications: Clean omission (standard fresh graduate hygiene)
-        Must naturally score >= 70 (StrongFoundation or ExcellentMatch).
+        - Contact: Email, phone, linkedin
+        Must naturally achieve High/Good Parseability (>= 70).
         """
         edu_chunk = EvidenceChunk(
             chunkId="edu_1",
@@ -51,17 +50,24 @@ class TestAtsMachineFriendliness(unittest.TestCase):
             evidence_chunks=[edu_chunk, p1, p2],
             target_position="Software Engineer",
             required_competencies=["Python", "JavaScript"],
-            detected_skills=skills
+            detected_skills=skills,
+            parsed_sections={
+                "ContactInformation": "juan.delacruz@gmail.com | 09171234567 | linkedin.com/in/juandelacruz",
+                "Education": edu_chunk.text,
+                "Projects": f"{p1.text}\n{p2.text}",
+                "Skills": ", ".join(skills)
+            }
         )
 
         overall = payload["overallScore"]
-        b = payload["resumeScore"]["breakdown"]
+        b = payload["breakdown"]
 
-        self.assertGreaterEqual(b["skills"]["rawScore"], 80, f"Clean skills must score >= 80, got {b['skills']['rawScore']}")
-        self.assertGreaterEqual(b["experience"]["rawScore"], 70, f"Clean project history must score >= 70, got {b['experience']['rawScore']}")
-        self.assertGreaterEqual(b["education"]["rawScore"], 70, f"Clean education must score >= 70, got {b['education']['rawScore']}")
-        self.assertEqual(b["certifications"]["rawScore"], 100, "Clean omission of certs must be 100")
-        self.assertGreaterEqual(overall, 70, f"Clean fresh graduate resume must naturally score >= 70, got {overall}")
+        self.assertGreaterEqual(b["skillsFormatting"]["rawScore"], 80, f"Clean skills formatting must score >= 80, got {b['skillsFormatting']['rawScore']}")
+        self.assertGreaterEqual(b["experienceStructure"]["rawScore"], 70, f"Clean experience structure must score >= 70, got {b['experienceStructure']['rawScore']}")
+        self.assertGreaterEqual(b["educationStructure"]["rawScore"], 70, f"Clean education structure must score >= 70, got {b['educationStructure']['rawScore']}")
+        self.assertGreaterEqual(b["contactRecognition"]["rawScore"], 80, f"Clean contact recognition must score >= 80, got {b['contactRecognition']['rawScore']}")
+        self.assertGreaterEqual(overall, 70, f"Clean fresh graduate resume must naturally score >= 70 in ATS, got {overall}")
+        self.assertIn(payload["level"], ("OptimalParseability", "GoodParseability"))
 
     def test_sparse_clean_resume_scores_defensibly(self):
         """
@@ -69,8 +75,7 @@ class TestAtsMachineFriendliness(unittest.TestCase):
         - 3 clean skills
         - 1 simple project with dates and an action verb
         - Clean degree
-        - No certifications section
-        Must score >= 50 (GettingThere) without needing artificial score clamping.
+        Must score >= 50 (ModerateParseability) without needing artificial score clamping.
         """
         edu = EvidenceChunk(
             chunkId="e", section="Education",
@@ -89,7 +94,13 @@ class TestAtsMachineFriendliness(unittest.TestCase):
             evidence_chunks=[edu, p],
             target_position="Web Developer",
             required_competencies=["PHP", "MySQL"],
-            detected_skills=skills
+            detected_skills=skills,
+            parsed_sections={
+                "ContactInformation": "candidate@example.com 09181234567",
+                "Education": edu.text,
+                "Projects": p.text,
+                "Skills": "PHP, MySQL, HTML"
+            }
         )
 
         overall = payload["overallScore"]
@@ -99,7 +110,7 @@ class TestAtsMachineFriendliness(unittest.TestCase):
         """
         Poorly structured resume with dense unformatted paragraphs, no delimiters,
         and missing standard headers.
-        Must be penalized for machine unfriendliness.
+        Must be penalized for machine unfriendliness in skillsFormatting.
         """
         wall_of_text = (
             "I have experience working on computers doing various programming tasks I like python and javascript "
@@ -119,14 +130,13 @@ class TestAtsMachineFriendliness(unittest.TestCase):
             parsed_sections={"Skills": wall_of_text}
         )
 
-        b = payload["resumeScore"]["breakdown"]
-        # Dense narrative without delimiters must receive low skills structure score
-        self.assertLess(b["skills"]["rawScore"], 60, f"Unformatted wall of text should receive < 60 in skills, got {b['skills']['rawScore']}")
+        b = payload["breakdown"]
+        self.assertLess(b["skillsFormatting"]["rawScore"], 60, f"Unformatted wall of text should receive < 60 in skillsFormatting, got {b['skillsFormatting']['rawScore']}")
 
     def test_ocr_corrupted_resume_heavily_penalized(self):
         """
         Resume with severe OCR scanning artifacts (\ufffd, scrambled characters).
-        Must receive poor ATS machine-friendliness scores.
+        Must receive poor ATS machine-friendliness scores in skillsFormatting.
         """
         corrupted_skills = "Pyth\ufffd\ufffdn, J\ufffdvaSc\ufffdrpt, C++ \x00\x01\x02\x03\x04, \ufffd\ufffd\ufffd\ufffd"
         payload = calculate_official_ats_score(
@@ -134,12 +144,11 @@ class TestAtsMachineFriendliness(unittest.TestCase):
             evidence_chunks=[],
             target_position="Software Engineer",
             required_competencies=["Python"],
-            parsed_sections={"Skills": corrupted_skills, "Certifications": "C\ufffd\ufffd\ufffdrtified \ufffd\ufffd\ufffd"}
+            parsed_sections={"Skills": corrupted_skills}
         )
 
-        b = payload["resumeScore"]["breakdown"]
-        self.assertLessEqual(b["skills"]["rawScore"], 50, f"Corrupted skills must be <= 50, got {b['skills']['rawScore']}")
-        self.assertLessEqual(b["certifications"]["rawScore"], 20, f"Corrupted certs must be <= 20, got {b['certifications']['rawScore']}")
+        b = payload["breakdown"]
+        self.assertLessEqual(b["skillsFormatting"]["rawScore"], 50, f"Corrupted skills must be <= 50, got {b['skillsFormatting']['rawScore']}")
 
     def test_keyword_stuffing_penalized(self):
         """
@@ -155,8 +164,8 @@ class TestAtsMachineFriendliness(unittest.TestCase):
             parsed_sections={"Skills": stuffed_skills}
         )
 
-        b = payload["resumeScore"]["breakdown"]
-        self.assertLessEqual(b["skills"]["rawScore"], 60, f"Keyword stuffed skills must be penalized, got {b['skills']['rawScore']}")
+        b = payload["breakdown"]
+        self.assertLessEqual(b["skillsFormatting"]["rawScore"], 60, f"Keyword stuffed skills must be penalized, got {b['skillsFormatting']['rawScore']}")
 
 
 if __name__ == "__main__":

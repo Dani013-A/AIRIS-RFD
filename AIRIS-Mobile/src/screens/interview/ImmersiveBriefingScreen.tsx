@@ -9,6 +9,7 @@ import { useInterviewStore } from "../../store/interviewStore";
 import { startInterviewSimulation } from "../../services/api/interviewApi";
 import { PrimaryButton } from "../../components/ui";
 import { normalizeApiError } from "../../utils/errorMapper";
+import AirisOrientation from "../../utils/AirisOrientation";
 
 /**
  * ImmersiveBriefingScreen
@@ -185,7 +186,10 @@ export default function ImmersiveBriefingScreen() {
         <PrimaryButton
           title="Enter VR Environment"
           variant="orange"
-          onPress={() => router.push("/(student)/interview-session/immersive-active" as any)}
+          onPress={() => {
+            AirisOrientation.lockLandscape();
+            router.push("/(student)/interview-session/immersive-active" as any);
+          }}
         />
       </View>
     </SafeAreaView>

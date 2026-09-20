@@ -27,9 +27,9 @@ cleanup() {
 trap cleanup SIGINT SIGTERM
 
 # Start Expo in the foreground – QR code and key shortcuts work.
-echo "Expo dev server starting. Scan the QR code with Expo Go."
+echo "Expo dev server starting in Development Client mode."
 echo "Backend is running at http://127.0.0.1:8000"
 echo "Press Ctrl+C to stop Expo."
 
 # This command blocks; when you press Ctrl+C the cleanup handler runs.
-npm start
+npx expo start --dev-client

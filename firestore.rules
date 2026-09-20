@@ -2,18 +2,28 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to check if the requesting user is an administrator
-    function isAdmin() {
+    // Helper function to check if the requesting user is an authorized staff member or administrator
+    function isStaffOrAdmin() {
       return request.auth != null && (
         (request.auth.token != null && request.auth.token.admin == true) ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'career_center', 'ojt_coordinator']))
+      );
+    }
+
+    // Helper function to check if the requesting user is a System Administrator
+    function isSystemAdmin() {
+      return request.auth != null && (
+        (request.auth.token != null && request.auth.token.admin == true) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
     }
 
     // Student and Admin profiles collection rules
     match /users/{userId} {
-      // 1. Read: Allow users to read their own profile, or admins
-      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      // 1. Read: Allow users to read their own profile, or staff/admins
+      allow read: if request.auth != null && (request.auth.uid == userId || isStaffOrAdmin());
       // 2. Create: Authenticated student initializing their own active profile
       allow create: if request.auth != null
                     && request.auth.uid == userId
@@ -23,15 +33,13 @@ service cloud.firestore {
                     && request.resource.data.isDisabled == false;
 
       // 3. Update:
-      // - Admins can update any account
+      // - Staff/Admins can update accounts (e.g. block/unblock, edit coordinator)
       // - Non-admin users can update their own profile ONLY IF:
-      //   a) Existing document is not deleted or disabled (cannot resurrect deleted/disabled account)
+      //   a) Existing document is not deleted or disabled
       //   b) User does not escalate role
-      //   c) Either:
-      //      i) Normal profile update: cannot change role, accountState, isDeleted, isDisabled
-      //      ii) Self-account cascade deletion: transitions accountState to "DELETED", isDeleted to true, isDisabled to true
+      //   c) Either normal profile update or self-deletion
       allow update: if request.auth != null && resource != null && (
-        isAdmin() || (
+        isStaffOrAdmin() || (
           request.auth.uid == userId &&
           resource.data.isDeleted != true &&
           resource.data.accountState != "DELETED" &&
@@ -53,35 +61,37 @@ service cloud.firestore {
         )
       );
 
-      // 4. Delete: Normal users cannot hard-delete user documents; admin only
-      allow delete: if request.auth != null && isAdmin();
+      // 4. Delete: Normal users cannot hard-delete user documents; System Admin only
+      allow delete: if request.auth != null && isSystemAdmin();
 
       // 5. User subcollections
       match /{subcollection}/{docId} {
-        allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+        allow read, write: if request.auth != null && (request.auth.uid == userId || isStaffOrAdmin());
       }
     }
 
-    // Collection Group rules to permit querying subcollections across all users for admins
+    // Collection Group rules to permit querying subcollections across all users for staff/admins
     match /{path=**}/resumes/{resumeId} {
-      allow read: if request.auth != null && isAdmin();
+      allow read: if request.auth != null && isStaffOrAdmin();
     }
 
     match /{path=**}/resumeAnalyses/{analysisId} {
-      allow read: if request.auth != null && isAdmin();
+      allow read: if request.auth != null && isStaffOrAdmin();
     }
 
     match /{path=**}/interviews/{interviewId} {
-      allow read: if request.auth != null && isAdmin();
+      allow read: if request.auth != null && isStaffOrAdmin();
     }
 
     match /{path=**}/activities/{activityId} {
-      allow read: if request.auth != null && isAdmin();
+      allow read: if request.auth != null && isStaffOrAdmin();
     }
 
-    // Security compliance audit logs (admin only)
+    // Security compliance audit logs: append-only, tamper-proof
     match /auditLogs/{logId} {
-      allow read, write: if request.auth != null && isAdmin();
+      allow read: if request.auth != null && isStaffOrAdmin();
+      allow create: if request.auth != null && isStaffOrAdmin();
+      allow update, delete: if false; // Audit logs must not be modified or deleted by clients
     }
 
     // Curated learning materials library & verified dynamic catalog

@@ -119,28 +119,34 @@ class TestMultiDomainScoringPipeline(unittest.TestCase):
                     role_profile_metadata=candidate["meta"]
                 )
 
-                score = payload["overallScore"]
-                breakdown = payload["resumeScore"]["breakdown"]
+                align_score = payload["alignmentScore"]["overallScore"]
+                align_breakdown = payload["alignmentScore"]["breakdown"]
 
                 # 1. Boundedness verification
-                self.assertGreaterEqual(score, 0, f"Persona {role} score must be >= 0")
-                self.assertLessEqual(score, 100, f"Persona {role} score must be <= 100")
+                self.assertGreaterEqual(align_score, 0, f"Persona {role} alignment score must be >= 0")
+                self.assertLessEqual(align_score, 100, f"Persona {role} alignment score must be <= 100")
 
                 # 2. Formula verification: Skills 40% + Exp 30% + Edu 20% + Cert 10%
-                s_pts = breakdown["skills"]["weightedScore"]
-                e_pts = breakdown["experience"]["weightedScore"]
-                ed_pts = breakdown["education"]["weightedScore"]
-                c_pts = breakdown["certifications"]["weightedScore"]
+                s_pts = align_breakdown["skillsMatch"]["weightedScore"]
+                e_pts = align_breakdown["experienceProjects"]["weightedScore"]
+                ed_pts = align_breakdown["educationRelevance"]["weightedScore"]
+                c_pts = align_breakdown["certifications"]["weightedScore"]
                 summed = round(s_pts + e_pts + ed_pts + c_pts)
-                self.assertEqual(score, summed, f"Persona {role} formula mismatch: overall {score} != rounded sum {summed}")
+                self.assertEqual(align_score, summed, f"Persona {role} alignment formula mismatch: {align_score} != rounded sum {summed}")
 
-                # 3. Determinism verification: Identical across repeated runs
+                # 3. Canonical synthesis verification: Resume = ATS * 0.40 + Alignment * 0.60
+                ats_score = payload["overallScore"]
+                canonical_resume = payload["canonicalResumeScore"]
+                expected_resume = round(ats_score * 0.40 + align_score * 0.60)
+                self.assertEqual(canonical_resume, expected_resume, f"Persona {role} synthesis mismatch: {canonical_resume} != {expected_resume}")
+
+                # 4. Determinism verification: Identical across repeated runs
                 if previous_score is not None:
-                    self.assertEqual(score, previous_score, f"Persona {role} nondeterminism detected between run 1 ({previous_score}) and run {run_idx+1} ({score})")
-                    self.assertEqual(breakdown, previous_breakdown, f"Persona {role} component breakdown diverged across runs")
+                    self.assertEqual(canonical_resume, previous_score, f"Persona {role} nondeterminism detected between run 1 ({previous_score}) and run {run_idx+1} ({canonical_resume})")
+                    self.assertEqual(align_breakdown, previous_breakdown, f"Persona {role} component breakdown diverged across runs")
 
-                previous_score = score
-                previous_breakdown = breakdown
+                previous_score = canonical_resume
+                previous_breakdown = align_breakdown
 
 if __name__ == "__main__":
     unittest.main()

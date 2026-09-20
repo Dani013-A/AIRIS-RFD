@@ -34,7 +34,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const admin = get().currentAdmin;
     if (admin) {
       try {
-        await signOutAdmin(admin.fullName);
+        await signOutAdmin(admin);
       } catch {
         // Continue logout anyway
       }
@@ -49,7 +49,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const unsubscribe = subscribeToAuthState((admin) => {
       const prevAdmin = get().currentAdmin;
       if (prevAdmin && !admin) {
-        set({ currentAdmin: null, loading: false, initialized: true, error: "your account has been paused or deleted by the admin" });
+        set({
+          currentAdmin: null,
+          loading: false,
+          initialized: true,
+          error: "Your session has expired or your account was disabled.",
+        });
       } else {
         set({ currentAdmin: admin, loading: false, initialized: true });
       }

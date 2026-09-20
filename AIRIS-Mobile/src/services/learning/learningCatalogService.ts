@@ -2912,8 +2912,12 @@ export function getGrowthPathRecommendations(params: GrowthPathParams): GrowthPa
     params.activeAnalysis?.learningSnapshot?.aiRecommendedResources ||
     [];
   if (Array.isArray(rawAiCandidates) && rawAiCandidates.length > 0) {
+    const stringGaps: string[] = (skillGaps || [])
+      .map((g: any) => (typeof g === "string" ? g.trim() : (g?.skill || g?.name || "").trim()))
+      .filter(Boolean);
+
     const verifiedAi = filterAndVerifyAiCandidates(rawAiCandidates, {
-      targetGaps: skillGaps,
+      targetGaps: stringGaps,
       targetPosition: targetPos,
       existingCatalog: params.customCatalog || VERIFIED_LEARNING_CATALOG,
       rawResumeText,

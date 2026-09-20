@@ -1,4 +1,4 @@
-﻿#include "pch-cpp.hpp"
+#include "pch-cpp.hpp"
 
 
 
@@ -33533,6 +33533,15 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0
 	memset((&V_0), 0, sizeof(V_0));
 	{
 		Screen_get_safeArea_Injected_m640AF525EB7C9F73CE34BA0B4B0BE2AA80AA53FF((&V_0), NULL);
+		int32_t sw = Screen_get_width_mF608FF3252213E7EFA1F0D2F744C28110E9E5AC9(NULL);
+		int32_t sh = Screen_get_height_m01A3102DE71EE1FBEA51D09D6B0261CF864FE8F9(NULL);
+		if (sw > sh && (V_0.___m_Width < (float)sw * 0.75f || V_0.___m_Width <= (float)sh))
+		{
+			V_0.___m_XMin = 0.0f;
+			V_0.___m_YMin = 0.0f;
+			V_0.___m_Width = (float)sw;
+			V_0.___m_Height = (float)sh;
+		}
 		Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D L_0 = V_0;
 		return L_0;
 	}

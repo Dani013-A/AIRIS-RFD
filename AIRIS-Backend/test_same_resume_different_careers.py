@@ -113,10 +113,11 @@ class TestSameResumeDifferentCareers(unittest.TestCase):
             results.append(payload)
 
         base_ats = results[0]["overallScore"]
-        base_skills_raw = results[0]["resumeScore"]["breakdown"]["skills"]["rawScore"]
-        base_exp_raw = results[0]["resumeScore"]["breakdown"]["experience"]["rawScore"]
-        base_edu_raw = results[0]["resumeScore"]["breakdown"]["education"]["rawScore"]
-        base_cert_raw = results[0]["resumeScore"]["breakdown"]["certifications"]["rawScore"]
+        base_b = results[0]["breakdown"]
+        base_skills_raw = base_b["skillsFormatting"]["rawScore"]
+        base_exp_raw = base_b["experienceStructure"]["rawScore"]
+        base_edu_raw = base_b["educationStructure"]["rawScore"]
+        base_contact_raw = base_b["contactRecognition"]["rawScore"]
 
         for idx, res in enumerate(results[1:], start=1):
             role = careers[idx]["role"]
@@ -125,12 +126,12 @@ class TestSameResumeDifferentCareers(unittest.TestCase):
                 res["overallScore"], base_ats,
                 f"Delta ATS must be 0 for same resume! Failed on {role}: {res['overallScore']} vs {base_ats}"
             )
-            # 2. Breakdown scores are identical
-            b = res["resumeScore"]["breakdown"]
-            self.assertEqual(b["skills"]["rawScore"], base_skills_raw)
-            self.assertEqual(b["experience"]["rawScore"], base_exp_raw)
-            self.assertEqual(b["education"]["rawScore"], base_edu_raw)
-            self.assertEqual(b["certifications"]["rawScore"], base_cert_raw)
+            # 2. ATS Breakdown scores are identical
+            b = res["breakdown"]
+            self.assertEqual(b["skillsFormatting"]["rawScore"], base_skills_raw)
+            self.assertEqual(b["experienceStructure"]["rawScore"], base_exp_raw)
+            self.assertEqual(b["educationStructure"]["rawScore"], base_edu_raw)
+            self.assertEqual(b["contactRecognition"]["rawScore"], base_contact_raw)
 
         # 3. Target Alignment varies meaningfully and accurately reflects role match
         software_alignment = results[0]["roleRelevance"]["alignmentPercentage"]
