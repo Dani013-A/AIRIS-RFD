@@ -28,8 +28,6 @@ yarn-error.log*
 
 AGENTS.md
 
-google-services.json
-
 # Keystores and private signing keys
 *.keystore
 *.jks

@@ -27,7 +27,6 @@ venv.bak/
 # Ignore Keys & Credentials
 *.keystore
 *.jks
-google-services.json
 *firebase-adminsdk*.json
 *.pem
 *.key
