@@ -15,7 +15,7 @@ jobs:
   build-android-apk:
     name: Build Standalone Release APK
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
 
     steps:
       - name: Checkout repository
