@@ -22,7 +22,7 @@ yarn-error.log*
 .env*.local
 # Future prebuild folders (if you ever run expo prebuild)
 /ios/
-/android/
+# /android/
 
 !.env.example
 
