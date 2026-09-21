@@ -12,6 +12,12 @@ services:
     volumes:
       - /opt/airis/secrets/firebase-service-account.json:/opt/airis/secrets/firebase-service-account.json:ro
 
+  web:
+    image: airis-web:latest
+    restart: always
+    expose:
+      - "3000"
+
   caddy:
     image: caddy:2-alpine
     restart: always
@@ -24,6 +30,7 @@ services:
       - caddy_config:/config
     depends_on:
       - backend
+      - web
 
 volumes:
   caddy_data:

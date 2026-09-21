@@ -14,3 +14,17 @@
 
 	encode gzip zstd
 }
+
+admin.18-143-33-249.sslip.io {
+	reverse_proxy web:3000
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	encode gzip zstd
+}
+
