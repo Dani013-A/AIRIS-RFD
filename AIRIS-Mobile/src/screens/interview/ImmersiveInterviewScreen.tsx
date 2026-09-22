@@ -7,6 +7,7 @@ import {
   Alert,
   NativeSyntheticEvent,
   StatusBar,
+  BackHandler,
 } from "react-native";
 import UnityView from "@azesmway/react-native-unity";
 import { useRouter } from "expo-router";
@@ -71,6 +72,7 @@ export default function ImmersiveInterviewScreen() {
     sceneLoadedRef.current = false;
     hasRequestedSceneRef.current = false;
     hasSentInitialQuestionRef.current = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUnityReady(false);
     setSceneLoaded(false);
     setIsProcessing(false);
@@ -125,13 +127,35 @@ export default function ImmersiveInterviewScreen() {
     }
   }, [sceneLoaded, session?.currentQuestion, sceneName, postToUnity]);
 
-  // Lock landscape on mount; restore portrait on unmount
+  // Lock landscape on mount; clean up and restore portrait on unmount
   useEffect(() => {
     AirisOrientation.lockLandscape();
     return () => {
+      postToUnity("STOP_RECORDING");
       AirisOrientation.lockPortrait();
     };
-  }, []);
+  }, [postToUnity]);
+
+  // Handle hardware Back button to cleanly exit VR session
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+      console.log("[Immersive] Hardware Back pressed — stopping session and returning to menu");
+      postToUnity("STOP_RECORDING");
+      AirisOrientation.lockPortrait();
+      router.back();
+      return true;
+    });
+    return () => backHandler.remove();
+  }, [postToUnity, router]);
+
+  // Initiate scene synchronization for warm UnityPlayer re-entry (or initial handshake)
+  useEffect(() => {
+    if (!sceneLoadedRef.current && !hasRequestedSceneRef.current) {
+      hasRequestedSceneRef.current = true;
+      console.log("[Immersive] Initiating scene sync for:", sceneName);
+      postToUnity("LOAD_SCENE", { sceneName });
+    }
+  }, [sceneName, postToUnity]);
 
   // Helper to establish Unity readiness & trigger scene load/confirmation
   const confirmUnityRuntimeReady = useCallback(() => {
@@ -160,22 +184,10 @@ export default function ImmersiveInterviewScreen() {
         // ── Unity finished initialising ─────────────────────────────────────
         case "UNITY_READY": {
           confirmUnityRuntimeReady();
-
-          // SampleScene is Scene 0 (initial scene loaded by Unity on boot).
-          // If we are targeting SampleScene, Unity is already on SampleScene!
-          if (sceneName === "SampleScene") {
-            if (!sceneLoadedRef.current) {
-              sceneLoadedRef.current = true;
-              setSceneLoaded(true);
-              console.log("[Immersive] Scene ready:", sceneName);
-            }
-          } else {
-            // For OneOnOne or other secondary scenes: request scene switch ONLY after Unity runtime is ready
-            if (!sceneLoadedRef.current && !hasRequestedSceneRef.current) {
-              hasRequestedSceneRef.current = true;
-              console.log("[Immersive] Requesting scene:", sceneName);
-              postToUnity("LOAD_SCENE", { sceneName });
-            }
+          if (!sceneLoadedRef.current) {
+            hasRequestedSceneRef.current = true;
+            console.log("[Immersive] UNITY_READY received. Requesting scene:", sceneName);
+            postToUnity("LOAD_SCENE", { sceneName });
           }
           break;
         }
@@ -186,24 +198,26 @@ export default function ImmersiveInterviewScreen() {
 
           let loadedScene = "";
           try {
-            const p = JSON.parse(msg.payload);
-            loadedScene = p.sceneName || "";
+            const p = typeof msg.payload === "string" ? JSON.parse(msg.payload) : msg.payload;
+            loadedScene = p?.sceneName || "";
           } catch {
             console.warn("[Immersive] Could not parse SCENE_LOADED payload:", msg.payload);
           }
 
+          console.log(`[Immersive] SCENE_LOADED received: '${loadedScene}'. Target scene is '${sceneName}'.`);
+
           const isMatch =
             loadedScene && loadedScene.toLowerCase() === sceneName.toLowerCase();
 
-          if (isMatch || !loadedScene || sceneName === "SampleScene") {
+          if (isMatch) {
             if (!sceneLoadedRef.current) {
               sceneLoadedRef.current = true;
               setSceneLoaded(true);
-              console.log("[Immersive] Scene ready:", sceneName);
+              console.log("[Immersive] Scene confirmed ready:", sceneName);
             }
-          } else if (!hasRequestedSceneRef.current) {
+          } else {
             hasRequestedSceneRef.current = true;
-            console.log("[Immersive] Requesting scene:", sceneName);
+            console.log(`[Immersive] Scene mismatch ('${loadedScene}' != '${sceneName}'). Requesting scene:`, sceneName);
             postToUnity("LOAD_SCENE", { sceneName });
           }
           break;
@@ -341,6 +355,7 @@ export default function ImmersiveInterviewScreen() {
         // ── Unity confirmed interview closed ────────────────────────────────
         case "SESSION_EXIT": {
           console.log("[Immersive] Exit requested from Unity VR — restoring portrait and returning to menu.");
+          postToUnity("STOP_RECORDING");
           AirisOrientation.lockPortrait();
           router.back();
           break;
@@ -348,6 +363,7 @@ export default function ImmersiveInterviewScreen() {
 
         case "INTERVIEW_ENDED": {
           console.log("[Immersive] Interview ended in Unity — restoring portrait and navigating to summary.");
+          postToUnity("STOP_RECORDING");
           AirisOrientation.lockPortrait();
           router.push("/(student)/interview-session/summary" as any);
           break;
@@ -358,7 +374,7 @@ export default function ImmersiveInterviewScreen() {
         }
       }
     },
-    [session, currentUser, postToUnity, sceneName, getParsedResumeDict, submitAnswer, router]
+    [session, currentUser, postToUnity, sceneName, getParsedResumeDict, submitAnswer, router, confirmUnityRuntimeReady]
   );
 
   if (!session) {
