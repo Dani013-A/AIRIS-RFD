@@ -17,6 +17,8 @@ services:
     restart: always
     expose:
       - "3000"
+    volumes:
+      - /opt/airis/repo/AIRIS-Web/public/download:/app/public/download:ro
 
   caddy:
     image: caddy:2-alpine

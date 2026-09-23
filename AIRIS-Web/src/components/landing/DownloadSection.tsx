@@ -5,8 +5,10 @@ import { ArrowDownToLine, Smartphone, Info, Mail, AlertCircle, X } from "lucide-
 
 export function DownloadSection() {
   const [modalOpen, setModalOpen] = useState(false);
-  const downloadUrl = process.env.NEXT_PUBLIC_APP_DOWNLOAD_URL;
-  const isDownloadConfigured = Boolean(downloadUrl && downloadUrl.trim().length > 0);
+  const downloadUrl =
+    process.env.NEXT_PUBLIC_APP_DOWNLOAD_URL ||
+    "https://admin.18-143-33-249.sslip.io/download/AIRIS.apk";
+  const isDownloadConfigured = true;
 
   const handleDownloadClick = (e: React.MouseEvent) => {
     if (!isDownloadConfigured) {
@@ -43,45 +45,58 @@ export function DownloadSection() {
           <div className="max-w-md mx-auto p-5 rounded-2xl bg-[#E7EFF5]/50 border border-[#DCE6EE] text-left space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#1E3E6B]">Distribution Status</span>
-              <span
-                className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                  isDownloadConfigured
-                    ? "bg-teal-50 text-teal-700 border border-teal-200"
-                    : "bg-amber-50 text-amber-800 border border-amber-200"
-                }`}
-              >
-                {isDownloadConfigured ? "Available for Download" : "Android App: Coming Soon"}
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                Standalone Release APK
               </span>
             </div>
 
             <p className="text-xs text-[#5F7E97] leading-relaxed">
-              {isDownloadConfigured
-                ? "The validated release APK package is available for direct download below."
-                : "The mobile application is currently in final capstone validation and institutional evaluation at Technological Institute of the Philippines - Manila."}
+              The production standalone Android APK is available for direct installation. Scan the QR code below with your mobile device or download directly.
             </p>
           </div>
 
-          {/* Action Trigger */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            {isDownloadConfigured ? (
+          {/* QR Code & Direct Download Action */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-8 max-w-xl mx-auto p-6 rounded-3xl bg-[#F8FAFC] border border-[#DCE6EE]">
+            {/* QR Card */}
+            <div className="flex flex-col items-center space-y-2 shrink-0">
+              <div className="p-3 bg-white rounded-2xl border border-[#DCE6EE] shadow-sm">
+                <img
+                  src="/airis-apk-qr.svg"
+                  alt="Scan QR code to download AIRIS Android APK"
+                  width={160}
+                  height={160}
+                  className="w-40 h-40 object-contain"
+                />
+              </div>
+              <span className="text-[11px] font-semibold text-[#5F7E97]">
+                Scan to Download APK
+              </span>
+            </div>
+
+            {/* Direct Download Details */}
+            <div className="flex flex-col items-center sm:items-start text-center sm:text-left space-y-3">
+              <div className="space-y-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#1E3E6B]">
+                  Direct APK Installation
+                </span>
+                <p className="text-xs text-[#5F7E97] leading-relaxed">
+                  Fast direct download for student devices and faculty evaluators.
+                </p>
+              </div>
+
               <a
                 href={downloadUrl}
-                download
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-xl font-bold text-sm text-white bg-[#F59E73] hover:bg-[#e58d63] shadow-md shadow-[#F59E73]/20 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#F59E73]"
+                download="AIRIS.apk"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-bold text-sm text-white bg-[#F59E73] hover:bg-[#e58d63] shadow-md shadow-[#F59E73]/20 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#F59E73]"
               >
                 <ArrowDownToLine size={18} />
                 <span>Download Android APK</span>
               </a>
-            ) : (
-              <button
-                type="button"
-                onClick={handleDownloadClick}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-bold text-sm text-[#1E3E6B] bg-[#E7EFF5] hover:bg-[#DCE6EE] border border-[#DCE6EE] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#1E3E6B]"
-              >
-                <Info size={18} className="text-[#5F7E97]" />
-                <span>Check Availability & Access Info</span>
-              </button>
-            )}
+
+              <span className="text-[11px] text-[#5F7E97]">
+                Standalone Release APK • Android 10+
+              </span>
+            </div>
           </div>
 
           {/* Institutional Note */}

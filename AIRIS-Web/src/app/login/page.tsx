@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useAuthStore } from "../../store/authStore";
 import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import { OwlMascot } from "../../components/ui/OwlMascot";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, ArrowLeft } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -67,8 +67,19 @@ export default function LoginPage() {
 
       {/* Right panel: curved light-blue console */}
       <div className="w-full md:w-2/5 lg:w-1/3 h-full flex flex-col justify-center px-8 md:px-12 bg-sidebar-bg md:rounded-l-[48px] shadow-2xl relative z-10">
-        <div className="w-full max-w-sm mx-auto space-y-8">
+        {/* Back Navigation to Public Landing Page - anchored at top-left of blue login panel */}
+        <div className="absolute top-6 left-6 md:top-8 md:left-10 z-20">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-xs font-bold text-brand-slate hover:text-brand-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary rounded-lg py-1.5 px-2 group"
+            aria-label="Back to Public Landing Page"
+          >
+            <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
+            <span>Back to Home</span>
+          </Link>
+        </div>
 
+        <div className="w-full max-w-sm mx-auto space-y-6">
           {/* Owl mascot header */}
           <div className="flex flex-col items-center">
             <OwlMascot size={80} />

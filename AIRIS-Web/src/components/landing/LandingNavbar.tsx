@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X, ArrowDownToLine, Sparkles } from "lucide-react";
+import { Menu, X, ArrowDownToLine } from "lucide-react";
 
 export function LandingNavbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -56,9 +56,9 @@ export function LandingNavbar() {
           >
             <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-[#E7EFF5] border border-[#DCE6EE] flex items-center justify-center overflow-hidden transition-transform group-hover:scale-105">
               <img
-                src="/OWL-STANDING-OPEN.svg"
-                alt="AIRIS Mascot"
-                className="w-7 h-7 md:w-8 md:h-8 object-contain"
+                src="/airis-logo-final.png"
+                alt="AIRIS Logo"
+                className="w-full h-full object-contain"
               />
             </div>
             <div className="flex flex-col">
