@@ -72,7 +72,7 @@ export const startInterviewSimulation = async (payload: InterviewStartRequest) =
   }
 };
 
-export const submitInterviewAnswer = async (payload: InterviewAnswerRequest) => {
+export const submitInterviewAnswer = async (payload: InterviewAnswerRequest, options?: { signal?: AbortSignal }) => {
   try {
     const BASE_URL = getBaseUrl();
     const idToken = await getAuthenticatedIdToken();
@@ -83,6 +83,7 @@ export const submitInterviewAnswer = async (payload: InterviewAnswerRequest) => 
         Authorization: `Bearer ${idToken}`,
       },
       body: JSON.stringify(payload),
+      signal: options?.signal,
     });
     if (!response.ok) {
       const errText = await response.text();

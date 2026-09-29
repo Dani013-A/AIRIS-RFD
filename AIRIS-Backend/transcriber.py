@@ -91,7 +91,7 @@ def call_groq_whisper(file_bytes: bytes, mime_type: str) -> dict:
         "Authorization": f"Bearer {api_key}"
     }
 
-    ext = ".m4a" if "m4a" in mime_type else ".webm"
+    ext = ".wav" if "wav" in mime_type else (".m4a" if "m4a" in mime_type else ".webm")
     files = {
         "file": (f"audio{ext}", file_bytes, mime_type)
     }

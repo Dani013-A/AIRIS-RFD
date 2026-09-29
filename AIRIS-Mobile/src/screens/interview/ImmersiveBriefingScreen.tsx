@@ -40,22 +40,42 @@ export default function ImmersiveBriefingScreen() {
   }, []);
 
   const startSetup = async () => {
-    if (!currentUser || !activeResume || !activeAnalysis) {
-      setError("Resume or profile data is missing. Please upload a resume and try again.");
+    if (!currentUser) {
+      setError("Please log in and try again.");
       return;
     }
 
     setLoading(true);
     setError(null);
+
+    let resObj = useResumeStore.getState().activeResume;
+    let analObj = useResumeStore.getState().activeAnalysis;
+
+    if ((!resObj || !analObj) && currentUser.activeResumeId) {
+      try {
+        await useResumeStore.getState().fetchActiveResume(currentUser.uid, currentUser.activeResumeId);
+        resObj = useResumeStore.getState().activeResume;
+        analObj = useResumeStore.getState().activeAnalysis;
+      } catch (e) {
+        console.error("[ImmersiveBriefing] Error fetching active resume:", e);
+      }
+    }
+
+    if (!resObj || !analObj) {
+      setError("Resume or profile data is missing. Please upload a resume and try again.");
+      setLoading(false);
+      return;
+    }
+
     try {
       // Build the same parsedResume dict that ActiveSimulationScreen builds
       const parsedResumeDict: Record<string, string> = {};
-      if (Array.isArray(activeAnalysis.parsedSections)) {
-        for (const sec of activeAnalysis.parsedSections) {
+      if (Array.isArray(analObj.parsedSections)) {
+        for (const sec of analObj.parsedSections) {
           parsedResumeDict[sec.name] = sec.content;
         }
       } else {
-        Object.assign(parsedResumeDict, activeAnalysis.parsedSections || {});
+        Object.assign(parsedResumeDict, analObj.parsedSections || {});
       }
 
       // Detect the interview type stored by ExperienceSelectionScreen
@@ -64,12 +84,18 @@ export default function ImmersiveBriefingScreen() {
       const interviewType: "one-on-one" | "panel" =
         pendingType === "immersive-panel" ? "panel" : "one-on-one";
 
+      console.log(
+        `[VR][QUESTION_CONTEXT] uid=${currentUser.uid} targetRole="${currentUser.targetPosition || "Unknown Role"}" program="${currentUser.degreeProgram || "Unknown Program"}" sectionsCount=${Object.keys(parsedResumeDict).length} keys=${Object.keys(parsedResumeDict).join(",")}`
+      );
+
       // ── Daniel's existing API call (unchanged) ───────────────────────────────
       const response = await startInterviewSimulation({
         targetRole: currentUser.targetPosition || "Unknown Role",
         program: currentUser.degreeProgram || "Unknown Program",
         parsedResume: parsedResumeDict,
       });
+
+      console.log(`[VR][QUESTION_READY] question="${response.question}" type=${response.questionType}`);
 
       // Seed Zustand store — same initializeSession() the Standard flow uses
       initializeSession({

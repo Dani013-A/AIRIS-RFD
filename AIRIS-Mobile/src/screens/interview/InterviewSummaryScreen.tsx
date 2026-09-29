@@ -9,6 +9,7 @@ import { PrimaryButton } from "../../components/ui";
 import { useAuthStore } from "../../store/authStore";
 import { saveInterviewSession } from "../../services/firebase/interviewService";
 import { saveUserActivity } from "../../services/firebase/activityService";
+import AirisOrientation from "../../utils/AirisOrientation";
 
 export default function InterviewSummaryScreen() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function InterviewSummaryScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    AirisOrientation.lockPortrait();
     generateReport();
   }, []);
 

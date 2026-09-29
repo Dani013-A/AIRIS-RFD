@@ -147,7 +147,13 @@ def buildIl2CppImpl(String workingDir, String configuration, String architecture
     commandLineArgs.add("--data-folder=${workingDir}/src/main/Il2CppOutputProject/Source/il2cppOutput/data")
     commandLineArgs.add("--generatedcppdir=${workingDir}/src/main/Il2CppOutputProject/Source/il2cppOutput")
     commandLineArgs.add("--cachedirectory=${workingDir}/build/il2cpp_${abi}_${configuration}/il2cpp_cache")
-    commandLineArgs.add("--tool-chain-path=" + getProperty("unity.androidNdkPath"))
+
+    def ndkPath = project.hasProperty("unity.androidNdkPath") ? project.property("unity.androidNdkPath") :
+        (System.getenv("ANDROID_NDK_HOME") ?: System.getenv("ANDROID_NDK_ROOT") ?: "/Users/danieltan/Library/Android/sdk/ndk/27.2.12479018")
+    def sdkPath = project.hasProperty("unity.androidSdkPath") ? project.property("unity.androidSdkPath") :
+        (System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT") ?: getSdkDir())
+
+    commandLineArgs.add("--tool-chain-path=" + ndkPath)
 
     staticLibraries.each { fileName ->
         commandLineArgs.add("--additional-libraries=${workingDir}/src/main/jniStaticLibs/${abi}/${fileName}")
@@ -159,12 +165,19 @@ def buildIl2CppImpl(String workingDir, String configuration, String architecture
         commandLineArgs = commandLineArgs*.replace('\"', '\\\"')
     }
 
-    def command = "${workingDir}/src/main/Il2CppOutputProject/IL2CPP/build/deploy/il2cpp${executableExtension}";
+    def command = "${workingDir}/src/main/Il2CppOutputProject/IL2CPP/build/deploy/il2cpp${executableExtension}"
+    if (!file(command).exists()) {
+        def unityHubIl2Cpp = "/Applications/Unity/Hub/Editor/6000.5.4f1/Unity.app/Contents/Resources/Scripting/il2cpp/build/deploy/il2cpp${executableExtension}"
+        if (file(unityHubIl2Cpp).exists()) {
+            command = unityHubIl2Cpp
+        }
+    }
+
     execCommand(workingDir, [command, *commandLineArgs], [
-        "ANDROID_SDK_ROOT": getProperty("unity.androidSdkPath"),
-        "ANDROID_NDK_ROOT": getProperty("unity.androidNdkPath"),
-        "NDK_ROOT": getProperty("unity.androidNdkPath"),
-        "ANDROID_NDK_HOME": getProperty("unity.androidNdkPath"),
+        "ANDROID_SDK_ROOT": sdkPath,
+        "ANDROID_NDK_ROOT": ndkPath,
+        "NDK_ROOT": ndkPath,
+        "ANDROID_NDK_HOME": ndkPath,
     ])
 
     def dbgLevel = project.android.defaultConfig.ndk.debugSymbolLevel;
@@ -173,7 +186,10 @@ def buildIl2CppImpl(String workingDir, String configuration, String architecture
     def extensionToKeep = usePublicSymbols ? ".sym.so" : ".dbg.so"
 
     delete "${workingDir}/src/main/jniLibs/${abi}/libil2cpp${extensionToRemove}"
-    ant.move(file: "${workingDir}/src/main/jniLibs/${abi}/libil2cpp${extensionToKeep}", tofile: "${workingDir}/symbols/${abi}/libil2cpp.so")
+    def symFile = file("${workingDir}/src/main/jniLibs/${abi}/libil2cpp${extensionToKeep}")
+    if (symFile.exists()) {
+        ant.move(file: symFile, tofile: "${workingDir}/symbols/${abi}/libil2cpp.so")
+    }
 
 }
 

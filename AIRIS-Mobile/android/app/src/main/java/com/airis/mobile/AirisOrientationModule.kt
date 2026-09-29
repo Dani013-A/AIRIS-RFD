@@ -86,6 +86,20 @@ class AirisOrientationModule(reactContext: ReactApplicationContext) :
             insetsController.systemBarsBehavior =
                 WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
             insetsController.show(WindowInsetsCompat.Type.systemBars())
+
+            // 4. Delayed enforcements to ensure Unity teardown does not revert orientation
+            val handler = android.os.Handler(android.os.Looper.getMainLooper())
+            val retryAction = Runnable {
+                try {
+                    val act = reactApplicationContext.currentActivity
+                    if (act != null && !MainActivity.isLandscapeLocked) {
+                        act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    }
+                } catch (_: Throwable) {}
+            }
+            handler.postDelayed(retryAction, 150)
+            handler.postDelayed(retryAction, 350)
+            handler.postDelayed(retryAction, 700)
         }
     }
 }
