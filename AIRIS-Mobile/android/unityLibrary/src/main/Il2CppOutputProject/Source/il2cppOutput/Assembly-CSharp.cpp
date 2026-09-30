@@ -10111,7 +10111,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DialogueManager_Start_m4C2D94B2DD22F681B
 	//<source_info:<no-source>:1>
 	{
 		DialogueManager_AlignCanvasToCamera_m6283568B3E1D6325FD1E394444AD7F473D4E67B5(__this, NULL);
-		DialogueManager_HideSpeech_mF2561CD4DC99F9685993B4821272D95E2239D17E(__this, NULL);
+		// Note: Do NOT hide speech bubble here so incoming/active question is not destroyed
 		DialogueManager_HideListening_m315365A5231BCA401133E9B2FEA85AD2ABB5A71B(__this, NULL);
 		return;
 	}
@@ -10945,78 +10945,37 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DialogueManager_EnsureEndInterviewButton
 
 	Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* canvasTr = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371((Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*)canvas, NULL);
 
-	// Check if our VR buttons are already children of this Canvas
+	// Disable all VR buttons cleanly - interaction is voice and silence driven
 	Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* endTr = Transform_Find_m3087032B0E1C5B96A2D2C27020BAEAE2DA08F932(canvasTr, il2cpp_string_new("EndInterviewButton_VR"), NULL);
 	Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* nextTr = Transform_Find_m3087032B0E1C5B96A2D2C27020BAEAE2DA08F932(canvasTr, il2cpp_string_new("NextQuestionButton_VR"), NULL);
 	Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* stopTr = Transform_Find_m3087032B0E1C5B96A2D2C27020BAEAE2DA08F932(canvasTr, il2cpp_string_new("StopRecordingButton_VR"), NULL);
 
-	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* vrEndBtn = endTr != NULL ? Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B((Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*)endTr, NULL) : NULL;
-	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* vrNextBtn = nextTr != NULL ? Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B((Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*)nextTr, NULL) : NULL;
-	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* vrStopBtn = stopTr != NULL ? Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B((Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*)stopTr, NULL) : NULL;
+	if (endTr != NULL) GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B((Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*)endTr, NULL), (bool)0, NULL);
+	if (nextTr != NULL) GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B((Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*)nextTr, NULL), (bool)0, NULL);
+	if (stopTr != NULL) GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B((Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*)stopTr, NULL), (bool)0, NULL);
 
-	// Hide prefab scene buttons and listeningPanel to eliminate rogue UI elements and circular artifacts
-	if (IsValidUnityObject((RuntimeObject*)__this->___nextQuestionButton) && __this->___nextQuestionButton != vrNextBtn)
+	if (IsValidUnityObject((RuntimeObject*)__this->___nextQuestionButton))
 	{
 		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(__this->___nextQuestionButton, (bool)0, NULL);
 	}
-	if (IsValidUnityObject((RuntimeObject*)__this->___stopRecordingButton) && __this->___stopRecordingButton != vrStopBtn)
+	if (IsValidUnityObject((RuntimeObject*)__this->___stopRecordingButton))
 	{
 		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(__this->___stopRecordingButton, (bool)0, NULL);
+	}
+	if (IsValidUnityObject((RuntimeObject*)__this->___endInterviewButton))
+	{
+		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(__this->___endInterviewButton, (bool)0, NULL);
 	}
 	if (IsValidUnityObject((RuntimeObject*)__this->___listeningPanel))
 	{
 		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(__this->___listeningPanel, (bool)0, NULL);
 	}
 
-	TypeU5BU5D_t97234E1129B564EB38B8D85CAC2AD8B5B9522FFB* btnCompTypes = NULL;
-	TypeU5BU5D_t97234E1129B564EB38B8D85CAC2AD8B5B9522FFB* txtCompTypes = NULL;
+	__this->___endInterviewButton = NULL;
+	__this->___nextQuestionButton = NULL;
+	__this->___stopRecordingButton = NULL;
 
-	if (vrEndBtn == NULL || vrNextBtn == NULL || vrStopBtn == NULL)
-	{
-		btnCompTypes = (TypeU5BU5D_t97234E1129B564EB38B8D85CAC2AD8B5B9522FFB*)SZArrayNew(TypeU5BU5D_t97234E1129B564EB38B8D85CAC2AD8B5B9522FFB_il2cpp_TypeInfo_var, (uint32_t)4);
-		btnCompTypes->SetAt(0, Type_GetTypeFromHandle_m6062B81682F79A4D6DF2640692EE6D9987858C57((RuntimeTypeHandle_t332A452B8B6179E4469B69525D0FE82A88030F7B){ reinterpret_cast<intptr_t>(RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5_0_0_0_var) }, NULL));
-		btnCompTypes->SetAt(1, Type_GetTypeFromHandle_m6062B81682F79A4D6DF2640692EE6D9987858C57((RuntimeTypeHandle_t332A452B8B6179E4469B69525D0FE82A88030F7B){ reinterpret_cast<intptr_t>(CanvasRenderer_tAB9A55A976C4E3B2B37D0CE5616E5685A8B43860_0_0_0_var) }, NULL));
-		btnCompTypes->SetAt(2, Type_GetTypeFromHandle_m6062B81682F79A4D6DF2640692EE6D9987858C57((RuntimeTypeHandle_t332A452B8B6179E4469B69525D0FE82A88030F7B){ reinterpret_cast<intptr_t>(Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_0_0_0_var) }, NULL));
-		btnCompTypes->SetAt(3, Type_GetTypeFromHandle_m6062B81682F79A4D6DF2640692EE6D9987858C57((RuntimeTypeHandle_t332A452B8B6179E4469B69525D0FE82A88030F7B){ reinterpret_cast<intptr_t>(Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098_0_0_0_var) }, NULL));
-
-		txtCompTypes = (TypeU5BU5D_t97234E1129B564EB38B8D85CAC2AD8B5B9522FFB*)SZArrayNew(TypeU5BU5D_t97234E1129B564EB38B8D85CAC2AD8B5B9522FFB_il2cpp_TypeInfo_var, (uint32_t)3);
-		txtCompTypes->SetAt(0, Type_GetTypeFromHandle_m6062B81682F79A4D6DF2640692EE6D9987858C57((RuntimeTypeHandle_t332A452B8B6179E4469B69525D0FE82A88030F7B){ reinterpret_cast<intptr_t>(RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5_0_0_0_var) }, NULL));
-		txtCompTypes->SetAt(1, Type_GetTypeFromHandle_m6062B81682F79A4D6DF2640692EE6D9987858C57((RuntimeTypeHandle_t332A452B8B6179E4469B69525D0FE82A88030F7B){ reinterpret_cast<intptr_t>(CanvasRenderer_tAB9A55A976C4E3B2B37D0CE5616E5685A8B43860_0_0_0_var) }, NULL));
-		txtCompTypes->SetAt(2, Type_GetTypeFromHandle_m6062B81682F79A4D6DF2640692EE6D9987858C57((RuntimeTypeHandle_t332A452B8B6179E4469B69525D0FE82A88030F7B){ reinterpret_cast<intptr_t>(TextMeshProUGUI_t101091AF4B578BB534C92E9D1EEAF0611636D957_0_0_0_var) }, NULL));
-	}
-
-	// 1. Ensure End Interview Button at (+130, -260)
-	if (vrEndBtn == NULL)
-	{
-		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F colEnd;
-		Color__ctor_m3786F0D6E510D9CFA544523A955870BD2A514C8C_inline((&colEnd), 0.20f, 0.25f, 0.33f, 0.95f, NULL);
-		vrEndBtn = CreateVRButton(__this, canvasTr, "EndInterviewButton_VR", "End Interview", 130.0f, -260.0f, colEnd, (const RuntimeMethod*)DialogueManager_OnEndInterviewClicked_m7E4FF429B8EB1FECF8874B87C0E155A521280919_RuntimeMethod_var, btnCompTypes, txtCompTypes);
-	}
-	__this->___endInterviewButton = vrEndBtn;
-	if (IsValidUnityObject((RuntimeObject*)__this->___endInterviewButton))
-	{
-		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(__this->___endInterviewButton, (bool)1, NULL);
-	}
-
-	// 2. Ensure Next Question Button at (-130, -260)
-	if (vrNextBtn == NULL)
-	{
-		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F colNq;
-		Color__ctor_m3786F0D6E510D9CFA544523A955870BD2A514C8C_inline((&colNq), 0.12f, 0.45f, 0.75f, 0.95f, NULL);
-		vrNextBtn = CreateVRButton(__this, canvasTr, "NextQuestionButton_VR", "Next Question", -130.0f, -260.0f, colNq, NULL, btnCompTypes, txtCompTypes);
-	}
-	__this->___nextQuestionButton = vrNextBtn;
-
-	// 3. Ensure Done Answering Button at (-130, -260)
-	if (vrStopBtn == NULL)
-	{
-		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F colDa;
-		Color__ctor_m3786F0D6E510D9CFA544523A955870BD2A514C8C_inline((&colDa), 0.05f, 0.50f, 0.35f, 0.95f, NULL);
-		vrStopBtn = CreateVRButton(__this, canvasTr, "StopRecordingButton_VR", "Done Answering", -130.0f, -260.0f, colDa, NULL, btnCompTypes, txtCompTypes);
-	}
-	__this->___stopRecordingButton = vrStopBtn;
-
-	__android_log_print(ANDROID_LOG_INFO, "Unity", "[DialogueManager] All 3 buttons ensured at dedicated lower VR area (y=-260)");
+	__android_log_print(ANDROID_LOG_INFO, "Unity", "[DialogueManager] All buttons hidden and disabled. VR interaction is voice & silence driven.");
 }
 
 // Method Definition Index: 71590
@@ -13579,10 +13538,7 @@ IL_0032:
 		NullCheck(L_9);
 		bool L_10;
 		L_10 = GameObject_get_activeInHierarchy_m49250F4F168DCC5388D5BE4F6A5681386907B109(L_9, NULL);
-		if (L_10)
-		{
-			goto IL_0064;
-		}
+		goto IL_0064;
 	}
 
 IL_0062:
@@ -13709,25 +13665,25 @@ IL_00ce:
 
 IL_00f5:
 	{
-		const float kMaxBubbleW = 620.0f;
-		const float kMinBubbleW = 380.0f;
-		const float kPadX = 44.0f;
-		const float kPadY = 28.0f;
+		const float kMaxBubbleW = 760.0f;
+		const float kMinBubbleW = 460.0f;
+		const float kPadX = 52.0f;
+		const float kPadY = 32.0f;
 		const float kMaxTextW = kMaxBubbleW - kPadX;
 		const float kMinTextW = kMinBubbleW - kPadX;
 
-		const float kMinBubbleH = 90.0f;
-		const float kMaxBubbleH = 210.0f;
+		const float kMinBubbleH = 100.0f;
+		const float kMaxBubbleH = 260.0f;
 
 		TMP_Text_tE8D677872D43AD4B2AAF0D6101692A17D0B251A9* txt = __this->___text;
 		NullCheck(txt);
 
-		// 1. TextMeshPro configuration: wrap, auto-size 16..22, ellipsis overflow, center alignment
+		// 1. TextMeshPro configuration: wrap, auto-size 20..26, NO ELLIPSIS (overflowMode 0), center alignment
 		TMP_Text_set_enableWordWrapping_mFAEE849315B4723F9C86C127B1A59EF50BE1C12F(txt, (bool)1, NULL);
 		TMP_Text_set_enableAutoSizing_mDD34BC7AA735EEBEB916FF5C9791B1502F65FBCA(txt, (bool)1, NULL);
-		TMP_Text_set_fontSizeMin_mEAF970BB9CA053DF953AF83E638EA0F1D885358F(txt, 16.0f, NULL);
-		TMP_Text_set_fontSizeMax_mC84B7090F5CE69BA63556A71FD63ABD67C911750(txt, 22.0f, NULL);
-		TMP_Text_set_overflowMode_mB8911BA07CEE0AC1E4E108B5EB79B230F90E96A1(txt, 1, NULL);
+		TMP_Text_set_fontSizeMin_mEAF970BB9CA053DF953AF83E638EA0F1D885358F(txt, 20.0f, NULL);
+		TMP_Text_set_fontSizeMax_mC84B7090F5CE69BA63556A71FD63ABD67C911750(txt, 26.0f, NULL);
+		TMP_Text_set_overflowMode_mB8911BA07CEE0AC1E4E108B5EB79B230F90E96A1(txt, 0, NULL);
 		TMP_Text_set_alignment_mE5216A28797987CC19927ED3CB8DFAC438C6B95A(txt, 514, NULL);
 
 		String_t* msg = __this->___message;
@@ -13774,7 +13730,7 @@ IL_00f5:
 
 		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 bubblePos;
 		memset((&bubblePos), 0, sizeof(bubblePos));
-		Vector2__ctor_m9525B79969AFFE3254B303A40997A56DEEB6F548_inline((&bubblePos), 0.0f, 240.0f, NULL);
+		Vector2__ctor_m9525B79969AFFE3254B303A40997A56DEEB6F548_inline((&bubblePos), 0.0f, 370.0f, NULL);
 		RectTransform_set_anchoredPosition_mF903ACE04F6959B1CD67E2B94FABC0263068F965(bubbleRt, bubblePos, NULL);
 
 		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 bubbleSz;
@@ -20338,6 +20294,10 @@ IL_009e:
 		__this->___currentPeak = (0.0f);
 		__this->___smoothedVolume = (0.0f);
 		__this->___ambientNoiseFloor = (0.00200000009f);
+		__this->___silenceThreshold = (0.0040f);
+		__this->___silenceDuration = (5.0f);
+		__this->___minimumRecordingTime = (1.0f);
+		__this->___maxInitialSilenceTime = (10.0f);
 		String_t* L_25 = __this->___microphoneDevice;
 		float L_26 = __this->___maximumRecordingTime;
 		float L_27 = L_26;
@@ -20857,7 +20817,7 @@ IL_001e:
 		L_12 = String_Concat_m9E3155FB84015C823606188F53B47CB44C444991(_stringLiteral4E74425EDBA23A4BDC02EF5B0A36EC9173D6A2AD, L_11, NULL);
 		il2cpp_codegen_runtime_class_init_inline(Debug_t8394C7EEAECA3689C2C9B9DE9C7166D73596276F_il2cpp_TypeInfo_var);
 		Debug_Log_m87A9A3C761FF5C43ED8A53B16190A53D08F818BB(L_12, NULL);
-		return _stringLiteralDA39A3EE5E6B4B0D3255BFEF95601890AFD80709;
+		return V_1;
 	}
 }
 // Method Definition Index: 71772
@@ -21368,10 +21328,10 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void RecordingManager__ctor_mA4BE2190894B0276
 	}
 	//<source_info:<no-source>:1>
 	{
-		__this->___silenceThreshold = (0.0179999992f);
-		__this->___silenceDuration = (7.0f);
-		__this->___minimumRecordingTime = (3.5f);
-		__this->___maxInitialSilenceTime = (15.0f);
+		__this->___silenceThreshold = (0.0040f);
+		__this->___silenceDuration = (5.0f);
+		__this->___minimumRecordingTime = (1.0f);
+		__this->___maxInitialSilenceTime = (10.0f);
 		__this->___maximumRecordingTime = (90.0f);
 		__this->___ambientNoiseFloor = (0.00200000009f);
 		__this->___storageFolder = _stringLiteral891098E03B8ACCA1B52816B19C0B6D3BA8A293C8;
@@ -21698,16 +21658,16 @@ IL_0125:
 		NullCheck(L_45);
 		float L_46 = L_45->___ambientNoiseFloor;
 		NullCheck(L_44);
-		(L_44)->SetAt(static_cast<il2cpp_array_size_t>(0), (float)((float)il2cpp_codegen_add(((float)il2cpp_codegen_multiply(L_46, (2.5f))), (0.00800000038f))));
+		(L_44)->SetAt(static_cast<il2cpp_array_size_t>(0), (float)((float)il2cpp_codegen_add(((float)il2cpp_codegen_multiply(L_46, (2.0f))), (0.00200000000f))));
 		SingleU5BU5D_t89DEFE97BCEDB5857010E79ECE0F52CF6E93B87C* L_47 = L_44;
 		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_48 = V_1;
 		NullCheck(L_48);
-		float L_49 = L_48->___silenceThreshold;
+		float L_49 = (0.00400000000f);
 		NullCheck(L_47);
 		(L_47)->SetAt(static_cast<il2cpp_array_size_t>(1), (float)L_49);
 		SingleU5BU5D_t89DEFE97BCEDB5857010E79ECE0F52CF6E93B87C* L_50 = L_47;
 		NullCheck(L_50);
-		(L_50)->SetAt(static_cast<il2cpp_array_size_t>(2), (float)(0.0179999992f));
+		(L_50)->SetAt(static_cast<il2cpp_array_size_t>(2), (float)(0.00400000000f));
 		float L_51;
 		L_51 = Mathf_Max_m870B77F6A5225EC21D9778043F987B9B17D08F6B_inline(L_50, NULL);
 		V_6 = L_51;
@@ -21717,16 +21677,16 @@ IL_0125:
 		NullCheck(L_54);
 		float L_55 = L_54->___ambientNoiseFloor;
 		NullCheck(L_53);
-		(L_53)->SetAt(static_cast<il2cpp_array_size_t>(0), (float)((float)il2cpp_codegen_add(((float)il2cpp_codegen_multiply(L_55, (1.5f))), (0.00400000019f))));
+		(L_53)->SetAt(static_cast<il2cpp_array_size_t>(0), (float)((float)il2cpp_codegen_add(((float)il2cpp_codegen_multiply(L_55, (1.2f))), (0.00100000000f))));
 		SingleU5BU5D_t89DEFE97BCEDB5857010E79ECE0F52CF6E93B87C* L_56 = L_53;
 		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_57 = V_1;
 		NullCheck(L_57);
-		float L_58 = L_57->___silenceThreshold;
+		float L_58 = (0.00250000000f);
 		NullCheck(L_56);
-		(L_56)->SetAt(static_cast<il2cpp_array_size_t>(1), (float)((float)il2cpp_codegen_multiply(L_58, (0.75f))));
+		(L_56)->SetAt(static_cast<il2cpp_array_size_t>(1), (float)L_58);
 		SingleU5BU5D_t89DEFE97BCEDB5857010E79ECE0F52CF6E93B87C* L_59 = L_56;
 		NullCheck(L_59);
-		(L_59)->SetAt(static_cast<il2cpp_array_size_t>(2), (float)(0.0140000004f));
+		(L_59)->SetAt(static_cast<il2cpp_array_size_t>(2), (float)(0.00250000000f));
 		float L_60;
 		L_60 = Mathf_Max_m870B77F6A5225EC21D9778043F987B9B17D08F6B_inline(L_59, NULL);
 		V_7 = L_60;
@@ -23657,6 +23617,31 @@ IL2CPP_EXTERN_C  void U3CTranscribeAudioU3Ed__3_SetStateMachine_m0FF119FEBFDF8CF
 // Method Definition Index: 71800
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void VRGazeReticle_Awake_m7172E8CEA1EB396C009383D6CE6EBD3CF6BA9D65 (VRGazeReticle_t93A047DE1836AD4B5A7E07ACAD30DDAF5F1DAD28* __this, const RuntimeMethod* method) 
 {
+	if (__this != NULL)
+	{
+		if (IsValidUnityObject((RuntimeObject*)__this->___reticleTransform))
+		{
+			GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(
+				Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B((Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*)__this->___reticleTransform, NULL),
+				(bool)0, NULL);
+			__this->___reticleTransform = NULL;
+		}
+		if (IsValidUnityObject((RuntimeObject*)__this->___reticleRenderer))
+		{
+			GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(
+				Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B((Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*)__this->___reticleRenderer, NULL),
+				(bool)0, NULL);
+			__this->___reticleRenderer = NULL;
+		}
+		if (IsValidUnityObject((RuntimeObject*)__this->___progressRadialImage))
+		{
+			GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(
+				Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B((Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*)__this->___progressRadialImage, NULL),
+				(bool)0, NULL);
+			__this->___progressRadialImage = NULL;
+		}
+	}
+	return;
 	static bool s_Il2CppMethodInitialized;
 	if (!s_Il2CppMethodInitialized)
 	{
@@ -23709,6 +23694,7 @@ IL_0033:
 // Method Definition Index: 71801
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void VRGazeReticle_EnsureReticleVisual_m6E15906D81420A03152D85CCCBE4C8B12D5321EF (VRGazeReticle_t93A047DE1836AD4B5A7E07ACAD30DDAF5F1DAD28* __this, const RuntimeMethod* method) 
 {
+	return;
 	static bool s_Il2CppMethodInitialized;
 	if (!s_Il2CppMethodInitialized)
 	{
@@ -23842,6 +23828,7 @@ IL_00d7:
 // Method Definition Index: 71802
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void VRGazeReticle_Update_mF3144F9651ED8ADFD729DF67FEF503CDA2592AE8 (VRGazeReticle_t93A047DE1836AD4B5A7E07ACAD30DDAF5F1DAD28* __this, const RuntimeMethod* method) 
 {
+	return;
 	static bool s_Il2CppMethodInitialized;
 	if (!s_Il2CppMethodInitialized)
 	{
