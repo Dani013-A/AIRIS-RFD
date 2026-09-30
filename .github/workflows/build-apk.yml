@@ -133,6 +133,10 @@ jobs:
           sed -i 's/-Xmx2048m/-Xmx4096m/g' gradle.properties
           sed -i 's/-XX:MaxMetaspaceSize=512m/-XX:MaxMetaspaceSize=1024m/g' gradle.properties
           sed -i 's/android.enableJetifier=true/android.enableJetifier=false/g' gradle.properties
+          if [ ! -f "app/debug.keystore" ]; then
+            echo "Generating debug keystore for APK signing..."
+            keytool -genkey -v -keystore app/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon \
             -Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1024m" \
