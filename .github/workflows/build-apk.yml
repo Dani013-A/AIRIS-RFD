@@ -5,7 +5,19 @@ on:
     branches:
       - main
       - integration/unity-immersive
+    paths:
+      - "AIRIS-Mobile/**"
+      - ".github/workflows/build-apk.yml"
   workflow_dispatch:
+    inputs:
+      build_method:
+        description: "Build method: 'native' (standalone Gradle) or 'eas' (Expo Application Services)"
+        required: false
+        default: "native"
+        type: choice
+        options:
+          - native
+          - eas
 
 concurrency:
   group: airis-apk-build
@@ -42,14 +54,27 @@ jobs:
         working-directory: AIRIS-Mobile
         run: npx jest --runInBand
 
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      # Path A: EAS Build (if explicitly requested)
       - name: Install EAS CLI
+        if: github.event.inputs.build_method == 'eas'
         run: npm install -g eas-cli
 
       - name: Submit and Wait for EAS Android APK Build
+        if: github.event.inputs.build_method == 'eas'
         id: eas-build
         working-directory: AIRIS-Mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        continue-on-error: true
         run: |
           echo "Starting EAS preview APK build for Android..."
           eas build \
@@ -57,9 +82,7 @@ jobs:
             --profile preview \
             --non-interactive \
             --wait \
-            --json > build-output.json
-
-          cat build-output.json
+            --json > build-output.json || exit 1
 
           BUILD_URL=$(node -e "
             const fs = require('fs');
@@ -76,37 +99,31 @@ jobs:
             process.stdout.write(build.id || '');
           ")
 
-          BUILD_LOGS_URL=$(node -e "
-            const fs = require('fs');
-            const data = JSON.parse(fs.readFileSync('build-output.json', 'utf8'));
-            const build = Array.isArray(data) ? data[0] : data;
-            process.stdout.write(build.logsUrl || '');
-          ")
-
           echo "build_url=$BUILD_URL" >> "$GITHUB_OUTPUT"
           echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
-          echo "logs_url=$BUILD_LOGS_URL" >> "$GITHUB_OUTPUT"
-
-          echo "### AIRIS Android Release APK Build Complete" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Build ID:** \`$BUILD_ID\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **EAS Logs:** [$BUILD_LOGS_URL]($BUILD_LOGS_URL)" >> "$GITHUB_STEP_SUMMARY"
-          if [ -n "$BUILD_URL" ]; then
-            echo "- **Direct APK Download:** [Download AIRIS APK]($BUILD_URL)" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "- **Status:** Build completed but artifact URL not directly returned in JSON." >> "$GITHUB_STEP_SUMMARY"
-          fi
 
       - name: Download APK from EAS Artifacts
-        if: steps.eas-build.outputs.build_url != ''
+        if: github.event.inputs.build_method == 'eas' && steps.eas-build.outputs.build_url != ''
         working-directory: AIRIS-Mobile
         run: |
           echo "Downloading APK from: ${{ steps.eas-build.outputs.build_url }}"
           curl -L -o AIRIS-Release.apk "${{ steps.eas-build.outputs.build_url }}"
           ls -lh AIRIS-Release.apk
 
+      # Path B: Native Standalone Gradle Build (default, quota-safe, deterministic)
+      - name: Build Standalone Release APK via Gradle
+        if: github.event.inputs.build_method != 'eas' || steps.eas-build.outcome == 'failure' || steps.eas-build.outputs.build_url == ''
+        working-directory: AIRIS-Mobile/android
+        run: |
+          echo "Building standalone APK via native Gradle..."
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon \
+            -Dorg.gradle.java.home="$JAVA_HOME" \
+            -Punity.androidSdkPath="$ANDROID_HOME"
+          ls -lh app/build/outputs/apk/release/app-release.apk
+          cp app/build/outputs/apk/release/app-release.apk ../AIRIS-Release.apk
+
       - name: Upload APK as GitHub Actions Artifact
-        if: steps.eas-build.outputs.build_url != ''
         uses: actions/upload-artifact@v4
         with:
           name: airis-mobile-release-apk
