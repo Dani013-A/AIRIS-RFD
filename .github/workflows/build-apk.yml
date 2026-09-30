@@ -35,6 +35,15 @@ jobs:
         with:
           lfs: true
 
+      - name: Free runner disk space
+        run: |
+          echo "Disk space before cleanup:"
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost "$AGENT_TOOLSDIRECTORY"
+          sudo docker system prune -a -f --volumes || true
+          echo "Disk space after cleanup:"
+          df -h /
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
