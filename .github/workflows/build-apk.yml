@@ -57,19 +57,24 @@ jobs:
           AIRIS_MOBILE_ENV_BASE64: ${{ secrets.AIRIS_MOBILE_ENV_BASE64 }}
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
-          if [ -z "$AIRIS_MOBILE_ENV_BASE64" ]; then
-            echo "::error::AIRIS_MOBILE_ENV_BASE64 secret is not configured in repository secrets."
-            exit 1
-          fi
-          echo "$AIRIS_MOBILE_ENV_BASE64" | base64 --decode > .env
-          echo "Successfully restored .env configuration."
+          node -e '
+            const fs = require("fs");
+            const envB64 = process.env.AIRIS_MOBILE_ENV_BASE64;
+            if (!envB64 || envB64.trim() === "" || envB64.trim() === "-") {
+              console.error("::error::AIRIS_MOBILE_ENV_BASE64 secret is missing or invalid.");
+              process.exit(1);
+            }
+            fs.writeFileSync(".env", Buffer.from(envB64.trim(), "base64"));
+            console.log("Successfully restored .env configuration (" + fs.statSync(".env").size + " bytes).");
 
-          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
-            echo "::error::ANDROID_KEYSTORE_BASE64 secret is not configured in repository secrets."
-            exit 1
-          fi
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/debug.keystore
-          echo "Successfully restored persistent release signing keystore."
+            const ksB64 = process.env.ANDROID_KEYSTORE_BASE64;
+            if (!ksB64 || ksB64.trim() === "" || ksB64.trim() === "-") {
+              console.error("::error::ANDROID_KEYSTORE_BASE64 secret is missing or invalid.");
+              process.exit(1);
+            }
+            fs.writeFileSync("android/app/debug.keystore", Buffer.from(ksB64.trim(), "base64"));
+            console.log("Successfully restored persistent release signing keystore (" + fs.statSync("android/app/debug.keystore").size + " bytes).");
+          '
 
       - name: Install dependencies
         working-directory: AIRIS-Mobile
