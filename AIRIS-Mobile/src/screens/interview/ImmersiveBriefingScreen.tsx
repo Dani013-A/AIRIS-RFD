@@ -10,6 +10,7 @@ import { startInterviewSimulation } from "../../services/api/interviewApi";
 import { PrimaryButton } from "../../components/ui";
 import { normalizeApiError } from "../../utils/errorMapper";
 import AirisOrientation from "../../utils/AirisOrientation";
+import { requestMicrophonePermission, openMicrophoneSettings } from "../../utils/audioPermission";
 
 /**
  * ImmersiveBriefingScreen
@@ -201,7 +202,7 @@ export default function ImmersiveBriefingScreen() {
             <View className="flex-1">
               <Text className="text-xs font-bold text-[#CA5D25] uppercase tracking-wider mb-0.5">VR Microphone Note</Text>
               <Text className="text-xs font-medium text-[#CA5D25] leading-4">
-                Audio recording and transcription are handled entirely inside the VR environment. You do not need to grant microphone permissions to the app — the VR scene will request them directly on Android.
+                The VR interview uses speech detection to record your answers hands-free. Please ensure microphone access is granted when prompted so the interviewers can hear your voice.
               </Text>
             </View>
           </View>
@@ -212,9 +213,32 @@ export default function ImmersiveBriefingScreen() {
         <PrimaryButton
           title="Enter VR Environment"
           variant="orange"
-          onPress={() => {
-            AirisOrientation.lockLandscape();
-            router.push("/(student)/interview-session/immersive-active" as any);
+          onPress={async () => {
+            try {
+              const perm = await requestMicrophonePermission();
+              if (perm.granted) {
+                AirisOrientation.lockLandscape();
+                router.push("/(student)/interview-session/immersive-active" as any);
+              } else if (!perm.canAskAgain || perm.status === "blocked") {
+                Alert.alert(
+                  "Microphone Permission Required",
+                  "AIRIS requires microphone access to detect your voice and process answers during the VR interview. Please enable Microphone in your device settings to proceed.",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Open Settings", onPress: () => openMicrophoneSettings() },
+                  ]
+                );
+              } else {
+                Alert.alert(
+                  "Permission Denied",
+                  "Microphone access is required to participate in the hands-free VR interview. Please allow microphone access to start.",
+                  [{ text: "OK" }]
+                );
+              }
+            } catch (e) {
+              console.error("[ImmersiveBriefing] Error requesting microphone permission:", e);
+              Alert.alert("Permission Error", "Unable to request microphone access. Please try again.");
+            }
           }}
         />
       </View>

@@ -7,6 +7,7 @@ import {
   NativeSyntheticEvent,
   StatusBar,
   BackHandler,
+  TouchableOpacity,
 } from "react-native";
 import UnityView from "@azesmway/react-native-unity";
 import { useRouter } from "expo-router";
@@ -14,6 +15,11 @@ import { useAuthStore } from "../../store/authStore";
 import { useResumeStore } from "../../store/resumeStore";
 import { useInterviewStore } from "../../store/interviewStore";
 import AirisOrientation from "../../utils/AirisOrientation";
+import {
+  checkMicrophonePermission,
+  requestMicrophonePermission,
+  openMicrophoneSettings,
+} from "../../utils/audioPermission";
 
 // ── Daniel's existing scoring pipeline & transcription ─────────────────────
 import {
@@ -182,6 +188,46 @@ export default function ImmersiveInterviewScreen() {
   const [unityReady, setUnityReady] = useState(false);
   const [sceneLoaded, setSceneLoaded] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasMicPermission, setHasMicPermission] = useState<boolean | null>(null);
+  const [isPermissionBlocked, setIsPermissionBlocked] = useState(false);
+
+  // ─── Permission Guard ─────────────────────────────────────────────────────
+  // Enforces that Android RECORD_AUDIO permission is granted BEFORE Unity
+  // is allowed to initialize the microphone capture flow.
+  useEffect(() => {
+    let isMounted = true;
+
+    async function ensureMicAccess() {
+      try {
+        const isGranted = await checkMicrophonePermission();
+        if (!isMounted) return;
+        if (isGranted) {
+          setHasMicPermission(true);
+          return;
+        }
+
+        const res = await requestMicrophonePermission();
+        if (!isMounted) return;
+        if (res.granted) {
+          setHasMicPermission(true);
+        } else {
+          setHasMicPermission(false);
+          setIsPermissionBlocked(!res.canAskAgain || res.status === "blocked");
+        }
+      } catch (e) {
+        console.warn("[Immersive] Microphone permission check error:", e);
+        if (isMounted) {
+          setHasMicPermission(false);
+        }
+      }
+    }
+
+    ensureMicAccess();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Derive Unity scene name from the session's interviewType
   const sceneName =
@@ -295,9 +341,9 @@ export default function ImmersiveInterviewScreen() {
     return dict;
   }, [activeAnalysis]);
 
-  // ─── Effect: send first question once scene is loaded ─────────────────────
+  // ─── Effect: send first question once scene is loaded & mic permission verified ────
   useEffect(() => {
-    if (sceneLoaded && session?.currentQuestion && !hasSentInitialQuestionRef.current) {
+    if (hasMicPermission && sceneLoaded && session?.currentQuestion && !hasSentInitialQuestionRef.current) {
       hasSentInitialQuestionRef.current = true;
       stateRef.current = "INTERVIEWER_SPEAKING";
       const initialSpeaker = getSpeakerForQuestion(sceneName, session.questionsAsked || 1);
@@ -314,7 +360,7 @@ export default function ImmersiveInterviewScreen() {
       }, 1600);
       return () => clearTimeout(timer);
     }
-  }, [sceneLoaded, session?.currentQuestion, session?.questionsAsked, sceneName, postToUnity]);
+  }, [hasMicPermission, sceneLoaded, session?.currentQuestion, session?.questionsAsked, sceneName, postToUnity]);
 
   // Lock landscape on mount; clean up and restore portrait on unmount
   useEffect(() => {
@@ -335,14 +381,14 @@ export default function ImmersiveInterviewScreen() {
     return () => backHandler.remove();
   }, [handleStopInterview]);
 
-  // Initiate scene synchronization for warm UnityPlayer re-entry (or initial handshake)
+  // Initiate scene synchronization once mic permission is established
   useEffect(() => {
-    if (!sceneLoadedRef.current && !hasRequestedSceneRef.current) {
+    if (hasMicPermission && !sceneLoadedRef.current && !hasRequestedSceneRef.current) {
       hasRequestedSceneRef.current = true;
       console.log("[Immersive] Initiating scene sync for:", sceneName);
       postToUnity("LOAD_SCENE", { sceneName });
     }
-  }, [sceneName, postToUnity]);
+  }, [hasMicPermission, sceneName, postToUnity]);
 
   const confirmUnityRuntimeReady = useCallback(() => {
     if (!isUnityReadyRef.current) {
@@ -809,6 +855,65 @@ export default function ImmersiveInterviewScreen() {
     );
   }
 
+  // 1. Permission check in progress
+  if (hasMicPermission === null) {
+    return (
+      <View style={styles.container}>
+        <StatusBar hidden translucent backgroundColor="transparent" />
+        <View style={styles.overlay}>
+          <ActivityIndicator size="large" color="#F4A47A" />
+          <Text style={styles.overlayTitle}>Verifying Environment...</Text>
+          <Text style={styles.overlaySubtitle}>Checking microphone access...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // 2. Permission denied by user
+  if (hasMicPermission === false) {
+    return (
+      <View style={styles.container}>
+        <StatusBar hidden translucent backgroundColor="transparent" />
+        <View style={styles.overlay}>
+          <Text style={styles.overlayTitle}>Microphone Permission Required</Text>
+          <Text style={styles.overlaySubtitle}>
+            AIRIS requires microphone access to detect your voice and process answers during the VR interview simulation.
+          </Text>
+          <View style={styles.permissionActionRow}>
+            {isPermissionBlocked ? (
+              <TouchableOpacity
+                style={[styles.permissionBtn, styles.permissionBtnPrimary]}
+                onPress={openMicrophoneSettings}
+              >
+                <Text style={styles.permissionBtnPrimaryText}>Open Settings</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.permissionBtn, styles.permissionBtnPrimary]}
+                onPress={async () => {
+                  const res = await requestMicrophonePermission();
+                  if (res.granted) {
+                    setHasMicPermission(true);
+                  } else if (!res.canAskAgain || res.status === "blocked") {
+                    setIsPermissionBlocked(true);
+                  }
+                }}
+              >
+                <Text style={styles.permissionBtnPrimaryText}>Grant Permission</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.permissionBtn, styles.permissionBtnSecondary]}
+              onPress={handleStopInterview}
+            >
+              <Text style={styles.permissionBtnSecondaryText}>Exit Interview</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar hidden translucent backgroundColor="transparent" />
@@ -870,6 +975,36 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginTop: 8,
     textAlign: "center",
+  },
+  permissionActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 24,
+    gap: 12,
+  },
+  permissionBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  permissionBtnPrimary: {
+    backgroundColor: "#F4A47A",
+  },
+  permissionBtnPrimaryText: {
+    color: "#1F3A5F",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  permissionBtnSecondary: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "#BFD6EA",
+  },
+  permissionBtnSecondaryText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: 14,
   },
   processingBadge: {
     position: "absolute",

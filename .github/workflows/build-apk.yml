@@ -62,6 +62,8 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-34 platforms;android-36 build-tools;34.0.0 build-tools;36.0.0'
 
       # Path A: EAS Build (if explicitly requested)
       - name: Install EAS CLI
@@ -116,6 +118,9 @@ jobs:
         working-directory: AIRIS-Mobile/android
         run: |
           echo "Building standalone APK via native Gradle..."
+          sed -i '/^org\.gradle\.java\.home=/d' gradle.properties
+          sed -i '/^unity\.androidNdkPath=/d' gradle.properties
+          sed -i '/^unity\.androidSdkPath=/d' gradle.properties
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon \
             -Dorg.gradle.java.home="$JAVA_HOME" \
