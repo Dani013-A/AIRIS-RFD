@@ -51,6 +51,26 @@ jobs:
           cache: npm
           cache-dependency-path: AIRIS-Mobile/package-lock.json
 
+      - name: Restore Mobile environment and persistent signing keystore
+        working-directory: AIRIS-Mobile
+        env:
+          AIRIS_MOBILE_ENV_BASE64: ${{ secrets.AIRIS_MOBILE_ENV_BASE64 }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$AIRIS_MOBILE_ENV_BASE64" ]; then
+            echo "::error::AIRIS_MOBILE_ENV_BASE64 secret is not configured in repository secrets."
+            exit 1
+          fi
+          echo "$AIRIS_MOBILE_ENV_BASE64" | base64 --decode > .env
+          echo "Successfully restored .env configuration."
+
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 secret is not configured in repository secrets."
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/debug.keystore
+          echo "Successfully restored persistent release signing keystore."
+
       - name: Install dependencies
         working-directory: AIRIS-Mobile
         run: npm ci
@@ -134,9 +154,11 @@ jobs:
           sed -i 's/-XX:MaxMetaspaceSize=512m/-XX:MaxMetaspaceSize=1024m/g' gradle.properties
           sed -i 's/android.enableJetifier=true/android.enableJetifier=false/g' gradle.properties
           if [ ! -f "app/debug.keystore" ]; then
-            echo "Generating debug keystore for APK signing..."
-            keytool -genkey -v -keystore app/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+            echo "::error::Persistent debug.keystore is missing. Refusing to sign with ephemeral keys."
+            exit 1
           fi
+          echo "Verifying persistent signing keystore certificate fingerprint..."
+          keytool -list -v -keystore app/debug.keystore -storepass android -alias androiddebugkey | grep -E "SHA256:|SHA1:"
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon \
             -Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1024m" \
