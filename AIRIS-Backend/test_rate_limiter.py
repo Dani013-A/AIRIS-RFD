@@ -154,7 +154,10 @@ class TestFastAPIHTTPIntegration(unittest.TestCase):
     @patch("main.validate_resume_validity_with_llm", return_value={"is_resume": True})
     @patch("main.evaluate_semantic_alignment", return_value={"score": 85})
     @patch("main.validate_and_enhance_analysis", return_value={
+        "resumeScore": {"overallScore": 85},
         "atsScore": {"overallScore": 85},
+        "alignmentScore": {"overallScore": 85},
+        "overallScore": 85,
         "suggestions": [],
         "detectedSections": [],
         "missingSections": [],

@@ -1,8 +1,10 @@
 {
 	email mdaespela@tip.edu.ph
+	# Disable admin API to prevent runtime configuration exposure
+	admin off
 }
 
-18-143-33-249.sslip.io {
+{$BACKEND_DOMAIN} {
 	reverse_proxy backend:8000
 
 	header {
@@ -15,7 +17,7 @@
 	encode gzip zstd
 }
 
-admin.18-143-33-249.sslip.io {
+{$ADMIN_DOMAIN} {
 	reverse_proxy web:3000
 
 	header {

@@ -2,12 +2,20 @@ import os
 import uuid
 import logging
 import warnings
+import traceback
 
 # Suppress verbose third-party loggers
 logging.getLogger("transformers").setLevel(logging.ERROR)
 logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
+
+# Configure structured logging for the application
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+logger = logging.getLogger("airis")
 
 from ai_validator import is_resume_valid, validate_resume_validity_with_llm
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
@@ -234,6 +242,29 @@ def verify_admin_token(authorization: Optional[str] = Header(None)):
     if not is_admin and (not admin_uids or uid not in admin_uids):
         raise HTTPException(status_code=403, detail="Forbidden: Insufficient privileges")
     return uid
+
+
+def log_exception(endpoint: str, exception: Exception, user_id: str = None):
+    """
+    Log full exception details server-side for diagnostics.
+    Includes endpoint identification, user correlation, and full traceback.
+    Does NOT log sensitive data (passwords, tokens, API keys, resume content).
+    """
+    logger.error(f"[ERROR] Endpoint: {endpoint}, User: {user_id or 'anonymous'}")
+    logger.error(f"[ERROR] Exception: {type(exception).__name__}: {exception}")
+    logger.error(f"[ERROR] Traceback:\n{traceback.format_exc()}")
+
+
+def safe_error_response(endpoint: str, exception: Exception, user_id: str = None, status_code: int = 500):
+    """
+    Log exception server-side and return a safe, generic error response to the client.
+    Never exposes internal exception details, stack paths, or implementation details.
+    """
+    log_exception(endpoint, exception, user_id)
+    raise HTTPException(
+        status_code=status_code,
+        detail="An internal error occurred. Please try again later."
+    )
 
 class NormalizationRequest(BaseModel):
     type: str  # "job" | "skill" | "certification" | "program"
@@ -520,9 +551,10 @@ def normalize_input(req: NormalizationRequest, request: Request, authorization: 
     try:
         normalization_result = normalize_career_input(req.input, req.type)
         return normalization_result
+    except HTTPException:
+        raise
     except Exception as e:
-        print("Normalization error:", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        safe_error_response("/normalize", e, id_val if id_type == "uid" else None)
 
 class InterviewStartRequest(BaseModel):
     targetRole: Optional[str] = None
@@ -572,8 +604,7 @@ def start_interview(req: InterviewStartRequest, request: Request, authorization:
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[{timestamp}] [INTERVIEW ERROR] Start Error:", e)
-        raise HTTPException(status_code=500, detail=f"Failed to generate interview question: {str(e)}")
+        safe_error_response("/interview/start", e, id_val if id_type == "uid" else None)
 
 @app.post("/interview/answer")
 def evaluate_interview_answer(req: InterviewAnswerRequest, request: Request, authorization: Optional[str] = Header(None)):
@@ -600,9 +631,10 @@ def evaluate_interview_answer(req: InterviewAnswerRequest, request: Request, aut
         score_val = eval_dict.get("overall", "N/A")
         print(f"[{timestamp}] [INTERVIEW] Evaluation complete. Score: {score_val}")
         return result
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"[{timestamp}] [INTERVIEW ERROR] Answer Error:", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        safe_error_response("/interview/answer", e, id_val if id_type == "uid" else None)
 
 @app.post("/interview/transcribe")
 async def transcribe_interview_audio(
@@ -646,8 +678,7 @@ async def transcribe_interview_audio(
         except HTTPException:
             raise
         except Exception as e:
-            print(f"[{timestamp}] [INTERVIEW ERROR] Transcribe Error:", e)
-            raise HTTPException(status_code=500, detail=str(e))
+            safe_error_response("/interview/transcribe", e, id_val if id_type == "uid" else None)
 
 @app.post("/interview/report")
 def generate_interview_report(req: InterviewReportRequest, request: Request, authorization: Optional[str] = Header(None)):
@@ -668,6 +699,7 @@ def generate_interview_report(req: InterviewReportRequest, request: Request, aut
         )
         print(f"[{timestamp}] [INTERVIEW] Final report generated successfully.")
         return result
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"[{timestamp}] [INTERVIEW ERROR] Report Error:", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        safe_error_response("/interview/report", e, id_val if id_type == "uid" else None)

@@ -140,6 +140,56 @@ class TestSecurityRemediation(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertIn("does not contain an authoritative email address", response.json().get("detail", ""))
 
+    # C-2: Error responses must NOT leak internal exception details
+    @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)
+    @patch("main.normalize_career_input", side_effect=RuntimeError("Internal API key: sk-12345"))
+    def test_normalize_error_does_not_leak_internal_details(self, mock_normalize, mock_auth):
+        response = client.post(
+            "/normalize",
+            headers={"Authorization": "Bearer token-studentA"},
+            json={"type": "job", "input": "Software Engineer"}
+        )
+        self.assertEqual(response.status_code, 500)
+        detail = response.json().get("detail", "")
+        self.assertNotIn("sk-12345", detail)
+        self.assertNotIn("Internal API key", detail)
+        self.assertIn("internal error", detail.lower())
+
+    @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)
+    @patch("interview_engine.generate_first_question", side_effect=RuntimeError("Provider API URL: https://api.example.com/v1"))
+    def test_interview_start_error_does_not_leak_internal_details(self, mock_generate, mock_auth):
+        response = client.post(
+            "/interview/start",
+            headers={"Authorization": "Bearer token-studentA"},
+            json={"targetRole": "Software Engineer"}
+        )
+        self.assertEqual(response.status_code, 500)
+        detail = response.json().get("detail", "")
+        self.assertNotIn("https://api.example.com", detail)
+        self.assertNotIn("Provider API URL", detail)
+        self.assertIn("internal error", detail.lower())
+
+    @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)
+    @patch("interview_engine.evaluate_answer_and_generate_next", side_effect=RuntimeError("Database connection: postgres://internal"))
+    def test_interview_answer_error_does_not_leak_internal_details(self, mock_evaluate, mock_auth):
+        response = client.post(
+            "/interview/answer",
+            headers={"Authorization": "Bearer token-studentA"},
+            json={
+                "targetRole": "Software Engineer",
+                "history": [],
+                "currentQuestion": "Tell me about yourself",
+                "currentAnswer": "I am a software engineer",
+                "currentQuestionType": "behavioral",
+                "totalQuestions": 5
+            }
+        )
+        self.assertEqual(response.status_code, 500)
+        detail = response.json().get("detail", "")
+        self.assertNotIn("postgres://internal", detail)
+        self.assertNotIn("Database connection", detail)
+        self.assertIn("internal error", detail.lower())
+
 
 if __name__ == "__main__":
     unittest.main()

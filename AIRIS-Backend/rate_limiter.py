@@ -1,6 +1,9 @@
 """
 Single-Instance, In-Memory Production Rate Limiter & Concurrency Guard for AIRIS Backend.
 
+ARCHITECTURAL CONSTRAINT: This rate limiter is designed for SINGLE-INSTANCE deployment.
+Do not scale horizontally without implementing a shared rate-limit store (e.g., Redis).
+
 Rules:
 1. Authenticated rate limiting and concurrency locking strictly use verified Firebase UIDs
    extracted from `Authorization: Bearer <token>` headers via `firebase_admin.auth.verify_id_token`.
@@ -10,6 +13,7 @@ Rules:
 5. Per-UID expensive concurrency locks release cleanly in `finally` blocks (no stuck locks).
 6. A global ceiling limits maximum concurrent expensive processing to protect container RAM/CPU.
 7. Rejections return HTTP 429 Too Many Requests with standard JSON error shapes and Retry-After headers.
+8. Stale entries are cleaned up to prevent unbounded memory growth.
 """
 
 import time
@@ -168,6 +172,11 @@ def check_rate_limit(identity_type: str, identity_val: str, max_requests: int, w
         valid_timestamps.append(now)
         _request_timestamps[key] = valid_timestamps
 
+        # Periodically clean up stale entries to prevent memory growth
+        # Only run cleanup occasionally to avoid performance impact
+        if len(_request_timestamps) > 1000:
+            _cleanup_stale_entries()
+
 
 class ExpensiveConcurrencyGuard:
     """
@@ -231,6 +240,25 @@ class ExpensiveConcurrencyGuard:
                 del _user_concurrency_counts[self.identity_key]
 
         return False
+
+
+def _cleanup_stale_entries():
+    """
+    Remove stale entries from rate limit tracking to prevent unbounded memory growth.
+    Called periodically and during rate limit checks.
+    """
+    now = time.time()
+    with _lock:
+        stale_keys = []
+        for key, timestamps in _request_timestamps.items():
+            # Remove timestamps older than the window (60 seconds)
+            valid = [t for t in timestamps if (now - t) < 60]
+            if valid:
+                _request_timestamps[key] = valid
+            else:
+                stale_keys.append(key)
+        for key in stale_keys:
+            del _request_timestamps[key]
 
 
 def _reset_limiter_state_for_testing():
