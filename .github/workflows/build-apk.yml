@@ -130,8 +130,12 @@ jobs:
           sed -i '/^org\.gradle\.java\.home=/d' gradle.properties
           sed -i '/^unity\.androidNdkPath=/d' gradle.properties
           sed -i '/^unity\.androidSdkPath=/d' gradle.properties
+          sed -i 's/-Xmx2048m/-Xmx4096m/g' gradle.properties
+          sed -i 's/-XX:MaxMetaspaceSize=512m/-XX:MaxMetaspaceSize=1024m/g' gradle.properties
+          sed -i 's/android.enableJetifier=true/android.enableJetifier=false/g' gradle.properties
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon \
+            -Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1024m" \
             -Dorg.gradle.java.home="$JAVA_HOME" \
             -Punity.androidSdkPath="$ANDROID_HOME"
           ls -lh app/build/outputs/apk/release/app-release.apk
