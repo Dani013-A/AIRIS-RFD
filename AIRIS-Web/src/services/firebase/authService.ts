@@ -15,12 +15,10 @@ const ALLOWED_ADMIN_ROLES: AdminRole[] = ["admin", "career_center", "ojt_coordin
 
 function isInstitutionalEmail(email: string): boolean {
   const normalized = email.toLowerCase().trim();
-  // Valid TIP domains or authorized administrative accounts
+  // Exact domain validation only — no substring matching
   return (
     normalized.endsWith("@tip.edu.ph") ||
-    normalized.endsWith("@airis.edu.ph") ||
-    normalized.includes("admin") ||
-    normalized.includes("test")
+    normalized.endsWith("@airis.edu.ph")
   );
 }
 
@@ -143,9 +141,17 @@ export function subscribeToAuthState(callback: (admin: AdminUser | null) => void
         const role = userData.role as AdminRole;
 
         if (ALLOWED_ADMIN_ROLES.includes(role)) {
+          // Enforce institutional email validation for privileged roles
+          const userEmail = user.email ?? "";
+          if ((role === "career_center" || role === "ojt_coordinator") && !isInstitutionalEmail(userEmail)) {
+            await firebaseSignOut(auth);
+            callback(null);
+            return;
+          }
+
           callback({
             uid: user.uid,
-            email: user.email ?? "",
+            email: userEmail,
             fullName: userData.fullName || "Staff Member",
             role,
             assignedProgram: userData.assignedProgram,

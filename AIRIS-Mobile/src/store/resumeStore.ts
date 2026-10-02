@@ -53,7 +53,15 @@ interface ResumeState {
   setProcessingStatus: (status: ResumeProcessingStatus) => void;
   clearAnalysisState: () => void;
   clearStore: () => void;
+  ensureResumeHydrated: () => Promise<{
+    hasResume: boolean;
+    activeResume: Resume | null;
+    activeAnalysis: ResumeAnalysisResult | null;
+  }>;
 }
+
+let inFlightFetchPromise: Promise<void> | null = null;
+let inFlightFetchKey: string | null = null;
 
 export const useResumeStore = create<ResumeState>((set, get) => ({
   activeResume: null,
@@ -64,6 +72,59 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
   pendingAnalysisData: null,
   finalizedSessionIds: new Set<string>(),
   error: null,
+
+  ensureResumeHydrated: async () => {
+    let authState = useAuthStore.getState();
+    if (!authState.isInitialized) {
+      await new Promise<void>((resolve) => {
+        const unsub = useAuthStore.subscribe((state) => {
+          if (state.isInitialized) {
+            unsub();
+            resolve();
+          }
+        });
+      });
+      authState = useAuthStore.getState();
+    }
+
+    const currentUser = authState.currentUser;
+    if (!currentUser || !currentUser.activeResumeId) {
+      return {
+        hasResume: false,
+        activeResume: null,
+        activeAnalysis: null,
+      };
+    }
+
+    const currentStore = get();
+    if (
+      currentStore.activeResume &&
+      currentStore.activeResume.resumeId === currentUser.activeResumeId &&
+      currentStore.activeAnalysis &&
+      currentStore.processingStatus === "completed"
+    ) {
+      return {
+        hasResume: true,
+        activeResume: currentStore.activeResume,
+        activeAnalysis: currentStore.activeAnalysis,
+      };
+    }
+
+    await get().fetchActiveResume(currentUser.uid, currentUser.activeResumeId);
+
+    const updatedStore = get();
+    const hasResume = Boolean(
+      updatedStore.activeResume &&
+      updatedStore.activeResume.resumeId === currentUser.activeResumeId &&
+      updatedStore.activeAnalysis
+    );
+
+    return {
+      hasResume,
+      activeResume: updatedStore.activeResume,
+      activeAnalysis: updatedStore.activeAnalysis,
+    };
+  },
 
   fetchActiveResume: async (userId, activeResumeId) => {
     if (!activeResumeId) {
@@ -77,49 +138,62 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
       return;
     }
 
-    try {
-      set({ processingStatus: "extracting", error: null });
-      const resume = await fetchActiveResumeFromDb(userId, activeResumeId);
-      if (!resume) {
-        set({
-          activeResume: null,
-          activeAnalysis: null,
-          processingStatus: "failed",
-          error: "Active resume not found.",
-        });
-        return;
-      }
+    const fetchKey = `${userId}:${activeResumeId}`;
+    if (inFlightFetchPromise && inFlightFetchKey === fetchKey) {
+      return inFlightFetchPromise;
+    }
 
-      let analysisResult: ResumeAnalysisResult | null = null;
-      if (resume.latestAnalysisId) {
-        const analysisDoc = await fetchAnalysisByIdFromDb(userId, resume.latestAnalysisId);
-        if (analysisDoc) {
-          analysisResult = analysisDoc.result;
-          if (analysisResult) {
-            if (!analysisResult.scoringModelVersion && (analysisDoc as any).scoringModelVersion) {
-              analysisResult.scoringModelVersion = (analysisDoc as any).scoringModelVersion;
-            }
-            if (!analysisResult.detectedSections || analysisResult.detectedSections.length === 0) {
-              const parsed = parseResumeSections(resume.rawText || "");
-              analysisResult.detectedSections = detectResumeSections(parsed);
+    inFlightFetchKey = fetchKey;
+    inFlightFetchPromise = (async () => {
+      try {
+        set({ processingStatus: "extracting", error: null });
+        const resume = await fetchActiveResumeFromDb(userId, activeResumeId);
+        if (!resume) {
+          set({
+            activeResume: null,
+            activeAnalysis: null,
+            processingStatus: "failed",
+            error: "Active resume not found.",
+          });
+          return;
+        }
+
+        let analysisResult: ResumeAnalysisResult | null = null;
+        if (resume.latestAnalysisId) {
+          const analysisDoc = await fetchAnalysisByIdFromDb(userId, resume.latestAnalysisId);
+          if (analysisDoc) {
+            analysisResult = analysisDoc.result;
+            if (analysisResult) {
+              if (!analysisResult.scoringModelVersion && (analysisDoc as any).scoringModelVersion) {
+                analysisResult.scoringModelVersion = (analysisDoc as any).scoringModelVersion;
+              }
+              if (!analysisResult.detectedSections || analysisResult.detectedSections.length === 0) {
+                const parsed = parseResumeSections(resume.rawText || "");
+                analysisResult.detectedSections = detectResumeSections(parsed);
+              }
             }
           }
         }
-      }
 
-      set({
-        activeResume: resume,
-        activeAnalysis: analysisResult,
-        currentAnalysisSessionId: analysisResult?.analysisSessionId || (resume.latestAnalysisId ? `session_${resume.latestAnalysisId}` : null),
-        processingStatus: "completed",
-        error: null,
-      });
-    } catch (err) {
-      set({
-        processingStatus: "failed",
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
+        set({
+          activeResume: resume,
+          activeAnalysis: analysisResult,
+          currentAnalysisSessionId: analysisResult?.analysisSessionId || (resume.latestAnalysisId ? `session_${resume.latestAnalysisId}` : null),
+          processingStatus: "completed",
+          error: null,
+        });
+      } catch (err) {
+        set({
+          processingStatus: "failed",
+          error: err instanceof Error ? err.message : String(err),
+        });
+      } finally {
+        inFlightFetchPromise = null;
+        inFlightFetchKey = null;
+      }
+    })();
+
+    return inFlightFetchPromise;
   },
 
   uploadAndProcessResume: async (
@@ -529,8 +603,8 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
 let lastUid: string | null = null;
 let lastActiveResumeId: string | null = null;
 
-useAuthStore.subscribe((state) => {
-  const currentUser = state.currentUser;
+export function syncResumeWithAuth() {
+  const currentUser = useAuthStore.getState().currentUser;
   const currentUid = currentUser?.uid || null;
   const currentActiveResumeId = currentUser?.activeResumeId || null;
 
@@ -557,4 +631,8 @@ useAuthStore.subscribe((state) => {
       }
     }
   }
-});
+}
+
+useAuthStore.subscribe(syncResumeWithAuth);
+syncResumeWithAuth();
+

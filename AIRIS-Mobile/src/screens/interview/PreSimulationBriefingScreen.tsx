@@ -58,39 +58,43 @@ export default function PreSimulationBriefingScreen() {
   };
 
   const startSetup = async () => {
-    if (!currentUser || !activeResume || !activeAnalysis) {
-      setError("Resume or Profile data missing. Please upload a resume and try again.");
-      return;
-    }
-
     setLoading(true);
     setError(null);
     try {
+      const { hasResume, activeResume: res, activeAnalysis: anal } =
+        await useResumeStore.getState().ensureResumeHydrated();
+      const user = useAuthStore.getState().currentUser;
+
+      if (!user || !hasResume || !res || !anal) {
+        setError("Resume or Profile data missing. Please upload a resume and try again.");
+        return;
+      }
+
       const parsedResumeDict: Record<string, string> = {};
-      if (Array.isArray(activeAnalysis.parsedSections)) {
-        for (const sec of activeAnalysis.parsedSections) {
+      if (Array.isArray(anal.parsedSections)) {
+        for (const sec of anal.parsedSections) {
           parsedResumeDict[sec.name] = sec.content;
         }
       } else {
-        Object.assign(parsedResumeDict, activeAnalysis.parsedSections || {});
+        Object.assign(parsedResumeDict, anal.parsedSections || {});
       }
 
       const response = await startInterviewSimulation({
-        targetRole: currentUser.targetPosition || "Unknown Role",
-        program: currentUser.degreeProgram || "Unknown Program",
+        targetRole: user.targetPosition || "Unknown Role",
+        program: user.degreeProgram || "Unknown Program",
         parsedResume: parsedResumeDict,
       });
 
       initializeSession({
-        userId: currentUser.uid,
-        targetRole: currentUser.targetPosition,
-        program: currentUser.degreeProgram,
-        resumeId: currentUser.activeResumeId || "none",
+        userId: user.uid,
+        targetRole: user.targetPosition,
+        program: user.degreeProgram,
+        resumeId: user.activeResumeId || "none",
         interviewType: "one-on-one",
         firstQuestion: response.question,
         firstQuestionType: response.questionType,
         firstQuestionBenchmark: response.benchmarkAnswer,
-        totalQuestions: 5,
+        totalQuestions: 10,
       });
     } catch (err) {
       console.error(err);

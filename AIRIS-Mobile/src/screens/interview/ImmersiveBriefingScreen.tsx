@@ -41,34 +41,24 @@ export default function ImmersiveBriefingScreen() {
   }, []);
 
   const startSetup = async () => {
-    if (!currentUser) {
-      setError("Please log in and try again.");
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
-    let resObj = useResumeStore.getState().activeResume;
-    let analObj = useResumeStore.getState().activeAnalysis;
-
-    if ((!resObj || !analObj) && currentUser.activeResumeId) {
-      try {
-        await useResumeStore.getState().fetchActiveResume(currentUser.uid, currentUser.activeResumeId);
-        resObj = useResumeStore.getState().activeResume;
-        analObj = useResumeStore.getState().activeAnalysis;
-      } catch (e) {
-        console.error("[ImmersiveBriefing] Error fetching active resume:", e);
-      }
-    }
-
-    if (!resObj || !analObj) {
-      setError("Resume or profile data is missing. Please upload a resume and try again.");
-      setLoading(false);
-      return;
-    }
-
     try {
+      const { hasResume, activeResume: resObj, activeAnalysis: analObj } =
+        await useResumeStore.getState().ensureResumeHydrated();
+      const user = useAuthStore.getState().currentUser;
+
+      if (!user) {
+        setError("Please log in and try again.");
+        return;
+      }
+
+      if (!hasResume || !resObj || !analObj) {
+        setError("Resume or profile data is missing. Please upload a resume and try again.");
+        return;
+      }
+
       // Build the same parsedResume dict that ActiveSimulationScreen builds
       const parsedResumeDict: Record<string, string> = {};
       if (Array.isArray(analObj.parsedSections)) {
@@ -86,13 +76,13 @@ export default function ImmersiveBriefingScreen() {
         pendingType === "immersive-panel" ? "panel" : "one-on-one";
 
       console.log(
-        `[VR][QUESTION_CONTEXT] uid=${currentUser.uid} targetRole="${currentUser.targetPosition || "Unknown Role"}" program="${currentUser.degreeProgram || "Unknown Program"}" sectionsCount=${Object.keys(parsedResumeDict).length} keys=${Object.keys(parsedResumeDict).join(",")}`
+        `[VR][QUESTION_CONTEXT] uid=${user.uid} targetRole="${user.targetPosition || "Unknown Role"}" program="${user.degreeProgram || "Unknown Program"}" sectionsCount=${Object.keys(parsedResumeDict).length} keys=${Object.keys(parsedResumeDict).join(",")}`
       );
 
       // ── Daniel's existing API call (unchanged) ───────────────────────────────
       const response = await startInterviewSimulation({
-        targetRole: currentUser.targetPosition || "Unknown Role",
-        program: currentUser.degreeProgram || "Unknown Program",
+        targetRole: user.targetPosition || "Unknown Role",
+        program: user.degreeProgram || "Unknown Program",
         parsedResume: parsedResumeDict,
       });
 
@@ -100,15 +90,15 @@ export default function ImmersiveBriefingScreen() {
 
       // Seed Zustand store — same initializeSession() the Standard flow uses
       initializeSession({
-        userId: currentUser.uid,
-        targetRole: currentUser.targetPosition,
-        program: currentUser.degreeProgram,
-        resumeId: currentUser.activeResumeId || "none",
+        userId: user.uid,
+        targetRole: user.targetPosition,
+        program: user.degreeProgram,
+        resumeId: user.activeResumeId || "none",
         interviewType,
         firstQuestion: response.question,
         firstQuestionType: response.questionType,
         firstQuestionBenchmark: response.benchmarkAnswer,
-        totalQuestions: 5,
+        totalQuestions: 10,
       });
     } catch (err) {
       console.error("[ImmersiveBriefing] startSetup error:", err);
@@ -203,6 +193,49 @@ export default function ImmersiveBriefingScreen() {
               <Text className="text-xs font-bold text-[#CA5D25] uppercase tracking-wider mb-0.5">VR Microphone Note</Text>
               <Text className="text-xs font-medium text-[#CA5D25] leading-4">
                 The VR interview uses speech detection to record your answers hands-free. Please ensure microphone access is granted when prompted so the interviewers can hear your voice.
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Voice-Controlled Navigation Guidance Card */}
+        <View
+          className="bg-white p-6 rounded-3xl border border-[#BFD6EA] mb-5"
+          style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}
+        >
+          <View className="flex-row items-center mb-3">
+            <Ionicons name="mic-outline" size={22} color="#1F3A5F" />
+            <Text className="text-base font-bold text-[#1F3A5F] ml-2">Voice Controls</Text>
+          </View>
+          <Text className="text-sm text-[#4F6B82] leading-5 font-medium mb-4">
+            During the interview, use your voice to control the experience without touching the screen. You can say:
+          </Text>
+
+          <View className="gap-3">
+            <View className="flex-row items-start">
+              <View className="bg-[#FEF5F1] px-2.5 py-1 rounded-lg border border-[#F4A47A] mr-3 mt-0.5 min-w-[70px] items-center">
+                <Text className="text-xs font-bold text-[#CA5D25]">"Next"</Text>
+              </View>
+              <Text className="flex-1 text-sm text-[#1F3A5F] font-medium leading-5">
+                Say <Text className="font-bold">"Next"</Text> or <Text className="font-bold">"Next question"</Text> to advance to the next question.
+              </Text>
+            </View>
+
+            <View className="flex-row items-start">
+              <View className="bg-[#FEF5F1] px-2.5 py-1 rounded-lg border border-[#F4A47A] mr-3 mt-0.5 min-w-[70px] items-center">
+                <Text className="text-xs font-bold text-[#CA5D25]">"Repeat"</Text>
+              </View>
+              <Text className="flex-1 text-sm text-[#1F3A5F] font-medium leading-5">
+                Say <Text className="font-bold">"Repeat"</Text> or <Text className="font-bold">"Repeat the question"</Text> to hear the current question again.
+              </Text>
+            </View>
+
+            <View className="flex-row items-start">
+              <View className="bg-[#FEF5F1] px-2.5 py-1 rounded-lg border border-[#F4A47A] mr-3 mt-0.5 min-w-[70px] items-center">
+                <Text className="text-xs font-bold text-[#CA5D25]">"Stop"</Text>
+              </View>
+              <Text className="flex-1 text-sm text-[#1F3A5F] font-medium leading-5">
+                Say <Text className="font-bold">"Stop"</Text> or <Text className="font-bold">"Stop the interview"</Text> to end the interview early.
               </Text>
             </View>
           </View>

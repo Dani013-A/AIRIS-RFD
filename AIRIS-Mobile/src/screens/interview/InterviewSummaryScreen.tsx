@@ -31,10 +31,15 @@ export default function InterviewSummaryScreen() {
     }
 
     try {
+      if (!session.evaluations || session.evaluations.length === 0) {
+        setLoading(false);
+        return;
+      }
+
       const response = await generateInterviewReport({
         targetRole: session.targetRole,
         program: session.program,
-        parsedResume: {}, // In a full implementation, pass the active resume sections here if needed by the report prompt, though history + evaluations should be enough. Let's pass empty or cached if needed. The prompt uses them but history is most important.
+        parsedResume: {},
         history: session.history,
         evaluations: session.evaluations,
       });

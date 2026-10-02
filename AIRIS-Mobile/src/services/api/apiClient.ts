@@ -13,7 +13,7 @@
  *    Falls back to Expo host LAN IP, Android emulator (10.0.2.2:8000), or iOS simulator (localhost:8000).
  */
 
-export const PRODUCTION_API_URL = "https://18-143-33-249.sslip.io";
+export const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || "https://18-143-33-249.sslip.io";
 
 function getStaticExpoPublicApiUrl(): string | undefined {
   try {

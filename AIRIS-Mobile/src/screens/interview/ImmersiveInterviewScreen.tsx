@@ -43,77 +43,7 @@ type VRInterviewState =
   | "WAITING_FOR_NEXT_QUESTION_COMMAND"
   | "EXITING";
 
-function parseVRVoiceCommand(
-  transcript: string
-): "STOP" | "NEXT_QUESTION" | null {
-  const clean = transcript
-    .toLowerCase()
-    .replace(/[.,/#!$%^&*;:{}=\-_`~()?]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  if (!clean) return null;
-
-  // 1. Explicit termination / exit commands
-  const explicitStopPhrases = [
-    "stop",
-    "stop interview",
-    "stop the interview",
-    "end interview",
-    "end the interview",
-    "quit",
-    "quit interview",
-    "exit",
-    "exit interview",
-    "cancel interview",
-    "terminate interview",
-    "stop please",
-    "please stop",
-  ];
-
-  for (const phrase of explicitStopPhrases) {
-    if (clean === phrase) {
-      return "STOP";
-    }
-  }
-
-  // 2. Explicit advancement / skip commands
-  const explicitNextPhrases = [
-    "next",
-    "next question",
-    "go to next question",
-    "go to next",
-    "next one",
-    "next please",
-    "please next",
-    "skip",
-    "skip question",
-    "skip this question",
-    "pass",
-    "continue",
-    "proceed",
-    "move on",
-  ];
-
-  for (const phrase of explicitNextPhrases) {
-    if (clean === phrase) {
-      return "NEXT_QUESTION";
-    }
-  }
-
-  // Bounded 1-2 word match for clear commands
-  const tokens = clean.split(" ");
-  if (tokens.length <= 2) {
-    if (tokens.includes("stop") || tokens.includes("exit") || tokens.includes("quit")) {
-      return "STOP";
-    }
-    if (tokens.includes("next") || tokens.includes("skip") || tokens.includes("pass")) {
-      return "NEXT_QUESTION";
-    }
-  }
-
-  return null;
-}
+import { parseVRVoiceCommand } from "./voiceCommands";
 
 /**
  * ImmersiveInterviewScreen
@@ -163,8 +93,20 @@ function getSpeakerForQuestion(
 export default function ImmersiveInterviewScreen() {
   const router = useRouter();
   const unityRef = useRef<UnityView>(null);
+
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const activeAnalysis = useResumeStore((s) => s.activeAnalysis);
+  const { session, submitAnswer } = useInterviewStore();
+
+  // Derive Unity scene name from the session's interviewType
+  const sceneName =
+    session?.interviewType === "panel" ||
+    session?.interviewType === ("immersive-panel" as any)
+      ? "SampleScene" // AIRIS PANEL scene (Scene 0 in Build Settings)
+      : "OneOnOne";    // AIRIS 1-on-1 scene (Scene 1 in Build Settings)
+
   const pendingNextQuestionRef = useRef<{ question: string; speaker: VRSpeaker } | null>(null);
-  const currentSpeakerRef = useRef<VRSpeaker>({ index: 1, name: "Claudia" });
+  const currentSpeakerRef = useRef<VRSpeaker>(getSpeakerForQuestion(sceneName, 1));
 
   // State machine ref & idempotency guards
   const stateRef = useRef<VRInterviewState>("INTERVIEWER_SPEAKING");
@@ -180,10 +122,6 @@ export default function ImmersiveInterviewScreen() {
   // Timing & watchdog refs
   const recordingStoppedTimeRef = useRef<number | null>(null);
   const watchdogTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const currentUser = useAuthStore((s) => s.currentUser);
-  const activeAnalysis = useResumeStore((s) => s.activeAnalysis);
-  const { session, submitAnswer } = useInterviewStore();
 
   const [unityReady, setUnityReady] = useState(false);
   const [sceneLoaded, setSceneLoaded] = useState(false);
@@ -228,13 +166,6 @@ export default function ImmersiveInterviewScreen() {
       isMounted = false;
     };
   }, []);
-
-  // Derive Unity scene name from the session's interviewType
-  const sceneName =
-    session?.interviewType === "panel" ||
-    session?.interviewType === ("immersive-panel" as any)
-      ? "SampleScene" // AIRIS PANEL scene (Scene 0 in Build Settings)
-      : "OneOnOne";    // AIRIS 1-on-1 scene (Scene 1 in Build Settings)
 
   // Reset lifecycle refs on mount or session change
   useEffect(() => {
@@ -631,25 +562,25 @@ export default function ImmersiveInterviewScreen() {
             }
 
             // ═════════════════════════════════════════════════════════════════
-            // 2. "NEXT" / "NEXT QUESTION" / "SKIP" VOICE COMMAND
+            // 2. "REPEAT" VOICE COMMAND — REPEAT CURRENT QUESTION IMMEDIATELY
+            // ═════════════════════════════════════════════════════════════════
+            if (command === "REPEAT_QUESTION") {
+              console.log(`[VR][VOICE_COMMAND] Action: REPEAT recognized — repeating "${currentSession.currentQuestion}"`);
+              stateRef.current = "INTERVIEWER_SPEAKING";
+              postToUnity("SHOW_QUESTION", {
+                questionText: currentSession.currentQuestion,
+                speakerIndex: currentSpeakerRef.current.index,
+                speakerName: currentSpeakerRef.current.name,
+              });
+              return;
+            }
+
+            // ═════════════════════════════════════════════════════════════════
+            // 3. "NEXT" / "NEXT QUESTION" / "SKIP" VOICE COMMAND
             // ═════════════════════════════════════════════════════════════════
             if (command === "NEXT_QUESTION") {
-              if (pendingNextQuestionRef.current) {
-                const { question: nextQ, speaker } = pendingNextQuestionRef.current;
-                pendingNextQuestionRef.current = null;
-                currentSpeakerRef.current = speaker;
-                stateRef.current = "INTERVIEWER_SPEAKING";
-                console.log(`[VR][VOICE_COMMAND] Action: NEXT_QUESTION confirmed → advancing to: "${nextQ}" (speaker=${speaker.name})`);
-                postToUnity("SHOW_QUESTION", {
-                  questionText: nextQ,
-                  speakerIndex: speaker.index,
-                  speakerName: speaker.name,
-                });
-                return;
-              } else {
-                console.log("[VR][VOICE_COMMAND] Candidate requested next question — submitting skip request to advance");
-                finalTranscript = "I would like to move on to the next question.";
-              }
+              console.log("[VR][VOICE_COMMAND] Candidate requested next question — submitting skip request to advance");
+              finalTranscript = "skip this question";
             }
 
             // ═════════════════════════════════════════════════════════════════
@@ -716,14 +647,15 @@ export default function ImmersiveInterviewScreen() {
             );
 
             // Update Zustand store — authoritative state update
+            const isInteraction = response.isInteractionEvent && command !== "NEXT_QUESTION";
             submitAnswer(
               finalTranscript,
-              response.evaluation,
+              command === "NEXT_QUESTION" ? null : response.evaluation,
               response.nextQuestion?.question,
               response.nextQuestion?.questionType,
               response.nextQuestion?.benchmarkAnswer,
               response.isComplete,
-              response.isInteractionEvent
+              isInteraction
             );
 
             if (response.isComplete) {
@@ -737,7 +669,7 @@ export default function ImmersiveInterviewScreen() {
                 AirisOrientation.lockPortrait();
                 router.push("/(student)/interview-session/summary" as any);
               }, 4000);
-            } else if (response.isInteractionEvent) {
+            } else if (isInteraction) {
               const followUpText = response.nextQuestion?.question || "Take your time. Whenever you are ready.";
               const speaker = currentSpeakerRef.current;
               stateRef.current = "INTERVIEWER_SPEAKING";
@@ -749,50 +681,12 @@ export default function ImmersiveInterviewScreen() {
               });
             } else {
               const nextQuestionText = response.nextQuestion?.question;
-              const feedbackText = response.evaluation?.feedback;
               const nextSpeaker = getSpeakerForQuestion(
                 sceneName,
                 (currentSession.questionsAsked || 1) + 1
               );
 
-              if (command === "NEXT_QUESTION" && nextQuestionText) {
-                currentSpeakerRef.current = nextSpeaker;
-                stateRef.current = "INTERVIEWER_SPEAKING";
-                console.log(`[VR][NEXT_QUESTION] Candidate requested NEXT → presenting next question directly: "${nextQuestionText}" (speaker=${nextSpeaker.name})`);
-                postToUnity("SHOW_QUESTION", {
-                  questionText: nextQuestionText,
-                  speakerIndex: nextSpeaker.index,
-                  speakerName: nextSpeaker.name,
-                });
-              } else if (feedbackText && nextQuestionText) {
-                // Stage the next question / follow-up with nextSpeaker, speak constructive feedback with current speaker, then transition automatically
-                pendingNextQuestionRef.current = { question: nextQuestionText, speaker: nextSpeaker };
-                stateRef.current = "INTERVIEWER_FEEDBACK";
-                console.log(`[VR][AI_FEEDBACK] Speaking feedback with current speaker (${currentSpeakerRef.current.name}): "${feedbackText}"`);
-                postToUnity("SHOW_FEEDBACK", {
-                  feedback: feedbackText,
-                  speakerIndex: currentSpeakerRef.current.index,
-                  score: response.evaluation?.score ?? 0,
-                });
-
-                // Safety fallback: if FEEDBACK_SPOKEN takes longer than 7s, advance automatically
-                if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
-                feedbackTimeoutRef.current = setTimeout(() => {
-                  if (pendingNextQuestionRef.current && !isExitingRef.current) {
-                    const fallbackNextQ = pendingNextQuestionRef.current.question;
-                    const fallbackSpeaker = pendingNextQuestionRef.current.speaker || nextSpeaker;
-                    pendingNextQuestionRef.current = null;
-                    currentSpeakerRef.current = fallbackSpeaker;
-                    stateRef.current = "INTERVIEWER_SPEAKING";
-                    console.log(`[VR][WATCHDOG] Feedback timeout → auto-advancing to: "${fallbackNextQ}" (speaker=${fallbackSpeaker.name})`);
-                    postToUnity("SHOW_QUESTION", {
-                      questionText: fallbackNextQ,
-                      speakerIndex: fallbackSpeaker.index,
-                      speakerName: fallbackSpeaker.name,
-                    });
-                  }
-                }, 7000);
-              } else if (nextQuestionText) {
+              if (nextQuestionText) {
                 currentSpeakerRef.current = nextSpeaker;
                 stateRef.current = "INTERVIEWER_SPEAKING";
                 console.log(`[VR][NEXT_QUESTION] Showing next question directly: "${nextQuestionText}" (speaker=${nextSpeaker.name})`);
@@ -801,6 +695,8 @@ export default function ImmersiveInterviewScreen() {
                   speakerIndex: nextSpeaker.index,
                   speakerName: nextSpeaker.name,
                 });
+              } else {
+                console.warn("[VR] No next question text received in response");
               }
             }
           } catch (error: any) {

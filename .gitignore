@@ -35,3 +35,7 @@ venv.bak/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Agent configuration
+AGENTS.md
+scratch/

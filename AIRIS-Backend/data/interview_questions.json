@@ -10,53 +10,123 @@
       "background",
       "self introduction"
     ],
-    "text": "Can you please tell us about yourself.",
+    "text": "Tell me about yourself.",
     "idealAnswer": "I am a recent graduate with a degree in my field, where I developed a strong foundation in both core academic principles and practical project work. Throughout my studies, I took the initiative to apply my skills to hands-on projects and collaborative coursework, focusing on solving concrete problems and continuously expanding my capabilities. I am enthusiastic about beginning my professional career, bringing a strong work ethic, adaptability, and an eagerness to contribute meaningfully to the team while continuing to learn and grow."
   },
   {
     "id": "survey-2",
-    "category": "technical",
-    "competency": "academic and technical alignment",
-    "tags": [
-      "general",
-      "all roles",
-      "education",
-      "technical background",
-      "qualifications"
-    ],
-    "text": "How does your educational background relate to the position you are applying for?",
-    "idealAnswer": "My degree program provided me with specialized coursework, foundational theory, and practical project experience that directly align with the core requirements of this position. Through coursework and laboratory deliverables, I developed competencies in industry-relevant methodologies and modern problem-solving tools. In my capstone and major project work, I worked on end-to-end deliverables that closely reflect the day-to-day responsibilities of this role, giving me a solid practical transition from academic preparation to industry execution."
-  },
-  {
-    "id": "survey-3",
-    "category": "behavioral",
+    "category": "motivation",
     "competency": "motivation and company alignment",
     "tags": [
       "general",
       "all roles",
       "motivation",
-      "company culture",
-      "career interest"
+      "role interest",
+      "career motivation"
     ],
-    "text": "Why are you applying for this position and why did you choose our company?",
-    "idealAnswer": "I am applying for this position because it aligns with my long-term career goals and offers the opportunity to contribute my skills to high-impact initiatives. I specifically chose your company because of your track record of excellence, your forward-thinking projects, and your supportive work environment that values continuous professional development. I want to be part of an organization where I can deliver measurable value from day one while expanding my expertise alongside experienced mentors and colleagues."
+    "text": "Why are you interested in this position?",
+    "idealAnswer": "I am interested in this position because it directly aligns with my career aspirations and provides the ideal environment to apply the competencies I built during my academic preparation. The responsibilities of this role match my strengths, and I am drawn to the impactful work your organization delivers. I want to contribute effectively from day one while continuing to develop my skills alongside experienced professionals."
+  },
+  {
+    "id": "survey-3",
+    "category": "academic",
+    "competency": "academic and technical alignment",
+    "tags": [
+      "general",
+      "all roles",
+      "education",
+      "academic relevance",
+      "qualifications"
+    ],
+    "text": "How does your educational background relate to this position?",
+    "idealAnswer": "My degree program provided me with specialized coursework, foundational theory, and practical project experience that directly align with the core requirements of this position. Through coursework and laboratory deliverables, I developed competencies in industry-relevant methodologies and modern problem-solving tools. In my capstone and major project work, I worked on deliverables that reflect the responsibilities of this role, giving me a solid practical transition from academic preparation to workplace execution."
   },
   {
     "id": "survey-4",
     "category": "behavioral",
-    "competency": "self-awareness and growth mindset",
+    "competency": "strengths and self-awareness",
     "tags": [
       "general",
       "all roles",
       "strengths",
-      "weaknesses",
-      "self improvement"
+      "core competencies",
+      "self awareness"
     ],
-    "text": "What are your strengths, and what is one area you are actively working to improve?",
-    "idealAnswer": "One of my greatest strengths is my analytical problem-solving ability and structured approach to deliverables—when faced with complex tasks, I break them down methodically and follow through with attention to detail. On the other hand, an area I have been actively working to improve is delegating tasks and seeking feedback earlier rather than trying to resolve every challenge independently. I have been practicing clearer check-ins with teammates to ensure collaborative alignment and efficient execution."
+    "text": "What would you consider your greatest strengths?",
+    "idealAnswer": "My greatest strengths are my structured analytical approach to problem-solving, attention to detail, and ability to learn and adapt quickly. When given a complex assignment, I break it down systematically into clear milestones and ensure thorough follow-through. I also communicate proactively and collaborate effectively with teammates to keep projects on track."
   },
   {
     "id": "survey-5",
+    "category": "behavioral",
+    "competency": "growth mindset and development",
+    "tags": [
+      "general",
+      "all roles",
+      "improvement",
+      "development area",
+      "growth mindset"
+    ],
+    "text": "What is one area you are currently working to improve?",
+    "idealAnswer": "One area I have been actively working to improve is delegating tasks and seeking input earlier rather than trying to resolve every bottleneck independently. During past projects, I sometimes spent excessive time exploring edge cases alone before asking for guidance. I have been practicing clearer check-ins with team members and mentors to validate approaches sooner and maintain collaborative alignment."
+  },
+  {
+    "id": "survey-6",
+    "category": "situational",
+    "competency": "problem solving and resilience",
+    "tags": [
+      "general",
+      "all roles",
+      "challenge",
+      "problem solving",
+      "resilience"
+    ],
+    "text": "Tell me about a challenging situation or project you faced and how you handled it.",
+    "idealAnswer": "During a major project with a tight deadline, our team encountered an unexpected technical bottleneck where a key deliverable failed integration testing. Rather than panicking, I systematically analyzed the error logs to isolate the root cause, researched potential workarounds, and proposed an alternative implementation to the team. By adjusting our task distribution and testing collaboratively, we resolved the issue and delivered the project on schedule."
+  },
+  {
+    "id": "survey-7",
+    "category": "behavioral",
+    "competency": "teamwork and collaboration",
+    "tags": [
+      "general",
+      "all roles",
+      "teamwork",
+      "collaboration",
+      "team contribution"
+    ],
+    "text": "Tell me about a time you worked as part of a team. What was your role?",
+    "idealAnswer": "In a recent capstone team project, I served as a core contributor responsible for coordinating key deliverables and ensuring cross-functional alignment. Throughout the collaboration, I maintained open communication, assisted teammates when they hit roadblocks, and made sure our deliverables met quality standards. When differing opinions arose, I helped facilitate constructive discussions to find a practical consensus, allowing our team to complete our milestones smoothly."
+  },
+  {
+    "id": "survey-8",
+    "category": "behavioral",
+    "competency": "time management and prioritization",
+    "tags": [
+      "general",
+      "all roles",
+      "prioritization",
+      "time management",
+      "deadlines"
+    ],
+    "text": "How do you prioritize your tasks when you have multiple deadlines?",
+    "idealAnswer": "When handling multiple competing deadlines, I organize my deliverables using a structured task tracking system and evaluate each task by its urgency, impact, and dependencies. I focus on critical-path milestones first, allocate dedicated focus blocks for complex deliverables, and communicate proactively with stakeholders if any timeline adjustments are needed. This disciplined approach ensures all obligations are met without compromising quality."
+  },
+  {
+    "id": "survey-9",
+    "category": "behavioral",
+    "competency": "adaptability and continuous learning",
+    "tags": [
+      "general",
+      "all roles",
+      "adaptability",
+      "learning quickly",
+      "continuous learning"
+    ],
+    "text": "Tell me about a time you had to learn something new quickly. How did you approach it?",
+    "idealAnswer": "When a project required using a software framework and workflow tools I had not encountered before, I took an intensive, hands-on learning approach. I reviewed official documentation and tutorials, built small proof-of-concept prototypes to test key mechanisms, and consulted experienced peers when clarifying best practices. Within a few days, I was comfortable enough to implement the project requirements accurately and deliver our component on time."
+  },
+  {
+    "id": "survey-10",
     "category": "behavioral",
     "competency": "career planning and goal orientation",
     "tags": [
@@ -67,76 +137,20 @@
       "professional growth"
     ],
     "text": "Where do you see yourself in the next three to five years?",
-    "idealAnswer": "My long-term goal is to grow into a senior role where I can contribute more strategically and mentor others. In the first few years, I plan to master my core responsibilities, take ownership of complex projects, and consistently deliver high-quality outcomes for the team. As I expand my technical and domain expertise, I want to take on greater leadership responsibilities, help guide newer team members, and bridge hands-on technical execution with high-level strategic problem solving."
+    "idealAnswer": "Over the next three to five years, I aim to develop deep domain expertise in my field, master my core responsibilities, and take ownership of increasingly complex initiatives. As I build a track record of reliable contributions, I hope to take on greater responsibilities, mentor newer graduates, and help drive collaborative success across our team while continuing to stay current with industry developments."
   },
   {
-    "id": "survey-6",
-    "category": "behavioral",
-    "competency": "time management and prioritization",
-    "tags": [
-      "general",
-      "all roles",
-      "prioritization",
-      "time management",
-      "deadlines"
-    ],
-    "text": "How do you prioritize your tasks when you have multiple deadlines approaching?",
-    "idealAnswer": "I follow a structured workflow and use tools like Jira, Trello, or Notion to organize and track my deliverables. When multiple deadlines converge, I evaluate tasks based on urgency, impact, and cross-team dependencies to establish a clear priority queue. I break large objectives into manageable milestones, eliminate non-essential distractions, and communicate proactively with stakeholders if expectations need alignment. This methodical approach ensures that I consistently deliver high-quality results on time without sacrificing accuracy."
-  },
-  {
-    "id": "survey-7",
-    "category": "behavioral",
-    "competency": "problem solving and adaptability",
-    "tags": [
-      "general",
-      "all roles",
-      "problem solving",
-      "resilience",
-      "adaptability"
-    ],
-    "text": "Tell me about a challenge or difficult situation you faced and how you handled it.",
-    "idealAnswer": "I am always eager to learn and embrace change, so when an unexpected bottleneck or technical hurdle arose during a major project, I approached it with an open mindset rather than frustration. I systematically analyzed the root cause, researched potential alternative methodologies, and collaborated with peers and advisors to validate the solution. By pivoting quickly, adjusting our timeline, and maintaining transparent communication, we resolved the issue and delivered the project successfully, reinforcing my commitment to adaptability and resilience."
-  },
-  {
-    "id": "survey-8",
-    "category": "technical",
-    "competency": "value proposition and competitiveness",
-    "tags": [
-      "general",
-      "all roles",
-      "value proposition",
-      "hiring justification",
-      "skills"
-    ],
-    "text": "Why should we hire you over other applicants?",
-    "idealAnswer": "You should hire me because I combine rigorous academic grounding with practical hands-on project experience, a strong work ethic, and a high degree of adaptability. I am deeply committed to doing thorough, dependable work and take personal ownership of the tasks assigned to me. Beyond my technical competencies, I bring strong collaboration skills, a positive attitude, and an eagerness to ramp up quickly so that I can provide tangible value to your team from day one."
-  },
-  {
-    "id": "survey-9",
-    "category": "behavioral",
-    "competency": "teamwork and collaboration",
-    "tags": [
-      "general",
-      "all roles",
-      "teamwork",
-      "collaboration",
-      "leadership"
-    ],
-    "text": "Tell me about a time you worked as part of a team. What was your role?",
-    "idealAnswer": "In a recent capstone team project, I served as a core contributor responsible for coordinating key deliverables and ensuring cross-functional alignment. Throughout the collaboration, I led by example and encouraged open communication and accountability across the team. When differing opinions or workflow bottlenecks arose, I facilitated constructive discussions to find common ground and keep everyone focused on our shared goal. As a result, our team met all milestones on schedule and delivered a polished final product."
-  },
-  {
-    "id": "survey-10",
+    "id": "survey-closing",
     "category": "closing",
-    "competency": "stress management and composure",
+    "competency": "inquisitiveness and candidate engagement",
     "tags": [
       "general",
       "all roles",
-      "stress management",
-      "emotional intelligence",
-      "closing"
+      "closing",
+      "candidate questions",
+      "wrap up"
     ],
-    "text": "How do you handle stress or pressure at work or school?",
-    "idealAnswer": "When faced with conflict, tight deadlines, or high pressure, I approach the situation calmly and objectively. I take a moment to deconstruct the pressure points, prioritize the critical next actions, and engage in direct, professional communication with team members to resolve ambiguities. Outside of work, I maintain structured routines and healthy habits that keep my perspective balanced. This discipline enables me to stay composed, focused, and effective even in fast-paced or demanding environments."
+    "text": "Thanks, that covers the main questions I wanted to ask. Before we wrap up, what questions do you have for me about the role or company?",
+    "idealAnswer": "I would like to ask about the day-to-day workflow for a fresh graduate joining the team, and what opportunities exist for ongoing mentorship and professional growth within the organization."
   }
 ]

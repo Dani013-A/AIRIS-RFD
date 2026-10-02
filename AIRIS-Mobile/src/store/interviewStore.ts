@@ -49,7 +49,7 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
       resumeId: data.resumeId || 'none',
       interviewType: data.interviewType || 'one-on-one',
       startedAt: Date.now(),
-      totalQuestions: data.totalQuestions || 5, // default 5 questions for now
+      totalQuestions: data.totalQuestions || 10,
       currentQuestion: data.firstQuestion,
       currentQuestionType: data.firstQuestionType,
       currentBenchmarkAnswer: data.firstQuestionBenchmark,

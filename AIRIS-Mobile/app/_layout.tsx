@@ -7,6 +7,7 @@ import "../global.css";
 import { useEffect } from "react";
 import { ActivityIndicator, AppState, AppStateStatus, View } from "react-native";
 import { useAuthStore } from "../src/store/authStore";
+import { useResumeStore } from "../src/store/resumeStore";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useOnboardingStore } from "../src/store/onboardingStore";
