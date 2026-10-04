@@ -498,7 +498,7 @@ function StudentsDirectoryContent() {
                       <Link
                         href={studentProfileHref(student.uid, searchParams.toString(), searchInput, visiblePage)}
                         aria-label={`View profile of ${student.fullName}`}
-                        className="inline-flex h-11 items-center gap-1.5 px-4 rounded-lg bg-brand-primary text-white text-xs font-bold hover:bg-brand-primary/90 transition-colors"
+                        className="inline-flex h-11 items-center gap-1.5 px-4 rounded-lg bg-[#1E3E6B] text-white text-xs font-bold hover:bg-[#274f89] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E3E6B] transition-colors"
                       >
                         <Eye size={14} /> View Profile
                       </Link>
