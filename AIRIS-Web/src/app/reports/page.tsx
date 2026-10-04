@@ -37,7 +37,7 @@ function ReportsPageContent() {
   const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const urlCoordinator = searchParams.get("coordinator") || searchParams.get("college") || "all";
+  const urlCoordinator = getCoordinatorById(searchParams.get("coordinator") || searchParams.get("college") || "all")?.id || "all";
   const urlPeriod = (searchParams.get("period") as ReportFilterScope["period"]) || "all";
 
   const [scope, setScope] = useState<ReportFilterScope>({
@@ -241,7 +241,7 @@ function ReportsPageContent() {
             </div>
 
             {/* Coordinator (Renamed from College - OJT Coordinators assigned to departments/colleges) */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5 xl:w-auto">
               <span className="font-semibold text-gray-500">Coordinator:</span>
               <Select
                 value={scope.coordinator || "all"}
@@ -251,14 +251,14 @@ function ReportsPageContent() {
                 <option value="all">All Coordinators</option>
                 {TIP_MANILA_COORDINATORS.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    {c.shortName}
                   </option>
                 ))}
               </Select>
             </div>
 
             {/* Period */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5 xl:w-auto">
               <span className="font-semibold text-gray-500">Period:</span>
               <Select
                 value={scope.period || "all"}
@@ -330,17 +330,17 @@ function ReportsPageContent() {
                 </div>
 
                 {/* Dominant [ View Report ] Action Bar (Amendment 6 & 7) */}
-                <div className="pt-3 border-t border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="pt-3 border-t border-gray-150 flex flex-col gap-2">
                   <div className="text-[11px] font-medium text-gray-500 truncate">
                     <span className="font-bold text-gray-700">Scope: </span>
                     <span className="text-[#1E3E6B] font-bold">{formatScopeLabel()}</span>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-nowrap items-center gap-2 overflow-x-auto">
                     {/* Dominant Action: View Report */}
                     <Link
                       href={buildReportViewHref(report.key)}
-                      className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-[#1E3E6B] text-white text-xs font-black hover:bg-[#152e50] shadow-sm transition-colors cursor-pointer"
+                      className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap px-4 py-2 rounded-lg bg-[#1E3E6B] text-white text-xs font-black hover:bg-[#152e50] shadow-sm transition-colors cursor-pointer"
                     >
                       <span>View Report</span>
                       <ArrowRight size={14} />
@@ -352,7 +352,7 @@ function ReportsPageContent() {
                       disabled={isDownloadingPdf || isDownloadingCsv}
                       title="Quick Download Institutional PDF"
                       aria-label={`Quick Download PDF for ${report.title}`}
-                      className="inline-flex items-center justify-center p-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:text-[#1E3E6B] hover:bg-gray-50 disabled:opacity-50 transition-colors cursor-pointer"
+                      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:text-[#1E3E6B] hover:bg-gray-50 disabled:opacity-50 transition-colors cursor-pointer"
                     >
                       <FileText size={14} />
                     </button>
@@ -363,7 +363,7 @@ function ReportsPageContent() {
                       disabled={isDownloadingPdf || isDownloadingCsv}
                       title="Quick Export Raw CSV"
                       aria-label={`Quick Export CSV for ${report.title}`}
-                      className="inline-flex items-center justify-center p-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:text-emerald-700 hover:bg-gray-50 disabled:opacity-50 transition-colors cursor-pointer"
+                      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:text-emerald-700 hover:bg-gray-50 disabled:opacity-50 transition-colors cursor-pointer"
                     >
                       <FileSpreadsheet size={14} />
                     </button>

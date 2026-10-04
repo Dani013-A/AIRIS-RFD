@@ -21,7 +21,7 @@ export interface CoordinatorConfig {
   id: string;
   name: string;
   shortName: string;
-  collegeId: string;
+  collegeIds: string[];
   collegeName: string;
 }
 
@@ -84,29 +84,22 @@ export const TIP_MANILA_COORDINATORS: CoordinatorConfig[] = [
     id: "ccs",
     name: "CCS Coordinator (College of Computer Studies)",
     shortName: "CCS Coordinator",
-    collegeId: "ccs",
+    collegeIds: ["ccs"],
     collegeName: "College of Computer Studies",
   },
   {
     id: "cea",
     name: "CEA Coordinator (College of Engineering and Architecture)",
     shortName: "CEA Coordinator",
-    collegeId: "cea",
+    collegeIds: ["cea"],
     collegeName: "College of Engineering and Architecture",
   },
   {
-    id: "cbe",
-    name: "CBE Coordinator (College of Business Education)",
-    shortName: "CBE Coordinator",
-    collegeId: "cbe",
-    collegeName: "College of Business Education",
-  },
-  {
-    id: "ca",
-    name: "CA Coordinator (College of Arts)",
-    shortName: "CA Coordinator",
-    collegeId: "ca",
-    collegeName: "College of Arts",
+    id: "cbe-coa",
+    name: "CBE / CoA Coordinator (Business Education / Arts)",
+    shortName: "CBE / CoA Coordinator",
+    collegeIds: ["cbe", "ca"],
+    collegeName: "College of Business Education / College of Arts",
   },
 ];
 
@@ -130,7 +123,16 @@ export function getTipCoordinators(): CoordinatorConfig[] {
 export function getCoordinatorById(coordinatorId: string): CoordinatorConfig | undefined {
   if (!coordinatorId || coordinatorId === "all") return undefined;
   const normalized = coordinatorId.trim().toLowerCase();
-  return TIP_MANILA_COORDINATORS.find((c) => c.id === normalized || c.shortName.toLowerCase() === normalized);
+  return TIP_MANILA_COORDINATORS.find((c) =>
+    c.id === normalized || c.shortName.toLowerCase() === normalized || c.collegeIds.includes(normalized)
+  );
+}
+
+export function matchesCoordinator(coordinatorId: string, collegeId?: string, assignedCoordinator?: string): boolean {
+  const group = getCoordinatorById(coordinatorId);
+  if (!group) return false;
+  return (collegeId ? group.collegeIds.includes(collegeId.toLowerCase()) : false) ||
+    (assignedCoordinator ? getCoordinatorById(assignedCoordinator)?.id === group.id : false);
 }
 
 /**
@@ -138,6 +140,19 @@ export function getCoordinatorById(coordinatorId: string): CoordinatorConfig | u
  */
 export function getAllTipPrograms(): DegreeProgramConfig[] {
   return TIP_MANILA_COLLEGES.flatMap((c) => c.programs);
+}
+
+export function getProgramsForCoordinator(coordinatorId: string): DegreeProgramConfig[] {
+  const group = getCoordinatorById(coordinatorId);
+  return TIP_MANILA_COLLEGES
+    .filter((college) => !group || group.collegeIds.includes(college.id))
+    .flatMap((college) => college.programs);
+}
+
+export function matchesProgramChoice(storedProgram: string | undefined, selectedProgram: string): boolean {
+  if (!storedProgram || !selectedProgram) return false;
+  const program = getAllTipPrograms().find((candidate) => candidate.name === selectedProgram);
+  return storedProgram === selectedProgram || Boolean(program?.shortCode && storedProgram.toLowerCase() === program.shortCode.toLowerCase());
 }
 
 /**

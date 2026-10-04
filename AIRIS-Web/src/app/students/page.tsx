@@ -8,7 +8,8 @@ import { useAuthStore } from "../../store/authStore";
 import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
-import { TIP_MANILA_COORDINATORS } from "../../config/tipManilaAcademic";
+import { TIP_MANILA_COORDINATORS, getCoordinatorById, getProgramsForCoordinator, matchesProgramChoice } from "../../config/tipManilaAcademic";
+import { sortStudentRoster } from "./sortStudentRoster";
 import Link from "next/link";
 import {
   Search,
@@ -21,7 +22,15 @@ import {
   User,
   AlertTriangle,
   RotateCcw,
+  ChevronDown,
 } from "lucide-react";
+
+function scoreToneClasses(score: number | undefined): string {
+  if (score === undefined) return "bg-gray-100 text-gray-500 border-gray-200";
+  if (score >= 80) return "bg-teal-50 text-teal-700 border-teal-200";
+  if (score >= 60) return "bg-blue-50 text-blue-700 border-blue-200";
+  return "bg-amber-50 text-amber-700 border-amber-200";
+}
 
 function StudentsDirectoryContent() {
   const router = useRouter();
@@ -45,10 +54,16 @@ function StudentsDirectoryContent() {
   const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get("search") || "");
 
   // Read filters from URL
-  const urlCoordinator = searchParams.get("coordinator") || "all";
+  const urlCoordinator = getCoordinatorById(searchParams.get("coordinator") || "all")?.id || "all";
   const urlAccountStatus = searchParams.get("accountStatus") || "all";
   const urlResumeStatus = searchParams.get("resumeStatus") || "all";
   const urlScoreFilter = searchParams.get("score") || "all";
+  const scopedPrograms = getProgramsForCoordinator(urlCoordinator);
+  const requestedProgram = searchParams.get("program") || "all";
+  const urlProgram = requestedProgram === "all" || scopedPrograms.some((program) => program.name === requestedProgram) ||
+    (urlCoordinator === "all" && requestedProgram === "Unspecified Program") ? requestedProgram : "all";
+  const urlInterviewStatus = searchParams.get("interviewStatus") || "all";
+  const urlSort = searchParams.get("sort") || "name-asc";
 
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
@@ -82,6 +97,9 @@ function StudentsDirectoryContent() {
   // Update URL parameters
   const updateUrlParam = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
+    if (key === "coordinator" && value !== "all" && !getProgramsForCoordinator(value).some((program) => program.name === params.get("program"))) {
+      params.delete("program");
+    }
     if (value === "all" || !value) {
       params.delete(key);
     } else {
@@ -136,7 +154,7 @@ function StudentsDirectoryContent() {
   };
 
   // Client-side filtering across debounced search and granular score/status filters
-  const filteredStudents = students.filter((s) => {
+  const matchingStudents = students.filter((s) => {
     // Search query match
     if (debouncedSearch.trim()) {
       const q = debouncedSearch.toLowerCase();
@@ -149,12 +167,16 @@ function StudentsDirectoryContent() {
     }
 
     // Account status
+    if (urlProgram !== "all" && !matchesProgramChoice(s.degreeProgram, urlProgram)) return false;
     if (urlAccountStatus === "active" && s.isDisabled) return false;
     if (urlAccountStatus === "disabled" && !s.isDisabled) return false;
 
     // Resume status
     if (urlResumeStatus === "uploaded" && !s.hasUploadedResume) return false;
     if (urlResumeStatus === "missing" && s.hasUploadedResume) return false;
+
+    if (urlInterviewStatus === "done" && s.interviewStatus !== "completed") return false;
+    if (urlInterviewStatus === "not-done" && s.interviewStatus === "completed") return false;
 
     // Employability score filter (strictly respectful of undefined vs zero)
     const emp = s.employabilityScore;
@@ -171,6 +193,9 @@ function StudentsDirectoryContent() {
     return true;
   });
 
+  const programs = [...scopedPrograms].sort((a, b) => a.name.localeCompare(b.name));
+  const filteredStudents = sortStudentRoster(matchingStudents, urlSort);
+
   const totalPages = Math.ceil(filteredStudents.length / pageSize) || 1;
   const paginatedStudents = filteredStudents.slice(
     (currentPage - 1) * pageSize,
@@ -182,7 +207,10 @@ function StudentsDirectoryContent() {
     urlCoordinator !== "all" ||
     urlAccountStatus !== "all" ||
     urlResumeStatus !== "all" ||
-    urlScoreFilter !== "all";
+    urlInterviewStatus !== "all" ||
+    urlScoreFilter !== "all" ||
+    urlProgram !== "all" ||
+    urlSort !== "name-asc";
 
   return (
     <div className="space-y-6 text-[#1E3E6B]">
@@ -191,7 +219,7 @@ function StudentsDirectoryContent() {
         <div>
           <h1 className="text-2xl font-black tracking-tight">Student Directory</h1>
           <p className="text-sm font-semibold text-brand-slate mt-0.5">
-            Authoritative student roster, evaluation inspection, and account lifecycle controls.
+            Find students, review their progress, and open their profiles.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -232,19 +260,23 @@ function StudentsDirectoryContent() {
             <Filter size={14} /> Filter Roster:
           </div>
 
-          {/* Coordinator Filter (Renamed from College - OJT Coordinators assigned to departments/colleges) */}
-          <Select
-            value={urlCoordinator}
-            onChange={(e) => updateUrlParam("coordinator", e.target.value)}
-            aria-label="Filter by Coordinator"
-          >
-            <option value="all">Coordinator: All Coordinators</option>
-            {TIP_MANILA_COORDINATORS.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </Select>
+          <details className="group w-full min-w-0 rounded-lg border border-gray-200 px-3">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-xs font-bold text-[#1E3E6B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E3E6B] [&::-webkit-details-marker]:hidden">
+              <span>Coordinator and program {urlCoordinator !== "all" || urlProgram !== "all" ? "(filtered)" : ""}</span>
+              <ChevronDown size={16} className="shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
+            </summary>
+            <div className="grid grid-cols-1 gap-3 pb-3 pt-1 lg:grid-cols-2">
+              <Select value={urlCoordinator} onChange={(e) => updateUrlParam("coordinator", e.target.value)} aria-label="Filter by Coordinator" containerClassName="!w-full">
+                <option value="all">All Coordinators</option>
+                {TIP_MANILA_COORDINATORS.map((c) => <option key={c.id} value={c.id}>{c.shortName}</option>)}
+              </Select>
+              <Select value={urlProgram} onChange={(e) => updateUrlParam("program", e.target.value)} aria-label="Filter by program" containerClassName="!w-full">
+                <option value="all">All Programs</option>
+                {programs.map((program) => <option key={program.name} value={program.name}>{program.name}</option>)}
+                {urlCoordinator === "all" && students.some((student) => student.degreeProgram === "Unspecified Program") && <option value="Unspecified Program">Unspecified Program</option>}
+              </Select>
+            </div>
+          </details>
 
           {/* Account Status Filter */}
           <Select
@@ -257,6 +289,17 @@ function StudentsDirectoryContent() {
             <option value="disabled">Disabled Accounts</option>
           </Select>
 
+          <Select value={urlSort} onChange={(e) => updateUrlParam("sort", e.target.value)} aria-label="Sort students">
+            <option value="name-asc">Name: A–Z</option>
+            <option value="name-desc">Name: Z–A</option>
+            <option value="college-asc">College: A–Z</option>
+            <option value="program-asc">Program: A–Z</option>
+            <option value="target-asc">Target: A–Z</option>
+            <option value="resume-desc">Resume score: High–Low</option>
+            <option value="interview-desc">Interview score: High–Low</option>
+            <option value="readiness-desc">Readiness: High–Low</option>
+          </Select>
+
           {/* Resume Upload Status Filter */}
           <Select
             value={urlResumeStatus}
@@ -266,6 +309,12 @@ function StudentsDirectoryContent() {
             <option value="all">Resume: All</option>
             <option value="uploaded">Uploaded Resume</option>
             <option value="missing">Missing Resume</option>
+          </Select>
+
+          <Select value={urlInterviewStatus} onChange={(e) => updateUrlParam("interviewStatus", e.target.value)} aria-label="Filter by interview completion">
+            <option value="all">Interview: All</option>
+            <option value="done">Interview Done</option>
+            <option value="not-done">Interview Not Done</option>
           </Select>
 
           {/* Employability Score Filter */}
@@ -294,7 +343,7 @@ function StudentsDirectoryContent() {
       </div>
 
       {/* Directory Roster Container */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-[#F4F7FA] rounded-xl border border-gray-200 overflow-hidden">
         {loading ? (
           <div className="flex h-64 flex-col items-center justify-center p-6 gap-3">
             <LoadingSpinner size="md" />
@@ -333,275 +382,142 @@ function StudentsDirectoryContent() {
           </div>
         ) : (
           <>
-            {/* Desktop Table View (>= 768px): Information-Dense Table */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[1250px]">
-                <thead>
-                  <tr className="bg-[#DCE6EE]/30 border-b border-[#A5C2DA]/30 text-xs font-black uppercase tracking-wider text-brand-primary">
-                    <th className="px-5 py-4 min-w-[200px] text-left whitespace-nowrap">Student Profile</th>
-                    <th className="px-5 py-4 min-w-[200px] text-left whitespace-nowrap">TIP Institutional Email</th>
-                    <th className="px-5 py-4 min-w-[160px] text-left whitespace-nowrap">Academic Track</th>
-                    <th className="px-5 py-4 min-w-[150px] text-left whitespace-nowrap">Target Career</th>
-                    <th className="px-5 py-4 min-w-[130px] text-left whitespace-nowrap">Resume Status</th>
-                    <th className="px-5 py-4 min-w-[130px] text-left whitespace-nowrap">Resume Score</th>
-                    <th className="px-5 py-4 min-w-[140px] text-left whitespace-nowrap">Interview Status</th>
-                    <th className="px-5 py-4 min-w-[130px] text-left whitespace-nowrap">Interview Score</th>
-                    <th className="px-5 py-4 min-w-[160px] text-left whitespace-nowrap">Employability Index</th>
-                    <th className="px-5 py-4 min-w-[120px] text-left whitespace-nowrap">Account State</th>
-                    <th className="px-5 py-4 min-w-[130px] text-left whitespace-nowrap">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 text-xs font-bold">
-                  {paginatedStudents.map((student) => {
-                    const empScore = student.employabilityScore;
-                    const rScore = student.resumeScore;
-                    const iScore = student.interviewScore;
-
-                    // Semantically truthful badge colors (missing !== 0)
-                    const empBadgeColor =
-                      empScore !== undefined
-                        ? empScore >= 80
-                          ? "bg-teal-50 text-teal-700 border-teal-200"
-                          : empScore >= 60
-                          ? "bg-blue-50 text-blue-700 border-blue-200"
-                          : "bg-amber-50 text-amber-700 border-amber-200"
-                        : "bg-gray-100 text-gray-500 border-gray-200";
-
-                    const rBadgeColor =
-                      rScore !== undefined
-                        ? rScore >= 80
-                          ? "bg-teal-50 text-teal-700 border-teal-200"
-                          : rScore >= 60
-                          ? "bg-blue-50 text-blue-700 border-blue-200"
-                          : "bg-amber-50 text-amber-700 border-amber-200"
-                        : "bg-gray-100 text-gray-500 border-gray-200";
-
-                    const iBadgeColor =
-                      iScore !== undefined
-                        ? iScore >= 80
-                          ? "bg-teal-50 text-teal-700 border-teal-200"
-                          : iScore >= 60
-                          ? "bg-blue-50 text-blue-700 border-blue-200"
-                          : "bg-amber-50 text-amber-700 border-amber-200"
-                        : "bg-gray-100 text-gray-500 border-gray-200";
-
-                    return (
-                      <tr key={student.uid} className="hover:bg-gray-50/60 transition-colors">
-                        {/* 1. Student Profile */}
-                        <td className="px-5 py-4 text-left">
-                          <div className="flex items-center gap-3 text-left">
-                            <div className="h-9 w-9 rounded-full bg-brand-primary/10 border border-brand-primary/20 text-brand-primary flex items-center justify-center font-black text-xs shrink-0">
-                              {student.fullName.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <span className="font-extrabold text-[#1E3E6B] text-sm block whitespace-nowrap">
-                                {student.fullName}
-                              </span>
-                              <span className="text-[11px] text-brand-slate font-medium whitespace-nowrap block">
-                                Registered: {new Date(student.createdAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* 2. TIP Email */}
-                        <td className="px-5 py-4 text-brand-slate font-medium whitespace-nowrap text-left">
-                          {student.email}
-                        </td>
-
-                        {/* 3. Degree Program */}
-                        <td className="px-5 py-4 text-left">
-                          <span className="block font-bold text-[#1E3E6B]">{student.degreeProgram}</span>
-                          <span className="text-[11px] text-brand-slate block font-normal">{student.college}</span>
-                        </td>
-
-                        {/* 4. Target Role */}
-                        <td className="px-5 py-4 font-semibold text-brand-slate text-left">
-                          {student.targetPosition || "Not set"}
-                        </td>
-
-                        {/* 5. Resume Status */}
-                        <td className="px-5 py-4 text-left whitespace-nowrap">
-                          {student.hasUploadedResume ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200">
-                              Uploaded {student.resumesCount ? `(${student.resumesCount})` : ""}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500 border border-gray-200">
-                              Missing Resume
-                            </span>
-                          )}
-                        </td>
-
-                        {/* 6. Resume Score */}
-                        <td className="px-5 py-4 text-left whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black border ${rBadgeColor}`}>
-                            {rScore !== undefined ? `${rScore} / 100` : "Not Evaluated"}
-                          </span>
-                        </td>
-
-                        {/* 7. Interview Status */}
-                        <td className="px-5 py-4 text-left whitespace-nowrap">
-                          {student.interviewStatus === "completed" ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                              Completed {student.interviewsCount ? `(${student.interviewsCount})` : ""}
-                            </span>
-                          ) : student.interviewStatus === "in_progress" ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                              In Progress
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500 border border-gray-200">
-                              Not Started
-                            </span>
-                          )}
-                        </td>
-
-                        {/* 8. Interview Score */}
-                        <td className="px-5 py-4 text-left whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black border ${iBadgeColor}`}>
-                            {iScore !== undefined ? `${iScore} / 100` : "Not Evaluated"}
-                          </span>
-                        </td>
-
-                        {/* 9. Employability Index */}
-                        <td className="px-5 py-4 text-left whitespace-nowrap">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-black border ${empBadgeColor}`}>
-                            {empScore !== undefined ? `${empScore} / 100` : "Incomplete Data"}
-                          </span>
-                        </td>
-
-                        {/* 10. Account State */}
-                        <td className="px-5 py-4 text-left whitespace-nowrap">
-                          <button
-                            onClick={() => handleToggleStatus(student.uid, !!student.isDisabled)}
-                            disabled={actionLoading}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold border cursor-pointer transition-all ${
-                              student.isDisabled
-                                ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
-                                : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                            }`}
-                          >
-                            <Power size={12} />
-                            {student.isDisabled ? "Disabled" : "Active"}
-                          </button>
-                        </td>
-
-                        {/* 11. Actions */}
-                        <td className="px-5 py-4 text-left whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <Link
-                              href={`/students/${student.uid}`}
-                              className="px-3 py-1.5 rounded-xl bg-brand-primary/10 text-brand-primary font-extrabold hover:bg-brand-primary/20 transition-all inline-flex items-center gap-1 text-xs"
-                            >
-                              <Eye size={14} /> Profile
-                            </Link>
-                            {currentAdmin?.role === "admin" && (
-                              <button
-                                onClick={() => openDeletePrompt(student.uid)}
-                                disabled={actionLoading}
-                                aria-label="Delete Student Account"
-                                className="p-1.5 rounded-xl bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all cursor-pointer"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile & Tablet Card View (< 768px): Structured Information-Dense Cards */}
-            <div className="block md:hidden divide-y divide-gray-100">
+            {/* Responsive Student Card Directory: one card per student, all viewports */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 p-4 md:p-5">
               {paginatedStudents.map((student) => {
                 const empScore = student.employabilityScore;
                 const rScore = student.resumeScore;
                 const iScore = student.interviewScore;
 
-                const empBadgeColor =
-                  empScore !== undefined
-                    ? empScore >= 80
-                      ? "bg-teal-50 text-teal-700 border-teal-200"
-                      : empScore >= 60
-                      ? "bg-blue-50 text-blue-700 border-blue-200"
-                      : "bg-amber-50 text-amber-700 border-amber-200"
-                    : "bg-gray-100 text-gray-500 border-gray-200";
-
                 return (
-                  <div key={student.uid} className="p-4 space-y-3 bg-white">
-                    {/* Top Row: Avatar, Name, Email, Employability */}
+                  <article
+                    key={student.uid}
+                    aria-label={`Student card for ${student.fullName}`}
+                    className="bg-white rounded-xl border border-gray-200 p-4 md:p-5 space-y-4 min-w-0"
+                  >
+                    {/* 1. Student identity + employability */}
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-brand-primary/10 border border-brand-primary/20 text-brand-primary flex items-center justify-center font-black text-sm shrink-0">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          aria-hidden="true"
+                          className="h-11 w-11 rounded-full bg-brand-primary/10 border border-brand-primary/20 text-brand-primary flex items-center justify-center font-black text-base shrink-0"
+                        >
                           {student.fullName.charAt(0).toUpperCase()}
                         </div>
-                        <div>
-                          <h3 className="font-extrabold text-[#1E3E6B] text-sm">{student.fullName}</h3>
-                          <p className="text-xs font-semibold text-brand-slate">{student.email}</p>
+                        <div className="min-w-0">
+                          <h3 className="font-extrabold text-[#1E3E6B] text-base leading-snug break-words">
+                            {student.fullName}
+                          </h3>
+                          <p className="text-xs text-brand-slate font-medium break-all">{student.email}</p>
                         </div>
                       </div>
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black border ${empBadgeColor} shrink-0`}>
-                        {empScore !== undefined ? `${empScore} / 100` : "Incomplete"}
+                      <span
+                        className={`inline-flex shrink-0 whitespace-nowrap items-center px-3 py-1 rounded-full text-xs font-black border ${scoreToneClasses(empScore)}`}
+                      >
+                        {empScore !== undefined ? `Employability: ${empScore} / 100` : "Employability: Incomplete"}
                       </span>
                     </div>
 
-                    {/* Middle: Details Grid */}
-                    <div className="grid grid-cols-2 gap-2 text-xs font-bold text-brand-slate bg-gray-50 p-3 rounded-xl border border-gray-150">
-                      <div>
-                        <span className="text-[10px] text-gray-400 block uppercase">Program</span>
-                        <span className="text-[#1E3E6B] font-extrabold">{student.degreeProgram}</span>
+                    {/* 2+3. Academic + career information */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl bg-[#F4F7FA] border border-gray-200/70 p-3">
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 block">
+                          Academic Track
+                        </span>
+                        <span className="block font-bold text-[#1E3E6B] text-sm break-words">
+                          {student.degreeProgram}
+                        </span>
+                        <span className="block text-[11px] text-brand-slate font-medium break-words">
+                          {student.college}
+                        </span>
                       </div>
-                      <div>
-                        <span className="text-[10px] text-gray-400 block uppercase">Target Role</span>
-                        <span className="text-brand-primary font-extrabold truncate block">
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 block">
+                          Target Career
+                        </span>
+                        <span className="block font-bold text-brand-primary text-sm break-words">
                           {student.targetPosition || "Not set"}
                         </span>
                       </div>
-                      <div className="pt-1">
-                        <span className="text-[10px] text-gray-400 block uppercase">Resume Score</span>
-                        <span className="text-[#1E3E6B] font-black">
+                    </div>
+
+                    {/* 4. Evaluation status */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {student.hasUploadedResume ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                          Resume Uploaded{student.resumesCount ? ` (${student.resumesCount})` : ""}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-500 border border-gray-200">
+                          Missing Resume
+                        </span>
+                      )}
+                      {student.interviewStatus === "completed" ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                          Interview Completed{student.interviewsCount ? ` (${student.interviewsCount})` : ""}
+                        </span>
+                      ) : student.interviewStatus === "in_progress" ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          Interview In Progress
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-500 border border-gray-200">
+                          Interview Not Started
+                        </span>
+                      )}
+                    </div>
+
+                    {/* 5. Scores */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="rounded-lg bg-[#F4F7FA] border border-gray-200/70 px-2 py-2 text-center min-w-0">
+                        <span className="block text-[10px] font-black uppercase tracking-wider text-gray-400">
+                          Resume Score
+                        </span>
+                        <span className={`block text-sm font-black ${rScore !== undefined ? "text-[#1E3E6B]" : "text-gray-400"}`}>
                           {rScore !== undefined ? `${rScore} / 100` : "Not Evaluated"}
                         </span>
                       </div>
-                      <div className="pt-1">
-                        <span className="text-[10px] text-gray-400 block uppercase">Interview Score</span>
-                        <span className="text-[#1E3E6B] font-black">
+                      <div className="rounded-lg bg-[#F4F7FA] border border-gray-200/70 px-2 py-2 text-center min-w-0">
+                        <span className="block text-[10px] font-black uppercase tracking-wider text-gray-400">
+                          Interview Score
+                        </span>
+                        <span className={`block text-sm font-black ${iScore !== undefined ? "text-[#1E3E6B]" : "text-gray-400"}`}>
                           {iScore !== undefined ? `${iScore} / 100` : "Not Evaluated"}
                         </span>
                       </div>
                     </div>
 
-                    {/* Bottom Row: Actions */}
-                    <div className="flex items-center justify-between gap-2 pt-1">
-                      <button
-                        onClick={() => handleToggleStatus(student.uid, !!student.isDisabled)}
-                        disabled={actionLoading}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold border cursor-pointer ${
-                          student.isDisabled
-                            ? "bg-red-50 text-red-700 border-red-200"
-                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        }`}
+                    {/* 6. Actions */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-gray-100">
+                      <Link
+                        href={`/students/${student.uid}`}
+                        aria-label={`View profile of ${student.fullName}`}
+                        className="inline-flex h-11 items-center gap-1.5 px-4 rounded-lg bg-brand-primary text-white text-xs font-bold hover:bg-brand-primary/90 transition-colors"
                       >
-                        <Power size={12} />
-                        {student.isDisabled ? "Disabled" : "Active"}
-                      </button>
-
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/students/${student.uid}`}
-                          className="px-3.5 py-1.5 rounded-xl bg-brand-primary text-white font-extrabold text-xs inline-flex items-center gap-1"
+                        <Eye size={14} /> View Profile
+                      </Link>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          onClick={() => handleToggleStatus(student.uid, !!student.isDisabled)}
+                          disabled={actionLoading}
+                          aria-label={`${student.isDisabled ? "Enable" : "Disable"} account of ${student.fullName}`}
+                          title={student.isDisabled ? "Enable account" : "Disable account"}
+                          className={`inline-flex h-11 items-center gap-1.5 px-3 rounded-lg text-xs font-extrabold border cursor-pointer transition-colors disabled:opacity-50 ${
+                            student.isDisabled
+                              ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+                              : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                          }`}
                         >
-                          <Eye size={14} /> Profile
-                        </Link>
+                          <Power size={12} />
+                          {student.isDisabled ? "Disabled" : "Active"}
+                        </button>
                         {currentAdmin?.role === "admin" && (
                           <button
                             onClick={() => openDeletePrompt(student.uid)}
                             disabled={actionLoading}
-                            className="p-1.5 rounded-xl bg-red-50 text-red-600 border border-red-200 cursor-pointer"
+                            title="Delete student account"
+                            aria-label={`Delete account of ${student.fullName}`}
+                            className="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 cursor-pointer transition-colors disabled:opacity-50"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -610,15 +526,14 @@ function StudentsDirectoryContent() {
                     </div>
 
                     {/* Timestamp footer */}
-                    <div className="text-[10px] text-brand-slate font-medium pt-1 flex justify-between border-t border-gray-100">
+                    <div className="text-[10px] text-brand-slate font-medium flex flex-wrap justify-between gap-1">
                       <span>Registered: {new Date(student.createdAt).toLocaleDateString()}</span>
                       <span>Last Active: {new Date(student.lastActivityDate || student.updatedAt).toLocaleDateString()}</span>
                     </div>
-                  </div>
+                  </article>
                 );
               })}
-            </div>
-          </>
+            </div>          </>
         )}
 
         {/* Pagination Controls */}

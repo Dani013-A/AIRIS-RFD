@@ -9,7 +9,7 @@ export function PurposeSection() {
       icon: MessageSquare,
       title: "Interview Preparation",
       description:
-        "Provides fresh graduates with an interactive 3D NPC-based environment to practice realistic job interview scenarios in a low-stakes, self-paced setting.",
+        "Provides graduating students with an interactive 3D NPC-based environment to practice realistic job interview scenarios in a low-stakes, self-paced setting.",
     },
     {
       icon: CheckCircle,
@@ -44,7 +44,7 @@ export function PurposeSection() {
             Addressing Key Graduate Preparation Needs
           </h2>
           <p className="text-sm text-[#5F7E97] leading-relaxed">
-            AIRIS addresses critical preparation barriers faced by fresh graduates entering the workforce,
+            AIRIS addresses critical preparation barriers faced by graduating students entering the workforce,
             integrating simulation, assessment, and guidance into one platform.
           </p>
         </div>

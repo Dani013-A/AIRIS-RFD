@@ -90,7 +90,7 @@ export function LandingFooter() {
             <p className="text-xs text-[#5F7E97] leading-relaxed max-w-md">
               Developed as an undergraduate academic capstone research project at the
               Technological Institute of the Philippines - Manila to support graduating seniors
-              and fresh graduates in career preparation.
+              and graduating students in career preparation.
             </p>
 
             <div className="inline-flex items-center gap-2 text-xs font-semibold text-[#1E3E6B]">
@@ -161,14 +161,16 @@ export function LandingFooter() {
             
             <div className="space-y-2">
               <a
-                href="mailto:mdaespela@tip.edu.ph"
+                href="mailto:danielespela251@gmail.com"
                 className="inline-flex items-center gap-2 text-xs text-[#1E3E6B] font-semibold hover:text-[#F59E73] transition-colors"
               >
                 <Mail size={14} className="text-[#5F7E97]" />
-                <span>mdaespela@tip.edu.ph</span>
+                <span>Email the AIRIS team</span>
               </a>
+              <a href="https://www.facebook.com/daniiiii007/" target="_blank" rel="noopener noreferrer" className="block text-xs font-semibold text-[#1E3E6B] hover:text-[#F59E73]">AIRIS project Facebook</a>
+              <a href="https://www.facebook.com/TIPCareerCenter" target="_blank" rel="noopener noreferrer" className="block text-xs font-semibold text-[#1E3E6B] hover:text-[#F59E73]">TIP Career Center Facebook</a>
               <p className="text-[11px] text-[#5F7E97] leading-relaxed">
-                Direct project lead contact for capstone evaluations, staging access, and academic queries.
+                Project and career-center contact for questions about AIRIS.
               </p>
             </div>
 

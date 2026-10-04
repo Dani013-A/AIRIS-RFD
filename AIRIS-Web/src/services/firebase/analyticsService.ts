@@ -7,6 +7,7 @@ import {
 } from "../../types/analytics.types";
 import { AdminRole } from "../../types/auth.types";
 import { fetchStudentsList } from "./userService";
+import { getAdminApiBaseUrl } from "../../config/api";
 
 function parseTimestamp(ts: unknown): Date {
   if (!ts) return new Date();
@@ -242,7 +243,7 @@ export async function fetchDashboardAnalytics(
   // Check backend AI service health via fetch
   let aiStatus = "healthy";
   try {
-    const res = await fetch("http://127.0.0.1:8000/health", { method: "GET", signal: AbortSignal.timeout(2500) });
+    const res = await fetch(`${getAdminApiBaseUrl()}/health`, { method: "GET", signal: AbortSignal.timeout(2500) });
     if (!res.ok) aiStatus = "degraded";
   } catch {
     aiStatus = "offline";

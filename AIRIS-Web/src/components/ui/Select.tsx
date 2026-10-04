@@ -33,7 +33,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     ref
   ) => {
     return (
-      <div className={`relative inline-flex items-center ${containerClassName}`}>
+      <div className={`relative inline-flex min-w-0 max-w-full w-full items-center sm:w-auto ${containerClassName}`}>
         {icon && (
           <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5F7E97] z-10">
             {icon}
@@ -45,7 +45,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           onChange={onChange}
           disabled={disabled}
           aria-label={ariaLabel}
-          className={`h-9 ${
+          className={`h-11 min-w-0 max-w-full w-full ${
             icon ? "pl-9" : "pl-3.5"
           } pr-10 bg-white border border-[#DCE6EE] text-xs font-bold text-[#1E3E6B] rounded-lg appearance-none outline-none transition-colors cursor-pointer hover:border-[#5F7E97] focus:border-[#1E3E6B] focus:ring-1 focus:ring-[#1E3E6B] disabled:bg-gray-50 disabled:text-gray-400 disabled:border-gray-200 disabled:cursor-not-allowed ${className}`}
           {...props}

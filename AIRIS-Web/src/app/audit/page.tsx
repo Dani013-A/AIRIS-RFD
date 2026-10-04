@@ -140,7 +140,7 @@ export default function AuditLogsPage() {
 
             {/* Action Category Filter using centralized Select */}
             {uniqueActions.length > 0 && (
-              <div className="flex items-center gap-2 text-xs font-bold text-gray-500 shrink-0">
+              <div className="flex w-full min-w-0 flex-wrap items-center gap-2 text-xs font-bold text-gray-500 sm:w-auto">
                 <Filter size={14} />
                 <Select
                   value={actionFilter}

@@ -46,7 +46,7 @@ function ReportDetailContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 15;
 
-  const urlCoordinator = searchParams.get("coordinator") || searchParams.get("college") || "all";
+  const urlCoordinator = getCoordinatorById(searchParams.get("coordinator") || searchParams.get("college") || "all")?.id || "all";
   const urlPeriod = (searchParams.get("period") as ReportFilterScope["period"]) || "all";
 
   const [scope, setScope] = useState<ReportFilterScope>({
@@ -135,7 +135,7 @@ function ReportDetailContent() {
     <DashboardLayout>
       <div className="space-y-6 text-[#1E3E6B]">
         {/* Navigation Breadcrumb & Back */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
             <Link
               href="/reports"
@@ -148,12 +148,12 @@ function ReportDetailContent() {
           </div>
 
           {/* Primary Action Bar: Dominant Institutional PDF & Secondary CSV */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex w-full flex-col gap-2.5 sm:flex-row sm:items-center lg:w-auto">
             <button
               onClick={handleExportPdf}
               disabled={loading || exportingPdf || !payload}
               aria-label="Download Institutional PDF"
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#1E3E6B] text-white text-xs font-black hover:bg-[#152e50] shadow-sm disabled:opacity-50 transition-colors cursor-pointer"
+              className="inline-flex min-h-11 items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#1E3E6B] text-white text-xs font-black hover:bg-[#152e50] shadow-sm disabled:opacity-50 transition-colors cursor-pointer"
             >
               <FileText size={15} />
               <span>{exportingPdf ? "Compiling PDF..." : "Download Institutional PDF"}</span>
@@ -163,7 +163,7 @@ function ReportDetailContent() {
               onClick={handleExportCsv}
               disabled={loading || exportingCsv || !payload}
               aria-label="Export Raw CSV"
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-[#1E3E6B] text-xs font-bold hover:bg-gray-50 hover:border-gray-400 shadow-sm disabled:opacity-50 transition-colors cursor-pointer"
+              className="inline-flex min-h-11 items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-[#1E3E6B] text-xs font-bold hover:bg-gray-50 hover:border-gray-400 shadow-sm disabled:opacity-50 transition-colors cursor-pointer"
             >
               <FileSpreadsheet size={15} className="text-emerald-700" />
               <span>{exportingCsv ? "Exporting..." : "Export CSV"}</span>
@@ -189,7 +189,7 @@ function ReportDetailContent() {
             </div>
 
             {/* Coordinator (Renamed from College - OJT Coordinators assigned to departments/colleges) */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5 xl:w-auto">
               <span className="font-semibold text-gray-500">Coordinator:</span>
               <Select
                 value={scope.coordinator || "all"}
@@ -199,14 +199,14 @@ function ReportDetailContent() {
                 <option value="all">All Coordinators</option>
                 {TIP_MANILA_COORDINATORS.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    {c.shortName}
                   </option>
                 ))}
               </Select>
             </div>
 
             {/* Period */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5 xl:w-auto">
               <span className="font-semibold text-gray-500">Period:</span>
               <Select
                 value={scope.period || "all"}

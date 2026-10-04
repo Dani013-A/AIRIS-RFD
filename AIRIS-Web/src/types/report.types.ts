@@ -6,7 +6,7 @@ export type ReportType =
   | "security_audit";
 
 export interface ReportFilterScope {
-  coordinator?: string; // Department coordinator: "all" | "ccs" | "cea" | "cbe" | "ca"
+  coordinator?: string; // "all" | "ccs" | "cea" | "cbe-coa"; legacy "cbe" and "ca" remain readable
   period?: "all" | "7d" | "30d" | "90d" | "1y";
   college?: string; // Optional backwards-compatible alias
 }

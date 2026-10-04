@@ -10,7 +10,7 @@ import {
   ReportPayload,
   ReportVisualization,
 } from "../../types/report.types";
-import { findCollegeByProgramName, getCoordinatorById } from "../../config/tipManilaAcademic";
+import { findCollegeByProgramName, getCoordinatorById, matchesCoordinator } from "../../config/tipManilaAcademic";
 
 /**
  * Utility to trigger browser file download for generated CSV strings.
@@ -27,8 +27,14 @@ export function triggerFileDownload(content: string, fileName: string, mimeType 
   URL.revokeObjectURL(url);
 }
 
-function buildScopeDescription(scope?: ReportFilterScope): string {
-  const coordId = scope?.coordinator || scope?.college;
+/**
+ * Singular/plural-safe student count noun ("1 student" vs "0/2 students").
+ */
+function pluralizeStudent(count: number): string {
+  return `${count} student${count === 1 ? "" : "s"}`;
+}
+
+function buildScopeDescription(scope?: ReportFilterScope): string {  const coordId = scope?.coordinator || scope?.college;
   const coordObj = coordId && coordId !== "all"
     ? getCoordinatorById(coordId)
     : undefined;
@@ -75,7 +81,7 @@ export async function fetchReportPayload(
       const students = coordScope && coordScope !== "all"
         ? allStudents.filter((s) => {
             const matchedCol = findCollegeByProgramName(s.degreeProgram || "");
-            return matchedCol?.id === coordScope || s.coordinator === coordScope;
+            return matchesCoordinator(coordScope, matchedCol?.id, s.coordinator);
           })
         : allStudents;
 
@@ -101,24 +107,22 @@ export async function fetchReportPayload(
       const completionRate = students.length > 0 ? Math.round((fullyPreparedCount / students.length) * 100) : 0;
 
       const headers = [
-        "Student Name",
-        "TIP Email",
-        "Degree Program",
-        "Target Position",
-        "Resume Score",
-        "Interview Score",
-        "Employability Score",
-        "Readiness Status",
+        "Student",
+        "Program",
+        "Target Role",
+        "Resume",
+        "Interview",
+        "Overall",
+        "Status",
       ];
 
       const rows = students.map((s) => [
         s.fullName,
-        s.email,
         s.degreeProgram || "N/A",
         s.targetPosition || "N/A",
-        s.resumeScore !== undefined ? `${s.resumeScore}/100` : "Not Evaluated",
-        s.interviewScore !== undefined ? `${s.interviewScore}/100` : "Incomplete",
-        s.employabilityScore !== undefined ? `${s.employabilityScore}/100` : "Incomplete Data",
+        s.resumeScore !== undefined ? `${s.resumeScore}` : "—",
+        s.interviewScore !== undefined ? `${s.interviewScore}` : "—",
+        s.employabilityScore !== undefined ? `${s.employabilityScore}` : "—",
         s.employabilityStatus === "completed"
           ? "Fully Evaluated"
           : s.employabilityStatus === "interview_pending"
@@ -128,7 +132,7 @@ export async function fetchReportPayload(
           : "Not Started",
       ]);
 
-      const csvHeaders = ["User ID", ...headers, "Registered Date", "Account Status"];
+      const csvHeaders = ["User ID", "Student Name", "TIP Email", "Degree Program", "Target Position", "Resume Score", "Interview Score", "Employability Score", "Readiness Status", "Registered Date", "Account Status"];
       const csvRows = students.map((s) => [
         s.uid,
         `"${s.fullName.replace(/"/g, '""')}"`,
@@ -154,22 +158,22 @@ export async function fetchReportPayload(
               label: "Fully Evaluated",
               count: fullyPreparedCount,
               percentage: students.length > 0 ? (fullyPreparedCount / students.length) * 100 : 0,
-              colorHex: "#0D9488",
-              colorRgb: [13, 148, 136],
+              colorHex: "#22C55E",
+              colorRgb: [34, 197, 94],
             },
             {
               label: "Interview Pending",
               count: interviewPendingCount,
               percentage: students.length > 0 ? (interviewPendingCount / students.length) * 100 : 0,
-              colorHex: "#1E3E6B",
-              colorRgb: [30, 62, 107],
+              colorHex: "#FACC15",
+              colorRgb: [250, 204, 21],
             },
             {
               label: "Resume Pending",
               count: resumePendingCount,
               percentage: students.length > 0 ? (resumePendingCount / students.length) * 100 : 0,
-              colorHex: "#D97706",
-              colorRgb: [217, 119, 6],
+              colorHex: "#FACC15",
+              colorRgb: [250, 204, 21],
             },
             {
               label: "Not Started",
@@ -195,28 +199,28 @@ export async function fetchReportPayload(
                 label: "Advanced Readiness",
                 count: tier85_100,
                 percentage: students.length > 0 ? (tier85_100 / students.length) * 100 : 0,
-                color: [13, 148, 136],
+                color: [34, 197, 94],
               },
               {
                 range: "70 – 84",
                 label: "Proficient Readiness",
                 count: tier70_84,
                 percentage: students.length > 0 ? (tier70_84 / students.length) * 100 : 0,
-                color: [30, 62, 107],
+                color: [34, 197, 94],
               },
               {
                 range: "50 – 69",
                 label: "Developing Readiness",
                 count: tier50_69,
                 percentage: students.length > 0 ? (tier50_69 / students.length) * 100 : 0,
-                color: [71, 85, 105],
+                color: [250, 204, 21],
               },
               {
                 range: "Below 50",
                 label: "Needs Remediation",
                 count: tierBelow50,
                 percentage: students.length > 0 ? (tierBelow50 / students.length) * 100 : 0,
-                color: [225, 29, 72],
+                color: [239, 68, 68],
               },
               {
                 range: "Not Evaluated",
@@ -239,23 +243,31 @@ export async function fetchReportPayload(
           "Official student roster, institutional email, degree program, latest ATS resume evaluation, mock interview performance, and composite employability status.",
         metadata,
         summaryStats: [
-          { label: "Total Students in Scope", value: students.length },
+          { label: "Students", value: students.length },
           { label: "Fully Evaluated", value: fullyPreparedCount },
-          { label: "Pending Interview", value: interviewPendingCount },
-          { label: "Average Resume Score", value: avgResumeScore !== null ? `${avgResumeScore}/100` : "N/A" },
+          { label: "Interview Pending", value: interviewPendingCount },
+          { label: "Resume Pending", value: resumePendingCount },
         ],
         executiveSummary: {
-          headline: `Cohort of ${students.length} students exhibits ${completionRate}% overall employability preparedness completion rate.`,
+          headline: `${fullyPreparedCount} of ${students.length} students have completed both evaluations (${completionRate}%).`,
           paragraphs: [
-            `A total of ${students.length} eligible students were analyzed across the selected academic scope. Of these, ${fullyPreparedCount} student candidates have completed both the automated resume analysis and the mock technical interview simulation, achieving placement-ready status.`,
+            `This report shows evaluation progress for students in the selected scope. Completion means a resume evaluation and a mock interview result are available; it does not certify placement readiness.`,
             evaluatedStudents.length > 0
-              ? `Among evaluated resumes, the cohort average score stands at ${avgResumeScore}/100, with ${tier85_100 + tier70_84} students performing in proficient or advanced readiness tiers.`
-              : `Resume evaluations are currently pending for students in this scope. Ongoing coordination is recommended to encourage initial submissions.`,
+              ? `The average among ${evaluatedStudents.length} evaluated resumes is ${avgResumeScore}/100. Students without an evaluation are excluded from this average.`
+              : `No resume evaluations are available for this scope yet.`,
           ],
           keyObservations: [
-            `${fullyPreparedCount} of ${students.length} candidates are fully evaluated and ready for OJT placement.`,
-            `${interviewPendingCount} candidates require mock interview completion to finalize their readiness profile.`,
-            `${resumePendingCount + notStartedCount} candidates have not submitted a verified resume document.`,
+            `${pluralizeStudent(interviewPendingCount)} ${interviewPendingCount === 1 ? "has" : "have"} a resume result but no completed interview.`,
+            ...(resumePendingCount > 0
+              ? [
+                  `${pluralizeStudent(resumePendingCount)} ${resumePendingCount === 1 ? "has" : "have"} a completed interview but no resume evaluation yet.`,
+                ]
+              : []),
+            ...(notStartedCount > 0
+              ? [
+                  `${pluralizeStudent(notStartedCount)} ${notStartedCount === 1 ? "does" : "do"} not yet have a resume evaluation.`,
+                ]
+              : []),
           ],
         },
         visualizations,
@@ -263,21 +275,20 @@ export async function fetchReportPayload(
           headers,
           rows,
           columnStyles: {
-            0: { cellWidth: 32 },
-            1: { cellWidth: 38 },
-            2: { cellWidth: 20 },
-            3: { cellWidth: 28 },
-            4: { cellWidth: 16, halign: "center" },
-            5: { cellWidth: 16, halign: "center" },
-            6: { cellWidth: 16, halign: "center" },
-            7: { cellWidth: 16 },
+            0: { cellWidth: 35 },
+            1: { cellWidth: 32 },
+            2: { cellWidth: 30 },
+            3: { cellWidth: 17, halign: "center" },
+            4: { cellWidth: 17, halign: "center" },
+            5: { cellWidth: 17, halign: "center" },
+            6: { cellWidth: 34 },
           },
         },
         definitions: [
-          "Resume Score: Official evaluated resume score (ATS + SBERT Semantic Role Alignment).",
-          "Interview Score: Final composite performance across verified mock interview session.",
-          "Employability Score: Authoritative composite = round(Resume × 40% + Interview × 60%). Missing evaluations remain Incomplete Data.",
-          "Readiness Status: Canonical stage reflecting evaluation progress (Fully Evaluated, Interview Pending, Resume Pending, Not Started).",
+          "Resume: Evaluated resume score combining ATS structure and role skill alignment.",
+          "Interview: Final score from a completed mock interview.",
+          "Overall: Existing composite = round(Resume × 40% + Interview × 60%); shown only when both scores are available.",
+          "Status: Evaluation progress, not a placement decision.",
         ],
         rawCsvData,
       };
@@ -403,15 +414,15 @@ export async function fetchReportPayload(
               label: "Fully Prepared for OJT",
               count: funnel.fullyPreparedCount,
               percentage: funnel.completionRate,
-              colorHex: "#0D9488",
-              colorRgb: [13, 148, 136],
+              colorHex: "#22C55E",
+              colorRgb: [34, 197, 94],
             },
             {
               label: "Incomplete / In-Progress",
               count: Math.max(0, funnel.registeredCount - funnel.fullyPreparedCount),
               percentage: Math.max(0, 100 - funnel.completionRate),
-              colorHex: "#1E3E6B",
-              colorRgb: [30, 62, 107],
+              colorHex: "#FACC15",
+              colorRgb: [250, 204, 21],
             },
           ],
         },
@@ -730,15 +741,15 @@ export async function fetchReportPayload(
               label: "Successful Operations",
               count: successCount,
               percentage: logs.length > 0 ? (successCount / logs.length) * 100 : 0,
-              colorHex: "#0D9488",
-              colorRgb: [13, 148, 136],
+              colorHex: "#22C55E",
+              colorRgb: [34, 197, 94],
             },
             {
               label: "Failed / Rejected",
               count: failureCount,
               percentage: logs.length > 0 ? (failureCount / logs.length) * 100 : 0,
-              colorHex: "#E11D48",
-              colorRgb: [225, 29, 72],
+              colorHex: "#EF4444",
+              colorRgb: [239, 68, 68],
             },
           ],
         },

@@ -19,7 +19,7 @@ import {
 } from "../../types/user.types";
 import { AdminRole } from "../../types/auth.types";
 import { logAuditEvent } from "./auditService";
-import { findCollegeByProgramName } from "../../config/tipManilaAcademic";
+import { findCollegeByProgramName, matchesCoordinator } from "../../config/tipManilaAcademic";
 
 const USERS_COLLECTION = "users";
 const RESUMES_SUBCOLLECTION = "resumes";
@@ -101,9 +101,7 @@ export async function fetchStudentsList(filters?: StudentFilterOptions): Promise
     // Coordinator filter enforcement (department/college coordinator)
     if (filters?.coordinator && filters.coordinator !== "all") {
       const col = findCollegeByProgramName(userData.degreeProgram || "");
-      const matchesDepartment = col?.id === filters.coordinator;
-      const matchesCoordField = userData.coordinator === filters.coordinator;
-      if (!matchesDepartment && !matchesCoordField) {
+      if (!matchesCoordinator(filters.coordinator, col?.id, userData.coordinator)) {
         return false;
       }
     }
@@ -173,21 +171,23 @@ export async function fetchStudentsList(filters?: StudentFilterOptions): Promise
       interviewsCount = interviewsRes.value.size;
       let latestIntScore: number | undefined = undefined;
       let latestIntDate = 0;
+      let hasCompletedInterview = false;
       interviewsRes.value.forEach((iDoc) => {
         const iData = iDoc.data();
+        if (iData.completedAt) hasCompletedInterview = true;
         const score =
           iData.finalReport?.overallPerformance ??
           iData.overallPerformance ??
           iData.overallScore ??
           iData.score;
         const iTime = new Date(parseTimestamp(iData.completedAt || iData.createdAt)).getTime();
-        if (iTime >= latestIntDate && score !== undefined && score !== null) {
+        if (iData.completedAt && iTime >= latestIntDate && score !== undefined && score !== null) {
           latestIntDate = iTime;
           latestIntScore = Number(score);
         }
       });
 
-      if (latestIntScore !== undefined) {
+      if (hasCompletedInterview) {
         interviewScore = latestIntScore;
         interviewStatus = "completed";
       } else {
@@ -386,18 +386,15 @@ export async function fetchStudentDetails(studentId: string): Promise<StudentFul
     ? (latestRawAnalysis.result ?? latestRawAnalysis)
     : null;
   const latestResume = resumesList.length > 0 ? resumesList[resumesList.length - 1] : null;
-  const latestInterview = interviewsList.length > 0 ? interviewsList[interviewsList.length - 1] : null;
+  const latestInterview = interviewsList.filter((interview) => interview.completedAt).at(-1) || null;
 
   const resumeScore: number | undefined = latestAnalysis
     ? latestAnalysis.resumeScore?.overallScore ?? latestAnalysis.overallScore ?? latestAnalysis.atsScore?.overallScore
     : undefined;
 
-  const interviewStatus: StudentListItem["interviewStatus"] =
-    interviewsList.length > 0
-      ? latestInterview?.completedAt
-        ? "completed"
-        : "in_progress"
-      : "not_started";
+  const interviewStatus: StudentListItem["interviewStatus"] = latestInterview
+    ? "completed"
+    : interviewsList.length > 0 ? "in_progress" : "not_started";
 
   const interviewScore: number | undefined =
     latestInterview && interviewStatus === "completed"

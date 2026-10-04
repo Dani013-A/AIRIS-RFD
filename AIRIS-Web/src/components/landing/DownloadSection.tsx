@@ -174,11 +174,11 @@ export function DownloadSection() {
             {/* Contact Action */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
               <a
-                href="mailto:mdaespela@tip.edu.ph?subject=AIRIS%20Mobile%20APK%20Inquiry"
+                href="mailto:danielespela251@gmail.com?subject=AIRIS%20Mobile%20APK%20Inquiry"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-white bg-[#1E3E6B] hover:bg-[#152c4d] transition-all"
               >
                 <Mail size={14} />
-                <span>Contact Project Lead (mdaespela@tip.edu.ph)</span>
+                <span>Email the AIRIS team</span>
               </a>
 
               <button

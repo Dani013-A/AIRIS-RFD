@@ -9,7 +9,7 @@ import { useAuthStore } from "../../store/authStore";
 import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import { Select } from "../../components/ui/Select";
 import { AnalyticsFilterParams } from "../../types/analytics.types";
-import { TIP_MANILA_COORDINATORS } from "../../config/tipManilaAcademic";
+import { TIP_MANILA_COORDINATORS, getCoordinatorById } from "../../config/tipManilaAcademic";
 import {
   Users,
   CheckCircle2,
@@ -51,7 +51,7 @@ function DashboardContent() {
     const urlPeriod = (searchParams.get("period") as AnalyticsFilterParams["period"]) || undefined;
 
     const newFilters: AnalyticsFilterParams = {
-      coordinator: urlCoordinator || "all",
+      coordinator: getCoordinatorById(urlCoordinator || "all")?.id || "all",
       period: urlPeriod || "all",
     };
 
@@ -293,7 +293,7 @@ function DashboardContent() {
 
           {/* Program filter */}
           {/* Coordinator filter (Renamed from College - OJT Coordinators assigned to departments/colleges) */}
-          <div className="flex items-center gap-1.5 text-xs">
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5 text-xs lg:w-auto">
             <span className="font-semibold text-[#5F7E97]">Coordinator:</span>
             <Select
               value={activeFilters.coordinator || "all"}
@@ -303,14 +303,14 @@ function DashboardContent() {
               <option value="all">All Coordinators</option>
               {TIP_MANILA_COORDINATORS.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name}
+                  {c.shortName}
                 </option>
               ))}
             </Select>
           </div>
 
           {/* Period filter */}
-          <div className="flex items-center gap-1.5 text-xs">
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5 text-xs lg:w-auto">
             <span className="font-semibold text-[#5F7E97]">Period:</span>
             <Select
               value={activeFilters.period || "all"}

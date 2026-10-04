@@ -7,7 +7,7 @@ import { useAuthStore } from "../../store/authStore";
 import { Shield, Eye, Lock, RefreshCw, CheckCircle2, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
 
 export default function PrivacyPage() {
-  const [expandedSection, setExpandedSection] = useState<number | null>(0);
+  const [expandedSection, setExpandedSection] = useState<number | null>(null);
   const { currentAdmin, initialized } = useAuthStore();
 
   const sections = [
@@ -117,8 +117,10 @@ export default function PrivacyPage() {
 
                 <button
                   onClick={() => setExpandedSection(isExpanded ? null : idx)}
-                  className="p-2 text-brand-slate hover:text-brand-primary cursor-pointer transition-colors shrink-0 rounded-xl bg-gray-50 border border-gray-200"
-                  aria-label="Toggle section details"
+                  className="flex h-11 w-11 items-center justify-center text-brand-slate hover:text-brand-primary cursor-pointer transition-colors shrink-0 rounded-xl bg-gray-50 border border-gray-200"
+                  aria-label={`${isExpanded ? "Collapse" : "Expand"} ${sec.title}`}
+                  aria-expanded={isExpanded}
+                  aria-controls={`privacy-section-${idx}`}
                 >
                   {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                 </button>
@@ -126,7 +128,7 @@ export default function PrivacyPage() {
 
               {/* Expanded Details */}
               {isExpanded && (
-                <div className="pt-4 border-t border-gray-100 space-y-2.5 text-xs font-semibold text-brand-slate">
+                <div id={`privacy-section-${idx}`} className="pt-4 border-t border-gray-100 space-y-2.5 text-xs font-semibold text-brand-slate">
                   <ul className="space-y-2">
                     {sec.details.map((item, dIdx) => (
                       <li key={dIdx} className="flex items-start gap-2.5 bg-gray-50/80 p-3 rounded-xl border border-gray-200">

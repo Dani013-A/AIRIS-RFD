@@ -41,7 +41,7 @@ export function HeroSection() {
 
             {/* Grounded Manuscript Purpose Statement */}
             <p className="text-base text-[#5F7E97] font-normal leading-relaxed max-w-xl mx-auto lg:mx-0">
-              Developed to support fresh graduates and job seekers in their transition into the workforce.
+              Developed to support graduating students and job seekers in their transition into the workforce.
               AIRIS integrates virtual interview simulation, objective multi-factor response evaluation,
               and evidence-based resume analysis into a unified employability preparation environment.
             </p>
