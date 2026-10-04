@@ -204,10 +204,8 @@ describe("AIRIS — Final Learning Gap Generalization Test Suite (All 10 Require
     expect(metaBackend?.recommendationReason).not.toContain("MongoDB");
     expect(metaBackend?.recommendationReason).not.toContain("GraphQL");
 
-    // 2. Google Cloud ACE: has Kubernetes, but NOT Docker
-    expect(gcpACE).toBeDefined();
-    expect(gcpACE?.relevanceTier).not.toBe("TIER_1_DIRECT_GAP");
-    expect(gcpACE?.recommendationReason).not.toContain("Docker");
+    // 2. The audited Google Cloud ACE URL is retired and must not be recommended.
+    expect(gcpACE).toBeUndefined();
 
     // 3. Harvard CS50: has SQL, but NOT MongoDB or PostgreSQL
     expect(cs50).toBeDefined();

@@ -88,6 +88,10 @@ jobs:
         working-directory: AIRIS-Mobile
         run: npx jest --runInBand
 
+      - name: Run Node-native test suites
+        working-directory: AIRIS-Mobile
+        run: node --test src/components/ui/typographyScale.test.mjs src/screens/interview/standardInterviewUi.test.mjs src/services/learning/learningCatalogQuality.test.cjs src/store/appearanceStore.test.cjs
+
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:

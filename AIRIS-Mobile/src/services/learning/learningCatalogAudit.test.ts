@@ -139,22 +139,24 @@ describe("AIRIS — Comprehensive Audit-Quality Remediation Verification Suite",
   describe("4. Personalization & Semantic Direction Across 6 Valid Profiles", () => {
     it("Verifies distinct recommendations in semantically appropriate directions for 6 valid profiles", () => {
       // 1. BS Civil Engineering -> Structural Engineer
-      const civil = matchLearningRecommendations({
+      const civilItems = matchLearningRecommendations({
         collegeDomain: "College of Engineering and Architecture",
         department: "Engineering",
         degreeProgram: "BS Civil Engineering",
         targetPosition: "Structural Engineer",
         categoryId: "for_you",
-      }).map((i) => i.title);
+      });
+      const civil = civilItems.map((i) => i.title);
 
       // 2. BS Psychology -> Psychometrician
-      const psych = matchLearningRecommendations({
+      const psychItems = matchLearningRecommendations({
         collegeDomain: "College of Arts",
         department: "Arts",
         degreeProgram: "Bachelor of Arts in Psychology",
         targetPosition: "Psychometrician",
         categoryId: "for_you",
-      }).map((i) => i.title);
+      });
+      const psych = psychItems.map((i) => i.title);
 
       // 3. BS Accountancy -> Accountant
       const acct = matchLearningRecommendations({
@@ -200,8 +202,8 @@ describe("AIRIS — Comprehensive Audit-Quality Remediation Verification Suite",
       expect(elec).not.toEqual(it); // Source Expect #15
 
       // Semantic Content Verifications
-      expect(civil.some((t) => t.toLowerCase().includes("civil") || t.toLowerCase().includes("staad"))).toBe(true); // Source Expect #16
-      expect(psych.some((t) => t.toLowerCase().includes("psychology") || t.toLowerCase().includes("blep"))).toBe(true); // Source Expect #17
+      expect(civilItems.some((i) => i.academicPrograms?.includes("BS Civil Engineering") || i.careerPaths.includes("civil engineer") || i.skills.some((s) => s.includes("structural")))).toBe(true); // Source Expect #16
+      expect(psychItems.some((i) => i.academicPrograms?.includes("Bachelor of Arts in Psychology") || i.careerPaths.includes("psychometrician") || i.skills.some((s) => s.includes("psycholog")))).toBe(true); // Source Expect #17
       expect(acct.some((t) => t.toLowerCase().includes("cpa") || t.toLowerCase().includes("accountant"))).toBe(true); // Source Expect #18
       expect(mech.some((t) => t.toLowerCase().includes("mechanical") || t.toLowerCase().includes("solidworks"))).toBe(true); // Source Expect #19
       expect(elec.some((t) => t.toLowerCase().includes("electrical") || t.toLowerCase().includes("etap"))).toBe(true); // Source Expect #20
@@ -272,11 +274,11 @@ describe("AIRIS — Comprehensive Audit-Quality Remediation Verification Suite",
   // 7. CATALOG INTEGRITY & QUALITY GATE INVARIANTS (162 RECORDS)
   // ---------------------------------------------------------------------------
   describe("7. Catalog Integrity & Quality Gate Invariants", () => {
-    it("Validates 229 total catalog records and strict quality gate compliance", () => {
-      expect(VERIFIED_LEARNING_CATALOG.length).toBe(229);
+    it("Validates 232 total catalog records and strict quality gate compliance", () => {
+      expect(VERIFIED_LEARNING_CATALOG.length).toBe(232);
 
       const uniqueIds = new Set(VERIFIED_LEARNING_CATALOG.map((r) => r.id));
-      expect(uniqueIds.size).toBe(229);
+      expect(uniqueIds.size).toBe(232);
 
       for (const res of VERIFIED_LEARNING_CATALOG) {
         expect(res.id).toBeDefined();

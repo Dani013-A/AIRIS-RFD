@@ -295,7 +295,7 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
       expect(Array.isArray(recommendations)).toBe(true);
     });
 
-    it("Accurately matches Time Series Forecasting, Advanced SQL Performance Tuning, and Data Governance without false positives", () => {
+    it("Excludes the retired forecasting link while matching SQL tuning and data governance without false positives", () => {
       const dataAnalystRecs = matchLearningRecommendations({
         categoryId: "for_you",
         targetPosition: "Data Analyst",
@@ -310,16 +310,11 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
       const recIds = dataAnalystRecs.map((r) => r.id);
 
       // Must include genuine direct gap matches
-      expect(recIds).toContain("book_fpp_forecasting");
+      expect(recIds).not.toContain("book_fpp_forecasting");
       expect(recIds).toContain("doc_use_the_index_luke");
       expect(recIds.includes("guide_gdpr_data_governance") || recIds.includes("doc_google_dataplex_governance")).toBe(true);
 
-      // Verify that genuine gap matches receive TIER_1_DIRECT_GAP with gapSubjectOverlap: true
-      const forecastingRec = dataAnalystRecs.find((r) => r.id === "book_fpp_forecasting");
-      expect(forecastingRec?.relevanceTier).toBe("TIER_1_DIRECT_GAP");
-      expect(forecastingRec?.matchEvidence?.gapSubjectOverlap).toBe(true);
-      expect(forecastingRec?.matchEvidence?.genericKeywordOnly).toBe(false);
-
+      // Active direct matches still require grounded gap evidence.
       const sqlTuningRec = dataAnalystRecs.find((r) => r.id === "doc_use_the_index_luke");
       expect(sqlTuningRec?.relevanceTier).toBe("TIER_1_DIRECT_GAP");
       expect(sqlTuningRec?.matchEvidence?.gapSubjectOverlap).toBe(true);
@@ -348,9 +343,9 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
       // Meta Back-End has "python" but does NOT teach forecasting -> MUST NOT be in feed
       expect(recIds).not.toContain("course_meta_backend_dev");
 
-      // book_fpp_forecasting ACTUALLY teaches forecasting -> MUST be Tier 1
+      // The audited book URL is broken, so it must stay out of the feed.
       const forecastItem = dataAnalystRecs.find((r) => r.id === "book_fpp_forecasting");
-      expect(forecastItem?.relevanceTier).toBe("TIER_1_DIRECT_GAP");
+      expect(forecastItem).toBeUndefined();
     });
 
     it("Dynamically adapts to Cybersecurity Analyst role and suppresses disjoint data/frontend resources", () => {
@@ -544,14 +539,14 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
       const recs = matchLearningRecommendations({
         targetPosition: "Data Analyst",
         detectedSkills: ["Python", "SQL", "Pandas"],
-        skillGaps: [{ skill: "Time Series Forecasting", importance: "high" }],
+        skillGaps: [{ skill: "Power BI", importance: "high" }],
         categoryId: "for_you",
       });
 
-      // Advanced gap resource for forecasting must be prioritized at the top
-      const forecastItem = recs.find((r) => r.id === "book_fpp_forecasting");
-      expect(forecastItem).toBeDefined();
-      expect(forecastItem?.relevanceTier).toBe("TIER_1_DIRECT_GAP");
+      // The active role-specific Power BI credential remains a direct gap match.
+      const powerBiItem = recs.find((r) => r.id === "cert_ms_pl300_powerbi");
+      expect(powerBiItem).toBeDefined();
+      expect(powerBiItem?.relevanceTier).toBe("TIER_1_DIRECT_GAP");
     });
   });
 
@@ -661,7 +656,7 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
   });
 
   describe("9. Physical QA Case & Category Tab Pipeline Regression Tests", () => {
-    it("Physical QA Case: IT Specialist with Cisco IOS routing & switching gap surfaces CCNA 200-301 across For You, Certifications, Courses, and Practice tabs", () => {
+    it("Physical QA Case: IT Specialist networking gap surfaces active resources across For You, Certifications, Courses, and Practice tabs", () => {
       const { matchLearningRecommendations } = require("./learningCatalogService");
 
       const gapText = "Detail your specific role and outcomes when applying Cisco IOS routing and switching configuration (CCNA-level)";
@@ -675,8 +670,8 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
       });
 
       expect(forYouRecs.length).toBeGreaterThan(0);
-      const ccnaForYou = forYouRecs.find((r: any) => r.id.includes("ccna") || r.title.includes("CCNA"));
-      expect(ccnaForYou).toBeDefined();
+      expect(forYouRecs.some((r: any) => r.skills.includes("routing and switching") || r.skills.includes("cisco ios"))).toBe(true);
+      expect(forYouRecs.map((r: any) => r.id)).not.toContain("cert_cisco_ccna");
 
       // Certifications tab
       const certRecs = matchLearningRecommendations({
@@ -687,8 +682,8 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
       });
       expect(certRecs.length).toBeGreaterThan(0);
       expect(certRecs.every((r: any) => r.type === "certification")).toBe(true);
-      const ccnaCert = certRecs.find((r: any) => r.id.includes("ccna") || r.title.includes("CCNA"));
-      expect(ccnaCert).toBeDefined();
+      expect(certRecs.some((r: any) => r.skills.includes("networking") || r.skills.includes("network administration"))).toBe(true);
+      expect(certRecs.map((r: any) => r.id)).not.toContain("cert_cisco_ccna");
 
       // Courses tab
       const courseRecs = matchLearningRecommendations({
@@ -753,4 +748,3 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
     });
   });
 });
-
