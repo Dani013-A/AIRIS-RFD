@@ -101,26 +101,30 @@ export default function SkillSelfAssessmentModal({
           style={{ maxHeight: "90%", paddingBottom: Math.max(insets.bottom, 16) + 16 }}
         >
           {/* Header */}
-          <View className="mb-3">
+          <View className="mb-4">
             <View className="flex-row items-start justify-between">
               <Text className="text-xl font-extrabold text-[#1F3A5F] flex-1 pr-4">How confident are you with these skills?</Text>
               <TouchableOpacity onPress={onSkip} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Ionicons name="close" size={24} color="#8B95A5" />
               </TouchableOpacity>
             </View>
-            <Text className="mt-2 text-sm leading-5 text-[#4F6B82]">
+            <Text className="mt-3 text-sm leading-5 text-[#4F6B82]">
               Strong: 75–100% · Moderate: 50–74% · Weak: 0–49% of your own confidence. This is self-reported, not verified skill evidence or a score; low confidence does not mean no ability.
             </Text>
-            <Text className="mt-2 text-xs text-[#4F6B82] leading-4">
+            <Text className="mt-3 text-xs text-[#4F6B82] leading-4">
               Your answers help AIRIS personalize your guidance. They won't change your ATS score.
             </Text>
           </View>
 
-          <View className="h-[1px] bg-[#EAF2F7] my-3" />
+          <View className="h-[1px] bg-[#EAF2F7] mb-4" />
+
+          <Text className="text-xs font-bold uppercase tracking-wider text-[#4F6B82] mb-3">
+            Rate your confidence · {uniqueSkills.length} skills
+          </Text>
 
           {/* Skill List */}
-          <ScrollView className="max-h-[380px] my-2" showsVerticalScrollIndicator={false}>
-            <View className="gap-4 pr-1">
+          <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false}>
+            <View className="gap-3 pr-1 pb-1">
               {uniqueSkills.map((skill) => {
                 const displayName = skill.name;
                 const k = displayName.toLowerCase();
@@ -128,8 +132,8 @@ export default function SkillSelfAssessmentModal({
 
                 return (
                   <View key={k} className="bg-[#F8FAFC] p-4 rounded-2xl border border-[#E2E8F0]">
-                    <View className="flex-row justify-between items-center mb-2.5">
-                      <Text className="text-sm font-bold text-[#1F3A5F] flex-1 mr-2">{displayName}</Text>
+                    <View className="mb-3 items-start gap-2">
+                      <Text className="text-sm font-bold text-[#1F3A5F]">{displayName}</Text>
                       <View
                         className={`px-2.5 py-0.5 rounded-full ${
                           skill.relevance === "HIGH"
@@ -158,10 +162,11 @@ export default function SkillSelfAssessmentModal({
                     </View>
 
                     {/* Rating Selector Buttons */}
-                    <View className="flex-row gap-2">
+                    <View className="flex-row flex-wrap gap-2">
                       <TouchableOpacity
                         onPress={() => handleSelect(skill.name, "STRONG")}
-                        className={`flex-1 py-2.5 rounded-xl border items-center justify-center flex-row ${
+                        style={{ minWidth: 82, flexGrow: 1 }}
+                        className={`py-2.5 px-2 rounded-xl border items-center justify-center flex-row ${
                           currentRating === "STRONG"
                             ? "bg-[#1E5D53] border-[#1E5D53]"
                             : "bg-white border-[#CBD5E1]"
@@ -184,7 +189,8 @@ export default function SkillSelfAssessmentModal({
 
                       <TouchableOpacity
                         onPress={() => handleSelect(skill.name, "MODERATE")}
-                        className={`flex-1 py-2.5 rounded-xl border items-center justify-center flex-row ${
+                        style={{ minWidth: 82, flexGrow: 1 }}
+                        className={`py-2.5 px-2 rounded-xl border items-center justify-center flex-row ${
                           currentRating === "MODERATE"
                             ? "bg-[#CA5D25] border-[#CA5D25]"
                             : "bg-white border-[#CBD5E1]"
@@ -207,7 +213,8 @@ export default function SkillSelfAssessmentModal({
 
                       <TouchableOpacity
                         onPress={() => handleSelect(skill.name, "WEAK")}
-                        className={`flex-1 py-2.5 rounded-xl border items-center justify-center flex-row ${
+                        style={{ minWidth: 82, flexGrow: 1 }}
+                        className={`py-2.5 px-2 rounded-xl border items-center justify-center flex-row ${
                           currentRating === "WEAK"
                             ? "bg-[#64748B] border-[#64748B]"
                             : "bg-white border-[#CBD5E1]"
@@ -234,12 +241,13 @@ export default function SkillSelfAssessmentModal({
             </View>
           </ScrollView>
 
-          <View className="h-[1px] bg-[#EAF2F7] my-3" />
+          <View className="h-[1px] bg-[#EAF2F7] my-4" />
 
           {/* Footer Actions */}
-          <View className="flex-row items-center justify-between gap-3 pt-1">
+          <View className="flex-row flex-wrap items-center gap-3 pt-1">
             <TouchableOpacity
               onPress={onSkip}
+              style={{ minWidth: 110 }}
               className="py-3 px-5 rounded-full border border-[#CBD5E1] items-center justify-center"
             >
               <Text className="text-xs font-bold text-[#64748B]">Skip for now</Text>
@@ -247,7 +255,8 @@ export default function SkillSelfAssessmentModal({
 
             <TouchableOpacity
               onPress={handleContinue}
-              className="flex-1 py-3 px-6 rounded-full bg-[#CA5D25] items-center justify-center flex-row shadow-sm"
+              style={{ minWidth: 160, flexGrow: 1 }}
+              className="py-3 px-6 rounded-full bg-[#CA5D25] items-center justify-center flex-row shadow-sm"
             >
               <Text className="text-sm font-bold text-white mr-1.5">Save & Continue</Text>
               <Ionicons name="arrow-forward" size={16} color="white" />

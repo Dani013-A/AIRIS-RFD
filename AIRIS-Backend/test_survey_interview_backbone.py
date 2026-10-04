@@ -5,7 +5,6 @@ from interview_engine import (
     generate_first_question,
     evaluate_answer_and_generate_next,
     CORE_SURVEY_QUESTIONS,
-    CLOSING_QUESTION
 )
 
 def test_core_question_sequence_count_and_ids():
@@ -24,12 +23,9 @@ def test_core_question_sequence_count_and_ids():
     assert CORE_SURVEY_QUESTIONS[5]["competency"] == "problem solving and resilience"
     assert CORE_SURVEY_QUESTIONS[6]["competency"] == "teamwork and collaboration"
     assert CORE_SURVEY_QUESTIONS[7]["competency"] == "time management and prioritization"
-    assert CORE_SURVEY_QUESTIONS[8]["competency"] == "adaptability and continuous learning"
-    assert CORE_SURVEY_QUESTIONS[9]["competency"] == "career planning and goal orientation"
-
-    # Verify closing question
-    assert CLOSING_QUESTION["id"] == "survey-closing"
-    assert "questions do you have for me" in CLOSING_QUESTION["text"].lower()
+    assert CORE_SURVEY_QUESTIONS[8]["category"] == "synthesis"
+    assert CORE_SURVEY_QUESTIONS[9]["category"] == "closing"
+    assert "before we end" in CORE_SURVEY_QUESTIONS[9]["text"].lower()
 
 def test_generate_first_question_returns_survey_1():
     """First question must be survey-1 (Tell me about yourself)."""
@@ -61,7 +57,7 @@ def test_no_robotic_thank_you_or_overpraise():
             assert phrase not in opening, f"Forbidden phrase '{phrase}' found in {q['id']} spokenOpening"
 
 def test_deterministic_question_progression_through_all_10_questions():
-    """Trace progression through all 10 core questions and into closing."""
+    """Trace discovery, synthesis, and closing within exactly ten turns."""
     history = []
     current_q = CORE_SURVEY_QUESTIONS[0]["spokenOpening"]
     current_type = "introductory"
@@ -88,6 +84,10 @@ def test_deterministic_question_progression_through_all_10_questions():
         expected_id = f"survey-{i + 1}"
         assert next_q["questionId"] == expected_id, f"Expected {expected_id} after question {i}, got {next_q['questionId']}"
         assert next_q["isFollowUp"] is False
+        if i == 8:
+            assert next_q["questionType"] == "synthesis"
+        if i == 9:
+            assert next_q["questionType"] == "closing"
 
         # Verify no robotic phrase in spoken question
         assert "thank you for your answer" not in next_q["question"].lower()
@@ -102,7 +102,7 @@ def test_deterministic_question_progression_through_all_10_questions():
         current_type = next_q["questionType"]
 
     # Now answer Q10 (survey-10)
-    answer_q10 = "In three to five years, I see myself growing into a senior engineer taking technical ownership."
+    answer_q10 = "I would like to add that I enjoy collaborative work and ask how new graduates receive mentoring."
     res_q10 = evaluate_answer_and_generate_next(
         target_role="Software Engineer",
         program="BS Computer Science",
@@ -114,35 +114,12 @@ def test_deterministic_question_progression_through_all_10_questions():
         total_questions=10
     )
 
-    # Next question after Q10 should be survey-closing
-    assert res_q10["isComplete"] is False
-    assert res_q10["nextQuestion"]["questionId"] == "survey-closing"
-    assert "questions do you have for me" in res_q10["nextQuestion"]["question"].lower()
-
-    # Now answer closing question
-    history.append({
-        "question": current_q,
-        "answer": answer_q10,
-        "questionType": current_type
-    })
-    closing_ans = "What kind of mentorship and onboarding support is provided for new graduates on your team?"
-    res_closing = evaluate_answer_and_generate_next(
-        target_role="Software Engineer",
-        program="BS Computer Science",
-        parsed_resume={},
-        history=history,
-        current_question=res_q10["nextQuestion"]["question"],
-        current_answer=closing_ans,
-        current_question_type="closing",
-        total_questions=10
-    )
-
-    # Should be complete!
-    assert res_closing["isComplete"] is True
-    assert res_closing["nextQuestion"] is None
+    assert res_q10["isComplete"] is True
+    assert res_q10["nextQuestion"] is None
+    assert res_q10["evaluation"] is not None
 
 def test_adaptive_follow_up_on_weak_answer():
-    """A weak/incomplete answer produces ONE relevant follow-up, which does NOT replace the core sequence."""
+    """A weak answer produces one follow-up turn before the next discovery topic."""
     weak_answer = "Yes, I did projects."  # Very short, incomplete (< 15 words)
     res = evaluate_answer_and_generate_next(
         target_role="Customer Success",
@@ -183,10 +160,73 @@ def test_adaptive_follow_up_on_weak_answer():
         total_questions=10
     )
 
-    # MUST advance to core survey-2 (Why are you interested in this position?)
+    # The next turn resumes the next discovery topic after the follow-up.
     assert res_after_fu["isComplete"] is False
-    assert res_after_fu["nextQuestion"]["questionId"] == "survey-2"
+    assert res_after_fu["nextQuestion"]["questionId"] == "survey-3"
+    assert res_after_fu["nextQuestion"]["coreQuestion"] == CORE_SURVEY_QUESTIONS[1]["text"]
     assert res_after_fu["nextQuestion"]["isFollowUp"] is False
+
+def test_substantive_project_answer_can_trigger_a_bounded_follow_up():
+    answer = "I developed a mobile application for our capstone project using React Native and Firebase with my team."
+    result = evaluate_answer_and_generate_next(
+        target_role="Software Engineer",
+        program="BS Information Technology",
+        parsed_resume={},
+        history=[],
+        current_question="Tell me about yourself.",
+        current_answer=answer,
+        current_question_type="introductory",
+    )
+    assert result["nextQuestion"]["questionId"] == "survey-2"
+    assert result["nextQuestion"]["isFollowUp"] is True
+    assert "project" in result["nextQuestion"]["question"].lower()
+
+def test_follow_ups_do_not_displace_synthesis_or_create_question_eleven():
+    history = []
+    question = CORE_SURVEY_QUESTIONS[0]["spokenOpening"]
+    question_type = "introductory"
+    for turn in range(1, 11):
+        answer = (
+            "I developed a capstone application with my classmates, tested the main flows, "
+            "and coordinated our work to meet the project deadline."
+        ) if turn < 9 else "I would apply those experiences to contribute to this position and keep learning with the team."
+        result = evaluate_answer_and_generate_next(
+            target_role="Software Engineer",
+            program="BS Information Technology",
+            parsed_resume={},
+            history=history,
+            current_question=question,
+            current_answer=answer,
+            current_question_type=question_type,
+        )
+        if turn == 10:
+            assert result["isComplete"] is True
+            assert result["nextQuestion"] is None
+            break
+        next_question = result["nextQuestion"]
+        assert next_question["questionId"] == f"survey-{turn + 1}"
+        if turn == 8:
+            assert next_question["questionType"] == "synthesis"
+        if turn == 9:
+            assert next_question["questionType"] == "closing"
+        history.append({"question": question, "answer": answer, "questionType": question_type})
+        question = next_question["question"]
+        question_type = next_question["questionType"]
+
+def test_closing_candidate_question_finalizes_without_an_extra_question():
+    history = [{"question": f"Question {i}", "answer": "Relevant answer", "questionType": "behavioral"} for i in range(9)]
+    result = evaluate_answer_and_generate_next(
+        target_role="Software Engineer",
+        program="BS Information Technology",
+        parsed_resume={},
+        history=history,
+        current_question=CORE_SURVEY_QUESTIONS[9]["text"],
+        current_answer="What mentorship is available to new graduates?",
+        current_question_type="closing",
+    )
+    assert result["isComplete"] is True
+    assert result["nextQuestion"] is None
+    assert result["isInteractionEvent"] is False
 
 def test_interaction_intents_do_not_advance_question():
     """Requests like 'Can you repeat that?' or 'Give me a moment' trigger an interaction event without advancing."""

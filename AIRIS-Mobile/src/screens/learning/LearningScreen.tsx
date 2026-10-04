@@ -377,8 +377,8 @@ ${program} | Expected Graduation: 2026
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          className="flex-row mb-5"
-          contentContainerStyle={{ gap: 10 }}
+          className="mb-5"
+          contentContainerStyle={{ gap: 8, paddingHorizontal: 2, paddingVertical: 2 }}
         >
           {catalogCategories.map((cat) => {
             const isSelected = selectedCategoryId === cat.id;
@@ -390,7 +390,9 @@ ${program} | Expected Graduation: 2026
                   setSearchQuery("");
                 }}
                 activeOpacity={0.8}
-                className={`flex-row items-center px-5 py-3 rounded-full border ${
+                accessibilityRole="tab"
+                accessibilityState={{ selected: isSelected }}
+                className={`flex-row items-center px-4 py-2.5 rounded-full border ${
                   isSelected
                     ? "bg-[#FEF5F1] border-[#F4A47A]"
                     : "bg-white border-[#BFD6EA]"
@@ -410,9 +412,12 @@ ${program} | Expected Graduation: 2026
                   style={{ marginRight: 8 }}
                 />
                 <Text
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
                   className={`text-sm font-bold ${
                     isSelected ? "text-[#CA5D25]" : "text-[#4F6B82]"
                   }`}
+                  style={{ maxWidth: 140, flexShrink: 1 }}
                 >
                   {cat.name}
                 </Text>
@@ -447,13 +452,13 @@ ${program} | Expected Graduation: 2026
         {/* PERSONALIZED COACH ROADMAP OVERVIEW (RENDERED ON "FOR YOU" TAB WHEN NOT SEARCHING) */}
         {selectedCategoryId === "for_you" && !searchQuery && (
           <View className="bg-white border border-[#BFD6EA] rounded-2xl p-4 mb-4 shadow-sm">
-            <View className="flex-row items-center justify-between mb-2">
+            <View className="flex-row flex-wrap items-start gap-2 mb-3">
               <View className="bg-[#FEF5F1] px-2.5 py-0.5 rounded-full border border-[#F4A47A]">
                 <Text className="text-[9px] font-black uppercase tracking-widest text-[#CA5D25]">
                   Personalized Roadmap
                 </Text>
               </View>
-              <Text className="text-xs font-bold text-[#4F6B82]">
+              <Text className="text-xs font-bold text-[#4F6B82] flex-grow flex-shrink" style={{ minWidth: 140 }}>
                 Target: {learningSnap?.targetPosition || targetPosition || "General Track"}
               </Text>
             </View>
@@ -475,9 +480,9 @@ ${program} | Expected Graduation: 2026
                 </Text>
                 <View className="flex-row flex-wrap gap-1.5">
                   {learningSnap.skillGaps.map((gap, gIdx) => (
-                    <View key={gIdx} className="bg-[#FEF5F1] border border-[#F4A47A] px-2.5 py-0.5 rounded-full flex-row items-center">
+                    <View key={gIdx} className="bg-[#FEF5F1] border border-[#F4A47A] px-2.5 py-0.5 rounded-full flex-row items-center max-w-full">
                       <Ionicons name="alert-circle" size={11} color="#CA5D25" style={{ marginRight: 3 }} />
-                      <Text className="text-[10px] font-bold text-[#CA5D25]">{gap.skill}</Text>
+                      <Text className="text-[10px] font-bold text-[#CA5D25] flex-shrink">{gap.skill}</Text>
                     </View>
                   ))}
                 </View>

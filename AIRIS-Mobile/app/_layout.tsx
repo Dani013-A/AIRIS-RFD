@@ -4,10 +4,11 @@ import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import "../global.css";
 
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { ActivityIndicator, AppState, AppStateStatus, View } from "react-native";
 import { useAuthStore } from "../src/store/authStore";
 import { useResumeStore } from "../src/store/resumeStore";
+import { useAppearanceStore } from "../src/store/appearanceStore";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useOnboardingStore } from "../src/store/onboardingStore";
@@ -47,6 +48,19 @@ export default function RootLayout() {
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
   const currentUser = useAuthStore((state) => state.currentUser);
   const isInitialized = useAuthStore((state) => state.isInitialized);
+  const [appearanceReady, setAppearanceReady] = useState(false);
+
+  useEffect(() => {
+    Promise.resolve(useAppearanceStore.persist.rehydrate())
+      .catch(() => console.warn("Could not restore text-size preferences; using the default size."))
+      .finally(() => setAppearanceReady(true));
+  }, []);
+
+  useLayoutEffect(() => {
+    if (appearanceReady) {
+      useAppearanceStore.getState().setActiveUser(currentUser?.uid || null);
+    }
+  }, [currentUser?.uid, appearanceReady]);
 
   useEffect(() => {
     const unsubscribe = initializeAuth();
@@ -167,7 +181,7 @@ export default function RootLayout() {
     }
   }, [currentUser, isInitialized, segments, router]);
 
-  if (!isInitialized) {
+  if (!isInitialized || !appearanceReady) {
     return (
       <View className="flex-1 items-center justify-center bg-[#BFD6EA]">
         <ActivityIndicator size="large" color="#F4A47A" />

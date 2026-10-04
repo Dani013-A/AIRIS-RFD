@@ -142,8 +142,8 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onPress })
         )}
 
         {/* PROVIDER OVERLAY BADGE */}
-        <View className="absolute top-2.5 left-2.5 bg-white/95 px-2.5 py-0.5 rounded-full border border-[#BFD6EA]/80 backdrop-blur-sm shadow-sm">
-          <Text className="text-[9px] font-black text-[#1F3A5F] uppercase tracking-wider">{resource.provider}</Text>
+        <View className="absolute top-2.5 left-2.5 bg-white/95 px-2.5 py-0.5 rounded-full border border-[#BFD6EA]/80 backdrop-blur-sm shadow-sm" style={{ maxWidth: resource.isVerified ? "58%" : "90%" }}>
+          <Text className="text-[9px] font-black text-[#1F3A5F] uppercase tracking-wider" numberOfLines={1} ellipsizeMode="tail">{resource.provider}</Text>
         </View>
 
         {/* VERIFIED INDICATOR */}
@@ -184,7 +184,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onPress })
             {resource.estimatedTime && (
               <View className="px-2 py-0.5 rounded-full bg-[#F4F8FB] border border-[#EAF2F7] flex-row items-center">
                 <Ionicons name="time-outline" size={10} color="#4F6B82" style={{ marginRight: 2 }} />
-                <Text className="text-[9px] font-semibold text-[#4F6B82]">{resource.estimatedTime}</Text>
+                <Text className="text-[9px] font-semibold text-[#4F6B82]" numberOfLines={1} ellipsizeMode="tail">{resource.estimatedTime}</Text>
               </View>
             )}
           </View>
@@ -205,7 +205,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onPress })
         </View>
 
         {/* TITLE */}
-        <Text className="text-base font-bold text-[#1F3A5F] mb-1.5 leading-snug">{resource.title}</Text>
+        <Text className="text-base font-bold text-[#1F3A5F] mb-1.5 leading-snug" numberOfLines={3} ellipsizeMode="tail">{resource.title}</Text>
 
         {/* DESCRIPTION */}
         <Text className="text-xs font-medium leading-4 text-[#4F6B82] mb-3" numberOfLines={3}>{resource.description}</Text>
@@ -215,7 +215,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onPress })
           <View className="flex-row flex-wrap gap-1 mb-3">
             {resource.skills.slice(0, 3).map((skill, sIdx) => (
               <View key={sIdx} className="bg-[#F4F8FB] border border-[#EAF2F7] px-2 py-0.5 rounded-md">
-                <Text className="text-[10px] font-semibold text-[#1F3A5F]">{skill}</Text>
+                <Text className="text-[10px] font-semibold text-[#1F3A5F]" numberOfLines={1} ellipsizeMode="tail" style={{ maxWidth: 150 }}>{skill}</Text>
               </View>
             ))}
           </View>
@@ -228,7 +228,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onPress })
               <Ionicons name="sparkles" size={12} color="#CA5D25" style={{ marginRight: 4 }} />
               <Text className="text-[9px] font-black uppercase tracking-widest text-[#CA5D25]">Why this is recommended</Text>
             </View>
-            <Text className="text-xs font-medium leading-4 text-[#4F6B82]">{resource.recommendationReason}</Text>
+            <Text className="text-xs font-medium leading-4 text-[#4F6B82]" numberOfLines={4} ellipsizeMode="tail">{resource.recommendationReason}</Text>
           </View>
         ) : null}
 

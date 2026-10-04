@@ -113,44 +113,30 @@
   },
   {
     "id": "survey-9",
-    "category": "behavioral",
-    "competency": "adaptability and continuous learning",
+    "category": "synthesis",
+    "competency": "readiness and application",
     "tags": [
       "general",
       "all roles",
-      "adaptability",
-      "learning quickly",
-      "continuous learning"
+      "readiness",
+      "application",
+      "reflection"
     ],
-    "text": "Tell me about a time you had to learn something new quickly. How did you approach it?",
-    "idealAnswer": "When a project required using a software framework and workflow tools I had not encountered before, I took an intensive, hands-on learning approach. I reviewed official documentation and tutorials, built small proof-of-concept prototypes to test key mechanisms, and consulted experienced peers when clarifying best practices. Within a few days, I was comfortable enough to implement the project requirements accurately and deliver our component on time."
+    "text": "Based on what we have discussed, how would you apply your strengths and experiences in this position?",
+    "idealAnswer": "I would bring the strengths and experiences I described into this position by applying what I learned in coursework and projects to real responsibilities. I would communicate with teammates, approach challenges methodically, seek feedback when needed, and continue building the skills required for this role."
   },
   {
     "id": "survey-10",
-    "category": "behavioral",
-    "competency": "career planning and goal orientation",
-    "tags": [
-      "general",
-      "all roles",
-      "career goals",
-      "future planning",
-      "professional growth"
-    ],
-    "text": "Where do you see yourself in the next three to five years?",
-    "idealAnswer": "Over the next three to five years, I aim to develop deep domain expertise in my field, master my core responsibilities, and take ownership of increasingly complex initiatives. As I build a track record of reliable contributions, I hope to take on greater responsibilities, mentor newer graduates, and help drive collaborative success across our team while continuing to stay current with industry developments."
-  },
-  {
-    "id": "survey-closing",
     "category": "closing",
-    "competency": "inquisitiveness and candidate engagement",
+    "competency": "closing reflection and candidate engagement",
     "tags": [
       "general",
       "all roles",
       "closing",
       "candidate questions",
-      "wrap up"
+      "reflection"
     ],
-    "text": "Thanks, that covers the main questions I wanted to ask. Before we wrap up, what questions do you have for me about the role or company?",
-    "idealAnswer": "I would like to ask about the day-to-day workflow for a fresh graduate joining the team, and what opportunities exist for ongoing mentorship and professional growth within the organization."
+    "text": "Before we end, what final point would you like to add or ask about this position?",
+    "idealAnswer": "I would briefly reinforce my interest in the position and the relevant strengths I can contribute. I would also ask a thoughtful question about the responsibilities, team, or support available to a fresh graduate."
   }
 ]

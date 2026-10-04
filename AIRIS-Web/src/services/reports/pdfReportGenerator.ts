@@ -89,7 +89,7 @@ export class PdfDocumentLayout {
     this.doc.setFont("helvetica", "normal");
     this.doc.setFontSize(6.5);
     this.doc.setTextColor(...SLATE);
-    this.doc.text("Manila Campus: 363 P. Casal St., Quiapo, Manila 1001 · www.tip.edu.ph", textX, 20.5);
+    this.doc.text("Manila Campus: 1338 Arlegui Street, Quiapo, Manila · www.tip.edu.ph", textX, 20.5);
 
     // Restrained TIP orange divider
     this.doc.setFillColor(...TIP_GOLD);
