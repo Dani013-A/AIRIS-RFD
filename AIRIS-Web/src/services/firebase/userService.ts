@@ -20,6 +20,7 @@ import {
 import { AdminRole } from "../../types/auth.types";
 import { logAuditEvent } from "./auditService";
 import { findCollegeByProgramName, matchesCoordinator } from "../../config/tipManilaAcademic";
+import { recordedTimestamp } from "./recordedTimestamp.mjs";
 
 const USERS_COLLECTION = "users";
 const RESUMES_SUBCOLLECTION = "resumes";
@@ -298,11 +299,15 @@ export async function fetchStudentDetails(studentId: string): Promise<StudentFul
     const actSnap = await getDocs(actColRef);
     actSnap.forEach((d) => {
       const data = d.data();
+      const timestamp = recordedTimestamp(data.completedAt ?? data.timestamp);
+      if (!timestamp) return;
       activityLogs.push({
         id: d.id,
         action: data.title || data.type || "Activity",
-        details: data.details || `Score: ${data.score ?? "N/A"}`,
-        timestamp: parseTimestamp(data.completedAt || data.timestamp),
+        details: data.details || (typeof data.score === "number" && Number.isFinite(data.score)
+          ? `Score: ${data.score}/100`
+          : ""),
+        timestamp,
         type: data.type,
       });
     });
@@ -324,7 +329,8 @@ export async function fetchStudentDetails(studentId: string): Promise<StudentFul
       a.resumeScore?.overallScore ??
       a.overallScore;
 
-    if (score !== undefined && score !== null) {
+    const date = recordedTimestamp(a.createdAt ?? a.analyzedAt);
+    if (score !== undefined && score !== null && date) {
       const numScore = Number(score);
       const version = a.version || idx + 1;
       let delta: number | undefined = undefined;
@@ -341,7 +347,7 @@ export async function fetchStudentDetails(studentId: string): Promise<StudentFul
         score: numScore,
         previousScore: prevResumeScore,
         delta,
-        date: parseTimestamp(a.createdAt || a.analyzedAt),
+        date,
         targetPosition: a.targetPosition || userData.targetPosition,
         details: `Evaluated against ${a.targetPosition || userData.targetPosition || "Target Position"}`,
       });
@@ -355,7 +361,8 @@ export async function fetchStudentDetails(studentId: string): Promise<StudentFul
       i.overallScore ??
       (i as any).score;
 
-    if (score !== undefined && score !== null) {
+    const date = recordedTimestamp(i.completedAt);
+    if (score !== undefined && score !== null && date) {
       const numScore = Number(score);
       let delta: number | undefined = undefined;
       if (prevInterviewScore !== undefined) {
@@ -371,7 +378,7 @@ export async function fetchStudentDetails(studentId: string): Promise<StudentFul
         score: numScore,
         previousScore: prevInterviewScore,
         delta,
-        date: parseTimestamp(i.completedAt || i.startedAt),
+        date,
         targetPosition: i.targetRole || userData.targetPosition,
         details: i.targetRole ? `Target Role: ${i.targetRole}` : "Interactive Voice Simulation",
       });

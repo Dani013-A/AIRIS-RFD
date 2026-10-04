@@ -20,16 +20,21 @@ import {
   Layers,
 } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { studentDirectoryHref } from "../profileNavigation.mjs";
 
 export default function StudentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const studentId = resolvedParams.id;
+  const searchParams = useSearchParams();
+  const directoryHref = studentDirectoryHref(searchParams.toString());
 
   const {
     selectedStudent,
     selectedAnalysis,
     selectedInterview,
     scoreHistory,
+    activityLogs,
     loading,
     error,
     loadStudentProfile,
@@ -52,12 +57,12 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
     );
   }
 
-  if (error || !selectedStudent) {
+  if (error || !selectedStudent || selectedStudent.uid !== studentId) {
     return (
       <DashboardLayout>
         <div className="space-y-4 text-[#1E3E6B]">
           <Link
-            href="/students"
+            href={directoryHref}
             className="flex items-center gap-2 text-xs font-bold text-brand-slate hover:text-brand-primary"
           >
             <ChevronLeft size={16} /> Back to Student Directory
@@ -108,14 +113,14 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
     <DashboardLayout>
       <div className="space-y-6 text-[#1E3E6B]">
         {/* Navigation header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
           <Link
-            href="/students"
+            href={directoryHref}
             className="flex items-center gap-2 text-xs font-black text-brand-slate hover:text-brand-primary transition-all uppercase tracking-wider"
           >
             <ChevronLeft size={16} /> Back to Student Directory
           </Link>
-          <span className="text-xs font-bold text-brand-slate">
+          <span className="text-xs font-bold text-brand-slate min-w-0 break-all">
             Student UID:{" "}
             <code className="bg-gray-150 px-2 py-1 rounded text-brand-primary font-mono text-[11px]">
               {student.uid}
@@ -125,11 +130,11 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
 
         {/* Profile Summary Banner */}
         <div className="figma-card p-6 bg-white flex flex-col md:flex-row md:items-center justify-between gap-6 border-l-4 border-l-brand-primary border border-gray-200">
-          <div className="flex items-center gap-5">
+          <div className="flex items-start gap-4 min-w-0">
             <div className="h-16 w-16 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 text-brand-primary flex items-center justify-center font-black text-2xl shrink-0">
               {student.fullName.charAt(0).toUpperCase()}
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-0">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-2xl font-black text-[#1E3E6B]">{student.fullName}</h1>
                 <span
@@ -147,7 +152,7 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
                   </span>
                 )}
               </div>
-              <p className="text-xs font-semibold text-brand-slate">{student.email}</p>
+              <p className="text-xs font-semibold text-brand-slate break-all">{student.email}</p>
               <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-brand-slate pt-1">
                 <span className="flex items-center gap-1">
                   <Briefcase size={14} className="text-brand-primary" /> {student.degreeProgram}
@@ -583,8 +588,8 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
 
                   <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-extrabold text-[#1E3E6B] text-sm">{item.title}</span>
+                      <div className="flex flex-wrap items-center gap-2 min-w-0">
+                        <span className="font-extrabold text-[#1E3E6B] text-sm break-words">{item.title}</span>
                         <span
                           className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
                             item.type === "resume"
@@ -600,9 +605,9 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1">
-                      <div className="text-xs font-semibold text-brand-slate">{item.details}</div>
-                      <div className="flex items-center gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 min-w-0">
+                      <div className="text-xs font-semibold text-brand-slate break-words min-w-0">{item.details}</div>
+                      <div className="flex flex-wrap items-center gap-3 shrink-0">
                         <span className="text-lg font-black text-[#1E3E6B]">{item.score} / 100</span>
                         {item.delta !== undefined && (
                           <span
@@ -634,6 +639,39 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
                 </div>
               ))}
             </div>
+          )}
+        </div>
+
+        <div className="figma-card p-6 bg-white space-y-5 border border-gray-200">
+          <div className="border-b border-gray-100 pb-4">
+            <h2 className="text-base font-black text-[#1E3E6B] flex items-center gap-2">
+              <Clock size={18} className="text-brand-primary" /> Recorded Activity History
+            </h2>
+            <p className="text-xs font-semibold text-brand-slate mt-0.5">
+              Events recorded for this student account with an actual timestamp.
+            </p>
+          </div>
+          {activityLogs.length === 0 ? (
+            <p className="p-6 text-center text-xs font-bold text-brand-slate bg-gray-50 rounded-2xl">
+              No dated activity records found for this student account.
+            </p>
+          ) : (
+            <ol className="relative border-l-2 border-brand-primary/20 ml-4 space-y-4 pl-6 py-2">
+              {activityLogs.map((event) => (
+                <li key={event.id} className="relative min-w-0">
+                  <span className="absolute -left-[31px] top-1 h-5 w-5 rounded-full border-2 border-brand-primary bg-white" aria-hidden="true" />
+                  <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1">
+                      <span className="text-sm font-extrabold text-[#1E3E6B] break-words">{event.action}</span>
+                      <time className="text-xs font-bold text-brand-slate shrink-0" dateTime={event.timestamp}>
+                        {new Date(event.timestamp).toLocaleDateString()}
+                      </time>
+                    </div>
+                    {event.details && <p className="text-xs font-semibold text-brand-slate mt-2 break-words">{event.details}</p>}
+                  </div>
+                </li>
+              ))}
+            </ol>
           )}
         </div>
       </div>

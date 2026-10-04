@@ -37,6 +37,8 @@ interface StudentState {
   clearSelectedStudent: () => void;
 }
 
+let activeProfileRequest = 0;
+
 export const useStudentStore = create<StudentState>((set, get) => ({
   students: [],
   selectedStudent: null,
@@ -62,6 +64,7 @@ export const useStudentStore = create<StudentState>((set, get) => ({
   },
 
   loadStudentProfile: async (studentId) => {
+    const requestId = ++activeProfileRequest;
     set({
       loading: true,
       error: null,
@@ -74,6 +77,7 @@ export const useStudentStore = create<StudentState>((set, get) => ({
     });
     try {
       const profile = await fetchStudentDetails(studentId);
+      if (requestId !== activeProfileRequest) return;
       set({
         selectedStudent: profile.student,
         selectedAnalysis: profile.latestResumeAnalysis,
@@ -84,6 +88,7 @@ export const useStudentStore = create<StudentState>((set, get) => ({
         loading: false,
       });
     } catch (err: any) {
+      if (requestId !== activeProfileRequest) return;
       set({ error: err.message || "Failed to load student profile details.", loading: false });
     }
   },
@@ -122,7 +127,8 @@ export const useStudentStore = create<StudentState>((set, get) => ({
     }
   },
 
-  clearSelectedStudent: () =>
+  clearSelectedStudent: () => {
+    activeProfileRequest++;
     set({
       selectedStudent: null,
       selectedAnalysis: null,
@@ -130,5 +136,8 @@ export const useStudentStore = create<StudentState>((set, get) => ({
       selectedInterview: null,
       scoreHistory: [],
       activityLogs: [],
-    }),
+      loading: false,
+      error: null,
+    });
+  },
 }));

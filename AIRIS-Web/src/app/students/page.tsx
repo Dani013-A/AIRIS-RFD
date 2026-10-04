@@ -10,6 +10,7 @@ import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
 import { TIP_MANILA_COORDINATORS, getCoordinatorById, getProgramsForCoordinator, matchesProgramChoice } from "../../config/tipManilaAcademic";
 import { sortStudentRoster } from "./sortStudentRoster";
+import { studentProfileHref } from "./profileNavigation.mjs";
 import Link from "next/link";
 import {
   Search,
@@ -65,7 +66,10 @@ function StudentsDirectoryContent() {
   const urlInterviewStatus = searchParams.get("interviewStatus") || "all";
   const urlSort = searchParams.get("sort") || "name-asc";
 
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(() => {
+    const page = Number(searchParams.get("page"));
+    return Number.isSafeInteger(page) && page > 0 ? page : 1;
+  });
   const pageSize = 10;
 
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
@@ -97,6 +101,7 @@ function StudentsDirectoryContent() {
   // Update URL parameters
   const updateUrlParam = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
+    params.delete("page");
     if (key === "coordinator" && value !== "all" && !getProgramsForCoordinator(value).some((program) => program.name === params.get("program"))) {
       params.delete("program");
     }
@@ -197,9 +202,10 @@ function StudentsDirectoryContent() {
   const filteredStudents = sortStudentRoster(matchingStudents, urlSort);
 
   const totalPages = Math.ceil(filteredStudents.length / pageSize) || 1;
+  const visiblePage = Math.min(currentPage, totalPages);
   const paginatedStudents = filteredStudents.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
+    (visiblePage - 1) * pageSize,
+    visiblePage * pageSize
   );
 
   const hasActiveFilters =
@@ -490,7 +496,7 @@ function StudentsDirectoryContent() {
                     {/* 6. Actions */}
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-gray-100">
                       <Link
-                        href={`/students/${student.uid}`}
+                        href={studentProfileHref(student.uid, searchParams.toString(), searchInput, visiblePage)}
                         aria-label={`View profile of ${student.fullName}`}
                         className="inline-flex h-11 items-center gap-1.5 px-4 rounded-lg bg-brand-primary text-white text-xs font-bold hover:bg-brand-primary/90 transition-colors"
                       >
@@ -540,24 +546,24 @@ function StudentsDirectoryContent() {
         {!loading && filteredStudents.length > 0 && (
           <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-t border-gray-100 text-xs font-bold text-brand-slate bg-gray-50/50 gap-3">
             <div>
-              Showing {(currentPage - 1) * pageSize + 1} to{" "}
-              {Math.min(currentPage * pageSize, filteredStudents.length)} of {filteredStudents.length}{" "}
+              Showing {(visiblePage - 1) * pageSize + 1} to{" "}
+              {Math.min(visiblePage * pageSize, filteredStudents.length)} of {filteredStudents.length}{" "}
               students
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(Math.max(1, visiblePage - 1))}
+                disabled={visiblePage === 1}
                 className="px-3 py-1.5 rounded-xl border border-gray-250 bg-white disabled:opacity-40 flex items-center gap-1 cursor-pointer"
               >
                 <ChevronLeft size={14} /> Previous
               </button>
               <span className="px-3 py-1.5 font-extrabold text-[#1E3E6B]">
-                Page {currentPage} of {totalPages}
+                Page {visiblePage} of {totalPages}
               </span>
               <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(Math.min(totalPages, visiblePage + 1))}
+                disabled={visiblePage === totalPages}
                 className="px-3 py-1.5 rounded-xl border border-gray-250 bg-white disabled:opacity-40 flex items-center gap-1 cursor-pointer"
               >
                 Next <ChevronRight size={14} />
