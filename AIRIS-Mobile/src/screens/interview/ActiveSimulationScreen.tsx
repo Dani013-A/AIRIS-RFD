@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Alert } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { View, TouchableOpacity, ActivityIndicator, ScrollView, Alert, Animated, Linking } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,6 +11,7 @@ import { submitInterviewAnswer, transcribeAudio, PauseMetrics } from "../../serv
 import { PrimaryButton } from "../../components/ui";
 import * as Speech from "expo-speech";
 import { requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, RecordingPresets } from "expo-audio";
+import { standardInterviewUiState } from "./standardInterviewUi";
 
 export default function ActiveSimulationScreen() {
   const router = useRouter();
@@ -20,10 +22,40 @@ export default function ActiveSimulationScreen() {
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [recordingError, setRecordingError] = useState<string | null>(null);
+  const [pulse] = useState(() => new Animated.Value(1));
+  const mounted = useRef(true);
+  const operation = useRef(0);
+  const startingRecording = useRef(false);
+  const stoppingRecording = useRef(false);
 
   const currentUser = useAuthStore((state) => state.currentUser);
   const activeAnalysis = useResumeStore((state) => state.activeAnalysis);
-  const { session, submitAnswer } = useInterviewStore();
+  const { session, submitAnswer, clearSession } = useInterviewStore();
+  const ui = standardInterviewUiState({ recording: isRecording, transcribing: isTranscribing, evaluating: loading, error: recordingError, answer });
+
+  useEffect(() => {
+    if (!isRecording) {
+      pulse.stopAnimation();
+      pulse.setValue(1);
+      return;
+    }
+    const animation = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1.16, duration: 650, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 1, duration: 650, useNativeDriver: true }),
+    ]));
+    animation.start();
+    return () => { animation.stop(); pulse.setValue(1); };
+  }, [isRecording, pulse]);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      operation.current += 1;
+      Speech.stop();
+    };
+  }, []);
 
   const handleSpeak = () => {
     if (!session) return;
@@ -39,28 +71,50 @@ export default function ActiveSimulationScreen() {
     }
   };
 
+  const handleExit = () => {
+    operation.current += 1;
+    Speech.stop();
+    if (audioRecorder.isRecording) void audioRecorder.stop().catch(() => undefined);
+    setIsRecording(false);
+    clearSession();
+    router.replace("/(student)/(tabs)/interview" as any);
+  };
+
   const startRecording = async () => {
+    if (isRecording || isTranscribing || loading || startingRecording.current) return;
+    startingRecording.current = true;
+    const requestId = operation.current;
+    setRecordingError(null);
     try {
       const permission = await requestRecordingPermissionsAsync();
+      if (!mounted.current || requestId !== operation.current) return;
       if (permission.granted) {
         await setAudioModeAsync({
           allowsRecording: true,
           playsInSilentMode: true,
         });
         await audioRecorder.prepareToRecordAsync();
+        if (!mounted.current || requestId !== operation.current) return;
         audioRecorder.record();
-        setIsRecording(true);
+        if (mounted.current) setIsRecording(true);
       } else {
-        Alert.alert("Permission Required", "Please grant microphone permissions to use voice transcription.");
+        setRecordingError("Microphone permission is required to answer.");
+        Alert.alert("Permission Required", "Enable microphone access to answer by voice.", permission.canAskAgain ? [{ text: "OK" }] : [{ text: "Cancel" }, { text: "Settings", onPress: () => void Linking.openSettings() }]);
       }
     } catch (err) {
       console.error("Failed to start recording", err);
+      if (mounted.current) setRecordingError("Could not start recording. Please try again.");
+    } finally {
+      startingRecording.current = false;
     }
   };
 
   const [lastPauseMetrics, setLastPauseMetrics] = useState<PauseMetrics | undefined>(undefined);
 
   const stopRecording = async () => {
+    if (!isRecording || stoppingRecording.current) return;
+    stoppingRecording.current = true;
+    const requestId = ++operation.current;
     setIsRecording(false);
     setIsTranscribing(true);
     try {
@@ -68,16 +122,24 @@ export default function ActiveSimulationScreen() {
       const uri = audioRecorder.uri;
       if (uri) {
         const { transcription, pauseMetrics } = await transcribeAudio(uri, "audio/m4a");
+        if (!mounted.current || requestId !== operation.current) return;
+        if (!transcription.trim()) {
+          setRecordingError("No speech was detected. Please record your answer again.");
+          return;
+        }
         setAnswer((prev) => (prev ? prev + " " + transcription : transcription));
         if (pauseMetrics) {
           setLastPauseMetrics(pauseMetrics);
         }
+      } else {
+        if (mounted.current && requestId === operation.current) setRecordingError("No recording was saved. Please try again.");
       }
     } catch (error) {
       console.error("Transcription failed", error);
-      Alert.alert("Transcription Error", "Failed to process audio.");
+      if (mounted.current && requestId === operation.current) setRecordingError("Transcription failed. Please record your answer again.");
     } finally {
-      setIsTranscribing(false);
+      stoppingRecording.current = false;
+      if (mounted.current && requestId === operation.current) setIsTranscribing(false);
     }
   };
 
@@ -87,13 +149,15 @@ export default function ActiveSimulationScreen() {
   };
 
   const handleSubmit = async () => {
+    if (loading || isRecording || isTranscribing) return;
     if (!answer.trim()) {
-      Alert.alert("Empty Answer", "Please provide an answer before submitting.");
+      setRecordingError("Record an answer before continuing.");
       return;
     }
 
     if (!session || !currentUser || !activeAnalysis) return;
 
+    const requestId = ++operation.current;
     setLoading(true);
     try {
       const parsedResumeDict: Record<string, string> = {};
@@ -117,6 +181,8 @@ export default function ActiveSimulationScreen() {
         pauseMetrics: lastPauseMetrics,
       });
 
+      if (!mounted.current || requestId !== operation.current) return;
+
       if (isSpeaking) Speech.stop();
 
       submitAnswer(
@@ -138,18 +204,13 @@ export default function ActiveSimulationScreen() {
       }
     } catch (error) {
       console.error(error);
-      Alert.alert("Submission Error", "Failed to submit answer. Please try again.");
+      if (mounted.current && requestId === operation.current) {
+        setRecordingError("Submission failed. Your transcript is still here; please try again.");
+      }
     } finally {
-      setLoading(false);
+      if (mounted.current && requestId === operation.current) setLoading(false);
     }
   };
-
-  // Stop speech if they unmount
-  React.useEffect(() => {
-    return () => {
-      Speech.stop();
-    };
-  }, []);
 
   if (!session) {
     return (
@@ -162,12 +223,9 @@ export default function ActiveSimulationScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#F4F8FB]" edges={["top", "bottom"]}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
-      >
+      <View className="flex-1">
         <View className="flex-row items-center justify-between px-6 py-4 border-b border-[#EAF2F7] bg-white z-10" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-           <TouchableOpacity onPress={() => router.back()}>
+           <TouchableOpacity onPress={handleExit} accessibilityLabel="Stop interview">
               <Ionicons name="close" size={28} color="#1F3A5F" />
            </TouchableOpacity>
            <View className="items-center">
@@ -186,50 +244,34 @@ export default function ActiveSimulationScreen() {
             <View className="flex-1 bg-white p-5 rounded-2xl rounded-tl-none border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
                <View className="flex-row items-center justify-between mb-2">
                  <Text className="text-[10px] font-bold text-[#4F6B82] uppercase tracking-wider">Interviewer</Text>
-                 <TouchableOpacity onPress={handleSpeak} className="h-8 w-8 rounded-full bg-[#F4F8FB] items-center justify-center border border-[#BFD6EA]">
+                 <TouchableOpacity onPress={handleSpeak} accessibilityLabel="Repeat question" className="h-10 w-10 rounded-full bg-[#F4F8FB] items-center justify-center border border-[#BFD6EA]">
                    <Ionicons name={isSpeaking ? "volume-mute" : "volume-high"} size={16} color="#CA5D25" />
                  </TouchableOpacity>
                </View>
                <Text className="text-lg font-bold text-[#1F3A5F] leading-7">
-                 "{session.currentQuestion}"
+                 {session.currentQuestion}
                </Text>
             </View>
           </View>
 
-          <View className="mb-2">
-            <Text className="text-sm font-bold text-[#1F3A5F] ml-2 mb-2">Your Answer</Text>
-            <View className="bg-white rounded-2xl border border-[#BFD6EA] p-2" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-              <TextInput
-                className="text-base text-[#1F3A5F] min-h-[150px] p-4 font-medium leading-6"
-                placeholder="Type your response or tap the microphone to dictate..."
-                placeholderTextColor="#94A3B8"
-                multiline
-                textAlignVertical="top"
-                value={answer}
-                onChangeText={setAnswer}
-                editable={!loading && !isTranscribing}
-              />
-            </View>
-            <View className="flex-row items-center justify-between mt-3 px-2">
+          <View className="items-center rounded-2xl border border-[#BFD6EA] bg-white p-5 mb-6">
+            <View className="h-28 w-28 items-center justify-center">
+              {ui.showPulse && <Animated.View className="absolute h-24 w-24 rounded-full bg-[#F4A47A]/30" style={{ transform: [{ scale: pulse }] }} />}
               <TouchableOpacity
                 onPress={toggleRecording}
-                className={`flex-row items-center px-4 py-2 rounded-full border ${isRecording ? "bg-[#FEF5F1] border-[#F4A47A]" : "bg-white border-[#BFD6EA]"}`}
-                style={{ shadowColor: isRecording ? "#CA5D25" : "#000", shadowOffset: { width: 0, height: 0 }, shadowOpacity: isRecording ? 0.3 : 0.05, shadowRadius: isRecording ? 6 : 2, elevation: 2 }}
+                disabled={loading || isTranscribing}
+                accessibilityRole="button"
+                accessibilityLabel={isRecording ? "Stop recording" : "Record answer"}
+                className={`h-20 w-20 items-center justify-center rounded-full ${isRecording ? "bg-[#CA5D25]" : "bg-[#1F3A5F]"}`}
               >
-                {isTranscribing ? (
-                  <ActivityIndicator size="small" color="#CA5D25" />
-                ) : (
-                  <Ionicons name="mic" size={20} color={isRecording ? "#CA5D25" : "#4F6B82"} />
-                )}
-                <Text className={`ml-2 font-bold text-sm ${isRecording || isTranscribing ? "text-[#CA5D25]" : "text-[#4F6B82]"}`}>
-                  {isTranscribing ? "Transcribing..." : isRecording ? "Stop Recording" : "Dictate Answer"}
-                </Text>
+                {isTranscribing ? <ActivityIndicator color="white" /> : <Ionicons name={isRecording ? "stop" : "mic"} size={32} color="white" />}
               </TouchableOpacity>
-
-              <Text className="text-xs text-[#8B95A5] font-medium text-right">
-                Be as specific as possible.
-              </Text>
             </View>
+            <Text className="text-base font-bold text-[#1F3A5F] text-center">
+              {ui.label}
+            </Text>
+            {recordingError && <Text className="text-sm text-[#B91C1C] text-center mt-2" accessibilityRole="alert">{recordingError}</Text>}
+            {answer.trim() ? <Text className="text-sm leading-6 text-[#4F6B82] mt-4 self-stretch">Your response: {answer}</Text> : null}
           </View>
 
         </ScrollView>
@@ -242,13 +284,14 @@ export default function ActiveSimulationScreen() {
             </View>
           ) : (
             <PrimaryButton
-              title={session.questionsAsked >= session.totalQuestions ? "Submit & Finish" : "Submit Answer"}
+              title={session.questionsAsked >= session.totalQuestions ? "Finish Interview" : "Next Question"}
               variant="orange"
               onPress={handleSubmit}
+              disabled={!ui.canContinue}
             />
           )}
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }

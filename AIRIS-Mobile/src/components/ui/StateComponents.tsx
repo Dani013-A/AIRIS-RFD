@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
+import { Text } from './AppText';
 
 export function LoadingState({ message = "Loading..." }: { message?: string }) {
   return (

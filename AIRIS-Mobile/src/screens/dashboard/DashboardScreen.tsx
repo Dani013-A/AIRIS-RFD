@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { ActivityIndicator, Alert, Linking, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Modal, ScrollView, TouchableOpacity, View } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAuthStore } from "../../store/authStore";
@@ -681,7 +682,7 @@ export default function DashboardScreen() {
                 {/* Alignment Summary Text */}
                 <View className="bg-[#F8FAFC] p-3.5 rounded-xl border border-[#E2E8F0] mb-4">
                   <Text className="text-[10px] font-bold text-[#1F3A5F] uppercase tracking-wider mb-1">
-                    Role Alignment Summary
+                    How Your Resume Fits This Role
                   </Text>
                   <Text className="text-xs text-[#4F6B82] leading-5">
                     {activeAnalysis.alignmentScore?.alignmentSummary ||
@@ -690,7 +691,7 @@ export default function DashboardScreen() {
                   </Text>
                 </View>
 
-                {/* Competencies Checklist (✓ Demonstrated, ~ Related, ○ Not Evidenced) */}
+                {/* Resume evidence for target-role skills */}
                 {(() => {
                   const competenciesList = activeAnalysis.alignmentScore?.competencies || [];
 
@@ -698,7 +699,7 @@ export default function DashboardScreen() {
                     return (
                       <View className="mb-4 pb-3 border-b border-[#EAF2F7]">
                         <Text className="text-[10px] font-bold text-[#1F3A5F] uppercase tracking-wider mb-2">
-                          Competencies Checklist ({competenciesList.length})
+                          Skills for Your Target Role ({competenciesList.length})
                         </Text>
                         <View className="gap-2">
                           {competenciesList.map((comp, idx) => {
@@ -706,21 +707,11 @@ export default function DashboardScreen() {
                             const isRel = comp.status === "RELATED";
                             const bgStyle = isDem ? "bg-[#D7F1ED] border-[#79D5C8]" : isRel ? "bg-[#FFF3ED] border-[#F4A47A]" : "bg-[#F1F5F9] border-[#CBD5E1]";
                             const textStyle = isDem ? "text-[#1E5D53]" : isRel ? "text-[#CA5D25]" : "text-[#475569]";
-                            const iconSymbol = comp.icon || (isDem ? "✓" : isRel ? "~" : "○");
-
                             return (
-                              <View key={idx} className={`flex-row items-center justify-between p-2.5 rounded-xl border ${bgStyle}`}>
-                                <View className="flex-row items-center flex-1 pr-2">
-                                  <Text className={`font-black text-sm mr-2 ${textStyle}`}>{iconSymbol}</Text>
-                                  <Text className={`text-xs font-bold ${textStyle}`}>{comp.name}</Text>
-                                  {comp.isRequired && (
-                                    <View className="ml-2 bg-white/60 px-1.5 py-0.5 rounded">
-                                      <Text className="text-[9px] font-semibold text-[#4F6B82]">Required</Text>
-                                    </View>
-                                  )}
-                                </View>
-                                <Text className={`text-[10px] font-extrabold uppercase ${textStyle}`}>
-                                  {isDem ? "Demonstrated" : isRel ? "Related" : "Not Evidenced"}
+                              <View key={idx} className={`flex-row flex-wrap items-center justify-between gap-2 p-3 rounded-xl border ${bgStyle}`}>
+                                <Text className={`text-sm font-bold flex-1 ${textStyle}`}>{comp.name}</Text>
+                                <Text className={`text-xs font-bold ${textStyle}`}>
+                                  {isDem ? "Demonstrated" : isRel ? "Related" : "Not shown in resume"}
                                 </Text>
                               </View>
                             );
@@ -1139,38 +1130,13 @@ export default function DashboardScreen() {
             )}
           </View>
 
-          {/* CARD 3: ATS VS ROLE ALIGNMENT COMPARISON */}
-          <View className="bg-white rounded-2xl border border-[#BFD6EA] mx-6 mb-4 p-5" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-            <View className="flex-row items-center gap-2 mb-3">
-              <Ionicons name="git-compare-outline" size={18} color="#1F3A5F" />
-              <Text className="text-xs font-bold text-[#1F3A5F] uppercase tracking-wider">Understanding Your Scores</Text>
-            </View>
-            <View className="gap-2.5">
-              <View className="bg-[#F4F8FB] p-3 rounded-xl border border-[#EAF2F7]">
-                <Text className="text-xs text-[#1F3A5F] font-bold mb-1">ATS Score (40% Weight)</Text>
-                <Text className="text-[11px] text-[#4F6B82] leading-4">
-                  Measures machine readability and document hygiene. Can an automated parser read your sections, contact details, work history, and formatting without errors? Completely role-independent.
-                </Text>
-              </View>
-              <View className="bg-[#FEF5F1] p-3 rounded-xl border border-[#F4A47A]/40">
-                <Text className="text-xs text-[#CA5D25] font-bold mb-1">Role Alignment (60% Weight)</Text>
-                <Text className="text-[11px] text-[#4F6B82] leading-4">
-                  Measures demonstrated qualification fit for {currentUser?.targetPosition || "your target position"}. Evaluates required skills match, project evidence, degree relevance, and certifications.
-                </Text>
-              </View>
-              <View className="bg-[#EAF2F7] p-3 rounded-xl border border-[#BFD6EA]">
-                <Text className="text-xs text-[#1F3A5F] font-bold mb-1">Combined Resume Score</Text>
-                <Text className="text-[11px] text-[#1F3A5F] leading-4">
-                  The authoritative composite result: <Text className="font-bold">ATS Score × 0.40 + Alignment Score × 0.60</Text>.
-                </Text>
-              </View>
-            </View>
+          <View className="bg-white rounded-2xl border border-[#BFD6EA] mx-6 mb-4 p-4 gap-2">
+            <Text className="text-sm font-bold text-[#1F3A5F]">Understanding Your Scores</Text>
+            <Text className="text-sm text-[#4F6B82] leading-5"><Text className="font-bold">ATS (40%):</Text> Machine readability and resume structure, independent of the target role.</Text>
+            <Text className="text-sm text-[#4F6B82] leading-5"><Text className="font-bold">Alignment (60%):</Text> Resume evidence relevant to {currentUser?.targetPosition || "your target position"}, including skills, projects, education, and certifications.</Text>
+            <Text className="text-sm text-[#1F3A5F] leading-5">Combined resume score = ATS × 0.40 + alignment × 0.60. Self-reported confidence is separate.</Text>
           </View>
 
-          {/* Solid 50% width separator */}
-          <View className="items-center mb-6">
-            <View className="w-1/2 h-[2px] bg-[#8B95A5]/30 rounded-full" />
-          </View>
         </View>
 
         {/* DETECTED SECTIONS */}
@@ -1324,14 +1290,11 @@ export default function DashboardScreen() {
                   {isExpanded && (
                     <View className="px-4 pb-4 bg-[#F4F8FB]">
                       {groupAdjustments.map((adjustment, idx) => (
-                        <View key={idx} className={`flex-row items-start p-3 mb-2 rounded-xl border ${adjustment.passed ? "bg-[#D7F1ED]/20 border-[#79D5C8]/30" : "bg-[#FDEEE6]/20 border-[#F4A47A]/30"}`}>
-                          <Ionicons
-                            name={adjustment.passed ? "checkmark-circle" : "alert-circle"}
-                            size={18}
-                            color={adjustment.passed ? "#1E5D53" : "#CA5D25"}
-                            style={{ marginTop: 1 }}
-                          />
-                          <View className="ml-3 flex-1">
+                        <View key={idx} className={`p-3 mb-2 rounded-xl border ${adjustment.passed ? "bg-[#D7F1ED]/20 border-[#79D5C8]/30" : "bg-[#FDEEE6]/20 border-[#F4A47A]/30"}`}>
+                          <View>
+                            <Text className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${adjustment.passed ? "text-[#1E5D53]" : "text-[#CA5D25]"}`}>
+                              {adjustment.passed ? "Met" : "Needs attention"}
+                            </Text>
                             <Text className={`text-sm font-semibold leading-5 ${adjustment.passed ? "text-[#1E5D53]" : "text-[#CA5D25]"}`}>
                               {adjustment.reason.split(" (Rule:")[0]}
                             </Text>

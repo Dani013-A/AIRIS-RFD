@@ -7,11 +7,10 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Text, TextInput } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ResourceCard } from "../../components/learning/ResourceCard";
 import { SkeletonResourceCard } from "../../components/ui";

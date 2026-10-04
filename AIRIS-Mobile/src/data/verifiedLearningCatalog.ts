@@ -18,7 +18,7 @@ import { LearningResource } from "../types/learning.types";
  *    - Database Administration & Networking
  *    - Seminars & Tech Conferences
  */
-export const VERIFIED_LEARNING_CATALOG: LearningResource[] = [
+const CATALOG_RESOURCES: LearningResource[] = [
   // ==========================================
   // 1. INTERVIEWS CATEGORY (Generic Prep)
   // ==========================================
@@ -1607,15 +1607,14 @@ export const VERIFIED_LEARNING_CATALOG: LearningResource[] = [
   },
   {
     id: "cert_comptia_a_plus",
-    title: "CompTIA A+ Core Series (220-1101 & 220-1102)",
+    title: "CompTIA A+ Certification",
     description: "Industry-standard entry credential covering PC hardware assembly, operating systems, mobile devices, networking fundamentals, and operational troubleshooting procedures.",
     provider: "CompTIA",
     type: "certification",
     category: "for_you",
     careerPaths: ["information technology specialist", "it specialist", "it support specialist", "helpdesk technician", "computer systems servicing technician"],
     skills: ["technical support & troubleshooting", "it support fundamentals", "hardware diagnostics", "hardware troubleshooting", "active directory", "operating systems"],
-    credentialCode: "220-1101",
-    aliases: ["A+", "CompTIA A+", "220-1101", "220-1102"],
+    aliases: ["A+", "CompTIA A+"],
     url: "https://www.comptia.org/certifications/a",
     thumbnailUrl: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&auto=format&fit=crop&q=60",
     isVerified: true,
@@ -4573,6 +4572,131 @@ export const VERIFIED_LEARNING_CATALOG: LearningResource[] = [
     isVerified: false,
     isActive: false,
     verification: { status: "unverified", checkedAt: "2026-09-04T04:33:00Z" }
-  }
-
+  },
+  {
+    id: "guide_openstax_business_statistics_2026",
+    title: "Introductory Business Statistics",
+    description: "Free textbook covering statistics with practical business and economics examples.",
+    provider: "OpenStax",
+    type: "guide",
+    category: "for_you",
+    academicPrograms: ["BS Business Administration", "BS Accountancy", "BS Accounting Information System"],
+    careerPaths: ["business analyst", "accountant", "financial analyst"],
+    skills: ["business statistics", "data analysis", "quantitative reasoning"],
+    url: "https://openstax.org/books/introductory-business-statistics/pages/preface",
+    isVerified: true,
+    isActive: true,
+    priority: 78,
+    level: "beginner",
+    tags: ["statistics", "business", "open textbook"],
+    verification: { status: "verified", checkedAt: "2026-10-02T18:05:00Z", verificationMethod: "manual" },
+  },
+  {
+    id: "guide_who_psychological_first_aid_2026",
+    title: "Psychological First Aid: Guide for Field Workers",
+    description: "WHO guidance on humane, supportive, practical help after distressing events.",
+    provider: "World Health Organization",
+    type: "guide",
+    category: "for_you",
+    academicPrograms: ["Bachelor of Arts in Psychology"],
+    careerPaths: ["psychology assistant", "community support worker"],
+    skills: ["psychological first aid", "supportive communication", "crisis response"],
+    url: "https://www.who.int/publications/i/item/9789241548205",
+    isVerified: true,
+    isActive: true,
+    priority: 76,
+    level: "beginner",
+    tags: ["psychology", "psychological first aid", "who"],
+    verification: { status: "verified", checkedAt: "2026-10-02T18:05:00Z", verificationMethod: "manual" },
+  },
+  {
+    id: "tutorial_autodesk_revit_essential_skills_2026",
+    title: "Revit Essential Skills",
+    description: "Autodesk's introductory tutorials for navigating models, building elements, and core Revit workflows.",
+    provider: "Autodesk",
+    type: "course",
+    category: "for_you",
+    academicPrograms: ["BS Architecture", "BS Civil Engineering"],
+    careerPaths: ["architect", "bim modeler", "structural engineer"],
+    skills: ["revit", "building information modeling", "architectural modeling"],
+    url: "https://www.autodesk.com/learn/ondemand/curated/revit-essential-skills",
+    isVerified: true,
+    isActive: true,
+    priority: 81,
+    level: "beginner",
+    tags: ["revit", "bim", "architecture"],
+    verification: { status: "verified", checkedAt: "2026-10-02T18:05:00Z", verificationMethod: "manual" },
+  },
 ];
+
+// The September 2026 URL audit recorded HTTP 404 for these resource URLs.
+const RETIRED_BROKEN_RESOURCE_IDS = new Set([
+  "course_threat_intel_incident_response",
+  "course_aws_devops_specialization",
+  "cert_civil_staadpro_01",
+  "course_civil_revit_bim_01",
+  "cert_accountancy_audit_01",
+  "course_accountancy_bookkeeping_01",
+  "course_accountancy_excel_modeling_01",
+  "course_education_elearning_storyline_01",
+  "course_education_addie_model_01",
+  "course_education_multimedia_01",
+  "cert_psychometrics_blep_01",
+  "course_psychology_statistics_01",
+  "course_thermodynamics_mit_01",
+  "course_architectural_design_mit_01",
+  "cert_blep_psychometrician_review_01",
+  "course_psychological_testing_queensland_01",
+  "cert_edx_instructional_design_01",
+  "course_building_codes_architects_01",
+  "course_work_measurement_ergonomics_01",
+  "course_auditing_internal_controls_01",
+  "course_seo_digital_content_01",
+  "course_curriculum_development_01",
+  "course_academic_writing_01",
+  "course_business_math_abm_01",
+  "book_fpp_forecasting",
+  "cert_oracle_java_programmer",
+  "cert_gcp_associate_cloud_engineer",
+  "cert_hashicorp_terraform_associate",
+  "cert_cisco_ccna",
+  "cert_cisco_ccst_networking",
+  "course_ms_learn_active_directory_admin",
+  "practice_linux_journey_interactive",
+  "cert_solidworks_cswa_01",
+  "cert_lean_six_sigma_green_belt_01",
+  "practice_social_media_ad_campaign_lab_01",
+  "cert_autodesk_cad_certified_user_01",
+  "practice_investopedia_dcf_guide_01",
+]);
+
+// These entries point to a different resource type, an outdated version, or a duplicate destination.
+const RETIRED_MISLABELED_RESOURCE_IDS = new Set([
+  "cert_comptia_network_plus_01",
+  "course_comptia_a_plus_core_hardware_01",
+  "cert_ncees_fe_electrical_01",
+  "cert_ncees_fe_chemical_01",
+  "practice_inventory_routing_excel_lab_01",
+  "cert_deped_let_review_01",
+  "practice_deped_lesson_plan_guide_01",
+  "cert_purdue_academic_writing_cert_01",
+  "practice_value_stream_mapping_01",
+  "practice_hr_job_description_builder_01",
+  "practice_google_ads_conversion_lab_01",
+  "practice_unreal_engine_beginner_lab_01",
+  "course_mit_supply_chain_micromasters_01",
+]);
+
+export const VERIFIED_LEARNING_CATALOG: LearningResource[] = CATALOG_RESOURCES.map((resource) => {
+  if (RETIRED_BROKEN_RESOURCE_IDS.has(resource.id)) {
+    return { ...resource, isVerified: false, isActive: false, verificationStatus: "broken" };
+  }
+  if (RETIRED_MISLABELED_RESOURCE_IDS.has(resource.id)) {
+    return { ...resource, isVerified: false, isActive: false, verificationStatus: "review_required" };
+  }
+  // Generic stock photos misrepresent unrelated courses; use a resource-specific text preview instead.
+  if (resource.thumbnailUrl?.startsWith("https://images.unsplash.com/")) {
+    return { ...resource, thumbnailUrl: undefined };
+  }
+  return resource;
+});

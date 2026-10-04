@@ -3,10 +3,10 @@ import React, { useEffect, useState } from "react";
 import {
   Modal,
   ScrollView,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Text } from "../ui/AppText";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SelfRating, SkillSelfAssessmentMap } from "../../services/resume/selfAssessmentService";
 import { formatCanonicalCompetencyName } from "../../services/resume/selfAssessmentService";
@@ -101,21 +101,19 @@ export default function SkillSelfAssessmentModal({
           style={{ maxHeight: "90%", paddingBottom: Math.max(insets.bottom, 16) + 16 }}
         >
           {/* Header */}
-          <View className="flex-row justify-between items-start mb-3">
-            <View className="flex-1 pr-4">
-              <View className="flex-row items-center gap-2 mb-1">
-                <View className="h-7 w-7 rounded-full bg-[#EAF2F7] items-center justify-center">
-                  <Ionicons name="sparkles" size={16} color="#CA5D25" />
-                </View>
-                <Text className="text-xl font-extrabold text-[#1F3A5F]">How confident are you with these skills?</Text>
-              </View>
-              <Text className="text-xs text-[#4F6B82] leading-4">
-                Your answers help AIRIS personalize your guidance. They won't change your ATS score.
-              </Text>
+          <View className="mb-3">
+            <View className="flex-row items-start justify-between">
+              <Text className="text-xl font-extrabold text-[#1F3A5F] flex-1 pr-4">How confident are you with these skills?</Text>
+              <TouchableOpacity onPress={onSkip} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={24} color="#8B95A5" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={onSkip} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="close" size={24} color="#8B95A5" />
-            </TouchableOpacity>
+            <Text className="mt-2 text-sm leading-5 text-[#4F6B82]">
+              Strong: 75–100% · Moderate: 50–74% · Weak: 0–49% of your own confidence. This is self-reported, not verified skill evidence or a score; low confidence does not mean no ability.
+            </Text>
+            <Text className="mt-2 text-xs text-[#4F6B82] leading-4">
+              Your answers help AIRIS personalize your guidance. They won't change your ATS score.
+            </Text>
           </View>
 
           <View className="h-[1px] bg-[#EAF2F7] my-3" />

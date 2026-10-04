@@ -6,7 +6,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { BackHandler, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { BackHandler, ScrollView, TouchableOpacity, View } from "react-native";
+import { Text, TextInput } from "../../components/ui/AppText";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PrimaryButton } from "../../components/ui";

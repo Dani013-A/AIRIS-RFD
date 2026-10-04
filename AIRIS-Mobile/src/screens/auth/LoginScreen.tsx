@@ -9,11 +9,10 @@ import {
   Modal,
   Platform,
   ScrollView,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Text, TextInput } from "../../components/ui/AppText";
 import { PrimaryButton, SecondaryButton } from "../../components/ui";
 import { useAuthStore } from "../../store/authStore";
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Modal, View, Text, TouchableOpacity, Dimensions } from "react-native";
+import { Modal, View, TouchableOpacity, Dimensions } from "react-native";
+import { Text } from "./AppText";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

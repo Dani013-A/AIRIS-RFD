@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { ActivityIndicator, Alert, BackHandler, Modal, ScrollView, Text, TextInput, TouchableOpacity, View, AppState } from "react-native";
+import { ActivityIndicator, Alert, BackHandler, Modal, ScrollView, TouchableOpacity, View, AppState } from "react-native";
+import { Text, TextInput } from "../../components/ui/AppText";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator, Alert, TouchableOpacity, ScrollView } from "react-native";
+import { View, ActivityIndicator, Alert, TouchableOpacity, ScrollView, Linking } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -49,7 +50,8 @@ export default function PreSimulationBriefingScreen() {
         setMicStatus("denied");
         Alert.alert(
           "Microphone Permission Required",
-          "Voice dictation requires microphone permission. You can enable it in your device settings or proceed with typed responses."
+          "This interview uses spoken answers. Enable the microphone in device settings if permission is blocked.",
+          [{ text: "OK" }, { text: "Settings", onPress: () => void Linking.openSettings() }]
         );
       }
     } catch {
@@ -145,41 +147,20 @@ export default function PreSimulationBriefingScreen() {
       </View>
 
       <ScrollView className="flex-1 mt-2" showsVerticalScrollIndicator={false}>
-        {/* Environment Readiness Card */}
-        <View className="bg-white p-6 rounded-3xl border border-[#BFD6EA] mb-5" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-          <View className="flex-row items-center mb-3">
-            <Ionicons name="volume-medium-outline" size={22} color="#1F3A5F" />
-            <Text className="text-base font-bold text-[#1F3A5F] ml-2">Quiet Environment Guidance</Text>
-          </View>
-          <Text className="text-sm text-[#4F6B82] leading-5 font-medium mb-4">
-            Please make sure you are in a quiet environment before beginning your interview. AIRIS evaluates your spoken responses, including speech clarity, filler words, and speaking pauses. Background conversations, music, TV/audio, traffic, or other significant noise may interfere with speech recognition and may affect the accuracy of your interview evaluation.
-          </Text>
-
-          <View className="gap-2.5 mb-4">
-            {[
-              "Find a quiet location",
-              "Use headphones or a headset microphone if available",
-              "Keep your microphone unobstructed",
-              "Speak clearly and at a natural pace",
-              "Avoid background conversations and media",
-              "Remain in the interview environment until the simulation ends"
-            ].map((tip, idx) => (
-              <View key={idx} className="flex-row items-start">
-                <Ionicons name="checkmark-circle" size={18} color="#79D5C8" style={{ marginTop: 2, marginRight: 8 }} />
-                <Text className="flex-1 text-sm font-medium text-[#1F3A5F] leading-5">{tip}</Text>
-              </View>
-            ))}
-          </View>
-
-          <View className="bg-[#FEF5F1] border border-[#F4A47A] p-4 rounded-2xl flex-row items-start">
-            <Ionicons name="heart-outline" size={20} color="#CA5D25" style={{ marginTop: 2, marginRight: 10 }} />
-            <View className="flex-1">
-              <Text className="text-xs font-bold text-[#CA5D25] uppercase tracking-wider mb-0.5">Reassuring Note</Text>
-              <Text className="text-xs font-medium text-[#CA5D25] leading-4">
-                Your responses are evaluated based on your interview session. Do not worry about being perfect. Answer naturally and honestly.
-              </Text>
+        <View className="bg-white p-5 rounded-2xl border border-[#BFD6EA] mb-5 gap-4">
+          {[
+            ["1. Prepare", "Find a quiet place and review the interview tips."],
+            ["2. Listen", "Wait for the question. Tap the speaker button to repeat it."],
+            ["3. Respond", "Tap the microphone, answer naturally, then tap to stop."],
+            ["4. Continue", "Review the transcript and tap Next Question when ready."],
+            ["5. Stop", "Use the close button to leave the interview."],
+          ].map(([title, description], index) => (
+            <View key={title} className={`gap-1 ${index < 4 ? "border-b border-[#EAF2F7] pb-3" : ""}`}>
+              <Text className="text-sm font-bold text-[#1F3A5F]">{title}</Text>
+              <Text className="text-xs text-[#4F6B82] leading-5">{description}</Text>
             </View>
-          </View>
+          ))}
+          <Text className="text-xs text-[#4F6B82]">The controls are on-screen; voice commands are available only in immersive VR.</Text>
         </View>
 
         {/* Microphone Readiness Card */}
@@ -203,7 +184,7 @@ export default function PreSimulationBriefingScreen() {
           </View>
           {micStatus !== "granted" && (
             <Text className="text-xs text-[#4F6B82] font-medium mt-2 leading-4">
-              Voice dictation requires microphone permission. If denied, typed responses remain fully supported for standard interview mode.
+              Spoken answers require microphone permission. Enable it above or in device settings before starting.
             </Text>
           )}
         </View>
@@ -214,9 +195,9 @@ export default function PreSimulationBriefingScreen() {
           title="Start Simulation"
           variant="orange"
           onPress={() => router.push("/(student)/interview-session/active" as any)}
+          disabled={micStatus !== "granted"}
         />
       </View>
     </SafeAreaView>
   );
 }
-

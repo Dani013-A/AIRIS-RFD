@@ -5,11 +5,10 @@ import {
   ActivityIndicator,
   Image,
   Modal,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Text, TextInput } from "../../components/ui/AppText";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { PrimaryButton, SecondaryButton } from "../../components/ui";
 import { PasswordRequirementsView } from "../../components/ui/PasswordRequirementsView";

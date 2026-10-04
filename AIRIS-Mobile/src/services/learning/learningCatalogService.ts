@@ -19,8 +19,8 @@ import { validateAndSanitizeCatalog, validateLearningResource } from "./catalogV
 import { evaluateCareerTargetCompatibility } from "../ai/careerCompatibilityGuardrail";
 import { filterAndVerifyAiCandidates } from "./aiRecommendationValidator";
 
-const CACHE_STORAGE_KEY = "@airis_learning_catalog_v4";
-const CACHE_VERSION = 4;
+const CACHE_STORAGE_KEY = "@airis_learning_catalog_v5";
+const CACHE_VERSION = 5;
 
 const RESOURCES_COLLECTION = "learning_resources";
 const CATEGORIES_COLLECTION = "learning_categories";
@@ -211,10 +211,14 @@ export async function refreshCatalog(): Promise<{ resources: LearningResource[];
 
     // 4. Canonical Merge: Firestore is authoritative over local seed catalog
     const resourceMap = new Map<string, LearningResource>();
+    const retiredSeedIds = new Set(VERIFIED_LEARNING_CATALOG.filter((item) =>
+      !item.isActive && (item.verificationStatus === "broken" || item.verificationStatus === "review_required")
+    ).map((item) => item.id));
     for (const seedItem of VERIFIED_LEARNING_CATALOG) {
       resourceMap.set(seedItem.id, seedItem);
     }
     for (const fsItem of firestoreResources) {
+      if (retiredSeedIds.has(fsItem.id)) continue;
       if (fsItem.isActive === false) {
         resourceMap.delete(fsItem.id); // Firestore explicitly deactivated item
       } else {
@@ -3012,6 +3016,3 @@ export function logForYouRecommendations(
   console.log("END FOR YOU RECOMMENDATIONS");
   console.log("============================================================");
 }
-
-
-

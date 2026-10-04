@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Modal, ScrollView, TouchableOpacity, View } from "react-native";
+import { Text } from "./AppText";
 import { CareerCompatibilityResult } from "../../services/ai/careerCompatibilityGuardrail";
 
 interface CareerCompatibilityModalProps {

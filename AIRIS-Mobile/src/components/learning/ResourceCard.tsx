@@ -2,7 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
-import { Alert, Text, TouchableOpacity, View } from "react-native";
+import { Alert, TouchableOpacity, View } from "react-native";
+import { Text } from "../ui/AppText";
 import { MatchedResourceItem, ResourceType } from "../../types/learning.types";
 
 interface ResourceCardProps {
@@ -118,22 +119,25 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onPress })
       }}
     >
       {/* THUMBNAIL / PREVIEW IMAGE CONTAINER */}
-      <View className="w-full h-40 bg-[#F4F8FB] relative items-center justify-center border-b border-[#EAF2F7] overflow-hidden">
+      <View className="w-full h-40 bg-[#F6F8F5] relative items-center justify-center border-b border-[#EAF2F7] overflow-hidden">
         {resource.thumbnailUrl && !imageError ? (
-          <Image
-            source={{ uri: resource.thumbnailUrl }}
-            style={{ width: "100%", height: "100%" }}
-            contentFit="cover"
-            transition={200}
-            cachePolicy="memory-disk"
-            onError={() => setImageError(true)}
-          />
+          <>
+            <Image
+              source={{ uri: resource.thumbnailUrl }}
+              style={{ width: "100%", height: "100%" }}
+              contentFit="cover"
+              transition={200}
+              cachePolicy="memory-disk"
+              onError={() => setImageError(true)}
+            />
+            <View pointerEvents="none" style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, backgroundColor: "rgba(13,148,136,0.09)" }} />
+          </>
         ) : (
-          <View className="items-center justify-center p-6">
+          <View className="items-center justify-center px-6 pt-8 pb-4 w-full">
             <View className="h-12 w-12 rounded-full bg-[#EAF2F7] items-center justify-center mb-1.5 border border-[#BFD6EA]">
               <Ionicons name={typeTheme.icon} size={24} color="#1F3A5F" />
             </View>
-            <Text className="text-[11px] font-bold text-[#4F6B82] uppercase tracking-wider">{resource.provider}</Text>
+            <Text className="text-sm font-bold text-[#1F3A5F] text-center" numberOfLines={2}>{resource.title}</Text>
           </View>
         )}
 
@@ -145,7 +149,6 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onPress })
         {/* VERIFIED INDICATOR */}
         {resource.isVerified && (
           <View className="absolute top-2.5 right-2.5 bg-[#D7F1ED]/95 px-2 py-0.5 rounded-full border border-[#79D5C8] flex-row items-center shadow-sm">
-            <Ionicons name="checkmark-circle" size={10} color="#1E5D53" style={{ marginRight: 2 }} />
             <Text className="text-[9px] font-extrabold uppercase tracking-widest text-[#1E5D53]">Verified</Text>
           </View>
         )}

@@ -5,13 +5,14 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
+  Linking,
   Modal,
   ScrollView,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Text, TextInput } from "../../components/ui/AppText";
+import { TextSize, useAppearanceStore } from "../../store/appearanceStore";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore } from "../../store/authStore";
 import { useResumeStore } from "../../store/resumeStore";
@@ -44,7 +45,9 @@ export default function StudentProfileScreen() {
   const retargetActiveResume = useResumeStore((state) => state.retargetActiveResume);
 
   const [activeTab, setActiveTab] = useState<"profile" | "settings">("profile");
-  const [expandedPanel, setExpandedPanel] = useState<"account" | "privacy" | "about" | null>(null);
+  const textSize = useAppearanceStore((state) => state.textSize);
+  const setTextSize = useAppearanceStore((state) => state.setTextSize);
+  const [expandedPanel, setExpandedPanel] = useState<"account" | "guide" | "privacy" | "about" | null>(null);
 
   const [editName, setEditName] = useState(currentUser?.fullName || "");
   const [editCollege, setEditCollege] = useState(currentUser?.college || "");
@@ -78,6 +81,14 @@ export default function StudentProfileScreen() {
   const [loadingActivities, setLoadingActivities] = useState(true);
 
   const [photoSource, setPhotoSource] = useState<{ uri?: string; defaultAsset?: any }>({ defaultAsset: DEFAULT_PROFILE_FALLBACK });
+
+  const openContact = async (url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert("Link Unavailable", "No app could open this contact link on your device.");
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -118,7 +129,7 @@ export default function StudentProfileScreen() {
     router.replace("/(auth)/login");
   };
 
-  const togglePanel = (panel: "account" | "privacy" | "about") => {
+  const togglePanel = (panel: "account" | "guide" | "privacy" | "about") => {
     clearError();
     setExpandedPanel(expandedPanel === panel ? null : panel);
   };
@@ -405,13 +416,13 @@ export default function StudentProfileScreen() {
               <Text className="text-sm font-bold text-[#1F3A5F] mb-4 uppercase tracking-wider">Personal Details</Text>
 
               <View className="gap-4">
-                <View className="flex-row justify-between py-2 border-b border-[#EAF2F7]">
+                <View className="flex-row flex-wrap justify-between gap-2 py-2 border-b border-[#EAF2F7]">
                   <Text className="text-sm font-medium text-[#4F6B82]">Registered Email</Text>
-                  <Text className="text-sm font-bold text-[#1F3A5F]">{currentUser?.email}</Text>
+                  <Text className="text-sm font-bold text-[#1F3A5F] flex-shrink">{currentUser?.email}</Text>
                 </View>
                 <View className="flex-row justify-between py-2 border-b border-[#EAF2F7]">
                   <Text className="text-sm font-medium text-[#4F6B82]">Associated College</Text>
-                  <Text className="text-sm font-bold text-[#1F3A5F] flex-1 text-right ml-4" numberOfLines={1}>{currentUser?.college || "Not Set"}</Text>
+                  <Text className="text-sm font-bold text-[#1F3A5F] flex-1 text-right ml-4">{currentUser?.college || "Not Set"}</Text>
                 </View>
                 <View className="flex-row justify-between py-2 border-b border-[#EAF2F7]">
                   <Text className="text-sm font-medium text-[#4F6B82]">Account Privilege</Text>
@@ -470,6 +481,26 @@ export default function StudentProfileScreen() {
         ) : (
           <View className="gap-4">
 
+            <View className="rounded-2xl bg-white border border-[#BFD6EA] p-5">
+              <Text className="text-base font-bold text-[#1F3A5F] mb-1">Text Size</Text>
+              <Text className="text-sm text-[#4F6B82] mb-4">Choose the reading size that works for you.</Text>
+              <View className="flex-row gap-2">
+                {(["small", "medium", "large"] as TextSize[]).map((size) => (
+                  <TouchableOpacity
+                    key={size}
+                    onPress={() => setTextSize(size)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: textSize === size }}
+                    className={`flex-1 items-center rounded-xl border px-2 py-3 ${textSize === size ? "bg-[#1F3A5F] border-[#1F3A5F]" : "bg-white border-[#BFD6EA]"}`}
+                  >
+                    <Text className={`text-sm font-bold ${textSize === size ? "text-white" : "text-[#1F3A5F]"}`}>
+                      {size[0].toUpperCase() + size.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
             <View className="rounded-2xl bg-white border border-[#BFD6EA] overflow-hidden" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
               <TouchableOpacity
                 onPress={() => togglePanel("account")}
@@ -491,6 +522,9 @@ export default function StudentProfileScreen() {
 
               {expandedPanel === "account" && (
                 <View className="px-5 pb-6 border-t border-[#EAF2F7] pt-5 gap-5">
+                  <Text className="text-xs text-[#4F6B82] leading-5 bg-[#F4F8FB] p-3 rounded-xl border border-[#BFD6EA]">
+                    You can update your college department, degree program, or target position anytime. Changes saved here will update your dashboard, interview prep, and learning recommendations.
+                  </Text>
                   <View className="gap-2">
                     <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">Full Name</Text>
                     <TextInput
@@ -766,6 +800,65 @@ export default function StudentProfileScreen() {
 
             <View className="rounded-2xl bg-white border border-[#BFD6EA] overflow-hidden" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
               <TouchableOpacity
+                onPress={() => togglePanel("guide")}
+                activeOpacity={0.85}
+                className="flex-row items-center justify-between p-5"
+              >
+                <View className="flex-row items-center">
+                  <View className="mr-4 h-10 w-10 items-center justify-center rounded-full bg-[#EAF2F7]">
+                    <Ionicons name="book-outline" size={20} color="#1F3A5F" />
+                  </View>
+                  <Text className="text-base font-bold text-[#1F3A5F]">User Guide</Text>
+                </View>
+                <Ionicons
+                  name={expandedPanel === "guide" ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color="#8B95A5"
+                />
+              </TouchableOpacity>
+
+              {expandedPanel === "guide" && (
+                <View className="px-5 pb-6 border-t border-[#EAF2F7] pt-5 gap-4">
+                  <View className="gap-1">
+                    <Text className="text-sm font-bold text-[#1F3A5F]">1. Resume & ATS Analysis</Text>
+                    <Text className="text-xs text-[#4F6B82] leading-5">
+                      Upload your resume in PDF format. AIRIS evaluates machine parseability, essential section structure, and formatting hygiene. This score reflects structural readiness, not your personal worth.
+                    </Text>
+                  </View>
+
+                  <View className="gap-1">
+                    <Text className="text-sm font-bold text-[#1F3A5F]">2. Target Competency Alignment & Self-Assessment</Text>
+                    <Text className="text-xs text-[#4F6B82] leading-5">
+                      Your resume is evaluated against competencies for your chosen career track. In the self-assessment, rate your personal confidence: Strong (75–100%), Moderate (50–74%), or Weak (0–49%). This represents self-reported confidence, NOT verified skill, and does not alter your ATS score.
+                    </Text>
+                  </View>
+
+                  <View className="gap-1">
+                    <Text className="text-sm font-bold text-[#1F3A5F]">3. Mock Interview Simulation</Text>
+                    <Text className="text-xs text-[#4F6B82] leading-5">
+                      Practice standard or immersive VR interviews. In standard mode, use on-screen controls to record and proceed. In VR mode, you can control progression with voice commands: say "Next" for the next question, "Repeat" to replay, or "Stop" to finish safely.
+                    </Text>
+                  </View>
+
+                  <View className="gap-1">
+                    <Text className="text-sm font-bold text-[#1F3A5F]">4. Learning Hub</Text>
+                    <Text className="text-xs text-[#4F6B82] leading-5">
+                      Access verified learning resources curated to address specific competency gaps identified in your resume and interview evaluations.
+                    </Text>
+                  </View>
+
+                  <View className="gap-1">
+                    <Text className="text-sm font-bold text-[#1F3A5F]">5. Updating Your Profile</Text>
+                    <Text className="text-xs text-[#4F6B82] leading-5">
+                      You can change your college, degree program, and target career position anytime in Account Details. When you update your target position, your resume alignment will automatically re-target to the new role.
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            <View className="rounded-2xl bg-white border border-[#BFD6EA] overflow-hidden" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
+              <TouchableOpacity
                 onPress={() => togglePanel("about")}
                 activeOpacity={0.85}
                 className="flex-row items-center justify-between p-5"
@@ -787,8 +880,15 @@ export default function StudentProfileScreen() {
                 <View className="px-5 pb-6 border-t border-[#EAF2F7] pt-5 gap-3">
                   <Text className="text-sm font-bold text-[#1F3A5F] uppercase tracking-wider">Application Details</Text>
                   <Text className="text-sm leading-6 text-[#4F6B82]">
-                    AIRIS is an AI-assisted resume analyzer and interactive interview simulation platform tailored to help fresh graduates build and evaluate their readiness for modern industry roles.
+                    AIRIS is an AI-assisted resume analyzer and interactive interview simulation platform tailored to help graduating students build and evaluate their readiness for modern industry roles.
                   </Text>
+                  <Text className="text-sm leading-6 text-[#4F6B82]">
+                    The AIRIS owl reflects immersive VR through its large eyes and represents observation, learning, intelligence, and readiness. Its recognizable animal identity was inspired by Bryl Lim; the AIRIS name complements it and the team goal of preparing students for future opportunities.
+                  </Text>
+                  <Text className="text-sm font-bold text-[#1F3A5F] mt-2">Contact Us</Text>
+                  <TouchableOpacity onPress={() => void openContact("mailto:danielespela251@gmail.com")}><Text className="text-sm text-[#1F3A5F] underline">Email the AIRIS team</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => void openContact("https://www.facebook.com/daniiiii007/")}><Text className="text-sm text-[#1F3A5F] underline">AIRIS project Facebook</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => void openContact("https://www.facebook.com/TIPCareerCenter")}><Text className="text-sm text-[#1F3A5F] underline">TIP Career Center Facebook</Text></TouchableOpacity>
                   <Text className="text-xs font-medium text-[#8B95A5] mt-2">Version 1.0.0 | © 2026 AIRIS Team</Text>
                 </View>
               )}

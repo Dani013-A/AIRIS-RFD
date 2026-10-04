@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View, ActivityIndicator } from "react-native";
+import { ScrollView, TouchableOpacity, View, ActivityIndicator } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore } from "../../store/authStore";
 import { useResumeStore } from "../../store/resumeStore";
@@ -93,10 +94,10 @@ export default function StudentDashboardScreen() {
           <Text className="text-3xl font-extrabold text-[#1F3A5F]">
             {getGreeting()}, {userName}!
           </Text>
-          <Text className="text-sm font-semibold text-[#4F6B82] mt-1" numberOfLines={1}>
+          <Text className="text-sm font-semibold text-[#4F6B82] mt-1">
             {userProgram}
           </Text>
-          <Text className="text-xs font-bold text-[#CA5D25] mt-0.5" numberOfLines={1}>
+          <Text className="text-xs font-bold text-[#CA5D25] mt-0.5">
             {targetJob}
           </Text>
         </View>

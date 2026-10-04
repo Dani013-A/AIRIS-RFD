@@ -11,12 +11,11 @@ import {
   Alert,
   BackHandler,
   ScrollView,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
   Platform,
 } from "react-native";
+import { Text, TextInput } from "../../components/ui/AppText";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PrimaryButton } from "../../components/ui";
@@ -231,6 +230,9 @@ export default function JobSelectionScreen() {
         </Text>
         <Text className="mt-2 text-center text-sm font-medium text-[#4F6B82] px-4">
           Select or search the specific career track you wish to prepare for.
+        </Text>
+        <Text className="mt-2 text-center text-sm text-[#4F6B82] px-4">
+          You can update your college, program, and target position anytime from Profile.
         </Text>
       </View>
 
