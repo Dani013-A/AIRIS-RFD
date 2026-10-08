@@ -6,10 +6,10 @@ SECTION_ALIASES = {
     "ProfessionalSummary": ["summary", "professional summary", "career summary", "profile", "professional profile", "objective", "about me", "about"],
     "WorkExperience": ["experience", "work experience", "professional experience", "employment", "employment history", "work history", "history", "career history", "relevant experience", "practical experience", "professional background"],
     "Internships": ["internship", "internships", "internship experience", "on the job training", "ojt", "practicum"],
-    "Education": ["education", "educational background", "academic background", "academic history", "education & qualifications", "education and qualifications", "academic qualifications", "academic profile"],
+    "Education": ["education", "educational background", "academic background", "academic history", "academic formation", "education & qualifications", "education and qualifications", "academic qualifications", "academic profile"],
     "RelevantCoursework": ["relevant coursework", "coursework", "relevant courses", "academic coursework", "subjects"],
     "Skills": [
-        "skills", "technical skills", "core skills", "competencies", "core competencies",
+        "skills", "technical skills", "core skills", "competencies", "core competencies", "capabilities",
         "technical competencies", "areas of expertise", "technical proficiencies",
         "skills & proficiencies", "skills and proficiencies", "key skills", "specializations",
         "hard skills", "tools & technologies", "tools and technologies", "tech stack",

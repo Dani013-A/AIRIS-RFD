@@ -13,47 +13,46 @@ def get_pdf_page_count(file_bytes: bytes) -> int:
         return 1
 
 def extract_text_from_pdf(file_bytes: bytes) -> str:
-    """Extract raw text from a PDF file using PyMuPDF (fitz) with safe fallback."""
+    """Extract text per page, using the existing image OCR path for scanned pages."""
     try:
         doc = fitz.open(stream=file_bytes, filetype="pdf")
         text = []
-        for page in doc:
-            page_text = page.get_text()
+        for index, page in enumerate(doc):
+            page_text = page.get_text().strip()
+            if len(page_text) < 30 and page.get_images():
+                image_bytes = page.get_pixmap(matrix=fitz.Matrix(2, 2)).tobytes("png")
+                ocr_text = extract_text_from_image(image_bytes, f"page-{index + 1}.png")
+                if len(ocr_text.strip()) > len(page_text):
+                    page_text = ocr_text
             if page_text:
                 text.append(page_text)
-        result = "\n".join(text).strip()
-        if result:
-            return result
+        return "\n".join(text).strip()
     except Exception as e:
         print("PyMuPDF PDF extraction failed:", e)
-
-    try:
-        raw = file_bytes.decode("latin-1", errors="ignore")
-        cleaned = re.sub(r"[^\x20-\x7E\n\r\t]", " ", raw)
-        lines = [line.strip() for line in cleaned.splitlines() if len(line.strip()) > 3]
-        return "\n".join(lines)
-    except Exception:
-        return file_bytes.decode(errors="ignore")
+        return ""
 
 def extract_text_from_docx(file_bytes: bytes) -> str:
-    """Extract raw text from a DOCX/DOC file using python-docx with safe fallback."""
+    """Extract DOCX body, tables, and headers/footers without reading ZIP bytes as text."""
     try:
         from io import BytesIO
         document = docx.Document(BytesIO(file_bytes))
-        paragraphs = [p.text for p in document.paragraphs if p.text.strip()]
-        result = "\n".join(paragraphs).strip()
-        if result:
-            return result
+        parts = []
+        for section in document.sections:
+            if section.header is not None:
+                parts.extend(p.text for p in section.header.paragraphs if p.text.strip())
+        for item in document.iter_inner_content():
+            if isinstance(item, docx.table.Table):
+                for row in item.rows:
+                    parts.extend(cell.text for cell in row.cells if cell.text.strip())
+            elif item.text.strip():
+                parts.append(item.text)
+        for section in document.sections:
+            if section.footer is not None:
+                parts.extend(p.text for p in section.footer.paragraphs if p.text.strip())
+        return "\n".join(parts).strip()
     except Exception as e:
         print("DOCX extraction failed:", e)
-
-    try:
-        raw = file_bytes.decode("latin-1", errors="ignore")
-        cleaned = re.sub(r"[^\x20-\x7E\n\r\t]", " ", raw)
-        lines = [line.strip() for line in cleaned.splitlines() if len(line.strip()) > 3]
-        return "\n".join(lines)
-    except Exception:
-        return file_bytes.decode(errors="ignore")
+        return ""
 
 def extract_text_from_rtf(file_bytes: bytes) -> str:
     """Convert RTF to plain text using pypandoc, with regex fallback if conversion fails."""
@@ -226,7 +225,7 @@ def extract_text(file_bytes: bytes, filename: str) -> str:
     raw = ""
     if ext == "pdf":
         raw = extract_text_from_pdf(file_bytes)
-    elif ext in ("doc", "docx"):
+    elif ext == "docx":
         raw = extract_text_from_docx(file_bytes)
     elif ext == "rtf":
         raw = extract_text_from_rtf(file_bytes)
@@ -236,6 +235,6 @@ def extract_text(file_bytes: bytes, filename: str) -> str:
         raw = extract_text_from_image(file_bytes, filename)
     else:
         # Strict rejection for non-supported file formats (PPT, PPTX, XLS, ZIP, EXE, etc.)
-        raise ValueError(f"Unsupported file format '.{ext}'. Supported formats are PDF, DOCX, DOC, RTF, TXT, and Image (PNG, JPG, JPEG, WEBP, HEIC).")
+        raise ValueError(f"Unsupported file format '.{ext}'. Supported formats are PDF, DOCX, RTF, TXT, and Image (PNG, JPG, JPEG, WEBP, HEIC).")
 
     return normalize_ocr_text(raw)

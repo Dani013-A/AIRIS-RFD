@@ -446,11 +446,11 @@ async def upload_resume(
                     detail="The uploaded file is empty. Please choose a valid resume file."
                 )
 
-            allowed_exts = (".pdf", ".docx", ".doc", ".rtf", ".txt", ".png", ".jpg", ".jpeg", ".webp", ".heic")
+            allowed_exts = (".pdf", ".docx", ".rtf", ".txt", ".png", ".jpg", ".jpeg", ".webp", ".heic")
             if not any(filename.lower().endswith(ext) for ext in allowed_exts):
                 raise HTTPException(
                     status_code=400,
-                    detail="Invalid file format. Please upload a valid PDF, DOCX, DOC, RTF, TXT, or Image (PNG, JPG, JPEG, WEBP, HEIC) resume document."
+                    detail="Invalid file format. Upload PDF, DOCX, RTF, TXT, or an image (PNG, JPG, JPEG, WEBP, HEIC). Convert legacy .doc files to DOCX or PDF first."
                 )
 
             if filename.lower().endswith(".pdf"):

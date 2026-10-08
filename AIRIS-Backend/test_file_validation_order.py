@@ -17,10 +17,11 @@ class TestFileValidationOrder(unittest.TestCase):
     @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)
     def test_unsupported_file_types_rejected_at_step_one(self, mock_auth):
         """
-        Invariant: Unsupported file formats (.ppt, .pptx, .xls, .xlsx, .exe, .zip) MUST be
+        Invariant: Unsupported file formats (.doc, .ppt, .pptx, .xls, .xlsx, .exe, .zip) MUST be
         rejected immediately at step 1 file-type validation BEFORE reaching identity or OCR analysis.
         """
         unsupported_files = [
+            ("legacy.doc", "application/msword"),
             ("presentation.ppt", "application/vnd.ms-powerpoint"),
             ("deck.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation"),
             ("data.xls", "application/vnd.ms-excel"),
