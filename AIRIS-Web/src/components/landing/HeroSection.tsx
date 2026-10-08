@@ -35,7 +35,7 @@ export function HeroSection() {
                 AIRIS
               </h1>
               <p className="text-lg sm:text-xl font-bold text-[#5F7E97] leading-snug">
-                AI-Assisted Resume Analysis and Interview Simulation Platform for Fresh Graduates
+                AI-Assisted Resume Analysis and Interview Simulation Platform for Graduating Students
               </p>
             </div>
 

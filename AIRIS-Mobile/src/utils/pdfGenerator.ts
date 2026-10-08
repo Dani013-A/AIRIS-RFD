@@ -51,11 +51,26 @@ export function generatePdfFromMarkdown(title: string, markdown: string): string
       streamContent += "ET\nBT\n/F1 10 Tf\n0 0 Td\n";
       y -= 20;
     } else {
-      streamContent += "ET\nBT\n/F1 9.5 Tf\n";
-      streamContent += `72 ${y - 11} Td\n`;
-      streamContent += `(${escapePdfString(trimmed)}) Tj\n`;
-      streamContent += "ET\nBT\n0 0 Td\n";
-      y -= 11;
+      const words = trimmed.split(/\s+/);
+      const wrappedLines: string[] = [];
+      let current = "";
+      for (const word of words) {
+        if (current && `${current} ${word}`.length > 78) {
+          wrappedLines.push(current);
+          current = word;
+        } else {
+          current = current ? `${current} ${word}` : word;
+        }
+      }
+      if (current) wrappedLines.push(current);
+      for (const wrappedLine of wrappedLines) {
+        if (y < 45) break;
+        streamContent += "ET\nBT\n/F1 9.5 Tf\n";
+        streamContent += `72 ${y - 11} Td\n`;
+        streamContent += `(${escapePdfString(wrappedLine)}) Tj\n`;
+        streamContent += "ET\nBT\n0 0 Td\n";
+        y -= 11;
+      }
     }
   }
   streamContent += "ET\n";

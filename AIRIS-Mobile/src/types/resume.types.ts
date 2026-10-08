@@ -16,14 +16,15 @@ export type ResumeProcessingStatus =
   | "completed"
   | "failed";
 
-export type ResumeSourceFileType = "pdf" | "image" | "txt" | "docx" | "manual";
+export type ResumeSourceFileType = "pdf" | "image" | "txt" | "docx" | "rtf" | "manual";
 
 export type ResumeExtractionMethod =
   | "txt_direct"
   | "manual_paste"
   | "pdf_text"
   | "image_ocr"
-  | "docx_text";
+  | "docx_text"
+  | "rtf_text";
 
 export interface ResumeContactInformation {
   email: string;
@@ -156,5 +157,4 @@ export function isLegacyRecord(analysis: any): boolean {
   if (!analysis) return false;
   return !isCanonicalRecord(analysis);
 }
-
 

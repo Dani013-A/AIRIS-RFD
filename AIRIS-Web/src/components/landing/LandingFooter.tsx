@@ -84,7 +84,7 @@ export function LandingFooter() {
             </div>
 
             <p className="text-sm font-semibold text-[#1E3E6B]">
-              AI-Assisted Resume Analysis and Interview Simulation Platform for Fresh Graduates
+              AI-Assisted Resume Analysis and Interview Simulation Platform for Graduating Students
             </p>
 
             <p className="text-xs text-[#5F7E97] leading-relaxed max-w-md">

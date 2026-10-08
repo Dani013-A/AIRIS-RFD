@@ -32,6 +32,7 @@ import {
   PrimaryLearnCategory,
 } from "../../types/learning.types";
 import { generatePdfFromMarkdown } from "../../utils/pdfGenerator";
+import { downloadAirisResumeTemplate } from "../../utils/airisResumeTemplate";
 
 interface ResumeTemplate {
   id: string;
@@ -44,6 +45,15 @@ interface ResumeTemplate {
 }
 
 const ATS_TEMPLATES: ResumeTemplate[] = [
+  {
+    id: "airis_standard",
+    name: "AIRIS Standard Resume",
+    badge: "Recommended",
+    standard: "Single-column ATS-readable format",
+    description: "A clean, text-based guide with conventional sections for graduating students across programs.",
+    rationale: "Keeps contact, education, skills, and experience readable without relying on images or tables.",
+    content: "",
+  },
   {
     id: "harvard",
     name: "Harvard Standard",
@@ -277,6 +287,10 @@ export default function LearningScreen({ initialCategory = "interviews" }: Learn
 
   const handleDownloadTemplate = async (template: ResumeTemplate) => {
     try {
+      if (template.id === "airis_standard") {
+        await downloadAirisResumeTemplate();
+        return;
+      }
       const name = currentUser?.fullName || "YOUR NAME";
       const program = currentUser?.degreeProgram || "Degree Program";
       const target = currentUser?.targetPosition || targetPosition || "Target Position";

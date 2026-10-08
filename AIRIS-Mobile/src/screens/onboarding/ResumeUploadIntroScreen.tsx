@@ -16,6 +16,7 @@ import { uploadResumeFileWithProgress, type UploadProgressEvent } from "../../se
 import { classifyNameMatch } from "../../utils/nameMatcher";
 import { normalizeApiError } from "../../utils/errorMapper";
 import { validateResumeText } from "../../services/resume/resumeNormalizer";
+import { downloadAirisResumeTemplate } from "../../utils/airisResumeTemplate";
 
 function formatBytes(bytes: number): string {
   if (!bytes || bytes <= 0) return "0 KB";
@@ -100,15 +101,10 @@ export default function ResumeUploadIntroScreen() {
       setHasValidUploadCompleted(false);
 
     const fileExtension = fileToProcess.name.split(".").pop()?.toLowerCase() || "";
-    const validExtensions = ["pdf", "doc", "docx", "txt", "png", "jpg", "jpeg", "webp", "heic"];
-    const isValidMime =
-      fileToProcess.mimeType.includes("pdf") ||
-      fileToProcess.mimeType.includes("word") ||
-      fileToProcess.mimeType.includes("text") ||
-      fileToProcess.mimeType.startsWith("image/");
+    const validExtensions = ["pdf", "docx", "rtf", "txt", "png", "jpg", "jpeg", "webp", "heic"];
 
-    if (!validExtensions.includes(fileExtension) && !isValidMime) {
-      const errMsg = "Please select a valid PDF, DOCX, TXT, or Image file (PNG, JPG, HEIC).";
+    if (!validExtensions.includes(fileExtension)) {
+      const errMsg = "Please choose a PDF, DOCX, RTF, TXT, or supported image. Legacy .doc files must be converted to DOCX or PDF.";
       setIsInvalidDocument(true);
       setValidationError(errMsg);
       setUploadStage("idle");
@@ -142,9 +138,12 @@ export default function ResumeUploadIntroScreen() {
     let sourceFileType: any = "pdf";
     let sourceDetailType: any = "pdf_text";
 
-    if (fileExtension === "doc" || fileExtension === "docx" || fileToProcess.mimeType.includes("word")) {
+    if (fileExtension === "docx") {
       sourceFileType = "docx";
       sourceDetailType = "docx_text";
+    } else if (fileExtension === "rtf") {
+      sourceFileType = "rtf";
+      sourceDetailType = "rtf_text";
     } else if (fileExtension === "txt" || fileToProcess.mimeType === "text/plain") {
       sourceFileType = "txt";
       sourceDetailType = "txt_direct";
@@ -526,7 +525,22 @@ export default function ResumeUploadIntroScreen() {
             Upload Your Resume
           </Text>
           <Text className="mt-2 text-center text-sm font-medium text-[#4F6B82] px-4 leading-6">
-            Supported files include PDF, DOCX, TXT, and images. Real-time ATS analysis will run automatically.
+            Upload a PDF, DOCX, RTF, TXT, or image. Use selectable text where possible; scanned pages require OCR.
+          </Text>
+          <TouchableOpacity
+            className="mt-3 rounded-xl bg-[#EAF2F7] px-4 py-3"
+            onPress={async () => {
+              try {
+                await downloadAirisResumeTemplate();
+              } catch {
+                Alert.alert("Template unavailable", "AIRIS could not save or share the resume template on this device.");
+              }
+            }}
+          >
+            <Text className="text-center font-bold text-[#1F3A5F]">Download AIRIS Standard Resume Template</Text>
+          </TouchableOpacity>
+          <Text className="mt-2 text-center text-xs text-[#4F6B82] px-4">
+            Recommended, not required. Keep contact and skills as text; avoid hiding important details in images.
           </Text>
         </View>
 

@@ -10,7 +10,7 @@ export function ObjectivesSection() {
       icon: MonitorPlay,
       title: "Interview Simulation Virtual Environment",
       manuscriptText:
-        "Develop an interview simulation virtual environment that allows fresh graduates and job seekers to practice job interview scenarios through a 3D NPC-based environment.",
+        "Develop an interview simulation virtual environment that allows graduating students and job seekers to practice job interview scenarios through a 3D NPC-based environment.",
       focus: "Realistic 3D interview environment and scenario-based question sets.",
     },
     {

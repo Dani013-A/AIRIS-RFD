@@ -15,13 +15,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "AIRIS: AI-Assisted Resume Analysis & Interview Simulation Platform",
   description:
-    "An AI-assisted employability preparation platform for fresh graduates and job seekers, developed at the Technological Institute of the Philippines - Manila.",
+    "An AI-assisted employability preparation platform for graduating students and job seekers, developed at the Technological Institute of the Philippines - Manila.",
   keywords: [
     "AIRIS",
     "Resume Analysis",
     "Interview Simulation",
     "Employability Platform",
-    "Fresh Graduates",
+    "Graduating Students",
     "TIP Manila",
   ],
   authors: [{ name: "AIRIS Project Team" }],
