@@ -115,7 +115,8 @@ describe("Upload Error Classification & Fallback Protection Test Suite", () => {
       valid: true,
       rawText: "JUAN DELA CRUZ\nSoftware Engineer\nSkills: Python, SQL",
       parsedSections: { Skills: "Python, SQL" },
-      atsScore: { overallScore: 85 }
+      atsScore: { overallScore: 85 },
+      formatAssessment: { outcome: "SUPPORTED", canProceed: true, specificationVersion: "airis-resume-v1" },
     }));
 
     const result = await uploadResumeFileWithProgress(dummyPdfFile, "Software Engineer");
@@ -154,6 +155,53 @@ describe("Upload Error Classification & Fallback Protection Test Suite", () => {
       isHttpError: true,
       status: 408,
       code: "TIMEOUT",
+    });
+  });
+
+  test("10. Format warning is returned with the same analysis, without another upload", async () => {
+    setupMockXHR(200, JSON.stringify({
+      valid: true,
+      rawText: "Alex Rivera\nEDUCATION\nBS IT\nSKILLS\nPython",
+      parsedSections: { Education: "BS IT", Skills: "Python" },
+      atsScore: 70,
+      formatAssessment: {
+        outcome: "WARNING", specificationVersion: "airis-resume-v1",
+        reasonCodes: ["MISSING_EXPERIENCE_EVIDENCE"], reasons: ["No project or experience found."],
+        missingSections: ["Projects or Experience"], unrecognizedSections: [],
+        unrecoveredInformation: [], remediation: "Use the AIRIS template.",
+        canProceed: true, templateId: "airis_standard",
+      },
+    }));
+    const result = await uploadResumeFileWithProgress(dummyPdfFile, "Software Engineer");
+    expect(result.formatAssessment?.outcome).toBe("WARNING");
+    expect(result.analysisResult).toBeDefined();
+  });
+
+  test("11. Blocked placeholder template retains structured recovery information", async () => {
+    setupMockXHR(200, JSON.stringify({
+      valid: false, message: "The template is unfilled.", analysisId: null,
+      formatAssessment: {
+        outcome: "BLOCKED", specificationVersion: "airis-resume-v1",
+        reasonCodes: ["PLACEHOLDER_ONLY"], reasons: ["The template is unfilled."],
+        missingSections: [], unrecognizedSections: [], unrecoveredInformation: [],
+        remediation: "Complete the AIRIS template.", canProceed: false, templateId: "airis_standard",
+      },
+    }));
+    await expect(uploadResumeFileWithProgress(dummyPdfFile, "Software Engineer")).rejects.toMatchObject({
+      code: "INVALID_RESUME", formatAssessment: { outcome: "BLOCKED" },
+    });
+  });
+
+  test("12. A successful response without format assessment cannot bypass the warning", async () => {
+    setupMockXHR(200, JSON.stringify({
+      valid: true,
+      rawText: "Alex Rivera\nEDUCATION\nBS IT\nSKILLS\nPython",
+      parsedSections: { Education: "BS IT", Skills: "Python" },
+      atsScore: 70,
+    }));
+    await expect(uploadResumeFileWithProgress(dummyPdfFile, "Software Engineer")).rejects.toMatchObject({
+      code: "FORMAT_ASSESSMENT_UNAVAILABLE",
+      isHttpError: true,
     });
   });
 });

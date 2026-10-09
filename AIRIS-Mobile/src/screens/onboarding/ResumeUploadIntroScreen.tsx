@@ -10,9 +10,8 @@ import * as ImagePicker from "expo-image-picker";
 import { PrimaryButton } from "../../components/ui";
 import { useAuthStore } from "../../store/authStore";
 import { useResumeStore } from "../../store/resumeStore";
-import { extractTextFromFile } from "../../services/resume/resumeExtractionService";
 import { getMockResumeText } from "../../fixtures/resume/mockResume";
-import { uploadResumeFileWithProgress, type UploadProgressEvent } from "../../services/resume/resumeAnalysisService";
+import { uploadResumeFileWithProgress, type UploadProgressEvent, type ResumeFormatAssessment } from "../../services/resume/resumeAnalysisService";
 import { classifyNameMatch } from "../../utils/nameMatcher";
 import { normalizeApiError } from "../../utils/errorMapper";
 import { validateResumeText } from "../../services/resume/resumeNormalizer";
@@ -86,6 +85,17 @@ export default function ResumeUploadIntroScreen() {
 
   const isSubmittingRef = React.useRef(false);
 
+  const openStandardTemplate = async () => {
+    try {
+      await downloadAirisResumeTemplate();
+    } catch {
+      Alert.alert("Template unavailable", "AIRIS could not save or share the resume template on this device.");
+    }
+  };
+
+  const explainFormat = (assessment: ResumeFormatAssessment) =>
+    `${assessment.reasons.join("\n")}\n\n${assessment.outcome === "WARNING" ? "Some details may be missed, so your analysis or scores may be less accurate.\n\n" : ""}${assessment.remediation}`;
+
   const processSelectedResumeFile = async (fileToProcess: { uri: string; name: string; mimeType: string; size: number }) => {
     if (!currentUser) return;
     if (isSubmittingRef.current) {
@@ -153,6 +163,7 @@ export default function ResumeUploadIntroScreen() {
     }
 
     let precomputedAnalysis: any = undefined;
+    let formatAssessment: ResumeFormatAssessment | undefined;
     try {
       const uploadResult = await uploadResumeFileWithProgress(
         { ...fileToProcess, size: initialSize },
@@ -175,8 +186,22 @@ export default function ResumeUploadIntroScreen() {
       );
 
       extractedText = uploadResult.rawText;
+      formatAssessment = uploadResult.formatAssessment;
       precomputedAnalysis = uploadResult.analysisResult || ((uploadResult as any).atsScore ? uploadResult as any : undefined);
     } catch (backendError: any) {
+      if (backendError?.formatAssessment?.outcome === "BLOCKED") {
+        const assessment = backendError.formatAssessment as ResumeFormatAssessment;
+        useResumeStore.getState().setProcessingStatus("idle");
+        setUploadStage("idle");
+        setUploadProgress(0);
+        setIsInvalidDocument(true);
+        setValidationError(assessment.reasons.join(" "));
+        Alert.alert("Resume cannot be analyzed", explainFormat(assessment), [
+          { text: "Choose another file", style: "cancel" },
+          { text: "Download template", onPress: openStandardTemplate },
+        ]);
+        return;
+      }
       const normErr = normalizeApiError(backendError);
       const isImageFile = sourceFileType === "image" || (validExtensions.includes(fileExtension) && ["png", "jpg", "jpeg", "webp", "heic"].includes(fileExtension));
       const isHttpAppError = Boolean(backendError?.isHttpError || backendError?.status || (normErr.code !== "UNKNOWN_ERROR" && normErr.code !== "NETWORK_ERROR"));
@@ -202,29 +227,35 @@ export default function ResumeUploadIntroScreen() {
         return;
       }
 
-      console.log("Backend network connection unreachable. Attempting client parser fallback for text document:", backendError);
-      setUploadStage("extracting");
-      setUploadPhase("Reading document content...");
-      setUploadProgress(50);
-      setBytesUploaded({ loaded: Math.round(initialSize * 0.5), total: initialSize });
+      const unavailableMessage = "AIRIS could not verify your resume format. No analysis was saved. Please check your connection and retry.";
+      useResumeStore.getState().setProcessingStatus("idle");
+      setUploadStage("idle");
+      setUploadProgress(0);
+      setIsInvalidDocument(true);
+      setValidationError(unavailableMessage);
+      setHasValidUploadCompleted(false);
+      Alert.alert("Format check unavailable", unavailableMessage, [
+        { text: "Retry with another file", style: "cancel" },
+        { text: "Download template", onPress: openStandardTemplate },
+      ]);
+      return;
+    }
 
-      try {
-        extractedText = await extractTextFromFile(fileToProcess.uri, fileToProcess.name, fileToProcess.mimeType);
-        validateResumeText(extractedText);
-      } catch (clientErr) {
-        const clientNorm = normalizeApiError(clientErr);
+    if (formatAssessment?.outcome === "WARNING") {
+      const proceed = await new Promise<boolean>((resolve) => {
+        Alert.alert("Resume format warning", explainFormat(formatAssessment!), [
+          { text: "Choose another file", style: "cancel", onPress: () => resolve(false) },
+          { text: "Download template", onPress: () => { void openStandardTemplate(); resolve(false); } },
+          { text: "Continue anyway", onPress: () => resolve(true) },
+        ], { cancelable: false });
+      });
+      if (!proceed) {
         useResumeStore.getState().setProcessingStatus("idle");
         setUploadStage("idle");
         setUploadProgress(0);
-        setIsInvalidDocument(true);
-        setValidationError(clientNorm.userMessage);
-        setHasValidUploadCompleted(false);
-        Alert.alert("Upload Notice", clientNorm.userMessage);
+        setValidationError("Resume format warning. Choose another file or use the AIRIS standard template.");
         return;
       }
-
-      setUploadProgress(100);
-      setBytesUploaded({ loaded: initialSize, total: initialSize });
     }
 
     // Name Matching Decision Flow (Warning / Confirmation)
@@ -525,22 +556,16 @@ export default function ResumeUploadIntroScreen() {
             Upload Your Resume
           </Text>
           <Text className="mt-2 text-center text-sm font-medium text-[#4F6B82] px-4 leading-6">
-            Upload a PDF, DOCX, RTF, TXT, or image. Use selectable text where possible; scanned pages require OCR.
+            AIRIS expects its standard resume format as a selectable-text PDF. Other readable files can be reviewed with a format warning.
           </Text>
           <TouchableOpacity
             className="mt-3 rounded-xl bg-[#EAF2F7] px-4 py-3"
-            onPress={async () => {
-              try {
-                await downloadAirisResumeTemplate();
-              } catch {
-                Alert.alert("Template unavailable", "AIRIS could not save or share the resume template on this device.");
-              }
-            }}
+            onPress={openStandardTemplate}
           >
             <Text className="text-center font-bold text-[#1F3A5F]">Download AIRIS Standard Resume Template</Text>
           </TouchableOpacity>
           <Text className="mt-2 text-center text-xs text-[#4F6B82] px-4">
-            Recommended, not required. Keep contact and skills as text; avoid hiding important details in images.
+            PDF is recommended. DOCX, RTF, TXT, and images may proceed after review when readable. Replace all template examples with your own information.
           </Text>
         </View>
 

@@ -21,6 +21,7 @@ from ai_validator import is_resume_valid, validate_resume_validity_with_llm
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
 from starlette.concurrency import run_in_threadpool
 from file_utils import extract_text
+from resume_format import MAX_UPLOAD_BYTES, assess_resume_format, blocked, inspect_document_layout, validate_file_type
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
@@ -438,13 +439,16 @@ async def upload_resume(
                 raise HTTPException(status_code=400, detail="Target position is required for upload analysis.")
 
             filename = getattr(file, "filename", "uploaded_resume.pdf") or "uploaded_resume.pdf"
-            content = await file.read()
+            content = await file.read(MAX_UPLOAD_BYTES + 1)
 
             if not content or len(content) == 0:
                 raise HTTPException(
                     status_code=400,
                     detail="The uploaded file is empty. Please choose a valid resume file."
                 )
+            if len(content) > MAX_UPLOAD_BYTES:
+                assessment = blocked("FILE_TOO_LARGE")
+                return {"valid": False, "message": assessment["reasons"][0], "analysisId": None, "formatAssessment": assessment}
 
             allowed_exts = (".pdf", ".docx", ".rtf", ".txt", ".png", ".jpg", ".jpeg", ".webp", ".heic")
             if not any(filename.lower().endswith(ext) for ext in allowed_exts):
@@ -452,30 +456,40 @@ async def upload_resume(
                     status_code=400,
                     detail="Invalid file format. Upload PDF, DOCX, RTF, TXT, or an image (PNG, JPG, JPEG, WEBP, HEIC). Convert legacy .doc files to DOCX or PDF first."
                 )
+            file_type_issue = validate_file_type(filename, file.content_type, content)
+            if file_type_issue:
+                return {"valid": False, "message": file_type_issue["reasons"][0], "analysisId": None, "formatAssessment": file_type_issue}
+            layout_flags, document_issue = await run_in_threadpool(inspect_document_layout, filename, content)
+            if document_issue:
+                return {"valid": False, "message": document_issue["reasons"][0], "analysisId": None, "formatAssessment": document_issue}
 
             if filename.lower().endswith(".pdf"):
                 from file_utils import get_pdf_page_count
                 page_count = await run_in_threadpool(get_pdf_page_count, content)
                 if page_count > 3:
-                    raise HTTPException(
-                        status_code=400,
-                        detail="Resumes must not exceed 3 pages. Please upload a 1–3 page resume."
-                    )
+                    assessment = blocked("PAGE_LIMIT")
+                    return {"valid": False, "message": "Resumes must not exceed 3 pages. Please upload a 1–3 page resume.", "analysisId": None, "formatAssessment": assessment}
 
             try:
                 raw_text = await run_in_threadpool(extract_text, content, filename)
-            except ValueError as ve:
-                raise HTTPException(status_code=400, detail=str(ve))
+            except ValueError:
+                assessment = blocked("INVALID_DOCUMENT")
+                return {"valid": False, "message": assessment["reasons"][0], "analysisId": None, "formatAssessment": assessment}
 
             if not raw_text or len(raw_text.strip()) < 30:
+                assessment = blocked("UNREADABLE")
                 return {
                     "valid": False,
                     "message": "Unable to extract readable text from this document. Please ensure the file is not empty, corrupted, or password-protected.",
                     "analysisId": None,
+                    "formatAssessment": assessment,
                 }
 
             from resume_parser import parse_resume
             parsed_sections = await run_in_threadpool(parse_resume, raw_text)
+            format_assessment = await run_in_threadpool(assess_resume_format, raw_text, parsed_sections, filename, **layout_flags)
+            if format_assessment["outcome"] == "BLOCKED":
+                return {"valid": False, "message": format_assessment["reasons"][0], "analysisId": None, "formatAssessment": format_assessment}
 
             # Invariant: Unsupported / Invalid documents MUST be validated as resume BEFORE identity checking
             validity_res = await run_in_threadpool(validate_resume_validity_with_llm, raw_text, parsed_sections)
@@ -484,6 +498,7 @@ async def upload_resume(
                     "valid": False,
                     "message": validity_res.get("reason") or "This document doesn't appear to be a resume or CV. Please upload a document containing your academic, professional, or career information.",
                     "analysisId": None,
+                    "formatAssessment": format_assessment,
                 }
 
             user_acc_name = (accountName or account_name or "").strip()
@@ -516,6 +531,7 @@ async def upload_resume(
                 "valid": True,
                 "message": "Resume processed successfully.",
                 "analysisId": analysis_id,
+                "formatAssessment": format_assessment,
                 "rawText": raw_text,
                 "parsedSections": parsed_sections,
                 "scoringModelVersion": "3.0.0-canonical",

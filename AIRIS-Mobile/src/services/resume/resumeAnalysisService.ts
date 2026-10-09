@@ -22,6 +22,19 @@ export interface UploadProgressEvent {
   phase: "connecting" | "uploading" | "processing";
 }
 
+export interface ResumeFormatAssessment {
+  outcome: "SUPPORTED" | "WARNING" | "BLOCKED";
+  specificationVersion: string;
+  reasonCodes: string[];
+  reasons: string[];
+  missingSections: string[];
+  unrecognizedSections: string[];
+  unrecoveredInformation: string[];
+  remediation: string;
+  canProceed: boolean;
+  templateId: "airis_standard";
+}
+
 /**
  * Uploads document file to FastAPI backend with real-time XHR byte progress tracking.
  * Uses 30s request timeout per candidate endpoint to prevent hanging.
@@ -35,6 +48,7 @@ export async function uploadResumeFileWithProgress(
   rawText: string;
   parsedSections: Record<string, string>;
   analysisResult?: ResumeAnalysisResult;
+  formatAssessment?: ResumeFormatAssessment;
 }> {
   const baseUrls = getBackendBaseUrls();
   const knownSize = file.size && file.size > 0 ? file.size : 10240;
@@ -191,7 +205,17 @@ export async function uploadResumeFileWithProgress(
           (invalidErr as any).isHttpError = true;
           (invalidErr as any).status = 400;
           (invalidErr as any).code = "INVALID_RESUME";
+          (invalidErr as any).formatAssessment = result.formatAssessment;
           throw invalidErr;
+        }
+
+        if (!result.formatAssessment ||
+            !["SUPPORTED", "WARNING"].includes(result.formatAssessment.outcome) ||
+            result.formatAssessment.canProceed !== true) {
+          const assessmentErr = new Error("AIRIS could not verify your resume format. No analysis was saved. Please try again.");
+          (assessmentErr as any).isHttpError = true;
+          (assessmentErr as any).code = "FORMAT_ASSESSMENT_UNAVAILABLE";
+          throw assessmentErr;
         }
 
         onProgress?.({
@@ -216,6 +240,7 @@ export async function uploadResumeFileWithProgress(
           rawText,
           parsedSections: sections,
           analysisResult: result.atsScore ? (result as ResumeAnalysisResult) : undefined,
+          formatAssessment: result.formatAssessment,
         };
       }
     } catch (e: any) {
