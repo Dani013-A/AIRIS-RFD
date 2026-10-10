@@ -171,6 +171,89 @@ PROJECTS
         self.assertFalse(blocked_response["valid"])
         self.assertIsNone(blocked_response["analysisId"])
 
+    def test_populated_harvard_inspired_resume_supported_without_warning(self):
+        import os
+        fixture_path = os.path.join(os.path.dirname(__file__), "../scratch/investigation/Daniel_Aaron_T_Espela_AIRIS_Harvard_Inspired_Resum_261010_235100.pdf")
+        if os.path.exists(fixture_path):
+            doc = fitz.open(fixture_path)
+            raw_text = "\n".join(page.get_text() for page in doc)
+            populated_text = raw_text.replace(
+                "Contact details to be added",
+                "daniel.espela@tip.edu.ph | +63 917 123 4567 | linkedin.com/in/danielespela"
+            )
+            parsed = parse_resume(populated_text)
+            flags, issue = inspect_document_layout("harvard.pdf", open(fixture_path, "rb").read())
+            self.assertIsNone(issue)
+            result = assess_resume_format(populated_text, parsed, "harvard.pdf", **flags)
+            self.assertEqual(result["outcome"], "SUPPORTED")
+            self.assertTrue(result["canProceed"])
+            self.assertEqual(result["reasonCodes"], [])
+            self.assertEqual(result["unrecognizedSections"], [])
+            self.assertEqual(result["missingSections"], [])
+            self.assertEqual(result["dimensions"]["fileValidity"]["status"], "PASS")
+            self.assertEqual(result["dimensions"]["textQuality"]["status"], "PASS")
+            self.assertEqual(result["dimensions"]["contentCompleteness"]["status"], "PASS")
+            self.assertEqual(result["dimensions"]["formatCompatibility"]["status"], "PASS")
+            self.assertEqual(result["dimensions"]["layoutConfidence"]["status"], "PASS")
+            self.assertEqual(result["dimensions"]["analysisEligibility"]["status"], "SUPPORTED")
+            self.assertTrue(result["dimensions"]["analysisEligibility"]["canProceed"])
+
+    def test_harvard_inspired_resume_placeholder_contact_warns_only_contact(self):
+        import os
+        fixture_path = os.path.join(os.path.dirname(__file__), "../scratch/investigation/Daniel_Aaron_T_Espela_AIRIS_Harvard_Inspired_Resum_261010_235100.pdf")
+        if os.path.exists(fixture_path):
+            doc = fitz.open(fixture_path)
+            raw_text = "\n".join(page.get_text() for page in doc)
+            parsed = parse_resume(raw_text)
+            flags, _ = inspect_document_layout("harvard.pdf", open(fixture_path, "rb").read())
+            result = assess_resume_format(raw_text, parsed, "harvard.pdf", **flags)
+            self.assertEqual(result["outcome"], "WARNING")
+            self.assertTrue(result["canProceed"])
+            self.assertEqual(result["reasonCodes"], ["MISSING_CONTACT"])
+            self.assertEqual(result["unrecognizedSections"], [])
+            self.assertEqual(result["dimensions"]["contentCompleteness"]["candidateNameDetected"], True)
+            self.assertEqual(result["dimensions"]["contentCompleteness"]["contactDetected"], False)
+
+    def test_synonyms_and_subcategories_no_unrecognized_sections(self):
+        text = """JUAN DE LA CRUZ
+juan@example.edu.ph | +63 912 345 6789
+CAREER FOCUS
+Aspiring full-stack software engineer with strong technical foundations.
+ACADEMIC FORMATION
+Technological Institute of the Philippines
+Bachelor of Science in Information Technology, 2025
+CORE STRENGTHS
+Programming Languages: Python, JavaScript, Java
+Frameworks & Platforms: FastAPI, React Native, Node.js
+SELECTED PROJECTS
+Campus Portal Application
+Full stack student application with real time notifications.
+"""
+        result = self.assess(text)
+        self.assertEqual(result["outcome"], "SUPPORTED")
+        self.assertTrue(result["canProceed"])
+        self.assertEqual(result["unrecognizedSections"], [])
+        self.assertEqual(result["missingSections"], [])
+
+    def test_dimensions_structure_completeness(self):
+        result = self.assess()
+        self.assertIn("dimensions", result)
+        dims = result["dimensions"]
+        self.assertIn("fileValidity", dims)
+        self.assertIn("textQuality", dims)
+        self.assertIn("contentCompleteness", dims)
+        self.assertIn("formatCompatibility", dims)
+        self.assertIn("layoutConfidence", dims)
+        self.assertIn("analysisEligibility", dims)
+        self.assertTrue(dims["analysisEligibility"]["canProceed"])
+
+    def test_blocked_result_has_blocked_dimensions(self):
+        result = blocked("UNSUPPORTED_TYPE")
+        self.assertEqual(result["outcome"], "BLOCKED")
+        self.assertFalse(result["canProceed"])
+        self.assertEqual(result["dimensions"]["analysisEligibility"]["canProceed"], False)
+        self.assertEqual(result["dimensions"]["fileValidity"]["status"], "FAIL")
+
 
 if __name__ == "__main__":
     unittest.main()

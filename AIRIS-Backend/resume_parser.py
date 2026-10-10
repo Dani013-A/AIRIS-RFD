@@ -2,34 +2,101 @@ import re
 from typing import Dict, List
 
 SECTION_ALIASES = {
-    "ContactInformation": ["contact", "contact information", "contact details", "personal information", "personal details", "contactinfo"],
-    "ProfessionalSummary": ["summary", "professional summary", "career summary", "profile", "professional profile", "objective", "about me", "about"],
-    "WorkExperience": ["experience", "work experience", "professional experience", "employment", "employment history", "work history", "history", "career history", "relevant experience", "practical experience", "professional background"],
-    "Internships": ["internship", "internships", "internship experience", "on the job training", "ojt", "practicum"],
-    "Education": ["education", "educational background", "academic background", "academic history", "academic formation", "education & qualifications", "education and qualifications", "academic qualifications", "academic profile"],
-    "RelevantCoursework": ["relevant coursework", "coursework", "relevant courses", "academic coursework", "subjects"],
+    "ContactInformation": [
+        "contact", "contact information", "contact details", "personal information", "personal details",
+        "contactinfo", "contact info", "get in touch"
+    ],
+    "ProfessionalSummary": [
+        "summary", "professional summary", "career summary", "profile", "professional profile",
+        "objective", "career objective", "professional objective", "about me", "about",
+        "personal statement", "executive summary", "profile summary", "qualifications summary",
+        "career focus", "career profile", "personal profile", "statement of purpose"
+    ],
+    "WorkExperience": [
+        "experience", "work experience", "professional experience", "relevant experience", "employment",
+        "employment history", "work history", "history", "career history", "practical experience",
+        "professional background", "relevant work experience", "work & experience", "work and experience",
+        "professional work experience", "employment background", "industry experience", "technical experience",
+        "field experience", "additional experience", "other experience", "research experience", "teaching experience"
+    ],
+    "Internships": [
+        "internship", "internships", "internship experience", "on the job training", "ojt",
+        "practicum", "apprentice", "apprenticeship"
+    ],
+    "Education": [
+        "education", "educational background", "academic background", "academic history",
+        "academic formation", "education & qualifications", "education and qualifications",
+        "academic qualifications", "academic profile", "educational qualifications", "academic credentials",
+        "degrees", "degrees and certifications", "education and training"
+    ],
+    "RelevantCoursework": [
+        "relevant coursework", "coursework", "relevant courses", "academic coursework", "subjects",
+        "selected coursework", "key coursework", "major coursework", "related courses", "related coursework"
+    ],
     "Skills": [
         "skills", "technical skills", "core skills", "competencies", "core competencies", "capabilities",
         "technical competencies", "areas of expertise", "technical proficiencies",
         "skills & proficiencies", "skills and proficiencies", "key skills", "specializations",
         "hard skills", "tools & technologies", "tools and technologies", "tech stack",
         "technologies", "skills & tools", "skills & competencies", "programming languages",
-        "frameworks & libraries", "databases & cloud", "developer tools"
+        "frameworks & libraries", "databases & cloud", "developer tools",
+        "core strengths", "strengths", "key strengths", "technical strengths",
+        "skills and abilities", "skills & abilities", "skills and qualifications", "skills & qualifications",
+        "skills and competencies", "skills & competencies", "skills and expertise", "skills & expertise",
+        "technical expertise", "technical background", "professional skills", "it skills",
+        "software skills", "computer skills", "technical knowledge", "skills & interests", "skills and interests"
     ],
-    "Projects": ["projects", "academic projects", "personal projects", "project experience", "relevant projects", "technical projects", "selected projects", "capstone", "capstone project", "undergraduate thesis", "thesis", "key projects", "featured projects", "systems developed"],
-    "Certifications": ["certifications", "certificates", "licenses and certifications", "credentials", "professional certifications", "certifications & trainings", "trainings and certifications", "certifications and licenses", "courses & certifications"],
-    "OrganizationsLeadership": ["organizations", "leadership", "organizations & leadership", "organizations and leadership", "extracurricular activities", "student organizations", "affiliations", "leadership experience", "volunteering", "volunteer experience", "community involvement"],
-    "Achievements": ["achievements", "awards", "honors", "accomplishments", "honors & awards", "honors and awards", "awards & recognition", "awards and recognition"],
-    "Languages": ["languages", "language proficiency", "language skills"],
-    "Trainings": ["trainings", "training", "seminars", "workshops", "professional development", "trainings & seminars", "seminars & workshops", "seminars and workshops", "workshops & seminars", "trainings and workshops"]
+    "Projects": [
+        "projects", "academic projects", "personal projects", "project experience", "relevant projects",
+        "technical projects", "selected projects", "capstone", "capstone project", "undergraduate thesis",
+        "thesis", "key projects", "featured projects", "systems developed", "course projects", "class projects",
+        "software projects", "web projects", "development projects", "practical projects", "independent projects",
+        "notable projects", "applications developed", "portfolio"
+    ],
+    "Certifications": [
+        "certifications", "certificates", "licenses and certifications", "credentials", "professional certifications",
+        "certifications & trainings", "trainings and certifications", "certifications and licenses",
+        "courses & certifications", "licenses & certifications", "certificates & licenses", "licenses",
+        "professional licenses", "certifications and courses", "certified skills"
+    ],
+    "OrganizationsLeadership": [
+        "organizations", "leadership", "organizations & leadership", "organizations and leadership",
+        "extracurricular activities", "student organizations", "affiliations", "leadership experience",
+        "volunteering", "volunteer experience", "community involvement", "leadership & activities",
+        "leadership and activities", "activities & leadership", "activities and leadership",
+        "leadership & involvement", "leadership and involvement", "campus involvement", "campus activities",
+        "co-curricular activities", "cocurricular activities", "activities", "student activities",
+        "community service", "volunteer work"
+    ],
+    "Achievements": [
+        "achievements", "awards", "honors", "accomplishments", "honors & awards", "honors and awards",
+        "awards & recognition", "awards and recognition", "awards & honors", "awards and honors",
+        "academic honors", "academic awards", "distinctions", "recognitions", "awards & recognitions",
+        "scholarships", "scholarships & awards", "scholarships and awards"
+    ],
+    "Languages": [
+        "languages", "language proficiency", "language skills", "languages spoken", "foreign languages"
+    ],
+    "Trainings": [
+        "trainings", "training", "seminars", "workshops", "professional development",
+        "trainings & seminars", "seminars & workshops", "seminars and workshops",
+        "workshops & seminars", "trainings and workshops"
+    ],
+    "Publications": [
+        "publications", "research publications", "papers", "published works", "presentations", "conference presentations"
+    ],
+    "References": [
+        "references", "character references", "academic references", "professional references"
+    ]
 }
 
 SKILL_SUBCATEGORY_PREFIXES = [
-    "programming languages", "languages", "frameworks", "libraries", "frameworks & libraries",
-    "frameworks & tools", "frameworks/tools", "databases", "databases & cloud", "databases/cloud",
+    "programming languages", "programming", "languages", "frameworks", "libraries", "frameworks & libraries",
+    "frameworks & tools", "frameworks/tools", "frameworks & platforms", "frameworks/platforms",
+    "databases", "databases & cloud", "databases/cloud", "data & tools", "data/tools",
     "cloud", "tools", "developer tools", "tools & platforms", "tools & technologies",
     "ai/ml", "ai & ml", "ai", "ml", "aiml", "artificial intelligence", "machine learning",
-    "devops", "platforms", "technologies", "methodologies", "core competencies"
+    "devops", "platforms", "technologies", "methodologies", "core competencies", "languages & technologies"
 ]
 
 def _normalize_heading(text: str) -> str:

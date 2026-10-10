@@ -13,17 +13,34 @@ def get_pdf_page_count(file_bytes: bytes) -> int:
         return 1
 
 def extract_text_from_pdf(file_bytes: bytes) -> str:
-    """Extract text per page, using the existing image OCR path for scanned pages."""
+    """
+    Extract text per page using natural reading order (sort=True).
+    Selectively applies OCR for scanned, image-based, or glyph-degraded pages.
+    """
     try:
         doc = fitz.open(stream=file_bytes, filetype="pdf")
         text = []
         for index, page in enumerate(doc):
-            page_text = page.get_text().strip()
-            if len(page_text) < 30 and page.get_images():
-                image_bytes = page.get_pixmap(matrix=fitz.Matrix(2, 2)).tobytes("png")
-                ocr_text = extract_text_from_image(image_bytes, f"page-{index + 1}.png")
-                if len(ocr_text.strip()) > len(page_text):
-                    page_text = ocr_text
+            # 1. First path: extract text blocks in layout order to prevent interleaving side-by-side columns
+            blocks = page.get_text("blocks")
+            page_text = "\n".join(b[4].strip() for b in blocks if len(b) >= 5 and str(b[4]).strip()).strip()
+            if not page_text:
+                page_text = page.get_text().strip()
+
+            # 2. Check printable character ratio to detect garbled / unmapped glyphs
+            printable_count = sum(1 for ch in page_text if ch.isprintable() or ch in "\n\r\t")
+            printable_ratio = printable_count / len(page_text) if page_text else 0.0
+
+            # 3. If embedded text is inadequate (< 30 chars) or corrupted, trigger selective OCR
+            if len(page_text) < 30 or (page_text and printable_ratio < 0.6):
+                try:
+                    image_bytes = page.get_pixmap(matrix=fitz.Matrix(2, 2)).tobytes("png")
+                    ocr_text = extract_text_from_image(image_bytes, f"page-{index + 1}.png")
+                    if ocr_text and len(ocr_text.strip()) > len(page_text):
+                        page_text = ocr_text.strip()
+                except Exception as ocr_err:
+                    print(f"[PDF Extract] OCR fallback for page {index + 1} skipped: {ocr_err}")
+
             if page_text:
                 text.append(page_text)
         return "\n".join(text).strip()

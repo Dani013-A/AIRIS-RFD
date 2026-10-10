@@ -33,6 +33,53 @@ export interface ResumeFormatAssessment {
   remediation: string;
   canProceed: boolean;
   templateId: "airis_standard";
+  extractionMethod?: "embedded" | "ocr" | "mixed";
+  dimensions?: {
+    fileValidity?: {
+      status: "PASS" | "FAIL";
+      extension?: string;
+      pageCount?: number;
+      isProtected?: boolean;
+      details?: string;
+    };
+    textQuality?: {
+      status: "PASS" | "WARNING" | "FAIL";
+      characterCount?: number;
+      pageCount?: number;
+      extractionMethod?: string;
+      isScanned?: boolean;
+      details?: string;
+    };
+    contentCompleteness?: {
+      status: "PASS" | "WARNING" | "FAIL";
+      candidateNameDetected?: boolean;
+      contactDetected?: boolean;
+      requiredSectionsPresent?: string[];
+      missingRequiredSections?: string[];
+      unrecoveredInformation?: string[];
+    };
+    formatCompatibility?: {
+      status: "PASS" | "WARNING" | "FAIL";
+      isStandardAcademic?: boolean;
+      isPlaceholderOnly?: boolean;
+      recognizedSections?: string[];
+      unrecognizedSections?: string[];
+      isPdf?: boolean;
+    };
+    layoutConfidence?: {
+      status: "PASS" | "WARNING";
+      complexLayout?: boolean;
+      readingOrderReliable?: boolean;
+      details?: string;
+    };
+    analysisEligibility?: {
+      canProceed: boolean;
+      status: "SUPPORTED" | "WARNING" | "BLOCKED";
+      reasonCodes?: string[];
+      reasons?: string[];
+      remediation?: string;
+    };
+  };
 }
 
 /**
