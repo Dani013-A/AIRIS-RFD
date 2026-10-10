@@ -183,7 +183,7 @@ function DashboardContent() {
       step: 6,
       label: "Fully Prepared",
       count: funnel.fullyPreparedCount,
-      sub: "Ready for OJT",
+      sub: "Ready for Employment",
       dropOff: 0,
       conversion: `${funnel.completionRate}%`,
     },
@@ -421,7 +421,7 @@ function DashboardContent() {
                 {fullyPrepared}
               </div>
               <span className="text-[11px] text-[#5F7E97] block">
-                Ready for OJT Placement
+                Ready for Employment
               </span>
             </div>
           </div>

@@ -222,7 +222,7 @@ function ReportsPageContent() {
             Institutional Reports Suite
           </h1>
           <p className="text-xs md:text-sm font-semibold text-gray-500 mt-0.5">
-            T.I.P. Career Center & OJT Coordination official analytics. Select a report to explore interactive analytical findings, review methodology, and generate formal institutional PDFs.
+            T.I.P. Career Center official analytics. Select a report to explore interactive analytical findings, review methodology, and generate formal institutional PDFs.
           </p>
         </div>
 

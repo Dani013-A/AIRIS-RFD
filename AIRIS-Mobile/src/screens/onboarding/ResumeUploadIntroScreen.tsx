@@ -195,9 +195,9 @@ export default function ResumeUploadIntroScreen() {
         setUploadStage("idle");
         setUploadProgress(0);
         setIsInvalidDocument(true);
-        setValidationError(assessment.reasons.join(" "));
+        setValidationError("This document was not analyzed. Choose another file or use the AIRIS standard template.");
         Alert.alert("Resume cannot be analyzed", explainFormat(assessment), [
-          { text: "Choose another file", style: "cancel" },
+          { text: "Choose another file", style: "cancel", onPress: () => { void pickDocumentResume(); } },
           { text: "Download template", onPress: openStandardTemplate },
         ]);
         return;
