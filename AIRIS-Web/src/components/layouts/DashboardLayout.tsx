@@ -28,7 +28,7 @@ interface LayoutProps {
 export function DashboardLayout({ children }: LayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { currentAdmin, loading, initialized, initializeSession, logout } = useAuthStore();
+  const { currentAdmin, loading, initialized, isOtpVerified, initializeSession, logout } = useAuthStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -54,10 +54,10 @@ export function DashboardLayout({ children }: LayoutProps) {
   }, [initializeSession]);
 
   useEffect(() => {
-    if (initialized && !currentAdmin && pathname !== "/login" && pathname !== "/forgot-password") {
+    if (initialized && (!currentAdmin || !isOtpVerified) && pathname !== "/login" && pathname !== "/forgot-password") {
       router.replace("/login");
     }
-  }, [initialized, currentAdmin, pathname, router]);
+  }, [initialized, currentAdmin, isOtpVerified, pathname, router]);
 
   // Handle Escape key for mobile menu
   useEffect(() => {
@@ -95,7 +95,7 @@ export function DashboardLayout({ children }: LayoutProps) {
     );
   }
 
-  if (!currentAdmin) {
+  if (!currentAdmin || !isOtpVerified) {
     return null;
   }
 
