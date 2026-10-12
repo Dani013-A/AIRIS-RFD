@@ -91,7 +91,7 @@ export function HeroSection() {
                   <div className="absolute bottom-3 left-3 right-3 bg-white/95 backdrop-blur-md rounded-xl p-3 border border-[#E7EFF5] shadow-sm">
                     <p className="text-xs font-bold text-[#1E3E6B]">Mobile Readiness Suite</p>
                     <p className="text-[11px] text-[#5F7E97] mt-0.5">
-                      Interview simulation and resume analysis tailored for TIP Manila graduates.
+                      Interview simulation and resume analysis tailored for TIP Manila graduating students.
                     </p>
                   </div>
                 </div>

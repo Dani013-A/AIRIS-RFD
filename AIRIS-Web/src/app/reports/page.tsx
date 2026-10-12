@@ -40,9 +40,19 @@ function ReportsPageContent() {
   const urlCoordinator = getCoordinatorById(searchParams.get("coordinator") || searchParams.get("college") || "all")?.id || "all";
   const urlPeriod = (searchParams.get("period") as ReportFilterScope["period"]) || "all";
 
+  // Normalize obsolete dataset URL parameter if present
+  useEffect(() => {
+    if (searchParams.has("dataset")) {
+      const q = new URLSearchParams(searchParams.toString());
+      q.delete("dataset");
+      router.replace(`/reports?${q.toString()}`);
+    }
+  }, [searchParams, router]);
+
   const [scope, setScope] = useState<ReportFilterScope>({
     coordinator: urlCoordinator,
     period: urlPeriod,
+    datasetScope: "all",
   });
 
   // Keep dashboard metrics synced for the report preview cards
@@ -51,6 +61,7 @@ function ReportsPageContent() {
       {
         coordinator: scope.coordinator,
         period: scope.period as any,
+        datasetScope: "all",
       },
       currentAdmin?.role
     );
@@ -62,7 +73,7 @@ function ReportsPageContent() {
   ]);
 
   const handleScopeChange = (updated: Partial<ReportFilterScope>) => {
-    const newScope = { ...scope, ...updated };
+    const newScope: ReportFilterScope = { ...scope, ...updated, datasetScope: "all" };
     setScope(newScope);
 
     const q = new URLSearchParams();
@@ -112,7 +123,7 @@ function ReportsPageContent() {
         ? `Past ${scope.period.toUpperCase()}`
         : "All Recorded History";
 
-    return `${coordStr} · ${periodStr}`;
+    return `${coordStr} · ${periodStr} · All Participants`;
   };
 
   const buildReportViewHref = (key: string) => {
@@ -156,7 +167,7 @@ function ReportsPageContent() {
         "Stage-by-stage progression from initial registration to fully prepared status, tracking drop-offs and stage conversion rates.",
       icon: TrendingUp,
       preview: [
-        { label: "Cohort", value: funnel.registeredCount },
+        { label: "Participants", value: funnel.registeredCount },
         { label: "Resumes", value: funnel.resumeUploadedCount },
         { label: "Interviews", value: funnel.interviewCompletedCount },
         { label: "Prepared Rate", value: `${funnel.completionRate}%` },

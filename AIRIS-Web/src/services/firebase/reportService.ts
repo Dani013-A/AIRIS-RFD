@@ -34,13 +34,20 @@ function pluralizeStudent(count: number): string {
   return `${count} student${count === 1 ? "" : "s"}`;
 }
 
-function buildScopeDescription(scope?: ReportFilterScope): string {  const coordId = scope?.coordinator || scope?.college;
+function buildScopeDescription(scope?: ReportFilterScope): string {
+  const coordId = scope?.coordinator || scope?.college;
   const coordObj = coordId && coordId !== "all"
     ? getCoordinatorById(coordId)
     : undefined;
   const coordStr = coordObj ? coordObj.name : "All Coordinators";
-  const periodStr = scope?.period && scope.period !== "all" ? `Past ${scope.period.toUpperCase()}` : "All Recorded History";
-  return `${coordStr} · ${periodStr}`;
+  const periodMap: Record<string, string> = {
+    "7d": "Past 7 Days",
+    "30d": "Past 30 Days",
+    "90d": "Past 90 Days",
+    "1y": "Past 1 Year",
+  };
+  const periodStr = (scope?.period && periodMap[scope.period]) || "All Recorded History";
+  return `${coordStr} · ${periodStr} · All Participants`;
 }
 
 function buildMetadata(title: string, admin: AdminUser, scope?: ReportFilterScope): ReportMetadata {
@@ -71,10 +78,12 @@ export async function fetchReportPayload(
   switch (reportKey) {
     case "student_profiles": {
       const coordScope = scope?.coordinator || scope?.college;
-      // 1. Fetch real students respecting coordinator boundaries
+      const effectiveDatasetScope = "all";
+      // 1. Fetch students respecting coordinator boundaries and dataset scope
       const allStudents = await fetchStudentsList({
         coordinator: coordScope,
         userRole: admin.role,
+        datasetScope: effectiveDatasetScope,
       });
 
       // Filter by Department Coordinator if specified
@@ -132,7 +141,7 @@ export async function fetchReportPayload(
           : "Not Started",
       ]);
 
-      const csvHeaders = ["User ID", "Student Name", "TIP Email", "Degree Program", "Target Position", "Resume Score", "Interview Score", "Employability Score", "Readiness Status", "Registered Date", "Account Status"];
+      const csvHeaders = ["User ID", "Student Name", "TIP Email", "Degree Program", "Target Position", "Resume Score", "Interview Score", "Employability Score", "Preparedness Status", "Registered Date", "Account Status"];
       const csvRows = students.map((s) => [
         s.uid,
         `"${s.fullName.replace(/"/g, '""')}"`,
@@ -152,7 +161,7 @@ export async function fetchReportPayload(
         {
           type: "donut_breakdown",
           title: "Employability Preparedness Status Distribution",
-          subtitle: "Authoritative candidate breakdown across 4 readiness states",
+          subtitle: "Authoritative candidate breakdown across 4 preparedness states",
           donutData: [
             {
               label: "Fully Evaluated",
@@ -186,7 +195,7 @@ export async function fetchReportPayload(
         },
         {
           type: "score_distribution",
-          title: "Cohort Resume Performance Distribution",
+          title: "Resume Performance Distribution",
           subtitle: "Performance tier classification across verified ATS and role alignment assessments",
           scoreDistribution: {
             metricName: "Resume Evaluation Score",
@@ -196,21 +205,21 @@ export async function fetchReportPayload(
             tiers: [
               {
                 range: "85 – 100",
-                label: "Advanced Readiness",
+                label: "Advanced Preparedness",
                 count: tier85_100,
                 percentage: students.length > 0 ? (tier85_100 / students.length) * 100 : 0,
                 color: [34, 197, 94],
               },
               {
                 range: "70 – 84",
-                label: "Proficient Readiness",
+                label: "Proficient Preparedness",
                 count: tier70_84,
                 percentage: students.length > 0 ? (tier70_84 / students.length) * 100 : 0,
                 color: [34, 197, 94],
               },
               {
                 range: "50 – 69",
-                label: "Developing Readiness",
+                label: "Developing Preparedness",
                 count: tier50_69,
                 percentage: students.length > 0 ? (tier50_69 / students.length) * 100 : 0,
                 color: [250, 204, 21],
@@ -300,6 +309,7 @@ export async function fetchReportPayload(
         {
           coordinator: coordScope,
           period: scope?.period as any,
+          datasetScope: "all",
         },
         admin.role
       );
@@ -407,11 +417,11 @@ export async function fetchReportPayload(
         },
         {
           type: "donut_breakdown",
-          title: "Career Readiness Pipeline Outcome",
+          title: "Career Preparedness Pipeline Outcome",
           subtitle: "Ratio of fully prepared candidates versus in-progress pipeline population",
           donutData: [
             {
-              label: "Fully Prepared for OJT",
+              label: "Fully Prepared for Employment",
               count: funnel.fullyPreparedCount,
               percentage: funnel.completionRate,
               colorHex: "#22C55E",
@@ -437,13 +447,13 @@ export async function fetchReportPayload(
           "Stage-by-stage progression from initial registration to fully prepared status, tracking drop-offs and stage conversion rates.",
         metadata,
         summaryStats: [
-          { label: "Eligible Cohort", value: funnel.registeredCount },
+          { label: "Eligible Participants", value: funnel.registeredCount },
           { label: "Resume Analyzed", value: funnel.resumeAnalyzedCount },
           { label: "Interview Completed", value: funnel.interviewCompletedCount },
           { label: "Fully Prepared Rate", value: `${funnel.completionRate}%` },
         ],
         executiveSummary: {
-          headline: `Cohort achieves ${funnel.completionRate}% full preparedness completion with primary pipeline drop-off at interview stage.`,
+          headline: `Group achieves ${funnel.completionRate}% full preparedness completion with primary pipeline drop-off at interview stage.`,
           paragraphs: [
             `Out of ${funnel.registeredCount} registered students, ${funnel.resumeUploadedCount} have uploaded resumes and ${funnel.resumeAnalyzedCount} completed full ATS alignment.`,
             `The progression slows between resume analysis and mock interview initiation (drop-off of ${dropOffStarted} candidates), indicating that targeted coordinator follow-ups can yield the greatest readiness gains here.`,
@@ -480,6 +490,7 @@ export async function fetchReportPayload(
         {
           coordinator: coordScope,
           period: scope?.period as any,
+          datasetScope: "all",
         },
         admin.role
       );
@@ -511,14 +522,14 @@ export async function fetchReportPayload(
               label: "Students Attempting Interview",
               value: metrics.funnel.interviewStartedCount,
               max: Math.max(metrics.funnel.registeredCount, 1),
-              subtext: `${metrics.funnel.registeredCount > 0 ? Math.round((metrics.funnel.interviewStartedCount / metrics.funnel.registeredCount) * 100) : 0}% of cohort`,
+              subtext: `${metrics.funnel.registeredCount > 0 ? Math.round((metrics.funnel.interviewStartedCount / metrics.funnel.registeredCount) * 100) : 0}% of participants`,
               color: [30, 62, 107],
             },
             {
               label: "Students Finalizing Interview",
               value: metrics.funnel.interviewCompletedCount,
               max: Math.max(metrics.funnel.registeredCount, 1),
-              subtext: `${metrics.funnel.registeredCount > 0 ? Math.round((metrics.funnel.interviewCompletedCount / metrics.funnel.registeredCount) * 100) : 0}% of cohort`,
+              subtext: `${metrics.funnel.registeredCount > 0 ? Math.round((metrics.funnel.interviewCompletedCount / metrics.funnel.registeredCount) * 100) : 0}% of participants`,
               color: [13, 148, 136],
             },
             {
@@ -554,7 +565,7 @@ export async function fetchReportPayload(
           { label: "Resume Analyses", value: metrics.totalAiFeedbackGenerated },
         ],
         executiveSummary: {
-          headline: `Recorded ${metrics.totalInterviewsConducted} completed interview simulations with cohort average of ${
+          headline: `Recorded ${metrics.totalInterviewsConducted} completed interview simulations with average score of ${
             metrics.performanceSummary.avgInterviewScore !== null ? `${metrics.performanceSummary.avgInterviewScore}/100` : "N/A"
           }.`,
           paragraphs: [
@@ -565,7 +576,7 @@ export async function fetchReportPayload(
             `${metrics.totalInterviewsConducted} mock interview sessions completed.`,
             `${metrics.funnel.interviewCompletedCount} students finalized evaluations.`,
             metrics.performanceSummary.avgInterviewScore !== null
-              ? `Cohort mean interview evaluation: ${metrics.performanceSummary.avgInterviewScore}/100.`
+              ? `Mean interview evaluation: ${metrics.performanceSummary.avgInterviewScore}/100.`
               : `Interview evaluations currently pending.`,
           ],
         },
@@ -582,7 +593,7 @@ export async function fetchReportPayload(
         definitions: [
           "Interview Session: Simulated voice / VR technical interview conducted by student candidate.",
           "Interview Score: Composite multi-factor evaluation across semantic correctness, clarity, and delivery.",
-          "Completion Rate: Ratio of students completing interviews relative to registered eligible cohort.",
+          "Completion Rate: Ratio of students completing interviews relative to registered eligible participants.",
         ],
         rawCsvData,
       };

@@ -445,12 +445,12 @@ export class PdfDocumentLayout {
         this.doc.setFont("helvetica", "normal");
         this.doc.setFontSize(6.2);
         this.doc.setTextColor(...SLATE);
-        this.doc.text("Baseline Cohort", trackX + trackWidth + 24, stageY + 2.7);
+        this.doc.text("Baseline Participant Group", trackX + trackWidth + 24, stageY + 2.7);
       } else if (idx === stages.length - 1 && stage.count > 0) {
         this.doc.setFont("helvetica", "bold");
         this.doc.setFontSize(6.2);
         this.doc.setTextColor(...TEAL);
-        this.doc.text("Ready for OJT", trackX + trackWidth + 24, stageY + 2.7);
+        this.doc.text("Ready for Employment", trackX + trackWidth + 24, stageY + 2.7);
       }
 
       this.currentY += 6.5;
@@ -474,8 +474,8 @@ export class PdfDocumentLayout {
     this.doc.setTextColor(...SLATE);
     const sub = caption
       ? `${caption} (n = ${dist.totalEvaluated} evaluated)`
-      : `Evaluated cohorts (${dist.totalEvaluated} of ${dist.totalPopulation} evaluated${
-          dist.averageScore !== undefined && dist.averageScore !== null ? ` · Cohort Average: ${dist.averageScore}/100` : ""
+      : `Evaluated participants (${dist.totalEvaluated} of ${dist.totalPopulation} evaluated${
+          dist.averageScore !== undefined && dist.averageScore !== null ? ` · Average Score: ${dist.averageScore}/100` : ""
         })`;
     const subLines = this.doc.splitTextToSize(sub, this.contentWidth);
     this.doc.text(subLines, this.margin, this.currentY);

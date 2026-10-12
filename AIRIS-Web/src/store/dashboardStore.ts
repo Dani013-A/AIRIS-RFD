@@ -33,6 +33,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     program: "all",
     coordinator: "all",
     period: "all",
+    datasetScope: "all",
   },
 
   setFilters: (newFilters) => {

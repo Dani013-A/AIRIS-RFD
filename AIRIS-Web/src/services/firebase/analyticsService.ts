@@ -47,12 +47,13 @@ export async function fetchDashboardAnalytics(
   health: SystemHealth;
   insights: PerformanceInsight;
 }> {
-  // Fetch scoped student list with real subcollection statuses
+  // Fetch scoped student list across unified All Participants population
   const allStudents = await fetchStudentsList({
     program: filters?.program,
     coordinator: filters?.coordinator,
     userRole,
     assignedProgram,
+    datasetScope: "all",
   });
 
   // Filter students by selected date period

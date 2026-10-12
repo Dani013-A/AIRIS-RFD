@@ -52,7 +52,18 @@ function ReportDetailContent() {
   const [scope, setScope] = useState<ReportFilterScope>({
     coordinator: urlCoordinator,
     period: urlPeriod,
+    datasetScope: "all",
   });
+
+  // Clean up legacy/obsolete dataset query param from URL if present
+  useEffect(() => {
+    if (searchParams.get("dataset")) {
+      const q = new URLSearchParams(searchParams.toString());
+      q.delete("dataset");
+      const qStr = q.toString();
+      router.replace(`/reports/${reportKey}${qStr ? `?${qStr}` : ""}`);
+    }
+  }, [searchParams, reportKey, router]);
 
   // Load authoritative payload
   const loadPayload = async () => {
@@ -61,7 +72,7 @@ function ReportDetailContent() {
     setError(null);
 
     try {
-      const res = await fetchReportPayload(reportKey, currentAdmin, scope);
+      const res = await fetchReportPayload(reportKey, currentAdmin, { ...scope, datasetScope: "all" });
       setPayload(res);
       setCurrentPage(1);
     } catch (err: any) {
@@ -77,14 +88,15 @@ function ReportDetailContent() {
 
   // Scope filter change handler
   const handleScopeChange = (updated: Partial<ReportFilterScope>) => {
-    const newScope = { ...scope, ...updated };
+    const newScope = { ...scope, ...updated, datasetScope: "all" as const };
     setScope(newScope);
 
     // Update query params
     const q = new URLSearchParams();
     if (newScope.coordinator && newScope.coordinator !== "all") q.set("coordinator", newScope.coordinator);
     if (newScope.period && newScope.period !== "all") q.set("period", newScope.period);
-    router.replace(`/reports/${reportKey}?${q.toString()}`);
+    const qStr = q.toString();
+    router.replace(`/reports/${reportKey}${qStr ? `?${qStr}` : ""}`);
   };
 
   // PDF Export
@@ -222,6 +234,8 @@ function ReportDetailContent() {
                 <option value="1y">Past 1 Year</option>
               </Select>
             </div>
+
+
           </div>
 
           <div className="text-[11px] font-bold text-gray-500">

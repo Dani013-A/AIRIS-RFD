@@ -7,6 +7,14 @@ export function ObjectivesSection() {
   const objectives = [
     {
       number: "01",
+      icon: FileSearch,
+      title: "Evidence-Based Resume Analysis Module",
+      manuscriptText:
+        "Develop a Resume Analysis module that evaluates resume content and provides recommendations to help users improve resume quality.",
+      focus: "ATS criteria evaluation and gap-driven career recommendations.",
+    },
+    {
+      number: "02",
       icon: MonitorPlay,
       title: "Interview Simulation Virtual Environment",
       manuscriptText:
@@ -14,20 +22,12 @@ export function ObjectivesSection() {
       focus: "Realistic 3D interview environment and scenario-based question sets.",
     },
     {
-      number: "02",
+      number: "03",
       icon: BrainCircuit,
       title: "AI-Powered Interview Assessment Module",
       manuscriptText:
         "Develop an AI-powered Interview Assessment module that evaluates interview responses based on Semantic Correctness, Communication Clarity, and AI Holistic Evaluation, and generates feedback to support performance improvement.",
       focus: "Multi-dimensional response scoring and constructive actionable guidance.",
-    },
-    {
-      number: "03",
-      icon: FileSearch,
-      title: "Evidence-Based Resume Analysis Module",
-      manuscriptText:
-        "Develop a Resume Analysis module that evaluates resume content and provides recommendations to help users improve resume quality.",
-      focus: "ATS criteria evaluation and gap-driven career recommendations.",
     },
   ];
 

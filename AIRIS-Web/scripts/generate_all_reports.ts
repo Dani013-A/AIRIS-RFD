@@ -35,7 +35,7 @@ const studentProfilesPayload: ReportPayload = {
     headline: "Cohort of 14 students exhibits 36% overall employability preparedness completion rate.",
     paragraphs: [
       "A total of 14 eligible students were analyzed across the selected academic scope in the College of Computer Studies. Of these, 5 student candidates have completed both the automated resume analysis and the mock technical interview simulation, achieving placement-ready status.",
-      "Among evaluated resumes, the cohort average score stands at 81/100, with 9 students performing in proficient or advanced readiness tiers. Active coordination is underway to transition remaining candidates into interview simulations.",
+      "Among evaluated resumes, the cohort average score stands at 81/100, with 9 students performing in proficient or advanced preparedness tiers. Active coordination is underway to transition remaining candidates into interview simulations.",
     ],
     keyObservations: [
       "5 of 14 candidates are fully evaluated and ready for OJT placement.",
@@ -65,9 +65,9 @@ const studentProfilesPayload: ReportPayload = {
         totalPopulation: 14,
         averageScore: 81,
         tiers: [
-          { range: "85 – 100", label: "Advanced Readiness", count: 4, percentage: 28.6, color: [13, 148, 136] },
-          { range: "70 – 84", label: "Proficient Readiness", count: 5, percentage: 35.7, color: [30, 62, 107] },
-          { range: "50 – 69", label: "Developing Readiness", count: 3, percentage: 21.4, color: [71, 85, 105] },
+          { range: "85 – 100", label: "Advanced Preparedness", count: 4, percentage: 28.6, color: [13, 148, 136] },
+          { range: "70 – 84", label: "Proficient Preparedness", count: 5, percentage: 35.7, color: [30, 62, 107] },
+          { range: "50 – 69", label: "Developing Preparedness", count: 3, percentage: 21.4, color: [71, 85, 105] },
           { range: "Below 50", label: "Needs Remediation", count: 0, percentage: 0.0, color: [225, 29, 72] },
           { range: "Not Evaluated", label: "Pending Analysis", count: 2, percentage: 14.3, color: [148, 163, 184] },
         ],
@@ -83,7 +83,7 @@ const studentProfilesPayload: ReportPayload = {
       "Resume",
       "Interview",
       "Composite",
-      "Readiness",
+      "Preparedness",
     ],
     rows: [
       ["Daniel Tan", "daniel.tan@tip.edu.ph", "BSIT", "Frontend Dev", "88/100", "85/100", "86/100", "Fully Evaluated"],
@@ -116,7 +116,7 @@ const studentProfilesPayload: ReportPayload = {
     "Resume Score: Official evaluated resume score (ATS + SBERT Semantic Role Alignment).",
     "Interview Score: Final composite performance across verified mock interview session.",
     "Employability Score: Authoritative composite = round(Resume × 40% + Interview × 60%). Missing evaluations remain Incomplete Data.",
-    "Readiness Status: Canonical stage reflecting evaluation progress (Fully Evaluated, Interview Pending, Resume Pending, Not Started).",
+    "Preparedness Status: Canonical stage reflecting evaluation progress (Fully Evaluated, Interview Pending, Resume Pending, Not Started).",
   ],
 };
 
@@ -171,10 +171,10 @@ const completionFunnelPayload: ReportPayload = {
     },
     {
       type: "donut_breakdown",
-      title: "Career Readiness Pipeline Outcome",
+      title: "Career Preparedness Pipeline Outcome",
       subtitle: "Ratio of fully prepared candidates versus in-progress pipeline population",
       donutData: [
-        { label: "Fully Prepared for OJT", count: 5, percentage: 35.7, colorHex: "#0D9488", colorRgb: [13, 148, 136] },
+        { label: "Fully Prepared for Employment", count: 5, percentage: 35.7, colorHex: "#0D9488", colorRgb: [13, 148, 136] },
         { label: "Incomplete / In-Progress", count: 9, percentage: 64.3, colorHex: "#1E3E6B", colorRgb: [30, 62, 107] },
       ],
     },

@@ -16,6 +16,8 @@ export interface AppUser {
   hasCompletedOnboarding?: boolean;
   hasCompletedInitialSetup?: boolean;
   isDisabled?: boolean;
+  isDefenseDemo?: boolean;
+  isSyntheticUat?: boolean;
 }
 
 export type EmployabilityStatus =

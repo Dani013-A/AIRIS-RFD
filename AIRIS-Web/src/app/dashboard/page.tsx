@@ -50,9 +50,17 @@ function DashboardContent() {
     const urlCoordinator = searchParams.get("coordinator") || searchParams.get("college") || undefined;
     const urlPeriod = (searchParams.get("period") as AnalyticsFilterParams["period"]) || undefined;
 
+    // Normalize obsolete dataset URL parameter if present
+    if (searchParams.has("dataset")) {
+      const cleanParams = new URLSearchParams(searchParams.toString());
+      cleanParams.delete("dataset");
+      router.replace(`${pathname}?${cleanParams.toString()}`);
+    }
+
     const newFilters: AnalyticsFilterParams = {
       coordinator: getCoordinatorById(urlCoordinator || "all")?.id || "all",
       period: urlPeriod || "all",
+      datasetScope: "all",
     };
 
     setFilters(newFilters);
@@ -63,6 +71,8 @@ function DashboardContent() {
     currentAdmin?.uid,
     setFilters,
     loadDashboardData,
+    pathname,
+    router,
   ]);
 
   const updateFiltersInUrl = (updated: Partial<AnalyticsFilterParams>) => {
@@ -87,6 +97,7 @@ function DashboardContent() {
     const resetFilters: Partial<AnalyticsFilterParams> = {
       coordinator: "all",
       period: "all",
+      datasetScope: "all",
     };
     updateFiltersInUrl(resetFilters);
   };
@@ -116,7 +127,7 @@ function DashboardContent() {
       step: 1,
       label: "Registered",
       count: funnel.registeredCount,
-      sub: "Eligible cohort",
+      sub: "Eligible participants",
       dropOff:
         funnel.registeredCount > funnel.resumeUploadedCount
           ? funnel.registeredCount - funnel.resumeUploadedCount
@@ -242,7 +253,7 @@ function DashboardContent() {
       title: "Interview Started but Incomplete",
       description: "Students with active or unfinalized voice/VR interview simulation sessions.",
       count: attention?.interviewInProgress.count ?? 0,
-      link: "/students",
+      link: "/students?interviewStatus=in_progress",
     },
     {
       title: "Incomplete Employability Profile",
@@ -334,7 +345,7 @@ function DashboardContent() {
         {hasActiveFilters && (
           <button
             onClick={handleClearFilters}
-            className="flex items-center gap-1 text-xs font-bold text-[#1E3E6B] hover:text-[#F59E73] cursor-pointer px-2.5 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            className="flex items-center gap-1 text-xs font-bold text-[#1E3E6B] hover:text-[#274f89] cursor-pointer px-2.5 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <RotateCcw size={12} /> Reset Scope
           </button>
@@ -392,7 +403,7 @@ function DashboardContent() {
               </div>
               <span className="text-[11px] text-[#5F7E97] block">
                 {registeredStudents > 0
-                  ? `${Math.round((funnel.resumeAnalyzedCount / registeredStudents) * 100)}% of cohort`
+                  ? `${Math.round((funnel.resumeAnalyzedCount / registeredStudents) * 100)}% of participants`
                   : "0%"}
               </span>
             </div>
@@ -407,7 +418,7 @@ function DashboardContent() {
               </div>
               <span className="text-[11px] text-[#5F7E97] block">
                 {registeredStudents > 0
-                  ? `${Math.round((funnel.interviewCompletedCount / registeredStudents) * 100)}% of cohort`
+                  ? `${Math.round((funnel.interviewCompletedCount / registeredStudents) * 100)}% of participants`
                   : "0%"}
               </span>
             </div>
@@ -433,7 +444,7 @@ function DashboardContent() {
             </span>
             <Link
               href="/students"
-              className="text-xs font-bold text-[#1E3E6B] hover:text-[#F59E73] inline-flex items-center gap-1"
+              className="text-xs font-bold text-[#1E3E6B] hover:text-[#274f89] inline-flex items-center gap-1 transition-colors"
             >
               <span>View Roster</span>
               <ChevronRight size={13} />
@@ -504,11 +515,11 @@ function DashboardContent() {
               <AlertCircle size={18} className="text-amber-600" /> Operational Attention Queue
             </h2>
             <p className="text-xs font-medium text-[#5F7E97] mt-0.5">
-              Actionable cohorts requiring coordinator or career center outreach based on authoritative states.
+              Actionable student groups requiring coordinator or career center outreach based on authoritative states.
             </p>
           </div>
           <span className="text-xs font-bold text-[#5F7E97]">
-            {totalAttentionNeeded} student cohort item(s) flagged
+            {totalAttentionNeeded} student item(s) flagged
           </span>
         </div>
 
@@ -538,7 +549,7 @@ function DashboardContent() {
 
               <Link
                 href={item.link}
-                className="inline-flex items-center justify-between text-xs font-bold text-[#1E3E6B] hover:text-[#F59E73] pt-2 border-t border-[#DCE6EE] group"
+                className="inline-flex items-center justify-between text-xs font-bold text-[#1E3E6B] hover:text-[#274f89] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E3E6B] rounded pt-2 border-t border-[#DCE6EE] transition-colors group"
               >
                 <span>View Students</span>
                 <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
@@ -681,7 +692,7 @@ function DashboardContent() {
               <Award size={18} className="text-[#1E3E6B]" /> Evaluation Averages
             </h2>
             <p className="text-xs font-medium text-[#5F7E97] mb-4">
-              Stored metrics across verified student cohorts.
+              Stored metrics across verified student participant groups.
             </p>
 
             <div className="p-4 rounded-xl bg-[#E7EFF5]/30 border border-[#DCE6EE] space-y-2.5 text-xs">

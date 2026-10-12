@@ -67,6 +67,8 @@ export interface StudentFilterOptions {
   status?: string;
   userRole?: AdminRole;
   assignedProgram?: string;
+  excludeDemo?: boolean;
+  datasetScope?: "all" | "genuine" | "demo";
 }
 
 /**
@@ -85,6 +87,8 @@ export async function fetchStudentsList(filters?: StudentFilterOptions): Promise
       ? filters.program
       : undefined;
 
+  // Unify all eligible participants: both institutional and UAT participants are included together under All Participants.
+  // Internal provenance markers (isDefenseDemo, isSyntheticUat) remain intact on records for auditability.
   const eligibleDocs = snapshot.docs.filter((docSnap) => {
     const userData = docSnap.data();
     if (userData.role === "admin" || userData.role === "career_center" || userData.role === "ojt_coordinator") {
@@ -221,6 +225,8 @@ export async function fetchStudentsList(filters?: StudentFilterOptions): Promise
       hasUploadedResume: userData.hasUploadedResume || resumesCount > 0,
       isProfileComplete: userData.isProfileComplete || false,
       isDisabled: userData.isDisabled || false,
+      isDefenseDemo: userData.isDefenseDemo === true,
+      isSyntheticUat: userData.isSyntheticUat === true,
       createdAt: parseTimestamp(userData.createdAt),
       updatedAt: parseTimestamp(userData.updatedAt),
       employabilityScore,

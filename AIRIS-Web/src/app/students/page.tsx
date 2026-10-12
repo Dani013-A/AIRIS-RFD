@@ -181,6 +181,7 @@ function StudentsDirectoryContent() {
     if (urlResumeStatus === "missing" && s.hasUploadedResume) return false;
 
     if (urlInterviewStatus === "done" && s.interviewStatus !== "completed") return false;
+    if (urlInterviewStatus === "in_progress" && s.interviewStatus !== "in_progress") return false;
     if (urlInterviewStatus === "not-done" && s.interviewStatus === "completed") return false;
 
     // Employability score filter (strictly respectful of undefined vs zero)
@@ -303,7 +304,7 @@ function StudentsDirectoryContent() {
             <option value="target-asc">Target: A–Z</option>
             <option value="resume-desc">Resume score: High–Low</option>
             <option value="interview-desc">Interview score: High–Low</option>
-            <option value="readiness-desc">Readiness: High–Low</option>
+            <option value="readiness-desc">Preparedness: High–Low</option>
           </Select>
 
           {/* Resume Upload Status Filter */}
@@ -320,6 +321,7 @@ function StudentsDirectoryContent() {
           <Select value={urlInterviewStatus} onChange={(e) => updateUrlParam("interviewStatus", e.target.value)} aria-label="Filter by interview completion">
             <option value="all">Interview: All</option>
             <option value="done">Interview Done</option>
+            <option value="in_progress">Interview In Progress</option>
             <option value="not-done">Interview Not Done</option>
           </Select>
 
@@ -411,9 +413,11 @@ function StudentsDirectoryContent() {
                           {student.fullName.charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0">
-                          <h3 className="font-extrabold text-[#1E3E6B] text-base leading-snug break-words">
-                            {student.fullName}
-                          </h3>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <h3 className="font-extrabold text-[#1E3E6B] text-base leading-snug break-words">
+                              {student.fullName}
+                            </h3>
+                          </div>
                           <p className="text-xs text-brand-slate font-medium break-all">{student.email}</p>
                         </div>
                       </div>

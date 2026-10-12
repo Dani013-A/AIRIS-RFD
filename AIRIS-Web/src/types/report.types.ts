@@ -9,6 +9,7 @@ export interface ReportFilterScope {
   coordinator?: string; // "all" | "ccs" | "cea" | "cbe-coa"; legacy "cbe" and "ca" remain readable
   period?: "all" | "7d" | "30d" | "90d" | "1y";
   college?: string; // Optional backwards-compatible alias
+  datasetScope?: "all" | "genuine" | "demo";
 }
 
 export interface ReportMetadata {

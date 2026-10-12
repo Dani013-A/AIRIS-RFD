@@ -3,6 +3,7 @@ export interface AnalyticsFilterParams {
   coordinator?: string;
   period?: "all" | "7d" | "30d" | "90d" | "1y";
   status?: string;
+  datasetScope?: "all" | "genuine" | "demo";
 }
 
 export interface CompletionFunnel {
