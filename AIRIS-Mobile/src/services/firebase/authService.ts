@@ -7,6 +7,8 @@ import {
   updatePassword,
   reauthenticateWithCredential,
   EmailAuthProvider,
+  deleteUser,
+  linkWithCredential,
 } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from "firebase/firestore";
 
@@ -65,9 +67,56 @@ export const registerStudent = async (
     throw new Error("Only TIP email addresses are allowed.");
   }
 
-  const userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+  // 1. Check if an active account already exists in Firestore for this normalized email
+  try {
+    const existingUsersQuery = query(
+      collection(db, USERS_COLLECTION),
+      where("email", "==", normalizedEmail)
+    );
+    const existingSnap = await getDocs(existingUsersQuery);
+    const existingActiveDoc = existingSnap.docs.find((d) => {
+      const data = d.data();
+      return !data?.isDeleted && data?.accountState !== "DELETED";
+    });
 
+    if (existingActiveDoc) {
+      throw new Error(
+        "An account with this TIP email already exists. Try logging in instead, or use Google Sign-In if you registered with Google."
+      );
+    }
+  } catch (err: any) {
+    if (err?.message?.includes("already exists")) {
+      throw err;
+    }
+    // If unauthenticated Firestore read is restricted by security rules,
+    // proceed to createUserWithEmailAndPassword which natively enforces email uniqueness in Auth.
+  }
+
+  // 2. Create the user in Firebase Auth
+  const userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
   const user = userCredential.user;
+
+  // 3. Concurrency check: Ensure no other user profile was created concurrently during signup
+  const doubleCheckQuery = query(
+    collection(db, USERS_COLLECTION),
+    where("email", "==", normalizedEmail)
+  );
+  const doubleCheckSnap = await getDocs(doubleCheckQuery);
+  const conflict = doubleCheckSnap.docs.find(
+    (d) => d.id !== user.uid && !d.data()?.isDeleted && d.data()?.accountState !== "DELETED"
+  );
+
+  if (conflict) {
+    try {
+      await deleteUser(user);
+    } catch (delErr) {
+      console.warn("Failed to delete duplicate Auth user:", delErr);
+    }
+    await signOut(auth);
+    throw new Error(
+      "An account with this TIP email already exists. Try logging in instead, or use Google Sign-In if you registered with Google."
+    );
+  }
 
   if (typeof user.getIdToken === "function") {
     await user.getIdToken(true);
@@ -88,13 +137,40 @@ export const registerStudent = async (
     hasCompletedInitialSetup: false,
   };
 
-  await setDoc(doc(db, USERS_COLLECTION, user.uid), newUser);
+  await createProfileTransaction(user.uid, newUser);
 
   await sendEmailVerification(user);
 
   await signOut(auth);
 
   return newUser;
+};
+
+/**
+ * Safely links a Google credential to an existing email/password account after authenticating ownership of both credentials.
+ * Preserves the original Firebase UID, profile, resume data, interview history, activities, and role assignments.
+ */
+export const linkGoogleToExistingEmailAccount = async (
+  email: string,
+  password: string,
+  googleCredential: any
+): Promise<AppUser> => {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // 1. Authenticate ownership of existing email/password account
+  const userCred = await signInWithEmailAndPassword(auth, normalizedEmail, password);
+  const user = userCred.user;
+
+  // 2. Link Google credential
+  await linkWithCredential(user, googleCredential);
+
+  // 3. Fetch existing user profile to preserve original UID and all associated records
+  const profile = await getUserById(user.uid);
+  if (!profile) {
+    throw new Error("Unable to locate existing profile after linking.");
+  }
+
+  return profile;
 };
 
 /**
@@ -130,7 +206,7 @@ export const loginUser = async (email: string, password: string): Promise<AppUse
   const userDoc = await getDoc(userDocRef);
 
   const docExists = userDoc.exists();
-  const userData = docExists ? (userDoc.data() as AppUser) : null;
+  let userData = docExists ? (userDoc.data() as AppUser) : null;
   const lifecycle = determineAccountLifecycleState(docExists, userData);
 
   if (lifecycle === "DELETED_REMOVED") {
@@ -144,8 +220,38 @@ export const loginUser = async (email: string, password: string): Promise<AppUse
   }
 
   if (lifecycle === "MISSING_PROFILE" || !userData) {
-    await signOut(auth);
-    throw new Error(ACCOUNT_MISSING_PROFILE_MSG);
+    if (typeof user.getIdToken === "function") {
+      await user.getIdToken(true);
+    }
+    const recoveredProfile: AppUser = {
+      uid: user.uid,
+      email: normalizedEmail,
+      fullName: user.displayName?.trim() || "TIP Student",
+      role: "student",
+      isProfileComplete: false,
+      accountState: "ACTIVE",
+      isDeleted: false,
+      isDisabled: false,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      hasCompletedOnboarding: false,
+      hasCompletedInitialSetup: false,
+      college: "",
+      degreeProgram: "",
+      targetPosition: "",
+      acceptedTerms: false,
+      acceptedPrivacy: false,
+      termsVersion: "",
+      privacyVersion: "",
+      activeResumeId: null,
+    };
+    try {
+      userData = await createProfileTransaction(user.uid, recoveredProfile);
+    } catch (profileErr: any) {
+      console.warn("Failed to recover missing profile during login:", profileErr);
+      await signOut(auth);
+      throw new Error(ACCOUNT_MISSING_PROFILE_MSG);
+    }
   }
 
   return userData as AppUser;

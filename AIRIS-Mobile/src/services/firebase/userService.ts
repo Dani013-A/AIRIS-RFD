@@ -139,13 +139,28 @@ export const updateProfileDetails = async (
 };
 
 export const deleteUserAccountCascade = async (uid: string): Promise<void> => {
-  const { setDoc } = await import("firebase/firestore");
+  const { setDoc, collection, getDocs, deleteDoc } = await import("firebase/firestore");
   const { deleteUser } = await import("firebase/auth");
   const { auth } = await import("../../config/firebase");
 
   console.log(`[AUTH][ACCOUNT_DELETE][START] Initiating account cascade deletion for user UID: ${uid}`);
 
-  // 1. Record minimal non-sensitive tombstone record (no personal data retained)
+  // 1. Delete user-owned subcollections (resumes, resumeAnalyses, interviews, activities)
+  const subcollections = ["resumes", "resumeAnalyses", "interviews", "activities"];
+  for (const subcol of subcollections) {
+    try {
+      const colRef = collection(db, USERS_COLLECTION, uid, subcol);
+      const snap = await getDocs(colRef);
+      for (const docSnap of snap.docs) {
+        await deleteDoc(docSnap.ref);
+      }
+      console.log(`[AUTH][ACCOUNT_DELETE][SUBCOL] Cleared ${snap.docs.length} docs from ${subcol}.`);
+    } catch (subErr: any) {
+      console.warn(`[AUTH][ACCOUNT_DELETE][SUBCOL_WARN] Subcollection ${subcol} deletion notice:`, subErr?.message || subErr);
+    }
+  }
+
+  // 2. Record minimal non-sensitive tombstone record (no personal data retained)
   try {
     console.log(`[AUTH][ACCOUNT_DELETE][TOMBSTONE] Writing minimal non-sensitive lifecycle tombstone for users/${uid}...`);
     const userRef = doc(db, USERS_COLLECTION, uid);
@@ -162,7 +177,7 @@ export const deleteUserAccountCascade = async (uid: string): Promise<void> => {
     console.warn(`[AUTH][ACCOUNT_DELETE][TOMBSTONE_WARN] Firestore tombstone write notice:`, fsErr?.message || fsErr);
   }
 
-  // 2. Clean up local persistent profile photo for this account
+  // 3. Clean up local persistent profile photo and local cached resume files
   try {
     const { deleteLocalProfilePhoto } = await import("./profilePhotoService");
     await deleteLocalProfilePhoto(uid);
@@ -170,7 +185,14 @@ export const deleteUserAccountCascade = async (uid: string): Promise<void> => {
     console.warn(`[AUTH][ACCOUNT_DELETE][PHOTO_WARN] Local profile photo delete notice:`, photoErr);
   }
 
-  // 3. Delete Firebase Auth user record if active
+  try {
+    const { deleteLocalResumeData } = await import("../resume/localResumeStorage");
+    await deleteLocalResumeData(uid);
+  } catch (resumeErr) {
+    console.warn(`[AUTH][ACCOUNT_DELETE][LOCAL_RESUME_WARN] Local resume delete notice:`, resumeErr);
+  }
+
+  // 4. Delete Firebase Auth user record if active
   if (auth.currentUser) {
     console.log(`[AUTH][ACCOUNT_DELETE][AUTH_DELETE] Deleting Firebase Auth user account...`);
     try {

@@ -62,6 +62,9 @@ export function mapAuthError(error: unknown): string {
   if (testString.includes("only verified tip email accounts") || testString.includes("please choose your tip google account")) {
     return "Please use your official @tip.edu.ph account.";
   }
+  if (testString.includes("no airis account found")) {
+    return "No AIRIS account found. Please sign up to continue.";
+  }
   if (testString.includes("auth/account-exists-with-different-credential") || testString.includes("account-exists-with-different-credential")) {
     return "An AIRIS account already exists for this TIP email using another sign-in method. Please log in using your original method first.";
   }
@@ -69,7 +72,7 @@ export function mapAuthError(error: unknown): string {
     return "Please verify your current password before deleting your account.";
   }
   if (testString.includes("auth/user-not-found")) {
-    return MSG_INVALID_CREDENTIAL;
+    return "No AIRIS account found with this email. Please sign up to continue.";
   }
   if (testString.includes("auth/invalid-credential") || testString.includes("auth/wrong-password")) {
     return MSG_INVALID_CREDENTIAL;

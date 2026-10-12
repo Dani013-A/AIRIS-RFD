@@ -5,9 +5,11 @@ import {
   onAuthStateChanged,
   signOut,
   GoogleAuthProvider,
+  EmailAuthProvider,
   signInWithCredential,
   getAdditionalUserInfo,
   deleteUser,
+  reauthenticateWithCredential,
 } from "firebase/auth";
 import { doc, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../config/firebase";
@@ -33,10 +35,18 @@ import {
   updateHasUploadedResume,
   createProfileTransaction,
   updateProfileDetails,
+  deleteUserAccountCascade,
 } from "../services/firebase/userService";
 import { useOnboardingStore } from "./onboardingStore";
 import { clearLearningMemoryCache } from "../services/learning/learningCatalogService";
 import { mapAuthError, sanitizeErrorForLogging } from "../utils/errorMapper";
+import {
+  sendStudentOtp,
+  verifyStudentOtp,
+  storeStudentOtpSession,
+  getStoredStudentOtpSession,
+  clearStudentOtpSession,
+} from "../services/api/otpService";
 
 import {
   determineAccountLifecycleState,
@@ -220,7 +230,7 @@ interface AuthState {
   initializeAuth: () => () => void;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, fullName: string) => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: (isSignUpContext?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   resendVerification: () => Promise<void>;
   clearError: () => void;
@@ -252,8 +262,25 @@ interface AuthState {
   saveHasUploadedResume: (uploaded: boolean) => Promise<void>;
   saveProductTourCompletion: (completed: boolean) => Promise<void>;
   updateProfilePhotoAction: () => Promise<boolean>;
-  deleteAccountAction: (currentPassword?: string) => Promise<void>;
+  deleteAccountAction: (confirmationPhrase?: string, currentPassword?: string) => Promise<void>;
   checkSessionValidity: () => Promise<boolean>;
+
+  // Student OTP Verification
+  isOtpRequired: boolean;
+  otpMaskedEmail: string | null;
+  otpCooldownRemaining: number;
+  otpError: string | null;
+  isOtpVerifying: boolean;
+  pendingOtpUser: AppUser | null;
+  isOtpVerified: boolean;
+  verifyStudentOtpAction: (code: string) => Promise<boolean>;
+  resendStudentOtpAction: () => Promise<boolean>;
+  cancelStudentOtpAction: () => Promise<void>;
+  clearOtpError: () => void;
+
+  // Unregistered Google flow continuation
+  pendingGoogleEmail: string | null;
+  clearPendingGoogleEmail: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -269,21 +296,184 @@ export const useAuthStore = create<AuthState>((set) => ({
   emailNotVerified: false,
   passwordResetSuccess: false,
 
+  // Unregistered Google flow continuation
+  pendingGoogleEmail: null,
+  clearPendingGoogleEmail: () => set({ pendingGoogleEmail: null }),
+
+  // Student OTP Verification State
+  isOtpRequired: false,
+  otpMaskedEmail: null,
+  otpCooldownRemaining: 0,
+  otpError: null,
+  isOtpVerifying: false,
+  pendingOtpUser: null,
+  isOtpVerified: false,
+
+  clearOtpError: () => set({ otpError: null }),
+
+  verifyStudentOtpAction: async (code: string) => {
+    const { pendingOtpUser } = useAuthStore.getState();
+    if (!pendingOtpUser || !auth.currentUser) {
+      set({ otpError: "No pending session. Please log in again." });
+      return false;
+    }
+
+    set({ isOtpVerifying: true, otpError: null });
+
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      const verifyRes = await verifyStudentOtp(idToken, code);
+
+      if (!verifyRes.success || !verifyRes.sessionToken) {
+        set({
+          isOtpVerifying: false,
+          otpError: verifyRes.error || "Verification failed. Please check the code.",
+        });
+        return false;
+      }
+
+      // Persist the 8-hour session token bound to UID
+      const expiresAt = Date.now() + 8 * 3600 * 1000;
+      await storeStudentOtpSession(pendingOtpUser.uid, verifyRes.sessionToken, expiresAt);
+
+      startUserRealtimeListener(pendingOtpUser.uid);
+
+      set({
+        currentUser: pendingOtpUser,
+        pendingOtpUser: null,
+        isOtpRequired: false,
+        isOtpVerified: true,
+        isOtpVerifying: false,
+        otpError: null,
+        authTransactionState: "COMPLETED",
+        loading: false,
+      });
+
+      return true;
+    } catch (err: any) {
+      set({
+        isOtpVerifying: false,
+        otpError: err?.message || "Failed to verify code. Please try again.",
+      });
+      return false;
+    }
+  },
+
+  resendStudentOtpAction: async () => {
+    if (!auth.currentUser) return false;
+    set({ loading: true, otpError: null });
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      const sendRes = await sendStudentOtp(idToken);
+      if (!sendRes.success) {
+        set({ loading: false, otpError: sendRes.error });
+        return false;
+      }
+      set({
+        loading: false,
+        otpCooldownRemaining: sendRes.cooldownSeconds || 60,
+        otpMaskedEmail: sendRes.maskedEmail || useAuthStore.getState().otpMaskedEmail,
+      });
+      return true;
+    } catch (err: any) {
+      set({ loading: false, otpError: err?.message || "Failed to resend code." });
+      return false;
+    }
+  },
+
+  cancelStudentOtpAction: async () => {
+    try {
+      await signOut(auth);
+      if (GoogleSignin && typeof GoogleSignin.signOut === "function") {
+        await GoogleSignin.signOut().catch(() => {});
+      }
+    } catch {
+      // safe cleanup
+    }
+    set({
+      isOtpRequired: false,
+      pendingOtpUser: null,
+      otpMaskedEmail: null,
+      otpError: null,
+      authTransactionState: "IDLE",
+      loading: false,
+    });
+  },
+
   login: async (email, password) => {
     try {
       const normalizedEmail = email.trim().toLowerCase();
       set({ authTransactionState: "AUTHENTICATING", loading: true, error: null, emailNotVerified: false });
 
       const user = await loginUser(normalizedEmail, password);
-      startUserRealtimeListener(user.uid);
 
-      set({
-        currentUser: user,
-        authTransactionState: "COMPLETED",
-        loading: false,
-        error: null,
-        emailNotVerified: false,
-      });
+      // Check if this student already has a valid, non-expired OTP session on this device
+      const existingOtp = await getStoredStudentOtpSession(user.uid);
+      if (existingOtp) {
+        startUserRealtimeListener(user.uid);
+        set({
+          currentUser: user,
+          authTransactionState: "COMPLETED",
+          loading: false,
+          error: null,
+          emailNotVerified: false,
+          isOtpVerified: true,
+          isOtpRequired: false,
+        });
+        return;
+      }
+
+      // No existing OTP session: request email OTP challenge from server
+      try {
+        const idToken = (await auth.currentUser?.getIdToken()) || "";
+        const sendRes = await sendStudentOtp(idToken);
+        if (sendRes.success) {
+          set({
+            currentUser: null,
+            pendingOtpUser: user,
+            isOtpRequired: true,
+            isOtpVerified: false,
+            otpMaskedEmail: sendRes.maskedEmail || user.email,
+            otpCooldownRemaining: sendRes.cooldownSeconds || 60,
+            otpError: null,
+            authTransactionState: "OTP_CHALLENGE",
+            loading: false,
+            error: null,
+            emailNotVerified: false,
+          });
+          return;
+        } else {
+          set({
+            currentUser: null,
+            pendingOtpUser: user,
+            isOtpRequired: true,
+            isOtpVerified: false,
+            otpMaskedEmail: user.email,
+            otpCooldownRemaining: sendRes.cooldownRemaining || 0,
+            otpError: sendRes.error || "Failed to dispatch verification code. Please tap Resend Code to try again.",
+            authTransactionState: "OTP_CHALLENGE",
+            loading: false,
+            error: null,
+            emailNotVerified: false,
+          });
+          return;
+        }
+      } catch (otpSendErr: any) {
+        set({
+          currentUser: null,
+          pendingOtpUser: user,
+          isOtpRequired: true,
+          isOtpVerified: false,
+          otpMaskedEmail: user.email,
+          otpCooldownRemaining: 0,
+          otpError: otpSendErr?.message || "Failed to send verification email. Please tap Resend Code to try again.",
+          authTransactionState: "OTP_CHALLENGE",
+          loading: false,
+          error: null,
+          emailNotVerified: false,
+        });
+        return;
+      }
     } catch (error) {
       if (error instanceof EmailNotVerifiedError) {
         set({
@@ -339,7 +529,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  loginWithGoogle: async () => {
+  loginWithGoogle: async (isSignUpContext = false) => {
     const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
     if (!webClientId) {
       console.error("[AUTH][CONFIG] Google Sign-In is not configured: Client ID is missing.");
@@ -406,12 +596,13 @@ export const useAuthStore = create<AuthState>((set) => ({
         throw new Error("No user email was returned by Google authentication.");
       }
 
+      const isNewUser = !!getAdditionalUserInfo(userCredential)?.isNewUser;
+      const isUnprovisionedNewUser = isNewUser && (firebaseUser.providerData?.length || 0) <= 1;
       const emailLower = firebaseUser.email.trim().toLowerCase();
 
       // Validate school domain email.
       if (!firebaseUser.emailVerified || !emailLower.endsWith("@tip.edu.ph")) {
-        const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser;
-        if (isNewUser) {
+        if (isUnprovisionedNewUser) {
           try {
             await deleteUser(firebaseUser);
           } catch (deleteErr) {
@@ -432,6 +623,93 @@ export const useAuthStore = create<AuthState>((set) => ({
         await firebaseUser.getIdToken(true);
       }
 
+      const handleSuccessfulGoogleProfile = async (targetProfile: AppUser) => {
+        if (targetProfile.role === "student") {
+          // Check if this student already has a valid, non-expired OTP session on this device
+          const existingOtp = await getStoredStudentOtpSession(firebaseUser.uid);
+          if (existingOtp) {
+            startUserRealtimeListener(firebaseUser.uid);
+            set({
+              currentUser: targetProfile,
+              authTransactionState: "COMPLETED",
+              loading: false,
+              isGoogleLoading: false,
+              isRegistering: false,
+              error: null,
+              isOtpVerified: true,
+              isOtpRequired: false,
+            });
+            return;
+          }
+
+          // No existing OTP session: request email OTP challenge from server
+          try {
+            const idToken = (await firebaseUser.getIdToken()) || "";
+            const sendRes = await sendStudentOtp(idToken);
+            if (sendRes.success) {
+              set({
+                currentUser: null,
+                pendingOtpUser: targetProfile,
+                isOtpRequired: true,
+                isOtpVerified: false,
+                otpMaskedEmail: sendRes.maskedEmail || targetProfile.email,
+                otpCooldownRemaining: sendRes.cooldownSeconds || 60,
+                otpError: null,
+                authTransactionState: "OTP_CHALLENGE",
+                loading: false,
+                isGoogleLoading: false,
+                isRegistering: false,
+                error: null,
+              });
+              return;
+            } else {
+              set({
+                currentUser: null,
+                pendingOtpUser: targetProfile,
+                isOtpRequired: true,
+                isOtpVerified: false,
+                otpMaskedEmail: targetProfile.email,
+                otpCooldownRemaining: sendRes.cooldownRemaining || 0,
+                otpError: sendRes.error || "Failed to dispatch verification code. Please tap Resend Code to try again.",
+                authTransactionState: "OTP_CHALLENGE",
+                loading: false,
+                isGoogleLoading: false,
+                isRegistering: false,
+                error: null,
+              });
+              return;
+            }
+          } catch (otpSendErr: any) {
+            set({
+              currentUser: null,
+              pendingOtpUser: targetProfile,
+              isOtpRequired: true,
+              isOtpVerified: false,
+              otpMaskedEmail: targetProfile.email,
+              otpCooldownRemaining: 0,
+              otpError: otpSendErr?.message || "Failed to send verification email. Please tap Resend Code to try again.",
+              authTransactionState: "OTP_CHALLENGE",
+              loading: false,
+              isGoogleLoading: false,
+              isRegistering: false,
+              error: null,
+            });
+            return;
+          }
+        }
+
+        // Non-student profile fallback
+        startUserRealtimeListener(firebaseUser.uid);
+        set({
+          currentUser: targetProfile,
+          authTransactionState: "COMPLETED",
+          loading: false,
+          isGoogleLoading: false,
+          isRegistering: false,
+          error: null,
+        });
+      };
+
       const existingProfile = await getUserById(firebaseUser.uid);
       if (existingProfile) {
         const lifecycle = determineAccountLifecycleState(true, existingProfile);
@@ -445,16 +723,30 @@ export const useAuthStore = create<AuthState>((set) => ({
           set({ error: ACCOUNT_PAUSED_MSG, authTransactionState: "FAILED" });
           throw new Error(ACCOUNT_PAUSED_MSG);
         }
-        startUserRealtimeListener(firebaseUser.uid);
-        set({
-          currentUser: existingProfile,
-          authTransactionState: "COMPLETED",
-          loading: false,
-          isGoogleLoading: false,
-          isRegistering: false,
-          error: null,
-        });
+        await handleSuccessfulGoogleProfile(existingProfile);
         return;
+      }
+
+      // Enforce: Login must never register. If user has no existing profile and is in login context, reject.
+      if (!isSignUpContext) {
+        if (isUnprovisionedNewUser) {
+          try {
+            await deleteUser(firebaseUser);
+          } catch (delErr) {
+            console.warn("Cleaned up un-registered Google user during login:", sanitizeErrorForLogging(delErr));
+          }
+        }
+        await clearAuthSessionSafely();
+        const notFoundErr = new Error(
+          "No AIRIS account found. Please sign up to continue."
+        );
+        set({
+          error: notFoundErr.message,
+          authTransactionState: "FAILED",
+          isRegistering: false,
+          pendingGoogleEmail: emailLower,
+        });
+        throw notFoundErr;
       }
 
       const newProfile: AppUser = {
@@ -488,15 +780,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         throw dbErr;
       }
 
-      startUserRealtimeListener(firebaseUser.uid);
-      set({
-        currentUser: activeProfile,
-        authTransactionState: "COMPLETED",
-        loading: false,
-        isGoogleLoading: false,
-        isRegistering: false,
-        error: null,
-      });
+      await handleSuccessfulGoogleProfile(activeProfile);
     } catch (error: unknown) {
       const errorCode =
         error && typeof error === "object" && "code" in error
@@ -541,7 +825,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       await logoutUser();
       try {
-        await GoogleSignin.signOut();
+        if (GoogleSignin && typeof GoogleSignin.signOut === "function") {
+          await GoogleSignin.signOut();
+        }
       } catch (googleErr) {
         console.warn("Google Sign-In signOut failed during logout:", sanitizeErrorForLogging(googleErr));
       }
@@ -557,6 +843,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       } catch (learningCacheErr) {
         console.warn("Failed to clear learning cache on logout:", learningCacheErr);
       }
+      try {
+        await clearStudentOtpSession();
+      } catch (otpErr) {
+        console.warn("Failed to clear student OTP session:", otpErr);
+      }
       set({
         currentUser: null,
         loading: false,
@@ -565,6 +856,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         error: null,
         registrationSuccess: false,
         emailNotVerified: false,
+        isOtpRequired: false,
+        isOtpVerified: false,
+        otpMaskedEmail: null,
+        otpError: null,
+        pendingOtpUser: null,
       });
     }
   },
@@ -607,6 +903,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (
         state.authTransactionState === "AUTHENTICATING" ||
         state.authTransactionState === "INITIALIZING_PROFILE" ||
+        state.authTransactionState === "OTP_CHALLENGE" ||
         state.isRegistering
       ) {
         return;
@@ -678,6 +975,29 @@ export const useAuthStore = create<AuthState>((set) => ({
             try {
               await firebaseUser.getIdToken(true);
               const activeProfile = await createProfileTransaction(firebaseUser.uid, recoveredProfile);
+
+              // Verify device OTP session for recovered student profile
+              if (activeProfile.role === "student") {
+                const storedOtp = await getStoredStudentOtpSession(firebaseUser.uid);
+                if (!storedOtp) {
+                  stopUserRealtimeListener();
+                  await signOut(auth);
+                  try {
+                    if (GoogleSignin && typeof GoogleSignin.signOut === "function") {
+                      await GoogleSignin.signOut().catch(() => {});
+                    }
+                  } catch {}
+                  set({
+                    currentUser: null,
+                    loading: false,
+                    isInitialized: true,
+                    error: null,
+                    isOtpVerified: false,
+                  });
+                  return;
+                }
+              }
+
               startUserRealtimeListener(firebaseUser.uid);
               set({
                 currentUser: activeProfile,
@@ -715,12 +1035,36 @@ export const useAuthStore = create<AuthState>((set) => ({
           }
         }
 
+        // Check stored OTP session validity for active student user
+        if (appUser?.role === "student") {
+          const storedOtp = await getStoredStudentOtpSession(firebaseUser.uid);
+          if (!storedOtp) {
+            // No valid verified OTP session on this device for this student
+            stopUserRealtimeListener();
+            await signOut(auth);
+            try {
+              if (GoogleSignin && typeof GoogleSignin.signOut === "function") {
+                await GoogleSignin.signOut().catch(() => {});
+              }
+            } catch {}
+            set({
+              currentUser: null,
+              loading: false,
+              isInitialized: true,
+              error: null,
+              isOtpVerified: false,
+            });
+            return;
+          }
+        }
+
         startUserRealtimeListener(firebaseUser.uid);
         set({
           currentUser: appUser,
           loading: false,
           isInitialized: true,
           error: null,
+          isOtpVerified: true,
         });
       } catch (err: any) {
         const errCode = err?.code || "";
@@ -904,25 +1248,72 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  deleteAccountAction: async (currentPassword) => {
+  deleteAccountAction: async (confirmationPhrase, currentPassword) => {
+    // 1. Strict validation of confirmation phrase (exact case: 'CONFIRM DELETION', trimmed)
+    if (!confirmationPhrase || typeof confirmationPhrase !== "string" || confirmationPhrase.trim() !== "CONFIRM DELETION") {
+      throw new Error("Confirmation phrase mismatch. You must enter 'CONFIRM DELETION' to proceed.");
+    }
+
     const currentUser = useAuthStore.getState().currentUser;
     const activeUid = currentUser?.uid || auth.currentUser?.uid;
 
+    if (!auth.currentUser || !activeUid) {
+      throw new Error("No authenticated user session found.");
+    }
+
     try {
       set({ loading: true, error: null });
-      console.log(`[AUTH][ACCOUNT_DELETE][CONFIRM] User confirmed account deletion request for UID: ${activeUid}`);
+      console.log(`[AUTH][ACCOUNT_DELETE][CONFIRM] User confirmed account deletion request with 'CONFIRM DELETION' for UID: ${activeUid}`);
 
-      // Reauthenticate FIRST if password is provided and Firebase Auth user exists
-      if (auth.currentUser && auth.currentUser.email && currentPassword) {
-        console.log(`[AUTH][ACCOUNT_DELETE][REAUTH_START] Attempting credential reauthentication...`);
-        const { EmailAuthProvider, reauthenticateWithCredential } = await import("firebase/auth");
-        const cred = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
-        await reauthenticateWithCredential(auth.currentUser, cred);
-        console.log(`[AUTH][ACCOUNT_DELETE][REAUTH_SUCCESS] Credential reauthentication succeeded.`);
+      // Provider-aware reauthentication FIRST
+      const isGoogleUser = auth.currentUser?.providerData.some(
+        (p) => p.providerId === "google.com"
+      );
+
+      if (auth.currentUser && isGoogleUser) {
+        console.log(`[AUTH][ACCOUNT_DELETE][REAUTH_START] Attempting Google credential reauthentication...`);
+        if (GoogleSignin) {
+          await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+          const userInfo = await GoogleSignin.signIn();
+          if (userInfo.type !== "success" || !userInfo.data?.idToken) {
+            set({ loading: false });
+            throw new Error("Google reauthentication was cancelled.");
+          }
+          const cred = GoogleAuthProvider.credential(userInfo.data.idToken);
+          await reauthenticateWithCredential(auth.currentUser, cred);
+          console.log(`[AUTH][ACCOUNT_DELETE][REAUTH_SUCCESS] Google credential reauthentication succeeded.`);
+        } else {
+          throw new Error("Google Sign-In is not supported in this environment.");
+        }
+      } else if (auth.currentUser && auth.currentUser.email) {
+        if (currentPassword && currentPassword.trim()) {
+          console.log(`[AUTH][ACCOUNT_DELETE][REAUTH_START] Attempting password credential reauthentication...`);
+          const cred = EmailAuthProvider.credential(auth.currentUser.email, currentPassword.trim());
+          await reauthenticateWithCredential(auth.currentUser, cred);
+          console.log(`[AUTH][ACCOUNT_DELETE][REAUTH_SUCCESS] Password credential reauthentication succeeded.`);
+        } else {
+          // Check if session satisfies recent-login requirement before cascade
+          let isRecent = false;
+          try {
+            if (typeof auth.currentUser.getIdTokenResult === "function") {
+              const tokenResult = await auth.currentUser.getIdTokenResult();
+              const authTimestamp = tokenResult?.authTime ? new Date(tokenResult.authTime).getTime() : 0;
+              if (authTimestamp && Date.now() - authTimestamp < 5 * 60 * 1000) {
+                isRecent = true;
+              }
+            }
+          } catch {
+            // fallback
+          }
+          if (!isRecent) {
+            const reauthErr: any = new Error("Please verify your password to confirm account deletion.");
+            reauthErr.code = "auth/requires-recent-login";
+            throw reauthErr;
+          }
+        }
       }
 
       if (activeUid) {
-        const { deleteUserAccountCascade } = await import("../services/firebase/userService");
         await deleteUserAccountCascade(activeUid);
       }
 

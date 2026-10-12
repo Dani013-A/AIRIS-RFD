@@ -2,7 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { adminAuth, adminDb } from "../../../../../lib/firebaseAdmin";
 import { hashOtp } from "../../../../../lib/otpAuth";
-import { sendAdminOtpEmail, maskEmail } from "../../../../../services/mail/mailService";
+import { sendAdminOtpEmail, sendStudentOtpEmail, maskEmail } from "../../../../../services/mail/mailService";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,7 +29,7 @@ export async function POST(req: NextRequest) {
     if (!idToken) {
       return NextResponse.json(
         { error: "Authentication token is required." },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
 
@@ -30,28 +40,31 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json(
         { error: "Invalid or expired session. Please sign in again." },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
 
     const uid = decodedToken.uid;
     const email = decodedToken.email || "";
 
-    // 3. Verify user exists, active, and has admin role in Firestore
+    // 3. Verify user exists, active, and has permitted role in Firestore
     const userDocSnap = await adminDb.collection("users").doc(uid).get();
     if (!userDocSnap.exists || userDocSnap.data()?.isDisabled === true) {
       return NextResponse.json(
         { error: "Access Denied: Account is not found or has been disabled." },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       );
     }
 
     const userData = userDocSnap.data()!;
-    const allowedRoles = ["admin", "career_center", "ojt_coordinator"];
-    if (!allowedRoles.includes(userData.role)) {
+    const isStudent = userData.role === "student";
+    const allowedAdminRoles = ["admin", "career_center", "ojt_coordinator"];
+    const isAdmin = allowedAdminRoles.includes(userData.role);
+
+    if (!isStudent && !isAdmin) {
       return NextResponse.json(
-        { error: "Access Denied: Administrative privileges required." },
-        { status: 403 }
+        { error: "Access Denied: Role not authorized for two-factor verification." },
+        { status: 403, headers: corsHeaders }
       );
     }
 
@@ -59,12 +72,14 @@ export async function POST(req: NextRequest) {
     if (!targetEmail) {
       return NextResponse.json(
         { error: "No verified email associated with this account." },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
+    const collectionName = isStudent ? "student_otp_challenges" : "admin_otp_challenges";
+
     // 4. Rate-limiting & resend cooldown check
-    const challengeRef = adminDb.collection("admin_otp_challenges").doc(uid);
+    const challengeRef = adminDb.collection(collectionName).doc(uid);
     const existingSnap = await challengeRef.get();
     const now = Date.now();
 
@@ -77,7 +92,7 @@ export async function POST(req: NextRequest) {
             error: `Please wait ${cooldownRemaining} seconds before requesting a new verification code.`,
             cooldownRemaining,
           },
-          { status: 429 }
+          { status: 429, headers: corsHeaders }
         );
       }
     }
@@ -92,6 +107,7 @@ export async function POST(req: NextRequest) {
     await challengeRef.set({
       uid,
       email: targetEmail,
+      role: userData.role,
       hashedOtp: hashed,
       attemptsCount: 0,
       maxAttempts: 5,
@@ -102,15 +118,18 @@ export async function POST(req: NextRequest) {
       ip: req.headers.get("x-forwarded-for") || "unknown",
     });
 
-    // 7. Dispatch email via mailService
-    const mailResult = await sendAdminOtpEmail(targetEmail, rawOtp, 5);
+    // 7. Dispatch email via mailService with role-appropriate template
+    const mailResult = isStudent
+      ? await sendStudentOtpEmail(targetEmail, rawOtp, 5)
+      : await sendAdminOtpEmail(targetEmail, rawOtp, 5);
+
     if (!mailResult.success) {
       return NextResponse.json(
         {
           error: "Failed to dispatch verification email. Please check server mail configuration.",
           details: mailResult.error,
         },
-        { status: 500 }
+        { status: 500, headers: corsHeaders }
       );
     }
 
@@ -120,13 +139,13 @@ export async function POST(req: NextRequest) {
       cooldownSeconds: 60,
       expiresAt,
       simulated: mailResult.simulated || false,
-    });
+    }, { headers: corsHeaders });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     console.error("[OTP Send Error]:", errorMsg);
     return NextResponse.json(
       { error: "An unexpected error occurred while processing OTP request." },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }

@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  Platform,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -37,14 +38,77 @@ export default function RegisterScreen() {
   const loginWithGoogle = useAuthStore((state) => state.loginWithGoogle);
   const isGoogleLoading = useAuthStore((state) => state.isGoogleLoading);
 
+  // Student OTP Verification Hooks
+  const isOtpRequired = useAuthStore((state) => state.isOtpRequired);
+  const otpMaskedEmail = useAuthStore((state) => state.otpMaskedEmail);
+  const otpCooldownRemaining = useAuthStore((state) => state.otpCooldownRemaining);
+  const otpError = useAuthStore((state) => state.otpError);
+  const isOtpVerifying = useAuthStore((state) => state.isOtpVerifying);
+  const verifyStudentOtpAction = useAuthStore((state) => state.verifyStudentOtpAction);
+  const resendStudentOtpAction = useAuthStore((state) => state.resendStudentOtpAction);
+  const cancelStudentOtpAction = useAuthStore((state) => state.cancelStudentOtpAction);
+  const clearOtpError = useAuthStore((state) => state.clearOtpError);
+  const pendingGoogleEmail = useAuthStore((state) => state.pendingGoogleEmail);
+  const clearPendingGoogleEmail = useAuthStore((state) => state.clearPendingGoogleEmail);
+
+  const [otpCode, setOtpCode] = useState("");
+  const [cooldown, setCooldown] = useState(0);
+
+  React.useEffect(() => {
+    if (isOtpRequired) {
+      setCooldown(otpCooldownRemaining || 60);
+      setOtpCode("");
+    }
+  }, [isOtpRequired, otpCooldownRemaining]);
+
+  React.useEffect(() => {
+    if (cooldown <= 0) return;
+    const interval = setInterval(() => {
+      setCooldown((c) => Math.max(0, c - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [cooldown]);
+
+  const handleVerifyOtp = async () => {
+    if (otpCode.length !== 6) return;
+    const success = await verifyStudentOtpAction(otpCode);
+    if (success) {
+      clearPendingGoogleEmail();
+      const currentUser = useAuthStore.getState().currentUser;
+      if (currentUser) {
+        if (!currentUser.hasCompletedOnboarding) {
+          router.replace("/(student)/onboarding");
+        } else {
+          router.replace("/(student)/(tabs)/dashboard" as any);
+        }
+      }
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (cooldown > 0) return;
+    const ok = await resendStudentOtpAction();
+    if (ok) {
+      setCooldown(60);
+    }
+  };
+
+  const handleCancelOtp = async () => {
+    setOtpCode("");
+    await cancelStudentOtpAction();
+  };
+
   React.useEffect(() => {
     clearError();
     clearRegistrationSuccess();
+    clearOtpError();
     return () => {
       clearError();
       clearRegistrationSuccess();
+      clearOtpError();
+      clearPendingGoogleEmail();
     };
-  }, [clearError, clearRegistrationSuccess]);
+  }, [clearError, clearRegistrationSuccess, clearOtpError, clearPendingGoogleEmail]);
 
   const handleBlur = (field: string) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -108,7 +172,7 @@ export default function RegisterScreen() {
     clearRegistrationSuccess();
 
     try {
-      await loginWithGoogle();
+      await loginWithGoogle(true);
     } catch {
       console.warn("Google registration complete with non-standard status.");
     }
@@ -170,6 +234,22 @@ export default function RegisterScreen() {
           <Text className="text-center text-sm font-bold text-[#1F3A5F]">Sign Up</Text>
         </TouchableOpacity>
       </View>
+
+      {pendingGoogleEmail ? (
+        <View className="mb-6 p-4 bg-[#EAF2F7] rounded-xl border border-[#BFD6EA] flex-row items-center justify-between">
+          <View className="flex-1 mr-3">
+            <Text className="text-xs font-semibold text-[#4F6B82]">Continue with selected account:</Text>
+            <Text className="text-sm font-bold text-[#1F3A5F]">{pendingGoogleEmail}</Text>
+          </View>
+          <TouchableOpacity
+            className="px-4 py-2 bg-[#1F3A5F] rounded-lg items-center justify-center"
+            onPress={handleGoogleRegister}
+            disabled={isGoogleLoading || loading}
+          >
+            <Text className="text-xs font-bold text-white">Continue</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
       <View className="mb-6">
         <View
@@ -365,6 +445,85 @@ export default function RegisterScreen() {
               title="Go to Login"
               variant="orange"
               onPress={handleDismissSuccessModal}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Student Email OTP Verification Modal for Google Registrations */}
+      <Modal
+        visible={isOtpRequired}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancelOtp}
+      >
+        <View className="flex-1 items-center justify-center bg-black/60 px-6" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+          <View className="w-full rounded-3xl bg-white p-8">
+            <View className="items-center">
+              <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-[#EAF2F7]">
+                <Ionicons name="shield-checkmark-outline" size={32} color="#1F3A5F" />
+              </View>
+
+              <Text className="text-xl font-bold text-[#1F3A5F] mb-2 text-center">
+                Enter Verification Code
+              </Text>
+
+              <Text className="text-center text-sm leading-5 text-[#4F6B82] mb-6">
+                A 6-digit code was sent to{" "}
+                <Text className="font-bold text-[#1F3A5F]">{otpMaskedEmail || "your TIP email"}</Text>.
+                Please enter it below to complete authentication:
+              </Text>
+            </View>
+
+            {otpError ? (
+              <View className="mb-4 p-3 bg-[#FEF5F1] rounded-xl border border-[#FDEEE6]">
+                <Text className="text-xs font-medium text-center text-[#CA5D25]">{otpError}</Text>
+              </View>
+            ) : null}
+
+            <View className="mb-6 flex-row items-center rounded-xl bg-white px-4 h-14 border border-[#BFD6EA]">
+              <Ionicons name="key-outline" size={20} color="#4F6B82" />
+              <TextInput
+                className="ml-3 flex-1 h-full text-center text-2xl font-bold tracking-[8px] text-[#1F3A5F]"
+                style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', includeFontPadding: false }}
+                placeholder="000000"
+                placeholderTextColor="#CBD5E1"
+                value={otpCode}
+                onChangeText={(val) => {
+                  clearOtpError();
+                  setOtpCode(val.replace(/\D/g, "").slice(0, 6));
+                }}
+                keyboardType="number-pad"
+                maxLength={6}
+                autoFocus
+              />
+            </View>
+
+            <PrimaryButton
+              title="Verify Code"
+              variant="orange"
+              onPress={handleVerifyOtp}
+              loading={isOtpVerifying}
+              disabled={otpCode.length !== 6 || isOtpVerifying}
+              className="mb-4"
+            />
+
+            <View className="flex-row items-center justify-center mb-6">
+              <TouchableOpacity
+                onPress={handleResendOtp}
+                disabled={cooldown > 0 || isOtpVerifying}
+                className="py-1 px-2"
+              >
+                <Text className={`text-sm font-semibold ${cooldown > 0 ? "text-[#94A3B8]" : "text-[#F4A47A]"}`}>
+                  {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <SecondaryButton
+              title="Cancel"
+              onPress={handleCancelOtp}
+              disabled={isOtpVerifying}
             />
           </View>
         </View>

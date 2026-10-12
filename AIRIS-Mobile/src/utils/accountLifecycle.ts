@@ -13,6 +13,7 @@ export type AuthTransactionState =
   | "IDLE"
   | "AUTHENTICATING"
   | "INITIALIZING_PROFILE"
+  | "OTP_CHALLENGE"
   | "COMPLETED"
   | "FAILED";
 

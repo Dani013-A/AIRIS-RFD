@@ -4,6 +4,14 @@ jest.mock("react-native", () => ({
   },
 }));
 
+jest.mock("../services/api/otpService", () => ({
+  getStoredStudentOtpSession: jest.fn().mockResolvedValue({ sessionToken: "mock_tok", expiresAt: Date.now() + 100000 }),
+  sendStudentOtp: jest.fn().mockResolvedValue({ success: true, maskedEmail: "a****e@tip.edu.ph" }),
+  verifyStudentOtp: jest.fn().mockResolvedValue({ success: true, sessionToken: "mock_tok" }),
+  storeStudentOtpSession: jest.fn().mockResolvedValue(undefined),
+  clearStudentOtpSession: jest.fn().mockResolvedValue(undefined),
+}));
+
 import { useAuthStore, stopUserRealtimeListener } from "./authStore";
 import {
   determineAccountLifecycleState,
@@ -61,6 +69,10 @@ jest.mock("firebase/firestore", () => ({
   onSnapshot: jest.fn(),
   serverTimestamp: jest.fn(() => "2026-09-14T00:00:00Z"),
   runTransaction: jest.fn(),
+  collection: jest.fn(),
+  getDocs: jest.fn().mockResolvedValue({ docs: [] }),
+  query: jest.fn(),
+  where: jest.fn(),
 }));
 
 jest.mock("../services/firebase/userService", () => ({
@@ -77,6 +89,7 @@ jest.mock("../config/firebase", () => ({
       email: "student@tip.edu.ph",
       emailVerified: true,
       reload: jest.fn().mockResolvedValue(undefined),
+      getIdToken: jest.fn().mockResolvedValue("tok"),
     },
   },
   db: {},
@@ -89,6 +102,10 @@ describe("Registration State Machine Comprehensive Verification", () => {
     jest.clearAllMocks();
     stopUserRealtimeListener();
     process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID = "mock_client_id.apps.googleusercontent.com";
+    (require("../services/api/otpService").getStoredStudentOtpSession as jest.Mock).mockResolvedValue({
+      sessionToken: "mock_tok",
+      expiresAt: Date.now() + 100000,
+    });
     useAuthStore.setState({
       currentUser: null,
       loading: false,
@@ -118,8 +135,8 @@ describe("Registration State Machine Comprehensive Verification", () => {
 
     await useAuthStore.getState().register("fresh@tip.edu.ph", "Pass1234!", "Fresh Student");
 
-    expect(setDoc).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(createProfileTransaction).toHaveBeenCalledWith(
+      "fresh_email_uid",
       expect.objectContaining({
         uid: "fresh_email_uid",
         email: "fresh@tip.edu.ph",
@@ -156,7 +173,7 @@ describe("Registration State Machine Comprehensive Verification", () => {
       hasCompletedOnboarding: false,
     });
 
-    await useAuthStore.getState().loginWithGoogle();
+    await useAuthStore.getState().loginWithGoogle(true);
 
     expect(mockCreateProfileTransaction).toHaveBeenCalledWith(
       "fresh_google_uid",
@@ -195,7 +212,7 @@ describe("Registration State Machine Comprehensive Verification", () => {
       hasCompletedOnboarding: false,
     });
 
-    await useAuthStore.getState().loginWithGoogle();
+    await useAuthStore.getState().loginWithGoogle(true);
 
     expect(mockCreateProfileTransaction).toHaveBeenCalledWith(
       "interrupted_uid",

@@ -27,6 +27,7 @@ import { mapAuthError } from "../../utils/errorMapper";
 import { resolveProfilePhoto, DEFAULT_PROFILE_FALLBACK } from "../../services/firebase/profilePhotoService";
 import { evaluateCareerTargetCompatibility, CareerCompatibilityResult } from "../../services/ai/careerCompatibilityGuardrail";
 import { CareerCompatibilityModal } from "../../components/ui/CareerCompatibilityModal";
+import { auth } from "../../config/firebase";
 
 export default function StudentProfileScreen() {
   const router = useRouter();
@@ -43,6 +44,10 @@ export default function StudentProfileScreen() {
   const activeResume = useResumeStore((state) => state.activeResume);
   const activeAnalysis = useResumeStore((state) => state.activeAnalysis);
   const retargetActiveResume = useResumeStore((state) => state.retargetActiveResume);
+
+  const isGoogleUser = auth.currentUser?.providerData.some(
+    (p) => p.providerId === "google.com"
+  );
 
   const [activeTab, setActiveTab] = useState<"profile" | "settings">("profile");
   const textSize = useAppearanceStore((state) => state.textSize);
@@ -71,6 +76,8 @@ export default function StudentProfileScreen() {
   const [confirmPassVisible, setConfirmPassVisible] = useState(false);
 
   const [showReauthModal, setShowReauthModal] = useState(false);
+  const [deletePhraseInput, setDeletePhraseInput] = useState("");
+  const [needsPasswordReauth, setNeedsPasswordReauth] = useState(false);
   const [reauthPassword, setReauthPassword] = useState("");
   const [reauthPassVisible, setReauthPassVisible] = useState(false);
   const [reauthError, setReauthError] = useState("");
@@ -294,34 +301,53 @@ export default function StudentProfileScreen() {
     }
   };
 
-  const performDeleteCascade = async (passwordToUse: string) => {
-    if (!passwordToUse || !passwordToUse.trim()) {
+  const performDeleteCascade = async () => {
+    if (deletePhraseInput.trim() !== "CONFIRM DELETION") {
+      setReauthError("Please enter 'CONFIRM DELETION' exactly.");
+      return;
+    }
+
+    if (needsPasswordReauth && !isGoogleUser && !reauthPassword.trim()) {
       setReauthError("Please enter your current password to confirm account deletion.");
       return;
     }
 
     setReauthError("");
-    setShowReauthModal(false);
-    setIsDeletingAccount(true);
+    setReauthLoading(true);
 
     try {
-      await deleteAccountAction(passwordToUse.trim());
+      await deleteAccountAction(
+        deletePhraseInput.trim(),
+        reauthPassword && reauthPassword.trim() ? reauthPassword.trim() : undefined
+      );
+      setReauthLoading(false);
+      setShowReauthModal(false);
+      setIsDeletingAccount(true);
       setTimeout(() => {
         setIsDeletingAccount(false);
+        setDeletePhraseInput("");
         setReauthPassword("");
+        setNeedsPasswordReauth(false);
         router.replace("/(auth)/login");
       }, 400);
     } catch (err: any) {
-      setIsDeletingAccount(false);
-      setShowReauthModal(true);
+      setReauthLoading(false);
+      const errCode = err?.code || "";
+      if (errCode === "auth/requires-recent-login" || String(err).includes("requires-recent-login")) {
+        setNeedsPasswordReauth(true);
+        setReauthError("Security policy requires reauthentication. Please enter your password to proceed.");
+        return;
+      }
       const msg = mapAuthError(err);
-      setReauthError(msg || "Account deletion failed. Please verify your password and try again.");
+      setReauthError(msg || (isGoogleUser ? "Google verification was cancelled or failed." : "Account deletion failed. Please try again."));
     }
   };
 
   const handleDeleteAccount = () => {
+    setDeletePhraseInput("");
     setReauthPassword("");
     setReauthError("");
+    setNeedsPasswordReauth(false);
     setShowReauthModal(true);
   };
 
@@ -1013,36 +1039,65 @@ export default function StudentProfileScreen() {
               </TouchableOpacity>
             </View>
 
-            <Text className="text-sm leading-6 text-[#4F6B82] mb-4">
-              Please confirm your current password to continue deleting your account.
+            <Text className="text-sm leading-6 text-[#4F6B82] mb-3">
+              This action will permanently delete your AIRIS student account, including your uploaded resume, AI analysis results, mock interview simulations, and learning progress. This cannot be undone.
             </Text>
 
             <View className="gap-2 mb-4">
-              <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">Current Password</Text>
+              <Text className="text-xs font-bold text-[#1E3E6B] ml-1 tracking-wider uppercase">
+                TYPE <Text className="text-[#DC2626] font-extrabold">CONFIRM DELETION</Text> BELOW:
+              </Text>
               <View className="flex-row items-center rounded-xl border border-[#BFD6EA] px-4 bg-[#F4F8FB] h-12">
                 <TextInput
-                  className="flex-1 h-full text-base text-[#1F3A5F]"
+                  className="flex-1 h-full text-base font-bold text-[#1F3A5F]"
                   style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
-                  placeholder="Enter current password"
+                  placeholder="CONFIRM DELETION"
                   placeholderTextColor="#94A3B8"
-                  value={reauthPassword}
-                  onChangeText={setReauthPassword}
-                  secureTextEntry={!reauthPassVisible}
+                  value={deletePhraseInput}
+                  onChangeText={setDeletePhraseInput}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  spellCheck={false}
                   editable={!reauthLoading}
                 />
-                <TouchableOpacity
-                  onPress={() => setReauthPassVisible((v) => !v)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  className="p-2 -mr-2 items-center justify-center"
-                >
-                  <Ionicons
-                    name={reauthPassVisible ? "eye-off-outline" : "eye-outline"}
-                    size={20}
-                    color="#8B95A5"
-                  />
-                </TouchableOpacity>
               </View>
             </View>
+
+            {isGoogleUser ? (
+              <View className="flex-row items-center gap-2 mb-4 px-3.5 py-2.5 bg-[#F4F8FB] rounded-xl border border-[#BFD6EA]">
+                <Ionicons name="logo-google" size={16} color="#1F3A5F" />
+                <Text className="text-xs text-[#4F6B82] flex-1 leading-4">
+                  Google identity verification will be prompted before your account is deleted.
+                </Text>
+              </View>
+            ) : needsPasswordReauth ? (
+              <View className="gap-2 mb-4">
+                <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">Current Password</Text>
+                <View className="flex-row items-center rounded-xl border border-[#BFD6EA] px-4 bg-[#F4F8FB] h-12">
+                  <TextInput
+                    className="flex-1 h-full text-base text-[#1F3A5F]"
+                    style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
+                    placeholder="Enter current password"
+                    placeholderTextColor="#94A3B8"
+                    value={reauthPassword}
+                    onChangeText={setReauthPassword}
+                    secureTextEntry={!reauthPassVisible}
+                    editable={!reauthLoading}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setReauthPassVisible((v) => !v)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    className="p-2 -mr-2 items-center justify-center"
+                  >
+                    <Ionicons
+                      name={reauthPassVisible ? "eye-off-outline" : "eye-outline"}
+                      size={20}
+                      color="#8B95A5"
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : null}
 
             {reauthError ? (
               <Text className="text-center text-sm font-bold text-[#DC2626] mb-4 px-2">{reauthError}</Text>
@@ -1052,7 +1107,9 @@ export default function StudentProfileScreen() {
               <TouchableOpacity
                 onPress={() => {
                   setShowReauthModal(false);
+                  setDeletePhraseInput("");
                   setReauthPassword("");
+                  setNeedsPasswordReauth(false);
                   setReauthError("");
                 }}
                 disabled={reauthLoading}
@@ -1062,18 +1119,28 @@ export default function StudentProfileScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => performDeleteCascade(reauthPassword.trim())}
-                disabled={reauthLoading || !reauthPassword.trim()}
+                onPress={performDeleteCascade}
+                disabled={
+                  reauthLoading ||
+                  deletePhraseInput.trim() !== "CONFIRM DELETION" ||
+                  (needsPasswordReauth && !isGoogleUser && !reauthPassword.trim())
+                }
                 className={`flex-1 h-12 rounded-xl bg-[#DC2626] items-center justify-center flex-row gap-2 ${
-                  reauthLoading || !reauthPassword.trim() ? "opacity-60" : ""
+                  reauthLoading ||
+                  deletePhraseInput.trim() !== "CONFIRM DELETION" ||
+                  (needsPasswordReauth && !isGoogleUser && !reauthPassword.trim())
+                    ? "opacity-40"
+                    : ""
                 }`}
               >
                 {reauthLoading ? (
                   <ActivityIndicator size="small" color="white" />
                 ) : (
                   <>
-                    <Ionicons name="trash-outline" size={16} color="white" />
-                    <Text className="text-sm font-bold text-white">Confirm Delete</Text>
+                    <Ionicons name={isGoogleUser ? "logo-google" : "trash-outline"} size={16} color="white" />
+                    <Text className="text-sm font-bold text-white">
+                      {isGoogleUser ? "Verify & Delete" : needsPasswordReauth ? "Verify & Delete" : "Delete Account"}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>

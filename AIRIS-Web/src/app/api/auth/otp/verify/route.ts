@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, adminDb } from "../../../../../lib/firebaseAdmin";
 import { verifyOtpHash, createOtpSessionToken, COOKIE_NAME } from "../../../../../lib/otpAuth";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const authHeader = req.headers.get("authorization") || "";
@@ -20,7 +30,7 @@ export async function POST(req: NextRequest) {
     if (!idToken || !code) {
       return NextResponse.json(
         { error: "Authentication token and 6-digit code are required." },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -31,20 +41,30 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json(
         { error: "Invalid or expired session. Please sign in again." },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
 
     const uid = decodedToken.uid;
 
-    // 2. Retrieve challenge from Firestore
-    const challengeRef = adminDb.collection("admin_otp_challenges").doc(uid);
-    const challengeSnap = await challengeRef.get();
+    // 2. Fetch user profile to identify role and challenge collection
+    const userDoc = await adminDb.collection("users").doc(uid).get();
+    const role = userDoc.exists ? userDoc.data()?.role || "student" : "student";
+    const primaryCollection = role === "student" ? "student_otp_challenges" : "admin_otp_challenges";
+    const fallbackCollection = role === "student" ? "admin_otp_challenges" : "student_otp_challenges";
+
+    let challengeRef = adminDb.collection(primaryCollection).doc(uid);
+    let challengeSnap = await challengeRef.get();
+
+    if (!challengeSnap.exists) {
+      challengeRef = adminDb.collection(fallbackCollection).doc(uid);
+      challengeSnap = await challengeRef.get();
+    }
 
     if (!challengeSnap.exists) {
       return NextResponse.json(
         { error: "No active verification challenge found. Please request a new code.", code: "NOT_FOUND" },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
 
@@ -55,7 +75,7 @@ export async function POST(req: NextRequest) {
     if (challenge.verified === true) {
       return NextResponse.json(
         { error: "This verification code has already been used. Please sign in again.", code: "ALREADY_USED" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -64,7 +84,7 @@ export async function POST(req: NextRequest) {
       await challengeRef.update({ expired: true });
       return NextResponse.json(
         { error: "Verification code has expired. Please request a new code.", code: "EXPIRED" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -74,7 +94,7 @@ export async function POST(req: NextRequest) {
       await challengeRef.update({ locked: true });
       return NextResponse.json(
         { error: "Maximum verification attempts exceeded. Please request a new code.", code: "MAX_ATTEMPTS" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -93,13 +113,13 @@ export async function POST(req: NextRequest) {
       if (remaining === 0) {
         return NextResponse.json(
           { error: "Maximum attempts exceeded. This code has been invalidated.", code: "MAX_ATTEMPTS", remainingAttempts: 0 },
-          { status: 400 }
+          { status: 400, headers: corsHeaders }
         );
       }
 
       return NextResponse.json(
         { error: `Incorrect verification code. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`, remainingAttempts: remaining },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -109,28 +129,33 @@ export async function POST(req: NextRequest) {
       consumedAt: now,
     });
 
-    // 8. Fetch user role to include in session
-    const userDoc = await adminDb.collection("users").doc(uid).get();
-    const role = userDoc.exists ? userDoc.data()?.role || "admin" : "admin";
-
-    // 9. Generate signed session token
+    // 8. Generate signed session token
     const sessionToken = createOtpSessionToken(uid, challenge.email, role);
 
-    // 10. Set secure HTTP-only cookie
+    // 9. Return JSON with sessionToken for mobile/API clients
     const response = NextResponse.json({
       success: true,
       message: "Two-factor verification successful.",
-    });
+      sessionToken,
+      user: {
+        uid,
+        email: challenge.email,
+        role,
+      },
+    }, { headers: corsHeaders });
 
-    response.cookies.set({
-      name: COOKIE_NAME,
-      value: sessionToken,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 8 * 3600, // 8 hours
-    });
+    // 10. For administrative browser sessions, also set secure HTTP-only cookie
+    if (role !== "student") {
+      response.cookies.set({
+        name: COOKIE_NAME,
+        value: sessionToken,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 8 * 3600, // 8 hours
+      });
+    }
 
     return response;
   } catch (err: unknown) {
@@ -138,7 +163,7 @@ export async function POST(req: NextRequest) {
     console.error("[OTP Verify Error]:", errorMsg);
     return NextResponse.json(
       { error: "An unexpected error occurred during verification." },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }

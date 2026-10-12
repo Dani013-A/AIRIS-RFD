@@ -66,6 +66,18 @@ jest.mock("firebase/firestore", () => ({
   onSnapshot: jest.fn(),
   serverTimestamp: jest.fn(() => "2026-09-13T00:00:00Z"),
   runTransaction: jest.fn(),
+  collection: jest.fn(),
+  query: jest.fn(),
+  where: jest.fn(),
+  getDocs: jest.fn().mockResolvedValue({ docs: [] }),
+}));
+
+jest.mock("../services/api/otpService", () => ({
+  getStoredStudentOtpSession: jest.fn().mockResolvedValue({ sessionToken: "mock_tok", expiresAt: Date.now() + 100000 }),
+  sendStudentOtp: jest.fn().mockResolvedValue({ success: true, maskedEmail: "s****t@tip.edu.ph" }),
+  verifyStudentOtp: jest.fn().mockResolvedValue({ success: true, sessionToken: "mock_tok" }),
+  storeStudentOtpSession: jest.fn().mockResolvedValue(undefined),
+  clearStudentOtpSession: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock("../services/firebase/userService", () => ({
@@ -175,7 +187,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
       (getAdditionalUserInfo as jest.Mock).mockReturnValueOnce({ isNewUser: true });
       (getDoc as jest.Mock).mockResolvedValueOnce({ exists: () => false, data: () => null });
 
-      await useAuthStore.getState().loginWithGoogle();
+      await useAuthStore.getState().loginWithGoogle(true);
 
       expect(mockFirebaseUser.getIdToken).toHaveBeenCalledWith(true);
       expect(mockCreateProfileTransaction).toHaveBeenCalledWith(
@@ -208,7 +220,8 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
       (getAdditionalUserInfo as jest.Mock).mockReturnValueOnce({ isNewUser: false });
       (getDoc as jest.Mock).mockResolvedValueOnce({ exists: () => false, data: () => null });
 
-      await useAuthStore.getState().loginWithGoogle();
+      // Registration intent (RegisterScreen) safely provisions missing profile
+      await useAuthStore.getState().loginWithGoogle(true);
 
       expect(mockFirebaseUser.getIdToken).toHaveBeenCalledWith(true);
       expect(mockCreateProfileTransaction).toHaveBeenCalledWith(
@@ -264,6 +277,39 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
       expect(useAuthStore.getState().error).toBeNull();
     });
 
+    it("should allow existing Google user with incomplete profile to log in without re-registering", async () => {
+      const mockFirebaseUser = {
+        uid: "incomplete_uid",
+        email: "incomplete@tip.edu.ph",
+        emailVerified: true,
+        displayName: "Incomplete Student",
+        getIdToken: jest.fn().mockResolvedValue("mock_token"),
+      };
+      (signInWithCredential as jest.Mock).mockResolvedValueOnce({
+        user: mockFirebaseUser,
+      });
+      (getAdditionalUserInfo as jest.Mock).mockReturnValueOnce({ isNewUser: false });
+      (getDoc as jest.Mock).mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({
+          uid: "incomplete_uid",
+          email: "incomplete@tip.edu.ph",
+          role: "student",
+          accountState: "ACTIVE",
+          isDeleted: false,
+          isDisabled: false,
+          isProfileComplete: false,
+          hasCompletedOnboarding: false,
+        }),
+      });
+
+      await useAuthStore.getState().loginWithGoogle(false);
+
+      expect(mockCreateProfileTransaction).not.toHaveBeenCalled();
+      expect(useAuthStore.getState().currentUser?.uid).toBe("incomplete_uid");
+      expect(useAuthStore.getState().currentUser?.hasCompletedOnboarding).toBe(false);
+    });
+
     it("should normalize permission-denied error without leaking raw technical strings", async () => {
       const mockFirebaseUser = {
         uid: "perm_err_uid",
@@ -280,13 +326,88 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
       (getDoc as jest.Mock).mockResolvedValueOnce({ exists: () => false, data: () => null });
       mockCreateProfileTransaction.mockRejectedValueOnce(new Error("Missing or insufficient permissions."));
 
-      await expect(useAuthStore.getState().loginWithGoogle()).rejects.toThrow(
+      await expect(useAuthStore.getState().loginWithGoogle(true)).rejects.toThrow(
         "We couldn't finish setting up your account. Please try again."
       );
       expect(signOut).toHaveBeenCalled();
       expect(useAuthStore.getState().error).toBe(
         "We couldn't finish setting up your account. Please try again."
       );
+    });
+
+    it("should reject Google login on login screen when user is new and not registered", async () => {
+      const mockFirebaseUser = {
+        uid: "unregistered_uid",
+        email: "unregistered@tip.edu.ph",
+        emailVerified: true,
+        displayName: "Unregistered Student",
+        getIdToken: jest.fn().mockResolvedValue("mock_token"),
+        providerData: [{ providerId: "google.com" }],
+      };
+
+      (signInWithCredential as jest.Mock).mockResolvedValueOnce({
+        user: mockFirebaseUser,
+      });
+      (getAdditionalUserInfo as jest.Mock).mockReturnValueOnce({ isNewUser: true });
+      (getDoc as jest.Mock).mockResolvedValueOnce({ exists: () => false, data: () => null });
+
+      await expect(useAuthStore.getState().loginWithGoogle(false)).rejects.toThrow(
+        "No AIRIS account found. Please sign up to continue."
+      );
+      expect(deleteUser).toHaveBeenCalledWith(mockFirebaseUser);
+      expect(mockCreateProfileTransaction).not.toHaveBeenCalled();
+      expect(signOut).toHaveBeenCalled();
+      expect(useAuthStore.getState().pendingGoogleEmail).toBe("unregistered@tip.edu.ph");
+    });
+
+    it("should safely sign out and surface guidance even if deleteUser fails during cleanup", async () => {
+      const mockFirebaseUser = {
+        uid: "unregistered_fail_del_uid",
+        email: "unregistered_fail@tip.edu.ph",
+        emailVerified: true,
+        displayName: "Unregistered Student",
+        getIdToken: jest.fn().mockResolvedValue("mock_token"),
+        providerData: [{ providerId: "google.com" }],
+      };
+
+      (signInWithCredential as jest.Mock).mockResolvedValueOnce({
+        user: mockFirebaseUser,
+      });
+      (getAdditionalUserInfo as jest.Mock).mockReturnValueOnce({ isNewUser: true });
+      (getDoc as jest.Mock).mockResolvedValueOnce({ exists: () => false, data: () => null });
+      (deleteUser as jest.Mock).mockRejectedValueOnce(new Error("Firebase network error"));
+
+      await expect(useAuthStore.getState().loginWithGoogle(false)).rejects.toThrow(
+        "No AIRIS account found. Please sign up to continue."
+      );
+      expect(signOut).toHaveBeenCalled();
+      expect(mockCreateProfileTransaction).not.toHaveBeenCalled();
+      expect(useAuthStore.getState().error).toBe(
+        "No AIRIS account found. Please sign up to continue."
+      );
+      expect(useAuthStore.getState().pendingGoogleEmail).toBe("unregistered_fail@tip.edu.ph");
+    });
+
+    it("should handle Google sign-in cancellation silently without error banner", async () => {
+      const GoogleSignin = require("@react-native-google-signin/google-signin").GoogleSignin;
+      const statusCodes = require("@react-native-google-signin/google-signin").statusCodes;
+      GoogleSignin.signIn.mockRejectedValueOnce({ code: statusCodes.SIGN_IN_CANCELLED });
+
+      await useAuthStore.getState().loginWithGoogle();
+
+      expect(useAuthStore.getState().authTransactionState).toBe("IDLE");
+      expect(useAuthStore.getState().error).toBeNull();
+    });
+
+    it("should surface connection failure message on Google network error", async () => {
+      const GoogleSignin = require("@react-native-google-signin/google-signin").GoogleSignin;
+      GoogleSignin.signIn.mockRejectedValueOnce({ code: "NETWORK_ERROR", message: "Network error" });
+
+      await expect(useAuthStore.getState().loginWithGoogle()).rejects.toThrow(
+        "Network error. Please check your internet connection."
+      );
+      expect(useAuthStore.getState().authTransactionState).toBe("FAILED");
+      expect(useAuthStore.getState().error).toBe("Network error. Please check your internet connection.");
     });
 
     it("should reject Google login for disabled/paused user with explicit admin paused message", async () => {
@@ -300,7 +421,10 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
         user: mockFirebaseUser,
       });
       (getAdditionalUserInfo as jest.Mock).mockReturnValueOnce({ isNewUser: false });
-      mockCreateProfileTransaction.mockRejectedValueOnce(new Error(ACCOUNT_PAUSED_MSG));
+      (getDoc as jest.Mock).mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({ uid: "disabled_uid", isDisabled: true, accountState: "DISABLED" }),
+      });
 
       await expect(useAuthStore.getState().loginWithGoogle()).rejects.toThrow(ACCOUNT_PAUSED_MSG);
       expect(signOut).toHaveBeenCalled();
@@ -318,7 +442,10 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
         user: mockFirebaseUser,
       });
       (getAdditionalUserInfo as jest.Mock).mockReturnValueOnce({ isNewUser: false });
-      mockCreateProfileTransaction.mockRejectedValueOnce(new Error(ACCOUNT_REMOVED_MSG));
+      (getDoc as jest.Mock).mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({ uid: "deleted_uid", isDeleted: true, accountState: "DELETED" }),
+      });
 
       await expect(useAuthStore.getState().loginWithGoogle()).rejects.toThrow(ACCOUNT_REMOVED_MSG);
       expect(signOut).toHaveBeenCalled();
@@ -349,8 +476,8 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
       expect(user.isDeleted).toBe(false);
       expect(user.isDisabled).toBe(false);
       expect(sendEmailVerification).toHaveBeenCalled();
-      expect(setDoc).toHaveBeenCalledWith(
-        expect.anything(),
+      expect(mockCreateProfileTransaction).toHaveBeenCalledWith(
+        "email_reg_uid",
         expect.objectContaining({
           accountState: "ACTIVE",
           isDeleted: false,
@@ -372,15 +499,49 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
       await expect(loginUser("student@tip.edu.ph", "Pass123!")).rejects.toThrow(EmailNotVerifiedError);
     });
 
-    it("should reject email login when Firestore profile is missing and not blame admin", async () => {
+    it("should recover missing Firestore profile during email login for existing Auth user", async () => {
       const mockUser = {
         uid: "no_profile_uid",
         email: "student@tip.edu.ph",
         emailVerified: true,
         reload: jest.fn().mockResolvedValue(undefined),
+        getIdToken: jest.fn().mockResolvedValue("mock_token"),
       };
       (signInWithEmailAndPassword as jest.Mock).mockResolvedValueOnce({ user: mockUser });
       (getDoc as jest.Mock).mockResolvedValueOnce({ exists: () => false, data: () => null });
+      mockCreateProfileTransaction.mockResolvedValueOnce({
+        uid: "no_profile_uid",
+        email: "student@tip.edu.ph",
+        fullName: "TIP Student",
+        role: "student",
+        accountState: "ACTIVE",
+        isDeleted: false,
+        isDisabled: false,
+      });
+
+      const user = await loginUser("student@tip.edu.ph", "Pass123!");
+      expect(mockCreateProfileTransaction).toHaveBeenCalledWith(
+        "no_profile_uid",
+        expect.objectContaining({
+          uid: "no_profile_uid",
+          email: "student@tip.edu.ph",
+          accountState: "ACTIVE",
+        })
+      );
+      expect(user.uid).toBe("no_profile_uid");
+    });
+
+    it("should reject email login when missing profile recovery fails", async () => {
+      const mockUser = {
+        uid: "fail_profile_uid",
+        email: "student@tip.edu.ph",
+        emailVerified: true,
+        reload: jest.fn().mockResolvedValue(undefined),
+        getIdToken: jest.fn().mockResolvedValue("mock_token"),
+      };
+      (signInWithEmailAndPassword as jest.Mock).mockResolvedValueOnce({ user: mockUser });
+      (getDoc as jest.Mock).mockResolvedValueOnce({ exists: () => false, data: () => null });
+      mockCreateProfileTransaction.mockRejectedValueOnce(new Error("Write failed"));
 
       await expect(loginUser("student@tip.edu.ph", "Pass123!")).rejects.toThrow(ACCOUNT_MISSING_PROFILE_MSG);
       expect(signOut).toHaveBeenCalled();

@@ -9,23 +9,23 @@ import {
 } from "./errorMapper";
 
 describe("Error Normalization Architecture & Security Boundary", () => {
-  describe("Authentication Credential Errors & Enumeration Protection", () => {
-    it("should map auth/invalid-credential to guidance without 'no account found'", () => {
+  describe("Authentication Credential Errors & Guidance", () => {
+    it("should map auth/invalid-credential to guidance with Google sign-in hint", () => {
       const result = mapAuthError({ code: "auth/invalid-credential", message: "INVALID_LOGIN_CREDENTIALS" });
       expect(result).toBe(MSG_INVALID_CREDENTIAL);
-      expect(result).not.toContain("No account found");
       expect(result).toContain("Google");
     });
 
-    it("should map auth/wrong-password to generalized credential error", () => {
+    it("should map auth/wrong-password to clear password guidance with Google sign-in guidance", () => {
       const result = mapAuthError({ code: "auth/wrong-password", message: "Wrong password" });
       expect(result).toBe(MSG_INVALID_CREDENTIAL);
+      expect(result).toContain("Google");
     });
 
-    it("should map auth/user-not-found to generalized credential error to prevent account enumeration", () => {
+    it("should map auth/user-not-found to actionable account-not-found message with sign-up", () => {
       const result = mapAuthError({ code: "auth/user-not-found", message: "User not found" });
-      expect(result).toBe(MSG_INVALID_CREDENTIAL);
-      expect(result).not.toContain("No account found");
+      expect(result).toBe("No AIRIS account found with this email. Please sign up to continue.");
+      expect(result).toContain("sign up");
     });
   });
 

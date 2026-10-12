@@ -1,5 +1,6 @@
 import {
   copyAsync,
+  deleteAsync,
   documentDirectory,
   EncodingType,
   getInfoAsync,
@@ -132,5 +133,21 @@ export async function saveResumeLocally(
     console.error("[Local Resume Storage] Failed to save files locally:", err);
     // Return mock values so it doesn't block Firestore write if local disk is full/fails
     return { localFileUri: fileUri, localTextUri: "", checksum: "error" };
+  }
+}
+
+/**
+ * Clean up locally cached resume files for a specified user upon account deletion.
+ */
+export async function deleteLocalResumeData(userId: string): Promise<void> {
+  try {
+    const userDir = `${LOCAL_RESUMES_DIR}${userId}/`;
+    const dirInfo = await getInfoAsync(userDir);
+    if (dirInfo.exists) {
+      await deleteAsync(userDir, { idempotent: true });
+      console.log(`[Local Resume Storage] Successfully cleaned up local files for user ${userId}.`);
+    }
+  } catch (err) {
+    console.warn(`[Local Resume Storage] Cleanup warning for ${userId}:`, err);
   }
 }
