@@ -251,9 +251,9 @@ export default function LoginPage() {
       {/* Left panel: campus background image with warm tint overlay */}
       <div className="relative hidden md:block md:w-3/5 lg:w-2/3 h-full overflow-hidden">
         <img
-          src="/TIPFront.png"
+          src="/TIPMNL.jpg"
           alt="Technological Institute of the Philippines Campus"
-          className="w-full h-full object-cover scale-110 blur-[2px]"
+          className="w-full h-full object-cover object-[0%_center] scale-110 blur-[2px]"
         />
 
         {/* Overlay */}
