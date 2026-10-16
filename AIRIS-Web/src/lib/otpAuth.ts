@@ -1,7 +1,12 @@
 import crypto from "crypto";
 
-const OTP_SECRET = process.env.OTP_SECRET_KEY || "airis-super-secret-admin-otp-key-2026";
 const COOKIE_NAME = "airis_admin_otp_token";
+
+export function assertOtpSecretConfigured(): string {
+  const secret = process.env.OTP_SECRET_KEY;
+  if (!secret) throw new Error("OTP_SECRET_KEY is required");
+  return secret;
+}
 
 export interface OtpSessionPayload {
   uid: string;
@@ -15,7 +20,7 @@ export interface OtpSessionPayload {
  * Computes a secure HMAC-SHA256 hash for storing the OTP.
  */
 export function hashOtp(otp: string): string {
-  return crypto.createHmac("sha256", OTP_SECRET).update(otp.trim()).digest("hex");
+  return crypto.createHmac("sha256", assertOtpSecretConfigured()).update(otp.trim()).digest("hex");
 }
 
 /**
@@ -46,7 +51,7 @@ export function createOtpSessionToken(uid: string, email: string, role = "admin"
   };
 
   const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  const signature = crypto.createHmac("sha256", OTP_SECRET).update(payloadBase64).digest("base64url");
+  const signature = crypto.createHmac("sha256", assertOtpSecretConfigured()).update(payloadBase64).digest("base64url");
   return `${payloadBase64}.${signature}`;
 }
 
@@ -61,7 +66,7 @@ export function verifyOtpSessionToken(token: string | null | undefined): OtpSess
   const [payloadBase64, providedSig] = parts;
 
   try {
-    const expectedSig = crypto.createHmac("sha256", OTP_SECRET).update(payloadBase64).digest("base64url");
+    const expectedSig = crypto.createHmac("sha256", assertOtpSecretConfigured()).update(payloadBase64).digest("base64url");
     const providedBuf = Buffer.from(providedSig);
     const expectedBuf = Buffer.from(expectedSig);
 

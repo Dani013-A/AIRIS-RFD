@@ -26,7 +26,7 @@ class TestRoleProfileRegistry(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Load the official 146 unique career titles from tipManilaPrograms
-        tip_json = "/Users/danieltan/.gemini/antigravity-ide/brain/a381e712-0e58-4975-bea8-27cf8673f46f/scratch/tip_programs.json"
+        tip_json = os.path.join(os.path.dirname(__file__), "data", "tip_programs.json")
         with open(tip_json, "r", encoding="utf-8") as f:
             colleges = json.load(f)
         cls.catalog_careers = sorted(list({

@@ -10,6 +10,8 @@ import {
 } from "./otpAuth.ts";
 import { sendStudentOtpEmail } from "../services/mail/mailService.ts";
 
+process.env.OTP_SECRET_KEY ||= "test-only-otp-secret-for-unit-tests";
+
 test("Student OTP Challenge: Cryptographic 6-digit generation and hash security", () => {
   const rawOtp = crypto.randomInt(100000, 1000000).toString();
   assert.equal(rawOtp.length, 6);

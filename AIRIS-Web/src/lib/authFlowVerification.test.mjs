@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import crypto from "crypto";
 import { hashOtp, verifyOtpHash, createOtpSessionToken, verifyOtpSessionToken, COOKIE_NAME } from "./otpAuth.ts";
 
+process.env.OTP_SECRET_KEY ||= "test-only-otp-secret-for-unit-tests";
+
 test("Check 1 & 2: OTP Challenge Creation & Hash Safety", () => {
   const rawOtp = crypto.randomInt(100000, 1000000).toString();
   const hashed = hashOtp(rawOtp);

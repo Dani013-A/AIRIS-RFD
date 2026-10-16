@@ -246,6 +246,7 @@ function StudentsDirectoryContent() {
           <Search size={18} className="text-brand-slate mr-3 shrink-0" />
           <input
             type="text"
+            aria-label="Search students"
             placeholder="Search by student name, TIP institutional email, program track, or target position..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}

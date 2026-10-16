@@ -1,0 +1,59 @@
+{
+  "fixtureType": "AIRIS_SYNTHETIC_UAT_RESUME",
+  "isSyntheticUat": true,
+  "description": "Standardized entry-level synthetic resume fixture for AIRIS UAT cohort. Qualifications and experiences are identical across all participants; only candidate identity fields (name and institutional email) are substituted.",
+  "targetPosition": "Junior Software Engineer",
+  "template": {
+    "sections": {
+      "contact": {
+        "fullNamePlaceholder": "{{FULL_NAME}}",
+        "emailPlaceholder": "{{EMAIL}}",
+        "institution": "Technological Institute of the Philippines (T.I.P.) Manila",
+        "contactNote": "Synthetic UAT Evaluation Material - Academic Research Only"
+      },
+      "summary": "Motivated entry-level candidate from the Technological Institute of the Philippines Manila. Eager to contribute foundational skills in software development, web technologies, and database management toward an entry-level software engineering role.",
+      "education": {
+        "institution": "Technological Institute of the Philippines (T.I.P.) Manila",
+        "degree": "Bachelor of Science in Information Technology",
+        "expectedGraduation": "2026",
+        "relevantCoursework": "Data Structures, Object-Oriented Programming, Database Systems, Web Development, Software Engineering"
+      },
+      "technicalSkills": {
+        "languages": ["JavaScript", "TypeScript", "Python", "SQL"],
+        "frameworksAndLibraries": ["React", "Node.js", "Express", "Tailwind CSS"],
+        "toolsAndDatabases": ["Git", "GitHub", "PostgreSQL", "Firebase", "VS Code"],
+        "coreCompetencies": ["Software Development", "API Integration", "Unit Testing", "Debugging", "Team Collaboration"]
+      },
+      "projects": [
+        {
+          "name": "Academic Project Management System",
+          "description": "Developed a full-stack task tracking application for student project teams using TypeScript, React, and RESTful APIs.",
+          "highlights": [
+            "Implemented role-based task delegation and real-time activity tracking.",
+            "Designed relational database schema and integrated automated schema validation."
+          ]
+        },
+        {
+          "name": "Career Readiness Assessment Tool",
+          "description": "Collaborated in developing a student portfolio and evaluation utility.",
+          "highlights": [
+            "Parsed and structured resume profile fields for automated skills alignment.",
+            "Created responsive frontend interfaces adhering to accessibility standards."
+          ]
+        }
+      ],
+      "experience": [
+        {
+          "role": "Software Engineering Practicum Intern",
+          "company": "Academic Practicum Program - T.I.P. Manila",
+          "duration": "June 2025 – August 2025",
+          "responsibilities": [
+            "Assisted in unit testing, code reviews, and bug fixes for web application modules.",
+            "Documented API endpoints and participated in weekly agile sprint retrospectives."
+          ]
+        }
+      ]
+    },
+    "rawTextTemplate": "{{FULL_NAME}}\nEmail: {{EMAIL}}\nInstitution: Technological Institute of the Philippines (T.I.P.) Manila\nNotice: Synthetic UAT Evaluation Material - Academic Research Only\n\nPROFESSIONAL SUMMARY\nMotivated entry-level candidate from the Technological Institute of the Philippines Manila. Eager to contribute foundational skills in software development, web technologies, and database management toward an entry-level software engineering role.\n\nEDUCATION\nTechnological Institute of the Philippines (T.I.P.) Manila\nBachelor of Science in Information Technology\nExpected Graduation: 2026\nRelevant Coursework: Data Structures, Object-Oriented Programming, Database Systems, Web Development, Software Engineering\n\nTECHNICAL SKILLS\nProgramming Languages: JavaScript, TypeScript, Python, SQL\nFrameworks & Libraries: React, Node.js, Express, Tailwind CSS\nTools & Platforms: Git, GitHub, PostgreSQL, Firebase, VS Code\nCore Competencies: Software Development, API Integration, Unit Testing, Debugging, Team Collaboration\n\nPROJECTS\nAcademic Project Management System\n- Developed a full-stack task tracking application for student project teams using TypeScript, React, and RESTful APIs.\n- Implemented role-based task delegation and real-time activity tracking.\n- Designed relational database schema and integrated automated schema validation.\n\nCareer Readiness Assessment Tool\n- Collaborated in developing a student portfolio and evaluation utility.\n- Parsed and structured resume profile fields for automated skills alignment.\n- Created responsive frontend interfaces adhering to accessibility standards.\n\nWORK EXPERIENCE\nSoftware Engineering Practicum Intern\nAcademic Practicum Program - T.I.P. Manila (June 2025 – August 2025)\n- Assisted in unit testing, code reviews, and bug fixes for web application modules.\n- Documented API endpoints and participated in weekly agile sprint retrospectives."
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "fixtureType": "AIRIS_SYNTHETIC_UAT_EVALUATION",
+  "isSyntheticUat": true,
+  "description": "Standardized synthetic UAT evaluation fixture for AIRIS UAT cohort. Scores and component metrics are derived from canonical deterministic formulas. Sits in the Proficient Preparedness band.",
+  "scoringFormula": "Employability Preparedness = round((Resume Score * 0.40) + (Interview Score * 0.60))",
+  "scoringDerivation": "round((75 * 0.40) + (85 * 0.60)) = round(30.0 + 51.0) = 81",
+  "metrics": {
+    "resumeScore": 75,
+    "interviewScore": 85,
+    "employabilityScore": 81,
+    "scoreBand": "Proficient Preparedness",
+    "scoreBandRange": "70 – 84",
+    "employabilityStatus": "completed",
+    "interviewStatus": "completed",
+    "resumeStatus": "success"
+  },
+  "atsScore": {
+    "overallScore": 75,
+    "level": "PROFICIENT",
+    "levelLabel": "Proficient Preparedness"
+  },
+  "alignmentScore": {
+    "overallScore": 75,
+    "formula": "Alignment Score = round(0.40 * Skills + 0.30 * Experience + 0.20 * Education + 0.10 * Certifications)",
+    "dimensions": {
+      "skills": {
+        "rawScore": 75,
+        "weight": 0.40,
+        "weightedScore": 30.0
+      },
+      "experience": {
+        "rawScore": 75,
+        "weight": 0.30,
+        "weightedScore": 22.5
+      },
+      "education": {
+        "rawScore": 80,
+        "weight": 0.20,
+        "weightedScore": 16.0
+      },
+      "certifications": {
+        "rawScore": 65,
+        "weight": 0.10,
+        "weightedScore": 6.5
+      }
+    }
+  },
+  "interviewEvaluation": {
+    "status": "completed",
+    "overallScore": 85,
+    "turnCount": 10,
+    "communicationScore": 84,
+    "relevanceScore": 86,
+    "structureScore": 85,
+    "feedbackSummary": "Candidate demonstrated solid foundational understanding and structured communication across core fresh-graduate employability competencies.",
+    "isSyntheticUat": true
+  },
+  "uatForm": {
+    "formName": "AIRIS Mobile Application – User Acceptance Testing (UAT) Evaluation Form",
+    "privacyNotice": "In compliance with the Data Privacy Act of 2012, all collected personal and evaluation data will be treated with strict confidentiality and used solely for academic research and capstone evaluation purposes.",
+    "consentQuestion": "Do you consent to the collection and processing of your responses?",
+    "consentResponse": "Yes, I consent."
+  }
+}

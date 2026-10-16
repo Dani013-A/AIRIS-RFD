@@ -51,6 +51,39 @@ ATS_DIMENSION_WEIGHTS: Dict[str, float] = {
     "dateRecognition": 0.10,
 }
 
+def _evaluate_ats_experience_parseability(evidence_chunks: List[EvidenceChunk], parsed: Optional[Dict[str, Any]] = None) -> float:
+    if parsed is None:
+        parsed = {}
+    exp_chunks = [
+        c for c in evidence_chunks
+        if c.section in {"WorkExperience", "Internships", "Projects", "OrganizationsLeadership", "Achievements"}
+    ]
+    exp_struct_score = 0.0
+    if exp_chunks or str(parsed.get("WorkExperience", "") or parsed.get("Projects", "")).strip():
+        exp_struct_score += 25.0
+
+        if len(exp_chunks) >= 2:
+            exp_struct_score += 25.0
+        elif len(exp_chunks) >= 1:
+            exp_struct_score += 15.0
+
+        all_exp_text = " ".join(c.text for c in exp_chunks).lower() if exp_chunks else str(parsed.get("WorkExperience", "")).lower()
+        matched_actions = sum(1 for verb in CONTRIBUTION_ACTION_VERBS if re.search(r'\b' + re.escape(verb) + r'\b', all_exp_text))
+        if matched_actions >= 3:
+            exp_struct_score += 25.0
+        elif matched_actions >= 1:
+            exp_struct_score += 18.0
+        else:
+            exp_struct_score += 10.0
+
+        substantive_entries = sum(1 for c in exp_chunks if c.wordCount >= 6)
+        if substantive_entries >= 2:
+            exp_struct_score += 25.0
+        elif substantive_entries >= 1:
+            exp_struct_score += 15.0
+    return min(100.0, max(0.0, exp_struct_score))
+
+
 def evaluate_ats_machine_readability(
     evidence_chunks: List[EvidenceChunk],
     parsed_sections: Optional[Dict[str, Any]] = None,
@@ -185,34 +218,7 @@ def evaluate_ats_machine_readability(
     skills_fmt_score = min(100.0, max(0.0, skills_fmt_score))
 
     # 4. Experience Structure (0–100)
-    exp_chunks = [
-        c for c in evidence_chunks
-        if c.section in {"WorkExperience", "Internships", "Projects", "OrganizationsLeadership", "Achievements"}
-    ]
-    exp_struct_score = 0.0
-    if exp_chunks or str(parsed.get("WorkExperience", "") or parsed.get("Projects", "")).strip():
-        exp_struct_score += 25.0
-
-        if len(exp_chunks) >= 2:
-            exp_struct_score += 25.0
-        elif len(exp_chunks) >= 1:
-            exp_struct_score += 15.0
-
-        all_exp_text = " ".join(c.text for c in exp_chunks).lower() if exp_chunks else str(parsed.get("WorkExperience", "")).lower()
-        matched_actions = sum(1 for verb in CONTRIBUTION_ACTION_VERBS if re.search(r'\b' + re.escape(verb) + r'\b', all_exp_text))
-        if matched_actions >= 3:
-            exp_struct_score += 25.0
-        elif matched_actions >= 1:
-            exp_struct_score += 18.0
-        else:
-            exp_struct_score += 10.0
-
-        substantive_entries = sum(1 for c in exp_chunks if c.wordCount >= 6)
-        if substantive_entries >= 2:
-            exp_struct_score += 25.0
-        elif substantive_entries >= 1:
-            exp_struct_score += 15.0
-    exp_struct_score = min(100.0, max(0.0, exp_struct_score))
+    exp_struct_score = _evaluate_ats_experience_parseability(evidence_chunks, parsed)
 
     # 5. Education Structure (0–100)
     edu_text = str(parsed.get("Education", "") or parsed.get("RelevantCoursework", "")).strip()
@@ -819,14 +825,13 @@ def calculate_canonical_resume_score(
         role_profile_metadata=role_profile_metadata
     )
 
-    # 3. Canonical Combined Formula
+    # 3. Authoritative Manuscript Resume Score (Chapter 3, Section 3.3.1, Table 3.2)
+    # The 40/30/20/10 matrix is authoritative: Skills (40%), Experience (30%), Education (20%), Certifications (10%).
+    # ATS Machine Readability is preserved as a separately identified diagnostic metric.
     ats_score = ats_payload["overallScore"]
     align_score = alignment_payload["overallScore"]
 
-    ats_contribution = round(ats_score * 0.40, 1)
-    align_contribution = round(align_score * 0.60, 1)
-    resume_score_exact = (ats_score * 0.40) + (align_score * 0.60)
-    resume_score = min(100, max(0, round(resume_score_exact)))
+    resume_score = align_score
 
     if resume_score >= 85:
         overall_level = "ExcellentMatch"
@@ -858,17 +863,19 @@ def calculate_canonical_resume_score(
         "resumeScore": {
             "overallScore": resume_score,
             "level": overall_level,
-            "atsContribution": ats_contribution,
-            "alignmentContribution": align_contribution,
-            "formula": "Resume Score = ATS Score × 0.40 + Alignment Score × 0.60",
+            "atsContribution": round(ats_score * 0.40, 1),
+            "alignmentContribution": round(align_score * 0.60, 1),
+            "formula": "Resume Score = round(Skills × 0.40 + Experience × 0.30 + Education × 0.20 + Certifications × 0.10)",
             "total": resume_score,
-            "breakdown": legacy_resume_score_breakdown
+            "breakdown": legacy_resume_score_breakdown,
+            "diagnosticAtsScore": ats_score
         },
         "atsScore": {
             "overallScore": ats_score,
             "level": ats_payload["level"],
             "levelLabel": ats_payload["levelLabel"],
             "breakdown": ats_payload["breakdown"],
+            "diagnosticSummary": "Role-independent machine-readability analysis (contact, section headings, layout, dates, formatting)",
             "roleRelevance": legacy_role_relevance,
             "resumeScore": {
                 "total": resume_score,
@@ -880,7 +887,7 @@ def calculate_canonical_resume_score(
         "traceability": {
             "scoringModelVersion": "3.0.0-canonical",
             "auditStatus": audit_status_metadata,
-            "formula": "Resume Score = round(ATS * 0.40 + Alignment * 0.60)",
+            "formula": "Resume Score = round(Skills × 0.40 + Experience × 0.30 + Education × 0.20 + Certifications × 0.10)",
             "roleProfileId": (role_profile_metadata or {}).get("roleProfileId", f"static_{target_position.lower().replace(' ', '_')}"),
             "roleProfileVersion": (role_profile_metadata or {}).get("roleProfileVersion", "1.0.0"),
             "profileSource": (role_profile_metadata or {}).get("profileSource", "AUTHORITATIVE_STATIC"),

@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { hashOtp, verifyOtpHash, createOtpSessionToken, verifyOtpSessionToken } from "./otpAuth.ts";
 
+process.env.OTP_SECRET_KEY ||= "test-only-otp-secret-for-unit-tests";
+
 test("OTP Verification Flow: full challenge lifecycle simulation", () => {
   const secretOtp = "482910";
   const hashedOtp = hashOtp(secretOtp);

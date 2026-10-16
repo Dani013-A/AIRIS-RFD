@@ -2,6 +2,19 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { hashOtp, verifyOtpHash, createOtpSessionToken, verifyOtpSessionToken, maskEmail } from "./otpAuth.ts";
 
+process.env.OTP_SECRET_KEY ||= "test-only-otp-secret-for-unit-tests";
+
+test("OTP operations fail closed without a configured secret", () => {
+  const configured = process.env.OTP_SECRET_KEY;
+  delete process.env.OTP_SECRET_KEY;
+  try {
+    assert.throws(() => hashOtp("123456"), /OTP_SECRET_KEY is required/);
+    assert.throws(() => createOtpSessionToken("uid", "test@example.com"), /OTP_SECRET_KEY is required/);
+  } finally {
+    process.env.OTP_SECRET_KEY = configured;
+  }
+});
+
 test("hashOtp and verifyOtpHash: produces consistent hash and verifies correctly", () => {
   const code = "123456";
   const hash = hashOtp(code);

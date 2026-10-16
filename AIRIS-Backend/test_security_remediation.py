@@ -28,6 +28,42 @@ def mock_verify_id_token(token, *args, **kwargs):
 
 class TestSecurityRemediation(unittest.TestCase):
 
+    def test_interview_endpoints_reject_missing_auth(self):
+        requests = [
+            ("/interview/start", {"json": {"targetRole": "Synthetic Role"}}),
+            ("/interview/answer", {"json": {
+                "history": [], "currentQuestion": "Synthetic question",
+                "currentAnswer": "Synthetic answer", "currentQuestionType": "behavioral",
+                "totalQuestions": 1,
+            }}),
+            ("/interview/report", {"json": {"history": [], "evaluations": []}}),
+            ("/interview/transcribe", {"files": {"audio": ("synthetic.m4a", io.BytesIO(b"synthetic"), "audio/m4a")}}),
+        ]
+        for path, kwargs in requests:
+            with self.subTest(path=path):
+                response = client.post(path, **kwargs)
+                self.assertEqual(response.status_code, 401)
+
+    @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)
+    def test_interview_start_rejects_unverified_student(self, mock_auth):
+        response = client.post(
+            "/interview/start",
+            headers={"Authorization": "Bearer token-unverified-tip"},
+            json={"targetRole": "Synthetic Role"},
+        )
+        self.assertEqual(response.status_code, 403)
+
+    @patch("firebase_admin.auth.verify_id_token", side_effect=RuntimeError("secret diagnostic detail"))
+    @patch("main.verify_firebase_jwt_with_public_keys", side_effect=RuntimeError("secret diagnostic detail"))
+    def test_auth_error_does_not_expose_internal_details(self, mock_fallback, mock_auth):
+        response = client.post(
+            "/interview/start",
+            headers={"Authorization": "Bearer invalid"},
+            json={"targetRole": "Synthetic Role"},
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertNotIn("secret diagnostic detail", response.text)
+
     # Attack Test A: No Authorization -> /upload MUST return 401
     def test_upload_missing_auth_returns_401(self):
         response = client.post(
@@ -144,16 +180,22 @@ class TestSecurityRemediation(unittest.TestCase):
     @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)
     @patch("main.normalize_career_input", side_effect=RuntimeError("Internal API key: sk-12345"))
     def test_normalize_error_does_not_leak_internal_details(self, mock_normalize, mock_auth):
-        response = client.post(
-            "/normalize",
-            headers={"Authorization": "Bearer token-studentA"},
-            json={"type": "job", "input": "Software Engineer"}
-        )
+        with self.assertLogs("airis", level="ERROR") as captured:
+            response = client.post(
+                "/normalize",
+                headers={"Authorization": "Bearer token-studentA"},
+                json={"type": "job", "input": "Software Engineer"}
+            )
         self.assertEqual(response.status_code, 500)
         detail = response.json().get("detail", "")
         self.assertNotIn("sk-12345", detail)
         self.assertNotIn("Internal API key", detail)
         self.assertIn("internal error", detail.lower())
+        log_text = "\n".join(captured.output)
+        self.assertIn("Endpoint: /normalize, Status: 500, Exception: RuntimeError", log_text)
+        self.assertNotIn("sk-12345", log_text)
+        self.assertNotIn("Internal API key", log_text)
+        self.assertNotIn("Traceback", log_text)
 
     @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)
     @patch("interview_engine.generate_first_question", side_effect=RuntimeError("Provider API URL: https://api.example.com/v1"))

@@ -2,7 +2,6 @@ import os
 import uuid
 import logging
 import warnings
-import traceback
 
 # Suppress verbose third-party loggers
 logging.getLogger("transformers").setLevel(logging.ERROR)
@@ -209,10 +208,8 @@ def get_authenticated_user(authorization: Optional[str] = Header(None)) -> str:
         return str(uid)
     except HTTPException:
         raise
-    except Exception as e:
-        print(f"[Auth Error] {type(e).__name__}: {e}", flush=True)
-        # Never expose raw Firebase internal errors or stack traces to callers
-        raise HTTPException(status_code=401, detail=f"Invalid or expired authentication token: {type(e).__name__}: {e}")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired authentication token.")
 
 def assert_user_authorization(auth_uid: str, requested_user_id: Optional[str] = None):
     """
@@ -245,15 +242,9 @@ def verify_admin_token(authorization: Optional[str] = Header(None)):
     return uid
 
 
-def log_exception(endpoint: str, exception: Exception, user_id: str = None):
-    """
-    Log full exception details server-side for diagnostics.
-    Includes endpoint identification, user correlation, and full traceback.
-    Does NOT log sensitive data (passwords, tokens, API keys, resume content).
-    """
-    logger.error(f"[ERROR] Endpoint: {endpoint}, User: {user_id or 'anonymous'}")
-    logger.error(f"[ERROR] Exception: {type(exception).__name__}: {exception}")
-    logger.error(f"[ERROR] Traceback:\n{traceback.format_exc()}")
+def log_exception(endpoint: str, exception: Exception, status_code: int):
+    """Record an error without including data from the request or provider."""
+    logger.error("[ERROR] Endpoint: %s, Status: %s, Exception: %s", endpoint, status_code, type(exception).__name__)
 
 
 def safe_error_response(endpoint: str, exception: Exception, user_id: str = None, status_code: int = 500):
@@ -261,7 +252,7 @@ def safe_error_response(endpoint: str, exception: Exception, user_id: str = None
     Log exception server-side and return a safe, generic error response to the client.
     Never exposes internal exception details, stack paths, or implementation details.
     """
-    log_exception(endpoint, exception, user_id)
+    log_exception(endpoint, exception, status_code)
     raise HTTPException(
         status_code=status_code,
         detail="An internal error occurred. Please try again later."
@@ -598,10 +589,8 @@ class InterviewReportRequest(BaseModel):
 import datetime
 
 @app.post("/interview/start")
-def start_interview(req: InterviewStartRequest, request: Request, authorization: Optional[str] = Header(None)):
-    id_type, id_val = resolve_request_identity(request, authorization)
-    limit = PER_USER_GENERAL_REQUEST_LIMIT if id_type == "uid" else PER_IP_PUBLIC_REQUEST_LIMIT
-    check_rate_limit(id_type, id_val, limit)
+def start_interview(req: InterviewStartRequest, auth_uid: str = Depends(get_authenticated_user)):
+    check_rate_limit("uid", auth_uid, PER_USER_GENERAL_REQUEST_LIMIT)
 
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     target_role = (req.targetRole or "").strip()
@@ -620,16 +609,14 @@ def start_interview(req: InterviewStartRequest, request: Request, authorization:
     except HTTPException:
         raise
     except Exception as e:
-        safe_error_response("/interview/start", e, id_val if id_type == "uid" else None)
+        safe_error_response("/interview/start", e, auth_uid)
 
 @app.post("/interview/answer")
-def evaluate_interview_answer(req: InterviewAnswerRequest, request: Request, authorization: Optional[str] = Header(None)):
-    id_type, id_val = resolve_request_identity(request, authorization)
-    limit = PER_USER_GENERAL_REQUEST_LIMIT if id_type == "uid" else PER_IP_PUBLIC_REQUEST_LIMIT
-    check_rate_limit(id_type, id_val, limit)
+def evaluate_interview_answer(req: InterviewAnswerRequest, auth_uid: str = Depends(get_authenticated_user)):
+    check_rate_limit("uid", auth_uid, PER_USER_GENERAL_REQUEST_LIMIT)
 
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{timestamp}] [INTERVIEW] Evaluating answer to question: '{req.currentQuestion[:30]}...'")
+    print(f"[{timestamp}] [INTERVIEW] Evaluating answer.")
     try:
         from interview_engine import evaluate_answer_and_generate_next
         result = evaluate_answer_and_generate_next(
@@ -650,19 +637,16 @@ def evaluate_interview_answer(req: InterviewAnswerRequest, request: Request, aut
     except HTTPException:
         raise
     except Exception as e:
-        safe_error_response("/interview/answer", e, id_val if id_type == "uid" else None)
+        safe_error_response("/interview/answer", e, auth_uid)
 
 @app.post("/interview/transcribe")
 async def transcribe_interview_audio(
-    request: Request,
-    authorization: Optional[str] = Header(None),
+    auth_uid: str = Depends(get_authenticated_user),
     audio: UploadFile = File(...)
 ):
-    id_type, id_val = resolve_request_identity(request, authorization)
-    limit = PER_USER_EXPENSIVE_REQUEST_LIMIT if id_type == "uid" else PER_IP_PUBLIC_REQUEST_LIMIT
-    check_rate_limit(id_type, id_val, limit)
+    check_rate_limit("uid", auth_uid, PER_USER_EXPENSIVE_REQUEST_LIMIT)
 
-    with ExpensiveConcurrencyGuard(f"{id_type}:{id_val}"):
+    with ExpensiveConcurrencyGuard(f"uid:{auth_uid}"):
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"[{timestamp}] [INTERVIEW] Received audio for transcription. MIME: {audio.content_type}")
 
@@ -689,18 +673,16 @@ async def transcribe_interview_audio(
                 text = str(transcribe_res)
                 pause_metrics = {}
 
-            print(f"[{timestamp}] [INTERVIEW] Transcription complete: '{text[:50]}...'")
+            print(f"[{timestamp}] [INTERVIEW] Transcription complete.")
             return {"transcription": text, "pauseMetrics": pause_metrics}
         except HTTPException:
             raise
         except Exception as e:
-            safe_error_response("/interview/transcribe", e, id_val if id_type == "uid" else None)
+            safe_error_response("/interview/transcribe", e, auth_uid)
 
 @app.post("/interview/report")
-def generate_interview_report(req: InterviewReportRequest, request: Request, authorization: Optional[str] = Header(None)):
-    id_type, id_val = resolve_request_identity(request, authorization)
-    limit = PER_USER_GENERAL_REQUEST_LIMIT if id_type == "uid" else PER_IP_PUBLIC_REQUEST_LIMIT
-    check_rate_limit(id_type, id_val, limit)
+def generate_interview_report(req: InterviewReportRequest, auth_uid: str = Depends(get_authenticated_user)):
+    check_rate_limit("uid", auth_uid, PER_USER_GENERAL_REQUEST_LIMIT)
 
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] [INTERVIEW] Generating final report...")
@@ -718,4 +700,4 @@ def generate_interview_report(req: InterviewReportRequest, request: Request, aut
     except HTTPException:
         raise
     except Exception as e:
-        safe_error_response("/interview/report", e, id_val if id_type == "uid" else None)
+        safe_error_response("/interview/report", e, auth_uid)
