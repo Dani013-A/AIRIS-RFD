@@ -77,7 +77,7 @@ const studentProfilesPayload: ReportPayload = {
   tableData: {
     headers: [
       "Student Name",
-      "TIP Email",
+      "T.I.P. Email",
       "Degree Program",
       "Target Position",
       "Resume",

@@ -61,7 +61,7 @@ export function AboutSection() {
               </p>
               <p className="text-xs bg-white p-3.5 rounded-xl border border-[#DCE6EE]">
                 <strong className="text-[#1E3E6B]">Institutional Context:</strong> Initially implemented and evaluated
-                within the academic environment of TIP Manila to support student transition from higher education
+                within the academic environment of T.I.P. Manila to support student transition from higher education
                 to professional employment.
               </p>
             </div>

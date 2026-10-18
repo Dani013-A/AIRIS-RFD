@@ -25,7 +25,7 @@ export default function ForgotPasswordPage() {
     }
 
     if (!trimmedEmail.endsWith("@tip.edu.ph")) {
-      setError("Only TIP institutional email addresses are allowed.");
+      setError("Only T.I.P. institutional email addresses are allowed.");
       return;
     }
 

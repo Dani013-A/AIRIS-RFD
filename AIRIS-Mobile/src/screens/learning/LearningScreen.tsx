@@ -11,6 +11,8 @@ import {
   View,
 } from "react-native";
 import { Text, TextInput } from "../../components/ui/AppText";
+import { Tag } from "../../components/ui";
+import { formatSkillDisplayName } from "../../utils/displayNames";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ResourceCard } from "../../components/learning/ResourceCard";
 import { SkeletonResourceCard } from "../../components/ui";
@@ -47,7 +49,7 @@ interface ResumeTemplate {
 const ATS_TEMPLATES: ResumeTemplate[] = [
   {
     id: "airis_standard",
-    name: "AIRIS Standard Resume",
+    name: "T.I.P. Standard Resume",
     badge: "Recommended",
     standard: "Single-column ATS-readable format",
     description: "A clean, text-based guide with conventional sections for graduating students across programs.",
@@ -355,7 +357,7 @@ ${program} | Expected Graduation: 2026
         >
           <Ionicons name="arrow-back" size={20} color="#1F3A5F" />
         </TouchableOpacity>
-        <Text className="text-xl font-extrabold text-[#1F3A5F]">Knowledge Hub</Text>
+        <Text className="text-2xl font-extrabold text-[#1F3A5F]">Knowledge Hub</Text>
         <View className="w-10 items-center justify-center">
           {isRefreshing && <ActivityIndicator size="small" color="#CA5D25" />}
         </View>
@@ -372,9 +374,9 @@ ${program} | Expected Graduation: 2026
           style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}
         >
           <View className="flex-1 pr-3">
-            <Text className="text-base font-bold text-[#1F3A5F] mb-0.5">Career Knowledge Center</Text>
+            <Text className="text-base font-bold text-[#1F3A5F] mb-0.5">Lessons picked for your job goal</Text>
             <Text className="text-xs font-medium text-[#4F6B82] leading-4">
-              Curated learning materials, interview prep, resume guides, and career roadmaps.
+              Interview practice, resume guides, and career roadmaps.
             </Text>
           </View>
           <View className="h-12 w-12 rounded-full bg-[#EAF2F7] items-center justify-center border border-[#BFD6EA]">
@@ -382,9 +384,9 @@ ${program} | Expected Graduation: 2026
           </View>
         </View>
 
-        {/* BROWSE TOPICS HEADER */}
+        {/* TOPICS HEADER */}
         <Text className="text-xs font-bold text-[#1F3A5F] mb-3 uppercase tracking-wider">
-          BROWSE TOPICS
+          Browse topics
         </Text>
 
         {/* PRIMARY CATEGORY NAVIGATION PILLS */}
@@ -473,7 +475,7 @@ ${program} | Expected Graduation: 2026
                 </Text>
               </View>
               <Text className="text-xs font-bold text-[#4F6B82] flex-grow flex-shrink" style={{ minWidth: 140 }}>
-                Target: {learningSnap?.targetPosition || targetPosition || "General Track"}
+                Goal: {learningSnap?.targetPosition || targetPosition || "Pick a job goal in Profile"}
               </Text>
             </View>
 
@@ -483,21 +485,18 @@ ${program} | Expected Graduation: 2026
               </Text>
             ) : (
               <Text className="text-xs font-medium leading-5 text-[#4F6B82] mb-3">
-                Resources curated specifically for your {targetPosition || "career"} track and detected skill growth areas.
+                Lessons chosen for the job you want and the skills missing from your resume.
               </Text>
             )}
 
             {learningSnap?.skillGaps && learningSnap.skillGaps.length > 0 && (
               <View className="pt-2.5 border-t border-[#EAF2F7]">
                 <Text className="text-[9px] font-bold text-[#CA5D25] uppercase tracking-wider mb-1.5">
-                  Priority Skill Gaps
+                  Skills to improve
                 </Text>
                 <View className="flex-row flex-wrap gap-1.5">
                   {learningSnap.skillGaps.map((gap, gIdx) => (
-                    <View key={gIdx} className="bg-[#FEF5F1] border border-[#F4A47A] px-2.5 py-0.5 rounded-full flex-row items-center max-w-full">
-                      <Ionicons name="alert-circle" size={11} color="#CA5D25" style={{ marginRight: 3 }} />
-                      <Text className="text-[10px] font-bold text-[#CA5D25] flex-shrink">{gap.skill}</Text>
-                    </View>
+                    <Tag key={gIdx} label={formatSkillDisplayName(gap.skill)} variant="warning" />
                   ))}
                 </View>
               </View>
@@ -506,29 +505,12 @@ ${program} | Expected Graduation: 2026
             {learningSnap?.strengths && learningSnap.strengths.length > 0 && (
               <View className="mt-2 pt-2 border-t border-[#EAF2F7]">
   <Text className="text-[9px] font-bold text-[#4F6B82] uppercase tracking-wider mb-1.5">
-    Resume Strengths
+    Your strong points
   </Text>
 
   <View className="flex-row flex-wrap gap-1.5">
     {learningSnap.strengths.map((str, sIdx) => (
-      <View
-        key={sIdx}
-        className="bg-[#D7F1ED]/40 border border-[#79D5C8]/50 px-2.5 py-1.5 rounded-full flex-row items-start max-w-full"
-      >
-        <Ionicons
-          name="checkmark-circle"
-          size={11}
-          color="#1E5D53"
-          style={{ marginRight: 4, marginTop: 1 }}
-        />
-
-        <Text
-          className="text-[10px] font-bold text-[#1E5D53] flex-shrink"
-          style={{ maxWidth: 300 }}
-        >
-          {str}
-        </Text>
-      </View>
+      <Tag key={sIdx} label={formatSkillDisplayName(str)} variant="success" />
     ))}
   </View>
 </View>
@@ -540,13 +522,13 @@ ${program} | Expected Graduation: 2026
         {selectedCategoryId === "resume" && !searchQuery && (
           <View className="bg-white border border-[#BFD6EA] rounded-2xl p-4 mb-4 shadow-sm">
             <View className="flex-row items-center justify-between mb-1">
-              <Text className="text-sm font-bold text-[#1F3A5F]">Standard ATS Templates</Text>
+              <Text className="text-sm font-bold text-[#1F3A5F]">Resume templates</Text>
               <View className="bg-[#EAF2F7] px-2 py-0.5 rounded-full border border-[#BFD6EA]">
                 <Text className="text-[9px] font-bold text-[#1F3A5F]">PDF Export</Text>
               </View>
             </View>
             <Text className="text-xs font-medium text-[#4F6B82] leading-4 mb-3">
-              Clean, single-column resume templates designed to comply with ATS parsers.
+              Simple one-column templates that hiring software can read easily.
             </Text>
             <View className="gap-2">
               {ATS_TEMPLATES.map((tpl) => (
@@ -576,11 +558,11 @@ ${program} | Expected Graduation: 2026
         <View className="flex-row items-center justify-between mb-3 px-0.5">
           <Text className="text-xs font-bold text-[#1F3A5F] uppercase tracking-wider">
             {selectedCategoryId === "for_you"
-              ? "Recommended for Your Career Growth"
+              ? "Picked for you"
               : selectedCategoryId === "interviews"
-              ? "Interview Preparation & Strategy"
+              ? "Interview practice"
               : selectedCategoryId === "resume"
-              ? "Resume Development & Writing"
+              ? "Resume writing"
               : "Professional Communication"}
           </Text>
           <Text className="text-[11px] font-bold text-[#4F6B82]">
@@ -606,10 +588,10 @@ ${program} | Expected Graduation: 2026
                 <Ionicons name="search-outline" size={26} color="#BFD6EA" />
               </View>
               <Text className="text-sm text-[#1F3A5F] font-bold text-center">
-                No matching resources found
+                Nothing matches that search
               </Text>
               <Text className="text-xs text-[#4F6B82] font-medium text-center mt-1 leading-4">
-                Try searching for a different keyword or switch categories.
+                Try a different word or pick another topic above.
               </Text>
             </View>
           )}

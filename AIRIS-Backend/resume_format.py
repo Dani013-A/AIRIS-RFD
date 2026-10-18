@@ -43,13 +43,13 @@ _NAME_EXCLUSIONS = {
 
 _MESSAGES = {
     "UNREADABLE": "Unable to extract readable text from this document.",
-    "PLACEHOLDER_ONLY": "The document still contains the AIRIS template examples rather than candidate information.",
+    "PLACEHOLDER_ONLY": "The document still contains template examples rather than candidate information.",
     "MISSING_NAME": "A candidate name could not be recovered near the beginning of the resume.",
     "MISSING_CONTACT": "A usable email, phone number, or profile link could not be recovered.",
     "MISSING_EDUCATION": "An Education section with candidate information could not be recovered.",
     "MISSING_SKILLS": "A Skills section with candidate information could not be recovered.",
     "MISSING_EXPERIENCE_EVIDENCE": "No populated project, experience, internship, or leadership section was recovered.",
-    "NON_PDF": "This readable file is accepted, but the AIRIS standard is a text-based PDF.",
+    "NON_PDF": "This readable file is accepted, but the T.I.P. standard is a text-based PDF.",
     "SCANNED_PDF": "This PDF required OCR; extraction may omit or reorder text.",
     "COMPLEX_LAYOUT": "Columns, tables, or header/footer content may be extracted out of order.",
     "UNRECOGNIZED_SECTIONS": "Some section headings were not recognized by AIRIS.",
@@ -84,7 +84,7 @@ def _result(
 ):
     unique_codes = list(dict.fromkeys(codes))
     remediation_text = (
-        "Download the AIRIS Standard Resume Template, replace every example with your own information, "
+        "Download the T.I.P. Standard Resume Template, replace every example with your own information, "
         "and export a selectable-text PDF before retrying."
     ) if outcome != "SUPPORTED" else "No format changes required."
 

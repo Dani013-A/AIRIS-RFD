@@ -87,8 +87,8 @@ export default function ForgotPasswordScreen() {
           <Text className="text-3xl font-extrabold tracking-tight text-[#1F3A5F]">Reset Password</Text>
           <Text className="mt-3 text-center text-sm font-medium text-[#4F6B82] leading-6 px-4">
             {!passwordResetSuccess
-              ? "Enter your registered TIP email address below and we'll send you a link to reset your password."
-              : "A secure reset link has been dispatched to your email."}
+              ? "Enter your registered T.I.P. email address below and we'll send you a link to reset your password."
+              : "A reset link has been sent to your email."}
           </Text>
         </View>
 
@@ -103,7 +103,7 @@ export default function ForgotPasswordScreen() {
               <TextInput
                 className="ml-3 flex-1 h-full text-base text-[#1F3A5F]"
                 style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
-                placeholder="TIP Email Address"
+                placeholder="T.I.P. Email Address"
                 placeholderTextColor="#94A3B8"
                 value={email}
                 onChangeText={setEmail}

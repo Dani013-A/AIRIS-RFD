@@ -37,12 +37,12 @@ Degree Program | Expected Graduation: Month Year
 
 export async function downloadAirisResumeTemplate(): Promise<string> {
   if (!documentDirectory) throw new Error("Document storage is unavailable on this device.");
-  const fileName = "AIRIS_Standard_Resume_Template.pdf";
+  const fileName = "TIP_Standard_Resume_Template.pdf";
   const localUri = `${documentDirectory}${fileName}`;
-  const pdf = generatePdfFromMarkdown("AIRIS Standard Resume Template", buildAirisResumeTemplate());
+  const pdf = generatePdfFromMarkdown("T.I.P. Standard Resume Template", buildAirisResumeTemplate());
   await writeAsStringAsync(localUri, pdf, { encoding: EncodingType.UTF8 });
   if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(localUri, { mimeType: "application/pdf", dialogTitle: "AIRIS Standard Resume Template" });
+    await Sharing.shareAsync(localUri, { mimeType: "application/pdf", dialogTitle: "T.I.P. Standard Resume Template" });
   }
   return localUri;
 }

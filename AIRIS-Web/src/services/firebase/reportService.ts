@@ -141,7 +141,7 @@ export async function fetchReportPayload(
           : "Not Started",
       ]);
 
-      const csvHeaders = ["User ID", "Student Name", "TIP Email", "Degree Program", "Target Position", "Resume Score", "Interview Score", "Employability Score", "Preparedness Status", "Registered Date", "Account Status"];
+      const csvHeaders = ["User ID", "Student Name", "T.I.P. Email", "Degree Program", "Target Position", "Resume Score", "Interview Score", "Employability Score", "Preparedness Status", "Registered Date", "Account Status"];
       const csvRows = students.map((s) => [
         s.uid,
         `"${s.fullName.replace(/"/g, '""')}"`,

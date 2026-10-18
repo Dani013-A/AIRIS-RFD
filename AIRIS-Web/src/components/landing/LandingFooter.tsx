@@ -168,7 +168,7 @@ export function LandingFooter() {
                 <span>Email the AIRIS team</span>
               </a>
               <a href="https://www.facebook.com/daniiiii007/" target="_blank" rel="noopener noreferrer" className="block text-xs font-semibold text-[#1E3E6B] hover:text-[#F59E73]">AIRIS project Facebook</a>
-              <a href="https://www.facebook.com/TIPCareerCenter" target="_blank" rel="noopener noreferrer" className="block text-xs font-semibold text-[#1E3E6B] hover:text-[#F59E73]">TIP Career Center Facebook</a>
+              <a href="https://www.facebook.com/TIPCareerCenter" target="_blank" rel="noopener noreferrer" className="block text-xs font-semibold text-[#1E3E6B] hover:text-[#F59E73]">T.I.P. Career Center Facebook</a>
               <p className="text-[11px] text-[#5F7E97] leading-relaxed">
                 Project and career-center contact for questions about AIRIS.
               </p>
