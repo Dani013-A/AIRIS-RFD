@@ -12497,6 +12497,36 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DialogueManager_ShowListening_m24F42C86A
 	Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* V_10 = NULL;
 	{
 		DialogueManager_EnsureListeningPanel_m1569721CDCF8FBE5CF02E53A985BB9CDABAE2AB0(__this, NULL);
+		// Move the status panel before ShowListening activates its ancestor chain.
+		Scene_tA1DC762B79745EB5140F054C884855B922318356 panelScene = SceneManager_GetActiveScene_m0B320EC4302F51A71495D1CCD1A0FF9C2ED1FDC8(NULL);
+		String_t* panelSceneName = Scene_get_name_m3C818DFA663E159274DAD823B780C7616C5E2A8C(&panelScene, NULL);
+		if (String_op_Equality_m030E1B219352228970A076136E455C4E568C02C1(panelSceneName, il2cpp_string_new("SampleScene"), NULL))
+		{
+			Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* questionParent = NULL;
+			if (__this->___interviewerSpeechBubbles != NULL && __this->___interviewerSpeechTexts != NULL)
+			{
+				int32_t count = static_cast<int32_t>(((RuntimeArray*)__this->___interviewerSpeechBubbles)->max_length);
+				int32_t textCount = static_cast<int32_t>(((RuntimeArray*)__this->___interviewerSpeechTexts)->max_length);
+				for (int32_t i = 0; i < count && i < textCount; ++i)
+				{
+					auto* root = __this->___interviewerSpeechBubbles->GetAt(i);
+					auto* text = __this->___interviewerSpeechTexts->GetAt(i);
+					if (root == NULL || text == NULL || !GameObject_get_activeInHierarchy_m49250F4F168DCC5388D5BE4F6A5681386907B109(root, NULL) ||
+						String_IsNullOrWhiteSpace_m42E1F3B2C358068D645E46F01CF1834DC77A5A10(text->___m_text, NULL)) continue;
+					auto* panel = DialogueManager_FindActualBubblePanel_m85A07EC999B8D34A4E569A121DB46D1CB9077A97(__this, root, text, NULL);
+					if (panel != NULL) questionParent = Transform_get_parent_m65354E28A4C94EC00EBCF03532F7B0718380791E(GameObject_get_transform_m0BC10ADFA1632166AE5544BDF9038A2650C2AE56(panel, NULL), NULL);
+					if (questionParent != NULL) break;
+				}
+			}
+			if (__this->___listeningPanel == NULL) return;
+			if (questionParent == NULL)
+			{
+				GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(__this->___listeningPanel, false, NULL);
+				return;
+			}
+			Transform_SetParent_m9BDD7B7476714B2D7919B10BDC22CE75C0A0A195(GameObject_get_transform_m0BC10ADFA1632166AE5544BDF9038A2650C2AE56(__this->___listeningPanel, NULL), questionParent, false, NULL);
+		}
+
 		DialogueManager_EnsureStopRecordingButton_m47E5914976441041D26E1F04F5A34631F793A7C1(__this, NULL);
 		DialogueManager_EnsureEndInterviewButton_m04272AA0BF77748417E7436B0E82F259254FD883(__this, NULL);
 		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_0 = __this->___listeningPanel;

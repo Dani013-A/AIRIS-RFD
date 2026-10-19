@@ -3,6 +3,8 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 cd "$DIR"
 
+python3 "${DIR}/patch_panel_bubbles.py"
+
 echo "=== 1. Compiling Assembly-CSharp.cpp ==="
 ./compile_cmd.sh
 
