@@ -3,14 +3,16 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { ActivityIndicator, Alert, Linking, Modal, ScrollView, TouchableOpacity, View } from "react-native";
 import { Text } from "../../components/ui/AppText";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuthStore } from "../../store/authStore";
 import { useResumeStore } from "../../store/resumeStore";
 
 import { getAiRecommendationsForResume } from "../../data/learningRecommendations";
 import { getGrowthPathRecommendations } from "../../services/learning/learningCatalogService";
-import { SkeletonScoreCard, SkeletonResourceCard } from "../../components/ui";
+import { SkeletonScoreCard, SkeletonResourceCard, Tag } from "../../components/ui";
+import { CompetencyGuidanceGroup } from "../../components/resume/CompetencyGuidanceGroup";
+import { fixConcatenatedSectionNames, formatSectionDisplayName, formatSkillDisplayName } from "../../utils/displayNames";
 import { ProductTourOverlay } from "../../components/ui/ProductTourOverlay";
 import SkillSelfAssessmentModal, { type SkillAssessmentTarget } from "../../components/resume/SkillSelfAssessmentModal";
 import {
@@ -27,6 +29,7 @@ import {
 import { isCanonicalRecord, isLegacyRecord } from "../../types/resume.types";
 
 export default function DashboardScreen() {
+  const insets = useSafeAreaInsets();
   let router: any = null;
   try {
     router = typeof useRouter === "function" ? useRouter() : null;
@@ -245,7 +248,7 @@ export default function DashboardScreen() {
     0;
 
   const displayResumeScore = isCanonicalV3
-    ? (activeAnalysis.resumeScore?.overallScore ?? Math.round(atsScoreVal * 0.40 + alignScoreVal * 0.60))
+    ? (activeAnalysis.resumeScore?.overallScore ?? alignScoreVal)
     : activeAnalysis.atsScore.overallScore;
 
   const atsContribution = isCanonicalV3
@@ -267,12 +270,12 @@ export default function DashboardScreen() {
   const atsScoreLevelLabel =
     activeAnalysis.atsScore.levelLabel ||
     (atsScoreVal >= 85
-      ? "Optimal Parseability"
+      ? "Very easy to read"
       : atsScoreVal >= 70
-      ? "Good Parseability"
+      ? "Easy to read"
       : atsScoreVal >= 50
-      ? "Moderate Parseability"
-      : "Low Parseability");
+      ? "Somewhat hard to read"
+      : "Hard to read");
 
   let scoreInterpretation = "Good foundation. A few targeted improvements will make it even stronger.";
   if (overallScore >= 85) scoreInterpretation = "Outstanding! Your resume is highly effective and clearly highlights your strengths.";
@@ -353,7 +356,7 @@ export default function DashboardScreen() {
                 </Text>
               </View>
               <Text className="text-xs text-[#4F6B82] leading-5 mb-3">
-                This resume was analyzed using an older model. Re-analyze with the canonical 3.0 model to evaluate ATS machine readability (40%) and role alignment (60%).
+                This resume was checked with an older version. Re-analyze it for updated reading and job-fit scores.
               </Text>
               <TouchableOpacity
                 onPress={async () => {
@@ -367,7 +370,7 @@ export default function DashboardScreen() {
               >
                 <Ionicons name="refresh-outline" size={16} color="#ffffff" style={{ marginRight: 6 }} />
                 <Text className="text-xs font-bold text-white uppercase tracking-wider">
-                  Re-analyze with v3 Canonical Model
+                  Re-analyze my resume
                 </Text>
               </TouchableOpacity>
             </View>
@@ -384,10 +387,10 @@ export default function DashboardScreen() {
                   setInfoModalContent({
                     title: isCanonicalV3 ? "Resume Score" : "Overall ATS Score (Legacy)",
                     explanation: isCanonicalV3
-                      ? "The authoritative synthesized metric combining role-independent ATS machine readability (40%) and role-dependent job alignment (60%)."
+                      ? "Your Resume Score has two parts: how easily hiring software can read your resume (40%), and how well your resume fits your chosen job (60%)."
                       : "Evaluates your resume using an earlier scoring model.",
                     roleDependence: isCanonicalV3
-                      ? "Formula: Resume Score = ATS Score × 0.40 + Alignment Score × 0.60."
+                      ? "Resume Score = Reading score × 0.40 + Job-fit score × 0.60."
                       : "Legacy score.",
                   })
                 }
@@ -397,7 +400,7 @@ export default function DashboardScreen() {
               </TouchableOpacity>
             </View>
 
-            <Text className="text-[80px] leading-[90px] font-black text-[#1F3A5F]">{displayResumeScore}</Text>
+            <Text className="text-[80px] leading-[90px] font-black text-[#1F3A5F]" numberOfLines={1} adjustsFontSizeToFit>{displayResumeScore}</Text>
 
             <View className={`mt-2 px-5 py-2 rounded-full ${displayResumeScore >= 70 ? 'bg-[#D7F1ED] border border-[#79D5C8]' : 'bg-[#FDEEE6] border border-[#F4A47A]'}`} style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1, elevation: 1 }}>
               <Text className={`text-sm font-bold ${displayResumeScore >= 70 ? 'text-[#1E5D53]' : 'text-[#CA5D25]'}`}>
@@ -417,10 +420,10 @@ export default function DashboardScreen() {
                   <Text className="text-2xl font-black text-[#1F3A5F]">
                     {atsScoreVal} <Text className="text-xs font-semibold text-[#8B95A5]">/ 100</Text>
                   </Text>
-                  <Text className="text-[10px] text-[#4F6B82] font-semibold mt-0.5">Machine Readability</Text>
+                  <Text className="text-[10px] text-[#4F6B82] font-semibold mt-0.5">How easy it is to read</Text>
                   <View className="mt-2 bg-[#F4F8FB] px-2 py-1 rounded-md border border-[#EAF2F7] w-full items-center">
-                    <Text className="text-[10px] font-bold text-[#1F3A5F]">Contrib: +{atsContribution} pts</Text>
-                    <Text className="text-[9px] text-[#8B95A5]">40% weight</Text>
+                    <Text className="text-[10px] font-bold text-[#1F3A5F]">Reading check</Text>
+                    <Text className="text-[9px] text-[#8B95A5]">Layout and sections</Text>
                   </View>
                 </View>
 
@@ -433,10 +436,10 @@ export default function DashboardScreen() {
                   <Text className="text-2xl font-black text-[#1F3A5F]">
                     {alignScoreVal} <Text className="text-xs font-semibold text-[#8B95A5]">/ 100</Text>
                   </Text>
-                  <Text className="text-[10px] text-[#4F6B82] font-semibold mt-0.5">Target Role Fit</Text>
+                  <Text className="text-[10px] text-[#4F6B82] font-semibold mt-0.5">How well it fits your job</Text>
                   <View className="mt-2 bg-[#FDEEE6] px-2 py-1 rounded-md border border-[#F4A47A] w-full items-center">
-                    <Text className="text-[10px] font-bold text-[#CA5D25]">Contrib: +{alignContribution} pts</Text>
-                    <Text className="text-[9px] text-[#CA5D25]">60% weight</Text>
+                    <Text className="text-[10px] font-bold text-[#CA5D25]">Main score</Text>
+                    <Text className="text-[9px] text-[#CA5D25]">Skills, experience, education</Text>
                   </View>
                 </View>
               </View>
@@ -445,7 +448,7 @@ export default function DashboardScreen() {
             {/* Formula Toggle */}
             <TouchableOpacity onPress={() => setShowScoreMath(!showScoreMath)} className="mt-4 bg-[#F4F8FB] px-4 py-2 rounded-full border border-[#EAF2F7] flex-row items-center" style={{ alignSelf: 'center' }}>
               <Text className="text-[10px] font-bold text-[#4F6B82] mr-2 text-center flex-shrink" style={{ flexShrink: 1 }}>
-                {isCanonicalV3 ? `${atsScoreVal} × 40% + ${alignScoreVal} × 60% = ${displayResumeScore}` : "Legacy Score Formulation"}
+                {isCanonicalV3 ? `How your score adds up: Skills 40% + Experience 30% + Education 20% + Certificates 10% = ${displayResumeScore}` : "Earlier score version"}
               </Text>
               <Ionicons name={showScoreMath ? "chevron-up" : "chevron-down"} size={14} color="#8B95A5" />
             </TouchableOpacity>
@@ -457,27 +460,58 @@ export default function DashboardScreen() {
                 </View>
                 <View className="p-5 gap-3">
                   {isCanonicalV3 ? (
-                    <>
-                      <View className="flex-row justify-between items-center">
-                        <View className="flex-1 pr-2">
-                          <Text className="text-xs font-bold text-[#1F3A5F]">ATS Machine Readability</Text>
-                          <Text className="text-[10px] text-[#8B95A5]">Layout, contact, sections, dates</Text>
-                        </View>
-                        <Text className="text-[11px] font-medium text-[#8B95A5]">{atsScoreVal}/100 × 40% = <Text className="font-bold text-[#1F3A5F] text-xs">+{atsContribution}</Text></Text>
-                      </View>
-                      <View className="flex-row justify-between items-center">
-                        <View className="flex-1 pr-2">
-                          <Text className="text-xs font-bold text-[#CA5D25]">Target Role Alignment</Text>
-                          <Text className="text-[10px] text-[#8B95A5]">Skills, experience, degree, certs</Text>
-                        </View>
-                        <Text className="text-[11px] font-medium text-[#8B95A5]">{alignScoreVal}/100 × 60% = <Text className="font-bold text-[#CA5D25] text-xs">+{alignContribution}</Text></Text>
-                      </View>
-                      <View className="h-[1px] bg-[#EAF2F7] my-1" />
-                      <View className="flex-row justify-between items-center bg-[#F4F8FB] -mx-5 -mb-5 p-5">
-                        <Text className="text-xs font-black text-[#1F3A5F] uppercase tracking-widest">Resume Score</Text>
-                        <Text className="text-lg font-black text-[#1F3A5F]">~ {displayResumeScore} / 100</Text>
-                      </View>
-                    </>
+                    (() => {
+                      const alignBreakdown = activeAnalysis.alignmentScore?.breakdown;
+                      const legacyBreakdown = activeAnalysis.atsScore.resumeScore?.breakdown || (activeAnalysis.atsScore as any).roleRelevance?.breakdown;
+                      const sklW = alignBreakdown?.skillsMatch?.weightedScore ?? legacyBreakdown?.skills?.weightedScore ?? 0;
+                      const expW = alignBreakdown?.experienceProjects?.weightedScore ?? legacyBreakdown?.experience?.weightedScore ?? 0;
+                      const eduW = alignBreakdown?.educationRelevance?.weightedScore ?? legacyBreakdown?.education?.weightedScore ?? 0;
+                      const certW = alignBreakdown?.certifications?.weightedScore ?? legacyBreakdown?.certifications?.weightedScore ?? 0;
+                      return (
+                        <>
+                          <View className="flex-row justify-between items-center">
+                            <View className="flex-1 pr-2">
+                              <Text className="text-xs font-bold text-[#1F3A5F]">Skills Match (40%)</Text>
+                              <Text className="text-[10px] text-[#8B95A5]">Skills needed for your job</Text>
+                            </View>
+                            <Text className="font-bold text-[#1F3A5F] text-xs">+{sklW} pts</Text>
+                          </View>
+                          <View className="flex-row justify-between items-center">
+                            <View className="flex-1 pr-2">
+                              <Text className="text-xs font-bold text-[#1F3A5F]">Experience & Projects (30%)</Text>
+                              <Text className="text-[10px] text-[#8B95A5]">Work, internship & projects</Text>
+                            </View>
+                            <Text className="font-bold text-[#1F3A5F] text-xs">+{expW} pts</Text>
+                          </View>
+                          <View className="flex-row justify-between items-center">
+                            <View className="flex-1 pr-2">
+                              <Text className="text-xs font-bold text-[#1F3A5F]">Education Relevance (20%)</Text>
+                              <Text className="text-[10px] text-[#8B95A5]">Degree & coursework fit</Text>
+                            </View>
+                            <Text className="font-bold text-[#1F3A5F] text-xs">+{eduW} pts</Text>
+                          </View>
+                          <View className="flex-row justify-between items-center">
+                            <View className="flex-1 pr-2">
+                              <Text className="text-xs font-bold text-[#1F3A5F]">Certifications (10%)</Text>
+                              <Text className="text-[10px] text-[#8B95A5]">Verified industry credentials</Text>
+                            </View>
+                            <Text className="font-bold text-[#1F3A5F] text-xs">+{certW} pts</Text>
+                          </View>
+                          <View className="h-[1px] bg-[#EAF2F7] my-1" />
+                          <View className="flex-row justify-between items-center">
+                            <View className="flex-1 pr-2">
+                              <Text className="text-xs font-bold text-[#4F6B82]">Reading check (layout only)</Text>
+                              <Text className="text-[10px] text-[#8B95A5]">Layout, contact, dates, sections</Text>
+                            </View>
+                            <Text className="font-bold text-[#4F6B82] text-xs">{atsScoreVal}/100</Text>
+                          </View>
+                          <View className="flex-row justify-between items-center bg-[#F4F8FB] -mx-5 -mb-5 p-5">
+                            <Text className="text-xs font-black text-[#1F3A5F] uppercase tracking-widest">Resume Score</Text>
+                            <Text className="text-lg font-black text-[#1F3A5F]">{displayResumeScore} / 100</Text>
+                          </View>
+                        </>
+                      );
+                    })()
                   ) : (
                     /* Legacy Architecture Display Fallback */
                     <>
@@ -505,11 +539,11 @@ export default function DashboardScreen() {
                     onPress={(e) => {
                       e.stopPropagation();
                       setInfoModalContent({
-                        title: "ATS Machine-Readability",
+                        title: "Reading check",
                         explanation:
-                          "Evaluates how cleanly applicant tracking systems can extract contact details, section headers, work history, and formatting from your resume.",
+                          "Checks how cleanly hiring software can find your contact details, section titles, work history, and dates in your resume.",
                         roleDependence:
-                          "100% role-independent. Measures standard section structure, contact recognition, skills formatting, experience structure, education structure, and date recognition.",
+                          "This score is the same no matter which job you pick. It only looks at layout and format.",
                       });
                     }}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -521,7 +555,7 @@ export default function DashboardScreen() {
                   {atsScoreVal} <Text className="text-xs font-semibold text-[#8B95A5]">/ 100</Text>
                 </Text>
                 <Text className="text-[11px] font-bold text-[#1E5D53] mt-0.5">
-                  {atsScoreLevelLabel} · Machine Readability
+                  {atsScoreLevelLabel}
                 </Text>
               </View>
               <Ionicons name={showAtsCompatDetails ? "chevron-up" : "chevron-down"} size={20} color="#8B95A5" />
@@ -530,7 +564,7 @@ export default function DashboardScreen() {
             {showAtsCompatDetails && (
               <View className="px-5 pb-5 pt-2 border-t border-[#EAF2F7]">
                 <Text className="text-xs text-[#4F6B82] mb-4 flex-wrap" style={{ flexShrink: 1 }}>
-                  ATS measures how reliably your resume can be read and interpreted by automated systems. It does not measure your qualification for the target role.
+                  This score shows how reliably hiring software can read your resume. It does not judge whether you fit the job.
                 </Text>
 
                 {(() => {
@@ -555,7 +589,7 @@ export default function DashboardScreen() {
                           const weight = item.weight ?? dim.defaultWeight;
                           const weighted = item.weightedScore ?? Math.round(raw * weight * 10) / 10;
                           const label = item.label || dim.label;
-                          const status = item.status || (raw >= 85 ? "OptimalParseability" : raw >= 70 ? "GoodParseability" : raw >= 50 ? "ModerateParseability" : "LowParseability");
+                          const status = item.status || (raw >= 85 ? "Very easy to read" : raw >= 70 ? "Easy to read" : raw >= 50 ? "Somewhat hard to read" : "Hard to read");
 
                           const isGood = raw >= 70;
                           const isModerate = raw >= 50 && raw < 70;
@@ -598,14 +632,14 @@ export default function DashboardScreen() {
                 {/* Educational Footnote */}
                 <View className="mt-4 bg-[#F4F8FB] p-3 rounded-xl border border-[#EAF2F7]">
                   <Text className="text-[11px] text-[#4F6B82] leading-4">
-                    ATS measures how reliably your resume can be read and interpreted by automated systems. It does not measure your qualification for the target role.
+                    Tip: a clear one-column layout with standard section titles gets the best reading score.
                   </Text>
                 </View>
               </View>
             )}
           </View>
 
-          {/* CARD 2: TARGET ROLE ALIGNMENT (4 MANUSCRIPT COMPONENTS) */}
+          {/* CARD 2: TARGET ROLE ALIGNMENT (4 score parts) */}
           <View className="bg-white rounded-2xl border border-[#BFD6EA] mx-6 mb-4 overflow-hidden" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
             <TouchableOpacity onPress={() => setShowAtsMatchDetails(!showAtsMatchDetails)} className="flex-row items-center justify-between p-5">
               <View className="flex-1 pr-3">
@@ -616,9 +650,9 @@ export default function DashboardScreen() {
                       e.stopPropagation();
                       setInfoModalContent({
                         title: "Role Alignment Score",
-                        explanation: `Measures demonstrated suitability for ${currentUser?.targetPosition || "your target position"} across the manuscript's 4 established components.`,
+                        explanation: `Measures how well your resume fits ${currentUser?.targetPosition || "your chosen job"} across 4 parts: skills, experience, education, and certificates.`,
                         roleDependence:
-                          "Evaluates Skills Match (40%), Experience & Projects (30%), Education Relevance (20%), and Certifications (10%) against authoritative career benchmarks.",
+                          "Compares your skills (40%), experience and projects (30%), education (20%), and certificates (10%) with what this job needs.",
                       });
                     }}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -638,10 +672,10 @@ export default function DashboardScreen() {
 
             {showAtsMatchDetails && (
               <View className="px-5 pb-5 pt-2 border-t border-[#EAF2F7]">
-                {/* 4 Manuscript Components Breakdown */}
+                {/* 4-part alignment breakdown */}
                 <View className="mb-4 pb-3 border-b border-[#EAF2F7] gap-3">
                   <Text className="text-[10px] font-bold text-[#1F3A5F] uppercase tracking-wider">
-                    Alignment Components (Manuscript 40/30/20/10)
+                    What makes up this score
                   </Text>
                   {(() => {
                     const alignBreakdown = activeAnalysis.alignmentScore?.breakdown;
@@ -709,7 +743,7 @@ export default function DashboardScreen() {
                             const textStyle = isDem ? "text-[#1E5D53]" : isRel ? "text-[#CA5D25]" : "text-[#475569]";
                             return (
                               <View key={idx} className={`flex-row flex-wrap items-center justify-between gap-2 p-3 rounded-xl border ${bgStyle}`}>
-                                <Text className={`text-sm font-bold flex-1 ${textStyle}`}>{comp.name}</Text>
+                                <Text className={`text-sm font-bold flex-1 ${textStyle}`}>{formatSkillDisplayName(comp.name)}</Text>
                                 <Text className={`text-xs font-bold ${textStyle}`}>
                                   {isDem ? "Demonstrated" : isRel ? "Related" : "Not shown in resume"}
                                 </Text>
@@ -736,9 +770,7 @@ export default function DashboardScreen() {
                           </Text>
                           <View className="flex-row flex-wrap gap-1.5">
                             {matched.map((comp, idx) => (
-                              <View key={idx} className="bg-[#D7F1ED] px-2.5 py-1 rounded-md border border-[#79D5C8]">
-                                <Text className="text-[11px] font-bold text-[#1E5D53]">{comp}</Text>
-                              </View>
+                              <Tag key={idx} label={formatSkillDisplayName(comp)} variant="success" />
                             ))}
                           </View>
                         </View>
@@ -750,9 +782,7 @@ export default function DashboardScreen() {
                           </Text>
                           <View className="flex-row flex-wrap gap-1.5">
                             {gaps.map((comp, idx) => (
-                              <View key={idx} className="bg-[#F1F5F9] px-2.5 py-1 rounded-md border border-[#CBD5E1]">
-                                <Text className="text-[11px] font-medium text-[#475569]">{comp}</Text>
-                              </View>
+                              <Tag key={idx} label={formatSkillDisplayName(comp)} variant="muted" bold={false} />
                             ))}
                           </View>
                         </View>
@@ -789,7 +819,7 @@ export default function DashboardScreen() {
                             Areas with Limited Evidence
                           </Text>
                           <Text className="text-xs text-[#4F6B82] leading-4">
-                            Direct project evidence is limited for: {limited.join(", ")}.
+                            Direct project evidence is limited for: {limited.map(formatSkillDisplayName).join(", ")}.
                           </Text>
                         </View>
                       )}
@@ -818,9 +848,7 @@ export default function DashboardScreen() {
                           </Text>
                           <View className="flex-row flex-wrap gap-1.5">
                             {matched.map((comp, idx) => (
-                              <View key={idx} className="bg-[#D7F1ED] px-2.5 py-1 rounded-md border border-[#79D5C8]">
-                                <Text className="text-[11px] font-bold text-[#1E5D53]">{comp}</Text>
-                              </View>
+                              <Tag key={idx} label={formatSkillDisplayName(comp)} variant="success" />
                             ))}
                           </View>
                         </View>
@@ -833,9 +861,7 @@ export default function DashboardScreen() {
                           </Text>
                           <View className="flex-row flex-wrap gap-1.5">
                             {transferable.map((comp, idx) => (
-                              <View key={idx} className="bg-[#FFF3ED] px-2.5 py-1 rounded-md border border-[#F4A47A]">
-                                <Text className="text-[11px] font-bold text-[#CA5D25]">{comp}</Text>
-                              </View>
+                              <Tag key={idx} label={formatSkillDisplayName(comp)} variant="warning" />
                             ))}
                           </View>
                         </View>
@@ -851,9 +877,7 @@ export default function DashboardScreen() {
                           </Text>
                           <View className="flex-row flex-wrap gap-1.5">
                             {relevantTech.map((comp: string, idx: number) => (
-                              <View key={idx} className="bg-[#F3F4F6] px-2.5 py-1 rounded-md border border-[#D1D5DB]">
-                                <Text className="text-[11px] font-medium text-[#374151]">{comp}</Text>
-                              </View>
+                              <Tag key={idx} label={formatSkillDisplayName(comp)} variant="muted" bold={false} />
                             ))}
                           </View>
                         </View>
@@ -866,9 +890,7 @@ export default function DashboardScreen() {
                           </Text>
                           <View className="flex-row flex-wrap gap-1.5">
                             {gaps.map((comp, idx) => (
-                              <View key={idx} className="bg-[#F1F5F9] px-2.5 py-1 rounded-md border border-[#CBD5E1]">
-                                <Text className="text-[11px] font-medium text-[#475569]">{comp}</Text>
-                              </View>
+                              <Tag key={idx} label={formatSkillDisplayName(comp)} variant="muted" bold={false} />
                             ))}
                           </View>
                         </View>
@@ -956,171 +978,28 @@ export default function DashboardScreen() {
 
                       <View className="h-[1px] bg-[#EAF2F7] my-3" />
 
-                      {/* STRONG POINTS */}
-                      {strongPoints.length > 0 && (
-                        <View className="mb-4">
-                          <View className="flex-row items-center mb-2.5">
-                            <Ionicons name="checkmark-circle" size={15} color="#1E5D53" />
-                            <Text className="ml-1.5 text-[11px] font-bold text-[#1E5D53] uppercase tracking-widest">
-                              Strong Points ({strongPoints.length})
-                            </Text>
-                          </View>
-                          <View className="gap-3">
-                            {strongPoints.map((item, i) => (
-                              <View key={i} className="bg-[#F8FAFC] p-3.5 rounded-xl border border-[#E2E8F0]">
-                                <View className="flex-row justify-between items-start mb-1">
-                                  <Text className="text-xs font-bold text-[#1F3A5F] flex-1 mr-2">{item.competency}</Text>
-                                  <View
-                                    className={`px-2 py-0.5 rounded-full ${
-                                      item.personalizedStatus === "STRONG_POINT_LIMITED_EVIDENCE"
-                                        ? "bg-[#FEF5F1] border border-[#FDEEE6]"
-                                        : "bg-[#D7F1ED]/40 border border-[#79D5C8]/40"
-                                    }`}
-                                  >
-                                    <Text
-                                      className={`text-[9px] font-bold ${
-                                        item.personalizedStatus === "STRONG_POINT_LIMITED_EVIDENCE"
-                                          ? "text-[#CA5D25]"
-                                          : "text-[#1E5D53]"
-                                      }`}
-                                    >
-                                      {item.headline}
-                                    </Text>
-                                  </View>
-                                </View>
-
-                                <Text className="text-xs text-[#4F6B82] leading-4 mb-2">{item.description}</Text>
-
-                                <View className="bg-white p-2.5 rounded-lg border border-[#E2E8F0]">
-                                  <Text className="text-[10px] font-bold text-[#1F3A5F] uppercase tracking-wider mb-0.5">
-                                    Action Recommendation
-                                  </Text>
-                                  <Text className="text-xs text-[#4F6B82] leading-4">{item.actionRecommendation}</Text>
-                                </View>
-
-                                {item.matchedChunk && (
-                                  <Text className="text-[11px] text-[#4F6B82] mt-2 italic">
-                                    Verbatim Evidence: "{item.matchedChunk}"
-                                  </Text>
-                                )}
-                              </View>
-                            ))}
-                          </View>
-                        </View>
-                      )}
-
-                      {/* MODERATE POINTS */}
-                      {moderatePoints.length > 0 && (
-                        <View className="mb-4">
-                          <View className="flex-row items-center mb-2.5">
-                            <Ionicons name="warning" size={15} color="#CA5D25" />
-                            <Text className="ml-1.5 text-[11px] font-bold text-[#CA5D25] uppercase tracking-widest">
-                              Moderate Points ({moderatePoints.length})
-                            </Text>
-                          </View>
-                          <View className="gap-3">
-                            {moderatePoints.map((item, i) => (
-                              <View key={i} className="bg-[#FFF8F5] p-3.5 rounded-xl border border-[#FDEEE6]">
-                                <View className="flex-row justify-between items-start mb-1">
-                                  <Text className="text-xs font-bold text-[#1F3A5F] flex-1 mr-2">{item.competency}</Text>
-                                  <View className="px-2 py-0.5 rounded-full bg-[#FFF3ED] border border-[#F4A47A]/30">
-                                    <Text className="text-[9px] font-bold text-[#CA5D25]">{item.headline}</Text>
-                                  </View>
-                                </View>
-
-                                <Text className="text-xs text-[#4F6B82] leading-4 mb-2">{item.description}</Text>
-
-                                <View className="bg-white p-2.5 rounded-lg border border-[#FDEEE6]">
-                                  <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-wider mb-0.5">
-                                    Action Recommendation
-                                  </Text>
-                                  <Text className="text-xs text-[#4F6B82] leading-4">{item.actionRecommendation}</Text>
-                                </View>
-
-                                {item.matchedChunk && (
-                                  <Text className="text-[11px] text-[#4F6B82] mt-2 italic">
-                                    Verbatim Evidence: "{item.matchedChunk}"
-                                  </Text>
-                                )}
-                              </View>
-                            ))}
-                          </View>
-                        </View>
-                      )}
-
-                      {/* CONFIDENCE MISMATCHES */}
-                      {mismatchPoints.length > 0 && (
-                        <View className="mb-4">
-                          <View className="flex-row items-center mb-2.5">
-                            <Ionicons name="alert-circle" size={15} color="#CA5D25" />
-                            <Text className="ml-1.5 text-[11px] font-bold text-[#CA5D25] uppercase tracking-widest">
-                              Confidence Mismatches ({mismatchPoints.length})
-                            </Text>
-                          </View>
-                          <View className="gap-3">
-                            {mismatchPoints.map((item, i) => (
-                              <View key={i} className="bg-[#FFF8F5] p-3.5 rounded-xl border border-[#F4A47A]">
-                                <View className="flex-row justify-between items-start mb-1">
-                                  <Text className="text-xs font-bold text-[#1F3A5F] flex-1 mr-2">{item.competency}</Text>
-                                  <View className="px-2 py-0.5 rounded-full bg-[#FFF3ED] border border-[#CA5D25]">
-                                    <Text className="text-[9px] font-bold text-[#CA5D25]">{item.headline}</Text>
-                                  </View>
-                                </View>
-
-                                <Text className="text-xs text-[#4F6B82] leading-4 mb-2">{item.description}</Text>
-
-                                <View className="bg-white p-2.5 rounded-lg border border-[#FDEEE6]">
-                                  <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-wider mb-0.5">
-                                    Action Recommendation
-                                  </Text>
-                                  <Text className="text-xs text-[#4F6B82] leading-4">{item.actionRecommendation}</Text>
-                                </View>
-
-                                {item.matchedChunk && (
-                                  <Text className="text-[11px] text-[#4F6B82] mt-2 italic">
-                                    Verbatim Evidence: "{item.matchedChunk}"
-                                  </Text>
-                                )}
-                              </View>
-                            ))}
-                          </View>
-                        </View>
-                      )}
-
-                      {/* WEAK POINTS / GAPS */}
-                      {weakPoints.length > 0 && (
-                        <View className="mb-2">
-                          <View className="flex-row items-center mb-2.5">
-                            <Ionicons name="close-circle" size={15} color="#D32F2F" />
-                            <Text className="ml-1.5 text-[11px] font-bold text-[#D32F2F] uppercase tracking-widest">
-                              Weak Points / Gaps ({weakPoints.length})
-                            </Text>
-                          </View>
-                          <View className="gap-3">
-                            {weakPoints.map((item, i) => (
-                              <View key={i} className="bg-[#FEF2F2] p-3.5 rounded-xl border border-[#FCA5A5]/40">
-                                <View className="flex-row justify-between items-start mb-1">
-                                  <Text className="text-xs font-bold text-[#1F3A5F] flex-1 mr-2">{item.competency}</Text>
-                                  <View className="px-2 py-0.5 rounded-full bg-[#FEE2E2] border border-[#FCA5A5]">
-                                    <Text className="text-[9px] font-bold text-[#D32F2F]">{item.headline}</Text>
-                                  </View>
-                                </View>
-
-                                <Text className="text-xs text-[#4F6B82] leading-4 mb-2">{item.description}</Text>
-
-                                <View className="bg-white p-2.5 rounded-lg border border-[#FCA5A5]/30">
-                                  <Text className="text-[10px] font-bold text-[#D32F2F] uppercase tracking-wider mb-0.5">
-                                    Action Recommendation
-                                  </Text>
-                                  <Text className="text-xs text-[#4F6B82] leading-4">{item.actionRecommendation}</Text>
-                                </View>
-                              </View>
-                            ))}
-                          </View>
-                        </View>
-                      )}
-
-                      {personalizedItems.length === 0 && (
+                                            <CompetencyGuidanceGroup
+                        title="Strong Points"
+                        tone="success"
+                        items={strongPoints}
+                      />
+                      <CompetencyGuidanceGroup
+                        title="Moderate Points"
+                        tone="warning"
+                        items={moderatePoints}
+                      />
+                      <CompetencyGuidanceGroup
+                        title="Confidence Mismatches"
+                        icon="alert-circle"
+                        tone="warning"
+                        items={mismatchPoints}
+                      />
+                      <CompetencyGuidanceGroup
+                        title="Weak Points / Gaps"
+                        tone="danger"
+                        items={weakPoints}
+                      />
+{personalizedItems.length === 0 && (
                         <Text className="text-xs text-[#8B95A5] italic mt-2">No specific competency evaluations were detected for this target role.</Text>
                       )}
                     </View>
@@ -1131,10 +1010,8 @@ export default function DashboardScreen() {
           </View>
 
           <View className="bg-white rounded-2xl border border-[#BFD6EA] mx-6 mb-4 p-4 gap-2">
-            <Text className="text-sm font-bold text-[#1F3A5F]">Understanding Your Scores</Text>
-            <Text className="text-sm text-[#4F6B82] leading-5"><Text className="font-bold">ATS (40%):</Text> Machine readability and resume structure, independent of the target role.</Text>
-            <Text className="text-sm text-[#4F6B82] leading-5"><Text className="font-bold">Alignment (60%):</Text> Resume evidence relevant to {currentUser?.targetPosition || "your target position"}, including skills, projects, education, and certifications.</Text>
-            <Text className="text-sm text-[#1F3A5F] leading-5">Combined resume score = ATS × 0.40 + alignment × 0.60. Self-reported confidence is separate.</Text>
+            <Text className="text-sm font-bold text-[#1F3A5F]">How your score works</Text>
+            <Text className="text-sm text-[#4F6B82] leading-5">Resume Score = Reading check (40%) + Job fit (60%). Your self-rated confidence is separate and never changes your score.</Text>
           </View>
 
         </View>
@@ -1186,7 +1063,7 @@ export default function DashboardScreen() {
               return ALL_SECTIONS.map((sectionKey, idx) => {
                 const normKey = normalizeSecKey(sectionKey);
                 const isDetected = presentSectionKeys.has(normKey);
-                const displayName = CANONICAL_DISPLAY_NAMES[sectionKey] || sectionKey.replace(/([A-Z])/g, " $1").trim();
+                const displayName = CANONICAL_DISPLAY_NAMES[sectionKey] || formatSectionDisplayName(sectionKey);
 
                 if (isDetected) {
                   return (
@@ -1237,12 +1114,12 @@ export default function DashboardScreen() {
                     <View className="mt-0.5 mr-2">
                       <Ionicons name={suggestion.priority === "critical" || suggestion.priority === "high" ? "warning" : "bulb"} size={18} color={suggestion.priority === "critical" || suggestion.priority === "high" ? "#CA5D25" : "#1F3A5F"} />
                     </View>
-                    <Text className="text-base font-bold text-[#1F3A5F] flex-1">{formattedTitle}</Text>
+                    <Text className="text-base font-bold text-[#1F3A5F] flex-1">{fixConcatenatedSectionNames(formattedTitle)}</Text>
                   </View>
 
                   {bodyText ? (
                     <Text className="text-xs leading-4 text-[#4F6B82] mb-3">
-                      {bodyText}
+                      {typeof bodyText === "string" ? fixConcatenatedSectionNames(bodyText) : bodyText}
                     </Text>
                   ) : null}
 
@@ -1251,7 +1128,7 @@ export default function DashboardScreen() {
                       <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-widest mb-1">
                         {isRewrite ? "Verified Evidence & Next Step" : "Suggested Action"}
                       </Text>
-                      <Text className="text-xs leading-4 text-[#CA5D25] font-medium">{actionText}</Text>
+                      <Text className="text-xs leading-4 text-[#CA5D25] font-medium">{typeof actionText === "string" ? fixConcatenatedSectionNames(actionText) : actionText}</Text>
                     </View>
                   ) : null}
                 </View>
@@ -1378,7 +1255,7 @@ export default function DashboardScreen() {
       {/* ALL SUGGESTIONS MODAL */}
       <Modal visible={showAllSuggestions} transparent animationType="slide" onRequestClose={() => setShowAllSuggestions(false)}>
         <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
-          <View className="h-5/6 rounded-t-3xl bg-[#F4F8FB] shadow-lg overflow-hidden">
+          <View className="h-5/6 rounded-t-3xl bg-[#F4F8FB] shadow-lg overflow-hidden" style={{ paddingBottom: Math.max(insets.bottom, 16) }}>
             <View className="flex-row items-center justify-between p-6 bg-white border-b border-[#BFD6EA]">
               <Text className="text-xl font-extrabold text-[#1F3A5F]">All Improvements</Text>
               <TouchableOpacity onPress={() => setShowAllSuggestions(false)} className="h-8 w-8 items-center justify-center bg-[#EAF2F7] rounded-full">
@@ -1400,12 +1277,12 @@ export default function DashboardScreen() {
                         <View className="mt-0.5 mr-2">
                           <Ionicons name={suggestion.priority === "critical" || suggestion.priority === "high" ? "warning" : "bulb"} size={18} color={suggestion.priority === "critical" || suggestion.priority === "high" ? "#CA5D25" : "#1F3A5F"} />
                         </View>
-                        <Text className="text-base font-bold text-[#1F3A5F] flex-1">{formattedTitle}</Text>
+                        <Text className="text-base font-bold text-[#1F3A5F] flex-1">{fixConcatenatedSectionNames(formattedTitle)}</Text>
                       </View>
 
                       {bodyText ? (
                         <Text className="text-xs leading-4 text-[#4F6B82] mb-3">
-                          {bodyText}
+                          {typeof bodyText === "string" ? fixConcatenatedSectionNames(bodyText) : bodyText}
                         </Text>
                       ) : null}
 
@@ -1414,7 +1291,7 @@ export default function DashboardScreen() {
                           <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-widest mb-1">
                             {isRewrite ? "Verified Evidence & Next Step" : "Suggested Action"}
                           </Text>
-                          <Text className="text-xs leading-4 text-[#CA5D25] font-medium">{actionText}</Text>
+                          <Text className="text-xs leading-4 text-[#CA5D25] font-medium">{typeof actionText === "string" ? fixConcatenatedSectionNames(actionText) : actionText}</Text>
                         </View>
                       ) : null}
                     </View>

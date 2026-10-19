@@ -142,7 +142,7 @@ export default function JobSelectionScreen() {
         if (resolvedValue.toLowerCase() !== queryRole.toLowerCase()) {
           Alert.alert(
             "Role Standardized",
-            `Mapped "${queryRole}" to industry title: "${resolvedValue}"`
+            `Matched "${queryRole}" to: "${resolvedValue}"`
           );
         }
         return;
@@ -159,7 +159,7 @@ export default function JobSelectionScreen() {
         if (fuzzyMatched && fuzzyMatched.toLowerCase() !== queryRole.toLowerCase()) {
           Alert.alert(
             "Role Resolved",
-            `Mapped "${queryRole}" to standard title "${fuzzyMatched}".`
+            `Matched "${queryRole}" to "${fuzzyMatched}".`
           );
         }
       } else {
@@ -288,7 +288,7 @@ export default function JobSelectionScreen() {
               {isValidating ? (
                 <View className="flex-row items-center gap-2">
                   <ActivityIndicator size="small" color="#CA5D25" />
-                  <Text className="text-sm font-bold text-[#CA5D25]">Standardizing custom role...</Text>
+                  <Text className="text-sm font-bold text-[#CA5D25]">Checking your job title...</Text>
                 </View>
               ) : (
                 <Text className="text-sm font-bold text-[#CA5D25] text-center">
@@ -313,7 +313,7 @@ export default function JobSelectionScreen() {
         {filtered.length === 0 && !isCustomQueryNew && (
           <View className="py-8 items-center justify-center">
             <Ionicons name="search-outline" size={36} color="#94A3B8" />
-            <Text className="mt-2 text-sm font-semibold text-[#64748B]">No matching standard roles found</Text>
+            <Text className="mt-2 text-sm font-semibold text-[#64748B]">No matching jobs found</Text>
             <Text className="text-xs text-[#94A3B8] text-center mt-1 px-6">
               Try searching with different keywords or type a custom role title above.
             </Text>

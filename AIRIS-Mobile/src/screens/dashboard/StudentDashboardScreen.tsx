@@ -6,7 +6,7 @@ import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore } from "../../store/authStore";
 import { useResumeStore } from "../../store/resumeStore";
-import { PrimaryButton } from "../../components/ui";
+import { PrimaryButton, UserAvatar } from "../../components/ui";
 import { fetchUserActivities, UserActivity } from "../../services/firebase/activityService";
 
 export default function StudentDashboardScreen() {
@@ -103,10 +103,11 @@ export default function StudentDashboardScreen() {
         </View>
         <TouchableOpacity
           onPress={handleProfilePress}
-          className="h-14 w-14 items-center justify-center rounded-full bg-[#79D5C8] border-2 border-white"
+          accessibilityRole="button"
+          accessibilityLabel="Open your profile"
           style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 }}
         >
-          <Ionicons name="person" size={24} color="white" />
+          <UserAvatar uid={currentUser?.uid} size={56} />
         </TouchableOpacity>
       </View>
 
@@ -132,17 +133,17 @@ export default function StudentDashboardScreen() {
               </View>
 
               <Text className="text-base font-bold text-center text-[#1F3A5F]">
-                Incomplete Data
+                No score yet
               </Text>
               <Text className="mt-1.5 text-sm text-center text-[#4F6B82] px-6 leading-5">
-                Complete an interview simulation to unlock your full employability score!
+                Finish one practice interview to see your score here.
               </Text>
             </>
           ) : (
             <View className="flex-row items-center justify-between w-full py-4">
               <View className="flex-1 pr-6">
                 <Text className="text-sm text-[#4F6B82] leading-5 font-medium">
-                  Your preparedness score is based on 60% interview performance and 40% resume scoring.
+                  Based on your interview (60%) and your resume (40%).
                 </Text>
               </View>
               <View className="h-20 w-20 items-center justify-center rounded-full bg-[#F1FAF8] border-2 border-[#D7F1ED]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
@@ -160,7 +161,7 @@ export default function StudentDashboardScreen() {
               <Text className="text-3xl font-black text-[#1F3A5F]">{hasResume ? resumeScore : '--'}</Text>
               {hasResume && <Text className="text-sm font-bold text-[#8B95A5] ml-1">/ 100</Text>}
             </View>
-            <Text className="text-xs font-medium text-[#4F6B82] mt-2 leading-4">40% Weight</Text>
+            <Text className="text-xs font-medium text-[#4F6B82] mt-2 leading-4">Counts 40% of your score</Text>
           </View>
 
           <View className="flex-1 rounded-2xl bg-white p-5 border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
@@ -169,7 +170,7 @@ export default function StudentDashboardScreen() {
               <Text className="text-3xl font-black text-[#1F3A5F]">{hasInterview ? interviewScore : '--'}</Text>
               {hasInterview && <Text className="text-sm font-bold text-[#8B95A5] ml-1">/ 100</Text>}
             </View>
-            <Text className="text-xs font-medium text-[#4F6B82] mt-2 leading-4">60% Weight</Text>
+            <Text className="text-xs font-medium text-[#4F6B82] mt-2 leading-4">Counts 60% of your score</Text>
           </View>
         </View>
 
@@ -191,7 +192,7 @@ export default function StudentDashboardScreen() {
           </Text>
 
           <Text className="mt-3 text-sm leading-5 text-[#4F6B82] pr-4 font-medium mb-6">
-            Step into a virtual interview room and practice answering questions. Build confidence and improve your communication skills.
+            Practice answering questions in a virtual interview room. Build confidence for real interviews.
           </Text>
 
           <PrimaryButton
@@ -238,7 +239,7 @@ export default function StudentDashboardScreen() {
                    <Ionicons name="time" size={20} color="#4F6B82" />
                  </View>
                  <Text className="text-sm font-medium text-[#4F6B82] leading-5 flex-1">
-                   No recent activity recorded.
+                   Nothing here yet. Your resume checks and interviews will show up here.
                  </Text>
               </View>
             </View>

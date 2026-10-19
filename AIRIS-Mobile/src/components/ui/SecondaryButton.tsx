@@ -15,13 +15,13 @@ export function SecondaryButton({ title, loading, disabled, className = '', ...p
   return (
     <TouchableOpacity
       disabled={disabled || loading}
-      className={`h-14 px-8 items-center justify-center rounded-full flex-row border-2 ${bgClass} ${borderClass} ${className}`}
+      className={`min-h-[52px] py-3.5 px-6 items-center justify-center rounded-full flex-row border-2 ${bgClass} ${borderClass} ${className}`}
       {...props}
     >
       {loading ? (
         <ActivityIndicator color={disabled ? '#94A3B8' : '#1F3A5F'} />
       ) : (
-        <Text className={`text-base font-bold ${textClass}`}>{title}</Text>
+        <Text className={`text-base font-bold text-center ${textClass}`}>{title}</Text>
       )}
     </TouchableOpacity>
   );

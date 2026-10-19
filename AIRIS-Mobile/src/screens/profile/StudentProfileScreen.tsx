@@ -13,23 +13,22 @@ import {
 } from "react-native";
 import { Text, TextInput } from "../../components/ui/AppText";
 import { TextSize, useAppearanceStore } from "../../store/appearanceStore";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../../store/authStore";
 import { useResumeStore } from "../../store/resumeStore";
-import { PrimaryButton } from "../../components/ui";
+import { PrimaryButton, UserAvatar } from "../../components/ui";
 import { fetchUserActivities, UserActivity } from "../../services/firebase/activityService";
-import { Image } from "expo-image";
 import { tipManilaPrograms, tipManilaCollegePrograms } from "../../data/tipManilaPrograms";
 import { PasswordRequirementsView } from "../../components/ui/PasswordRequirementsView";
 import { validatePassword } from "../../utils/passwordPolicy";
 import { validatePersonName, validateAcademicSelection } from "../../utils/inputValidator";
 import { mapAuthError } from "../../utils/errorMapper";
-import { resolveProfilePhoto, DEFAULT_PROFILE_FALLBACK } from "../../services/firebase/profilePhotoService";
 import { evaluateCareerTargetCompatibility, CareerCompatibilityResult } from "../../services/ai/careerCompatibilityGuardrail";
 import { CareerCompatibilityModal } from "../../components/ui/CareerCompatibilityModal";
 import { auth } from "../../config/firebase";
 
 export default function StudentProfileScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const logout = useAuthStore((state) => state.logout);
   const currentUser = useAuthStore((state) => state.currentUser);
@@ -87,8 +86,6 @@ export default function StudentProfileScreen() {
   const [activities, setActivities] = useState<UserActivity[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
 
-  const [photoSource, setPhotoSource] = useState<{ uri?: string; defaultAsset?: any }>({ defaultAsset: DEFAULT_PROFILE_FALLBACK });
-
   const openContact = async (url: string) => {
     try {
       await Linking.openURL(url);
@@ -96,18 +93,6 @@ export default function StudentProfileScreen() {
       Alert.alert("Link Unavailable", "No app could open this contact link on your device.");
     }
   };
-
-  useEffect(() => {
-    let isMounted = true;
-    if (currentUser?.uid) {
-      resolveProfilePhoto(currentUser.uid).then((res) => {
-        if (isMounted) setPhotoSource(res);
-      });
-    } else {
-      setPhotoSource({ defaultAsset: DEFAULT_PROFILE_FALLBACK });
-    }
-    return () => { isMounted = false; };
-  }, [currentUser?.uid, currentUser?.photoURL]);
 
   useEffect(() => {
     if (currentUser) {
@@ -383,23 +368,18 @@ export default function StudentProfileScreen() {
             onPress={handleUpdatePhoto}
             disabled={loading}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Change your profile photo"
             className="relative mb-4"
           >
-            <View className="h-24 w-24 items-center justify-center rounded-full bg-[#79D5C8] shadow-sm border-2 border-white overflow-hidden">
-              <Image
-                source={photoSource.uri ? { uri: photoSource.uri } : (photoSource.defaultAsset || DEFAULT_PROFILE_FALLBACK)}
-                style={{ width: "100%", height: "100%" }}
-                contentFit="cover"
-                transition={200}
-              />
-            </View>
+            <UserAvatar uid={currentUser?.uid} size={96} />
             <View className="absolute bottom-0 right-0 bg-[#CA5D25] rounded-full p-2 border-2 border-white shadow-sm">
               <Ionicons name="camera" size={14} color="white" />
             </View>
           </TouchableOpacity>
 
           <Text className="text-2xl font-extrabold text-[#1F3A5F] text-center">
-            {currentUser?.fullName || "TIP Student"}
+            {currentUser?.fullName || "T.I.P. Student"}
           </Text>
           <Text className="text-sm font-semibold text-[#4F6B82] mt-1 text-center px-4">
             {currentUser?.degreeProgram || "Not Selected"}
@@ -509,7 +489,7 @@ export default function StudentProfileScreen() {
 
             <View className="rounded-2xl bg-white border border-[#BFD6EA] p-5">
               <Text className="text-base font-bold text-[#1F3A5F] mb-1">Text Size</Text>
-              <Text className="text-sm text-[#4F6B82] mb-4">Choose the reading size that works for you.</Text>
+              <Text className="text-sm text-[#4F6B82] mb-4">Bigger or smaller reading text for this session. It goes back to Medium when you log out.</Text>
               <View className="flex-row gap-2">
                 {(["small", "medium", "large"] as TextSize[]).map((size) => (
                   <TouchableOpacity
@@ -848,14 +828,14 @@ export default function StudentProfileScreen() {
                   <View className="gap-1">
                     <Text className="text-sm font-bold text-[#1F3A5F]">1. Resume & ATS Analysis</Text>
                     <Text className="text-xs text-[#4F6B82] leading-5">
-                      Upload your resume in PDF format. AIRIS evaluates machine parseability, essential section structure, and formatting hygiene. This score reflects structural readiness, not your personal worth.
+                      Upload your resume in PDF format. AIRIS checks that your resume is easy for hiring software to read: clear sections and clean formatting. This score is about readability, not your worth as a person.
                     </Text>
                   </View>
 
                   <View className="gap-1">
                     <Text className="text-sm font-bold text-[#1F3A5F]">2. Target Competency Alignment & Self-Assessment</Text>
                     <Text className="text-xs text-[#4F6B82] leading-5">
-                      Your resume is evaluated against competencies for your chosen career track. In the self-assessment, rate your personal confidence: Strong (75–100%), Moderate (50–74%), or Weak (0–49%). This represents self-reported confidence, NOT verified skill, and does not alter your ATS score.
+                      Your resume is checked against the skills for your chosen job. In the self-check, rate your own confidence: Strong (75–100%), OK (50–74%), or Weak (0–49%). This is your own rating, not a verified skill, and it does not change your reading score.
                     </Text>
                   </View>
 
@@ -914,7 +894,7 @@ export default function StudentProfileScreen() {
                   <Text className="text-sm font-bold text-[#1F3A5F] mt-2">Contact Us</Text>
                   <TouchableOpacity onPress={() => void openContact("mailto:danielespela251@gmail.com")}><Text className="text-sm text-[#1F3A5F] underline">Email the AIRIS team</Text></TouchableOpacity>
                   <TouchableOpacity onPress={() => void openContact("https://www.facebook.com/daniiiii007/")}><Text className="text-sm text-[#1F3A5F] underline">AIRIS project Facebook</Text></TouchableOpacity>
-                  <TouchableOpacity onPress={() => void openContact("https://www.facebook.com/TIPCareerCenter")}><Text className="text-sm text-[#1F3A5F] underline">TIP Career Center Facebook</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => void openContact("https://www.facebook.com/TIPCareerCenter")}><Text className="text-sm text-[#1F3A5F] underline">T.I.P. Career Center Facebook</Text></TouchableOpacity>
                   <Text className="text-xs font-medium text-[#8B95A5] mt-2">Version 1.0.0 | © 2026 AIRIS Team</Text>
                 </View>
               )}
@@ -926,14 +906,14 @@ export default function StudentProfileScreen() {
       {/* College Department Selection Modal */}
       <Modal visible={showCollegeModal} animationType="slide" transparent={true} onRequestClose={() => setShowCollegeModal(false)}>
         <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white rounded-t-3xl p-6 max-h-[80%] border-t border-[#BFD6EA]">
+          <View className="bg-white rounded-t-3xl p-6 max-h-[80%] border-t border-[#BFD6EA]" style={{ paddingBottom: Math.max(insets.bottom, 16) + 12 }}>
             <View className="flex-row items-center justify-between pb-4 border-b border-[#EAF2F7] mb-4">
               <Text className="text-lg font-extrabold text-[#1F3A5F]">Select College Department</Text>
               <TouchableOpacity onPress={() => setShowCollegeModal(false)} className="p-1">
                 <Ionicons name="close" size={24} color="#8B95A5" />
               </TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 20 }}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: Math.max(insets.bottom, 16) + 20 }}>
               {tipManilaCollegePrograms.map((c) => {
                 const isSelected = editCollege.toLowerCase() === c.name.toLowerCase();
                 return (
@@ -944,7 +924,7 @@ export default function StudentProfileScreen() {
                       // Reset program if it doesn't belong to new college
                       const validInNewCollege = c.programs.some((p) => p.name.toLowerCase() === editProgram.toLowerCase());
                       if (!validInNewCollege && c.programs.length > 0) {
-                        setEditProgram(c.programs[0].name);
+                         setEditProgram(c.programs[0].name);
                       }
                       setShowCollegeModal(false);
                     }}
@@ -967,14 +947,14 @@ export default function StudentProfileScreen() {
       {/* Degree Program Selection Modal */}
       <Modal visible={showProgramModal} animationType="slide" transparent={true} onRequestClose={() => setShowProgramModal(false)}>
         <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white rounded-t-3xl p-6 max-h-[80%] border-t border-[#BFD6EA]">
+          <View className="bg-white rounded-t-3xl p-6 max-h-[80%] border-t border-[#BFD6EA]" style={{ paddingBottom: Math.max(insets.bottom, 16) + 12 }}>
             <View className="flex-row items-center justify-between pb-4 border-b border-[#EAF2F7] mb-4">
               <Text className="text-lg font-extrabold text-[#1F3A5F]">Select Degree Program</Text>
               <TouchableOpacity onPress={() => setShowProgramModal(false)} className="p-1">
                 <Ionicons name="close" size={24} color="#8B95A5" />
               </TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 20 }}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: Math.max(insets.bottom, 16) + 20 }}>
               {(() => {
                 const collegeData = tipManilaCollegePrograms.find((c) => c.name.toLowerCase() === editCollege.toLowerCase());
                 const availablePrograms = collegeData ? collegeData.programs : [];

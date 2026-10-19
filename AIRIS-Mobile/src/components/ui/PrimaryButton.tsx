@@ -22,13 +22,13 @@ export function PrimaryButton({ title, loading, variant = 'navy', disabled, clas
   return (
     <TouchableOpacity
       disabled={disabled || loading}
-      className={`h-14 px-8 items-center justify-center rounded-full flex-row ${bgClass} ${className}`}
+      className={`min-h-[52px] py-3.5 px-6 items-center justify-center rounded-full flex-row ${bgClass} ${className}`}
       {...props}
     >
       {loading ? (
         <ActivityIndicator color={disabled ? '#94A3B8' : '#FFFFFF'} />
       ) : (
-        <Text className={`text-base font-bold ${textClass}`}>{title}</Text>
+        <Text className={`text-base font-bold text-center ${textClass}`}>{title}</Text>
       )}
     </TouchableOpacity>
   );

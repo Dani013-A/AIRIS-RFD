@@ -10095,6 +10095,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* U3CDelayedDiagnosticChecksU3Ed
 #pragma clang diagnostic ignored "-Wunused-variable"
 #endif
 // Method Definition Index: 71585
+static void SuppressAllDeskButtons(DialogueManager_t9C5A5026BF70075C3D71B589FB5D5EA74A3B9B1E* dm);
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DialogueManager_Awake_m1E03D7AA32F5A9A8F8FBE2EC1C9ABB2742341207 (DialogueManager_t9C5A5026BF70075C3D71B589FB5D5EA74A3B9B1E* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -10110,6 +10111,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DialogueManager_Start_m4C2D94B2DD22F681B
 {
 	//<source_info:<no-source>:1>
 	{
+		SuppressAllDeskButtons(__this);
 		DialogueManager_AlignCanvasToCamera_m6283568B3E1D6325FD1E394444AD7F473D4E67B5(__this, NULL);
 		// Note: Do NOT hide speech bubble here so incoming/active question is not destroyed
 		DialogueManager_HideListening_m315365A5231BCA401133E9B2FEA85AD2ABB5A71B(__this, NULL);
@@ -10857,6 +10859,427 @@ IL2CPP_EXTERN_C void DialogueManager_OnNextQuestionClicked (DialogueManager_t9C5
 	}
 }
 
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Transform_SetAsFirstSibling_mBE0D0E76099F829466DC2FBD71ACFCF3C8EC03BD (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Sprite_tAFF74BC83CD68037494CB0B4F28CBDF8971CAB99* Image_get_sprite_mB2AA377708722E100574F6F75BC102513BB3BCB1 (Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Image_set_sprite_mC0C248340BA27AAEE56855A3FAFA0D8CA12956DE (Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* __this, Sprite_tAFF74BC83CD68037494CB0B4F28CBDF8971CAB99* ___0_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Image_set_type_mECB8D34772AA393FFBC867B03D18EA0F1A8546BF (Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* __this, int32_t ___0_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 Transform_get_localRotation_mD53D37611A5DAE93EC6C7BBCAC337408C5CACA77 (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Transform_set_localRotation_mAB4A011D134BA58AB780BECC0025CA65F16185FA (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 ___0_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 RectTransform_get_anchorMin_mD85363930BE38EC188F933B9F4D58320CAB72F03 (RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 RectTransform_get_anchorMax_mEF870BE2A134CEB9C2326930A71D3961271297DB (RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 RectTransform_get_pivot_mA8334AF05AA7FF09A173A2430F2BB9E85E5CBFFF (RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR float TMP_Text_get_preferredWidth_mE30D1F5B8573BD0A558054D004A53DE868BD208A (TMP_Text_tE8D677872D43AD4B2AAF0D6101692A17D0B251A9* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR float TMP_Text_get_preferredHeight_m4F28E8FB388AFF1DC052F5F982DB2F959598B004 (TMP_Text_tE8D677872D43AD4B2AAF0D6101692A17D0B251A9* __this, const RuntimeMethod* method) ;
+
+static bool IsOneOnOneScene()
+{
+	Scene_tA1DC762B79745EB5140F054C884855B922318356 scene = SceneManager_GetActiveScene_m0B320EC4302F51A71495D1CCD1A0FF9C2ED1FDC8(NULL);
+	String_t* sceneName = Scene_get_name_m3C818DFA663E159274DAD823B780C7616C5E2A8C(&scene, NULL);
+	return sceneName != NULL && String_op_Equality_m030E1B219352228970A076136E455C4E568C02C1(sceneName, il2cpp_string_new("OneOnOne"), NULL);
+}
+
+static GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* OneOnOneQuestionPanel(DialogueManager_t9C5A5026BF70075C3D71B589FB5D5EA74A3B9B1E* dm)
+{
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* root = dm->___speechBubble;
+	TMP_Text_tE8D677872D43AD4B2AAF0D6101692A17D0B251A9* text = dm->___speechText;
+	if (dm->___interviewerSpeechBubbles != NULL && (((RuntimeArray*)dm->___interviewerSpeechBubbles)->max_length) > 0)
+	{
+		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* first = (dm->___interviewerSpeechBubbles)->GetAt(0);
+		if (IsValidUnityObject((RuntimeObject*)first)) root = first;
+	}
+	if (dm->___interviewerSpeechTexts != NULL && (((RuntimeArray*)dm->___interviewerSpeechTexts)->max_length) > 0)
+	{
+		TMP_Text_tE8D677872D43AD4B2AAF0D6101692A17D0B251A9* first = (dm->___interviewerSpeechTexts)->GetAt(0);
+		if (IsValidUnityObject((RuntimeObject*)first)) text = first;
+	}
+	if (!IsValidUnityObject((RuntimeObject*)root) || !IsValidUnityObject((RuntimeObject*)text)) return NULL;
+	return DialogueManager_FindActualBubblePanel_m85A07EC999B8D34A4E569A121DB46D1CB9077A97(dm, root, text, NULL);
+}
+
+static GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* PanelQuestionPanel(DialogueManager_t9C5A5026BF70075C3D71B589FB5D5EA74A3B9B1E* dm)
+{
+	if (dm == NULL) return NULL;
+	if (dm->___interviewerSpeechBubbles != NULL)
+	{
+		int32_t bubbleCount = (il2cpp_codegen_conv<int32_t,int64_t,int64_t,false,false>((((RuntimeArray*)dm->___interviewerSpeechBubbles)->max_length),NULL));
+		int32_t textCount = dm->___interviewerSpeechTexts != NULL
+			? (il2cpp_codegen_conv<int32_t,int64_t,int64_t,false,false>((((RuntimeArray*)dm->___interviewerSpeechTexts)->max_length),NULL)) : 0;
+		for (int32_t i = 0; i < bubbleCount; ++i)
+		{
+			GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* root = dm->___interviewerSpeechBubbles->GetAt(i);
+			if (IsValidUnityObject((RuntimeObject*)root) && GameObject_get_activeSelf_m4F3E5240E138B66AAA080EA30759A3D0517DA368(root, NULL))
+			{
+				TMP_Text_tE8D677872D43AD4B2AAF0D6101692A17D0B251A9* text = i < textCount ? dm->___interviewerSpeechTexts->GetAt(i) : NULL;
+				if (!IsValidUnityObject((RuntimeObject*)text)) text = dm->___speechText;
+				if (!IsValidUnityObject((RuntimeObject*)text))
+				{
+					TMP_TextU5BU5D_t12384CBAF397196B9A7886087BDC8C19D800C24F* texts = GameObject_GetComponentsInChildren_TisTMP_Text_tE8D677872D43AD4B2AAF0D6101692A17D0B251A9_m295DA22DDE480845F095A35E3B49535BDA03219D(root, (bool)1, GameObject_GetComponentsInChildren_TisTMP_Text_tE8D677872D43AD4B2AAF0D6101692A17D0B251A9_m295DA22DDE480845F095A35E3B49535BDA03219D_RuntimeMethod_var);
+					if (texts != NULL && (((RuntimeArray*)texts)->max_length) > 0) text = texts->GetAt(0);
+				}
+				if (IsValidUnityObject((RuntimeObject*)text))
+					return DialogueManager_FindActualBubblePanel_m85A07EC999B8D34A4E569A121DB46D1CB9077A97(dm, root, text, NULL);
+			}
+		}
+	}
+	if (IsValidUnityObject((RuntimeObject*)dm->___speechBubble) && IsValidUnityObject((RuntimeObject*)dm->___speechText) &&
+		GameObject_get_activeSelf_m4F3E5240E138B66AAA080EA30759A3D0517DA368(dm->___speechBubble, NULL))
+	{
+		return DialogueManager_FindActualBubblePanel_m85A07EC999B8D34A4E569A121DB46D1CB9077A97(dm, dm->___speechBubble, dm->___speechText, NULL);
+	}
+	return NULL;
+}
+
+static void EnsureListeningBackground(DialogueManager_t9C5A5026BF70075C3D71B589FB5D5EA74A3B9B1E* dm)
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&GameObject_GetComponentsInChildren_TisTMP_Text_tE8D677872D43AD4B2AAF0D6101692A17D0B251A9_m295DA22DDE480845F095A35E3B49535BDA03219D_RuntimeMethod_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&GameObject_GetComponent_TisRectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5_m1592DCB5AA07291F73A76006F0913A64DFB8A9C4_RuntimeMethod_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&GameObject_GetComponent_TisImage_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_mA59EA7D5F9133B2593F4AB70B099928BA955EE7D_RuntimeMethod_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&GameObject_t76FEDD663AB33C991A9C9A23129337651094216F_il2cpp_TypeInfo_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_0_0_0_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&CanvasRenderer_tAB9A55A976C4E3B2B37D0CE5616E5685A8B43860_0_0_0_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5_0_0_0_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_il2cpp_TypeInfo_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&TypeU5BU5D_t97234E1129B564EB38B8D85CAC2AD8B5B9522FFB_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+
+	if (dm == NULL || !IsValidUnityObject((RuntimeObject*)dm->___listeningPanel)) return;
+	if (!IsOneOnOneScene() && !IsValidUnityObject((RuntimeObject*)PanelQuestionPanel(dm)))
+	{
+		__android_log_print(ANDROID_LOG_WARN, "Unity", "[AIRIS][PanelPill] No active question bubble; hiding status panel");
+		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(dm->___listeningPanel, (bool)0, NULL);
+		return;
+	}
+
+	if (!IsValidUnityObject((RuntimeObject*)dm->___listeningStatusText))
+	{
+		TMP_TextU5BU5D_t12384CBAF397196B9A7886087BDC8C19D800C24F* texts = GameObject_GetComponentsInChildren_TisTMP_Text_tE8D677872D43AD4B2AAF0D6101692A17D0B251A9_m295DA22DDE480845F095A35E3B49535BDA03219D(dm->___listeningPanel, (bool)1, GameObject_GetComponentsInChildren_TisTMP_Text_tE8D677872D43AD4B2AAF0D6101692A17D0B251A9_m295DA22DDE480845F095A35E3B49535BDA03219D_RuntimeMethod_var);
+		if (texts != NULL && (il2cpp_codegen_conv<int32_t,int64_t,int64_t,false,false>((((RuntimeArray*)texts)->max_length),NULL)) > 0)
+		{
+			dm->___listeningStatusText = texts->GetAt(0);
+			Il2CppCodeGenWriteBarrier((void**)(&dm->___listeningStatusText), (void*)texts->GetAt(0));
+		}
+	}
+
+	if (!IsValidUnityObject((RuntimeObject*)dm->___listeningStatusText)) return;
+
+	Color_tD001788D726C3A7F1379BEED0260B9591F440C1F colNavy;
+	Color__ctor_m3786F0D6E510D9CFA544523A955870BD2A514C8C_inline((&colNavy), 0.12f, 0.23f, 0.37f, 1.0f, NULL);
+	VirtualActionInvoker1< Color_tD001788D726C3A7F1379BEED0260B9591F440C1F >::Invoke(23, (Graphic_tCBFCA4585A19E2B75465AECFEAC43F4016BF7931*)dm->___listeningStatusText, colNavy);
+	TMP_Text_set_fontSize_m1C3A3BA2BC88E5E1D89375FD35A0AA91E75D3AAD(dm->___listeningStatusText, 24.0f, NULL);
+	TMP_Text_set_alignment_mE5216A28797987CC19927ED3CB8DFAC438C6B95A(dm->___listeningStatusText, 514, NULL);
+
+	Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* lpTr = GameObject_get_transform_m0BC10ADFA1632166AE5544BDF9038A2650C2AE56(dm->___listeningPanel, NULL);
+	if (lpTr == NULL) return;
+
+	// Reparent ListeningPanel to question canvas and position cleanly below question bubble
+	Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* canvasTr = NULL;
+	float targetY = 230.0f;
+
+	if (IsOneOnOneScene())
+	{
+		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* bubble = OneOnOneQuestionPanel(dm);
+		if (IsValidUnityObject((RuntimeObject*)bubble))
+		{
+			Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* bubbleTr = GameObject_get_transform_m0BC10ADFA1632166AE5544BDF9038A2650C2AE56(bubble, NULL);
+			if (bubbleTr != NULL) canvasTr = Transform_get_parent_m65354E28A4C94EC00EBCF03532F7B0718380791E(bubbleTr, NULL);
+		}
+	}
+	else
+	{
+		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* bubble = PanelQuestionPanel(dm);
+		if (IsValidUnityObject((RuntimeObject*)bubble))
+		{
+			Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* bubbleTr = GameObject_get_transform_m0BC10ADFA1632166AE5544BDF9038A2650C2AE56(bubble, NULL);
+			if (bubbleTr != NULL) canvasTr = Transform_get_parent_m65354E28A4C94EC00EBCF03532F7B0718380791E(bubbleTr, NULL);
+		}
+	}
+
+	if (canvasTr != NULL && Transform_get_parent_m65354E28A4C94EC00EBCF03532F7B0718380791E(lpTr, NULL) != canvasTr)
+	{
+		Transform_SetParent_m9BDD7B7476714B2D7919B10BDC22CE75C0A0A195(lpTr, canvasTr, (bool)0, NULL);
+	}
+
+	RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* lpRt = GameObject_GetComponent_TisRectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5_m1592DCB5AA07291F73A76006F0913A64DFB8A9C4(dm->___listeningPanel, GameObject_GetComponent_TisRectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5_m1592DCB5AA07291F73A76006F0913A64DFB8A9C4_RuntimeMethod_var);
+	if (lpRt != NULL)
+	{
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 v_center;
+		Vector2__ctor_m9525B79969AFFE3254B303A40997A56DEEB6F548_inline((&v_center), 0.5f, 0.5f, NULL);
+		RectTransform_set_pivot_m79D0177D383D432A93C2615F1932B739B1C6E146(lpRt, v_center, NULL);
+		RectTransform_set_anchorMin_m931442ABE3368D6D4309F43DF1D64AB64B0F52E3(lpRt, v_center, NULL);
+		RectTransform_set_anchorMax_m52829ABEDD229ABD3DA20BCA676FA1DCA4A39B7D(lpRt, v_center, NULL);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 lpPos;
+		Vector2__ctor_m9525B79969AFFE3254B303A40997A56DEEB6F548_inline((&lpPos), 0.0f, targetY, NULL);
+		RectTransform_set_anchoredPosition_mF903ACE04F6959B1CD67E2B94FABC0263068F965(lpRt, lpPos, NULL);
+	}
+
+	// Disable any legacy image directly on listeningPanel so it doesn't draw an old rect
+	Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* lpImg = GameObject_GetComponent_TisImage_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_mA59EA7D5F9133B2593F4AB70B099928BA955EE7D(dm->___listeningPanel, GameObject_GetComponent_TisImage_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_mA59EA7D5F9133B2593F4AB70B099928BA955EE7D_RuntimeMethod_var);
+	if (lpImg != NULL)
+	{
+		Behaviour_set_enabled_mF1DCFE60EB09E0529FE9476CA804A3AA2D72B16A((Behaviour_t01970CFBBA658497AE30F311C447DB0440BAB7FA*)lpImg, (bool)0, NULL);
+	}
+
+	Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* bgTr = Transform_Find_m3087032B0E1C5B96A2D2C27020BAEAE2DA08F932(lpTr, il2cpp_string_new("ListeningBackground_VR"), NULL);
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* bgGo = NULL;
+	Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* bgImg = NULL;
+	RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* bgRt = NULL;
+
+	if (bgTr == NULL)
+	{
+		TypeU5BU5D_t97234E1129B564EB38B8D85CAC2AD8B5B9522FFB* bgCompTypes = (TypeU5BU5D_t97234E1129B564EB38B8D85CAC2AD8B5B9522FFB*)SZArrayNew(TypeU5BU5D_t97234E1129B564EB38B8D85CAC2AD8B5B9522FFB_il2cpp_TypeInfo_var, (uint32_t)3);
+		il2cpp_codegen_runtime_class_init_inline(il2cpp_defaults.systemtype_class);
+		bgCompTypes->SetAt(0, Type_GetTypeFromHandle_m6062B81682F79A4D6DF2640692EE6D9987858C57((RuntimeTypeHandle_t332A452B8B6179E4469B69525D0FE82A88030F7B){ reinterpret_cast<intptr_t>(RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5_0_0_0_var) }, NULL));
+		bgCompTypes->SetAt(1, Type_GetTypeFromHandle_m6062B81682F79A4D6DF2640692EE6D9987858C57((RuntimeTypeHandle_t332A452B8B6179E4469B69525D0FE82A88030F7B){ reinterpret_cast<intptr_t>(CanvasRenderer_tAB9A55A976C4E3B2B37D0CE5616E5685A8B43860_0_0_0_var) }, NULL));
+		bgCompTypes->SetAt(2, Type_GetTypeFromHandle_m6062B81682F79A4D6DF2640692EE6D9987858C57((RuntimeTypeHandle_t332A452B8B6179E4469B69525D0FE82A88030F7B){ reinterpret_cast<intptr_t>(Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_0_0_0_var) }, NULL));
+
+		bgGo = (GameObject_t76FEDD663AB33C991A9C9A23129337651094216F*)il2cpp_codegen_object_new(GameObject_t76FEDD663AB33C991A9C9A23129337651094216F_il2cpp_TypeInfo_var);
+		GameObject__ctor_m721D643351E55308EA4F5F41B67D5446D11C61F0(bgGo, il2cpp_string_new("ListeningBackground_VR"), bgCompTypes, NULL);
+
+		bgTr = GameObject_get_transform_m0BC10ADFA1632166AE5544BDF9038A2650C2AE56(bgGo, NULL);
+		Transform_SetParent_m9BDD7B7476714B2D7919B10BDC22CE75C0A0A195(bgTr, lpTr, (bool)0, NULL);
+		Transform_SetAsFirstSibling_mBE0D0E76099F829466DC2FBD71ACFCF3C8EC03BD(bgTr, NULL);
+
+		bgImg = GameObject_GetComponent_TisImage_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_mA59EA7D5F9133B2593F4AB70B099928BA955EE7D(bgGo, GameObject_GetComponent_TisImage_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_mA59EA7D5F9133B2593F4AB70B099928BA955EE7D_RuntimeMethod_var);
+		if (bgImg != NULL)
+		{
+			// Try to get rounded sprite from speech bubble
+			Sprite_tAFF74BC83CD68037494CB0B4F28CBDF8971CAB99* bubbleSpr = NULL;
+			GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* refBubble = IsOneOnOneScene() ? dm->___speechBubble : PanelQuestionPanel(dm);
+			if (!IsValidUnityObject((RuntimeObject*)refBubble)) refBubble = dm->___speechBubble;
+			if (!IsValidUnityObject((RuntimeObject*)refBubble) && dm->___interviewerSpeechBubbles != NULL && (il2cpp_codegen_conv<int32_t,int64_t,int64_t,false,false>((((RuntimeArray*)dm->___interviewerSpeechBubbles)->max_length),NULL)) > 1)
+			{
+				refBubble = (dm->___interviewerSpeechBubbles)->GetAt(static_cast<il2cpp_array_size_t>(1));
+			}
+			if (IsValidUnityObject((RuntimeObject*)refBubble))
+			{
+				Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* refImg = GameObject_GetComponent_TisImage_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_mA59EA7D5F9133B2593F4AB70B099928BA955EE7D(refBubble, GameObject_GetComponent_TisImage_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_mA59EA7D5F9133B2593F4AB70B099928BA955EE7D_RuntimeMethod_var);
+				if (refImg != NULL)
+				{
+					bubbleSpr = Image_get_sprite_mB2AA377708722E100574F6F75BC102513BB3BCB1(refImg, NULL);
+				}
+			}
+			if (bubbleSpr != NULL)
+			{
+				Image_set_sprite_mC0C248340BA27AAEE56855A3FAFA0D8CA12956DE(bgImg, bubbleSpr, NULL);
+				Image_set_type_mECB8D34772AA393FFBC867B03D18EA0F1A8546BF(bgImg, 1, NULL);
+			}
+			Color_tD001788D726C3A7F1379BEED0260B9591F440C1F colWhite;
+			Color__ctor_m3786F0D6E510D9CFA544523A955870BD2A514C8C_inline((&colWhite), 1.0f, 1.0f, 1.0f, 0.96f, NULL);
+			VirtualActionInvoker1< Color_tD001788D726C3A7F1379BEED0260B9591F440C1F >::Invoke(23, bgImg, colWhite);
+			Graphic_set_raycastTarget_mE3D3CBB94E605C13362A592F17420AEAAC771448((Graphic_tCBFCA4585A19E2B75465AECFEAC43F4016BF7931*)bgImg, (bool)0, NULL);
+		}
+	}
+	else
+	{
+		bgGo = Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B((Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*)bgTr, NULL);
+		Transform_SetAsFirstSibling_mBE0D0E76099F829466DC2FBD71ACFCF3C8EC03BD(bgTr, NULL);
+	}
+
+	if (bgGo != NULL)
+	{
+		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(bgGo, (bool)1, NULL);
+		bgRt = GameObject_GetComponent_TisRectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5_m1592DCB5AA07291F73A76006F0913A64DFB8A9C4(bgGo, GameObject_GetComponent_TisRectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5_m1592DCB5AA07291F73A76006F0913A64DFB8A9C4_RuntimeMethod_var);
+
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* txtRt = dm->___listeningStatusText->___m_rectTransform;
+		if (bgRt != NULL && txtRt != NULL)
+		{
+			Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 aMin = RectTransform_get_anchorMin_mD85363930BE38EC188F933B9F4D58320CAB72F03(txtRt, NULL);
+			Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 aMax = RectTransform_get_anchorMax_mEF870BE2A134CEB9C2326930A71D3961271297DB(txtRt, NULL);
+			Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 piv = RectTransform_get_pivot_mA8334AF05AA7FF09A173A2430F2BB9E85E5CBFFF(txtRt, NULL);
+			Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 pos = RectTransform_get_anchoredPosition_m38F25A4253B0905BB058BE73DBF43C7172CE0680(txtRt, NULL);
+
+			RectTransform_set_anchorMin_m931442ABE3368D6D4309F43DF1D64AB64B0F52E3(bgRt, aMin, NULL);
+			RectTransform_set_anchorMax_m52829ABEDD229ABD3DA20BCA676FA1DCA4A39B7D(bgRt, aMax, NULL);
+			RectTransform_set_pivot_m79D0177D383D432A93C2615F1932B739B1C6E146(bgRt, piv, NULL);
+			RectTransform_set_anchoredPosition_mF903ACE04F6959B1CD67E2B94FABC0263068F965(bgRt, pos, NULL);
+
+			float prefW = TMP_Text_get_preferredWidth_mE30D1F5B8573BD0A558054D004A53DE868BD208A(dm->___listeningStatusText, NULL);
+			float prefH = TMP_Text_get_preferredHeight_m4F28E8FB388AFF1DC052F5F982DB2F959598B004(dm->___listeningStatusText, NULL);
+
+			float bgW = (prefW > 10.0f) ? (prefW + 64.0f) : 520.0f;
+			float bgH = (prefH > 10.0f) ? (prefH + 28.0f) : 60.0f;
+			if (!IsOneOnOneScene() && lpRt != NULL)
+			{
+				// Panel's serialized status text has an offset from its parent. Make the
+				// visible background and text share the root rect used for placement.
+				Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 center;
+				Vector2__ctor_m9525B79969AFFE3254B303A40997A56DEEB6F548_inline((&center), 0.5f, 0.5f, NULL);
+				Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 zero;
+				Vector2__ctor_m9525B79969AFFE3254B303A40997A56DEEB6F548_inline((&zero), 0.0f, 0.0f, NULL);
+				Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 rootSize;
+				Vector2__ctor_m9525B79969AFFE3254B303A40997A56DEEB6F548_inline((&rootSize), bgW, bgH, NULL);
+				RectTransform_set_sizeDelta_mC9A980EA6036E6725EF24CEDF3EE80A9B2B50EE5(lpRt, rootSize, NULL);
+				RectTransform_set_anchorMin_m931442ABE3368D6D4309F43DF1D64AB64B0F52E3(bgRt, center, NULL);
+				RectTransform_set_anchorMax_m52829ABEDD229ABD3DA20BCA676FA1DCA4A39B7D(bgRt, center, NULL);
+				RectTransform_set_pivot_m79D0177D383D432A93C2615F1932B739B1C6E146(bgRt, center, NULL);
+				RectTransform_set_anchoredPosition_mF903ACE04F6959B1CD67E2B94FABC0263068F965(bgRt, zero, NULL);
+				RectTransform_set_anchorMin_m931442ABE3368D6D4309F43DF1D64AB64B0F52E3(txtRt, center, NULL);
+				RectTransform_set_anchorMax_m52829ABEDD229ABD3DA20BCA676FA1DCA4A39B7D(txtRt, center, NULL);
+				RectTransform_set_pivot_m79D0177D383D432A93C2615F1932B739B1C6E146(txtRt, center, NULL);
+				RectTransform_set_anchoredPosition_mF903ACE04F6959B1CD67E2B94FABC0263068F965(txtRt, zero, NULL);
+				Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 textSize;
+				Vector2__ctor_m9525B79969AFFE3254B303A40997A56DEEB6F548_inline((&textSize), bgW - 32.0f, bgH - 12.0f, NULL);
+				RectTransform_set_sizeDelta_mC9A980EA6036E6725EF24CEDF3EE80A9B2B50EE5(txtRt, textSize, NULL);
+			}
+			if (IsOneOnOneScene() && lpRt != NULL)
+			{
+				GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* bubble = OneOnOneQuestionPanel(dm);
+				RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* bubbleRt = IsValidUnityObject((RuntimeObject*)bubble)
+					? GameObject_GetComponent_TisRectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5_m1592DCB5AA07291F73A76006F0913A64DFB8A9C4(bubble, GameObject_GetComponent_TisRectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5_m1592DCB5AA07291F73A76006F0913A64DFB8A9C4_RuntimeMethod_var) : NULL;
+				if (bubbleRt != NULL && Transform_get_parent_m65354E28A4C94EC00EBCF03532F7B0718380791E((Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1*)bubbleRt, NULL) == canvasTr)
+				{
+					Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 bubbleSize = RectTransform_get_sizeDelta_m822A8493F2035677384F1540A2E9E5ACE63010BB(bubbleRt, NULL);
+					Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 bubblePos = RectTransform_get_anchoredPosition_m38F25A4253B0905BB058BE73DBF43C7172CE0680(bubbleRt, NULL);
+					const float gap = 12.0f;
+					// The existing question layout uses a 370 center and 100 minimum height. Reserve room for the pill above the avatar.
+					float bubbleBottom = 370.0f - 50.0f + bgH + gap;
+					Vector2__ctor_m9525B79969AFFE3254B303A40997A56DEEB6F548_inline((&bubblePos), bubblePos.___x, bubbleBottom + bubbleSize.___y * 0.5f, NULL);
+					RectTransform_set_anchoredPosition_mF903ACE04F6959B1CD67E2B94FABC0263068F965(bubbleRt, bubblePos, NULL);
+					Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 pillPos;
+					Vector2__ctor_m9525B79969AFFE3254B303A40997A56DEEB6F548_inline((&pillPos), bubblePos.___x, bubblePos.___y - bubbleSize.___y * 0.5f - gap - bgH * 0.5f, NULL);
+					RectTransform_set_anchoredPosition_mF903ACE04F6959B1CD67E2B94FABC0263068F965(lpRt, pillPos, NULL);
+				}
+			}
+			else if (lpRt != NULL)
+			{
+				GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* bubble = PanelQuestionPanel(dm);
+				RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* bubbleRt = IsValidUnityObject((RuntimeObject*)bubble)
+					? GameObject_GetComponent_TisRectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5_m1592DCB5AA07291F73A76006F0913A64DFB8A9C4(bubble, GameObject_GetComponent_TisRectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5_m1592DCB5AA07291F73A76006F0913A64DFB8A9C4_RuntimeMethod_var) : NULL;
+				if (bubbleRt != NULL && Transform_get_parent_m65354E28A4C94EC00EBCF03532F7B0718380791E((Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1*)bubbleRt, NULL) == canvasTr)
+				{
+					Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 bubbleSize = RectTransform_get_sizeDelta_m822A8493F2035677384F1540A2E9E5ACE63010BB(bubbleRt, NULL);
+					Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 bubblePos = RectTransform_get_anchoredPosition_m38F25A4253B0905BB058BE73DBF43C7172CE0680(bubbleRt, NULL);
+					Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 bubblePivot = RectTransform_get_pivot_mA8334AF05AA7FF09A173A2430F2BB9E85E5CBFFF(bubbleRt, NULL);
+					Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 bubbleAnchorMin = RectTransform_get_anchorMin_mD85363930BE38EC188F933B9F4D58320CAB72F03(bubbleRt, NULL);
+					Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 bubbleAnchorMax = RectTransform_get_anchorMax_mEF870BE2A134CEB9C2326930A71D3961271297DB(bubbleRt, NULL);
+					// ResizeSpeechBubble sets center anchors, pivot, and sizeDelta for the rendered question panel.
+					if (bubbleAnchorMin.___x == bubbleAnchorMax.___x && bubbleAnchorMin.___y == bubbleAnchorMax.___y)
+					{
+						RectTransform_set_anchorMin_m931442ABE3368D6D4309F43DF1D64AB64B0F52E3(lpRt, bubbleAnchorMin, NULL);
+						RectTransform_set_anchorMax_m52829ABEDD229ABD3DA20BCA676FA1DCA4A39B7D(lpRt, bubbleAnchorMax, NULL);
+						RectTransform_set_pivot_m79D0177D383D432A93C2615F1932B739B1C6E146(lpRt, bubblePivot, NULL);
+						const float gap = 14.0f;
+						// Keep the pill's lower edge at the original 340-center, 100-minimum bubble clearance.
+						float safeBottom = 340.0f - 50.0f;
+						float bubbleBottom = safeBottom + bgH + gap;
+						Vector2__ctor_m9525B79969AFFE3254B303A40997A56DEEB6F548_inline((&bubblePos), bubblePos.___x, bubbleBottom + bubblePivot.___y * bubbleSize.___y, NULL);
+						RectTransform_set_anchoredPosition_mF903ACE04F6959B1CD67E2B94FABC0263068F965(bubbleRt, bubblePos, NULL);
+						Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 pillPos;
+						Vector2__ctor_m9525B79969AFFE3254B303A40997A56DEEB6F548_inline((&pillPos), bubblePos.___x + (0.5f - bubblePivot.___x) * (bubbleSize.___x - bgW), bubbleBottom - gap - (1.0f - bubblePivot.___y) * bgH, NULL);
+						RectTransform_set_anchoredPosition_mF903ACE04F6959B1CD67E2B94FABC0263068F965(lpRt, pillPos, NULL);
+						Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 bubbleWorld = Transform_get_position_m69CD5FA214FDAE7BB701552943674846C220FDE1((Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1*)bubbleRt, NULL);
+						Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 pillWorld = Transform_get_position_m69CD5FA214FDAE7BB701552943674846C220FDE1(lpTr, NULL);
+						Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 bubbleScale = Transform_get_localScale_m804A002A53A645CDFCD15BB0F37209162720363F((Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1*)bubbleRt, NULL);
+						// Panel's serialized status panel is scaled to 0.002; after reparenting it beside the bubble, use the bubble's canvas scale.
+						Transform_set_localScale_mBA79E811BAF6C47B80FF76414C12B47B3CD03633(lpTr, bubbleScale, NULL);
+						Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 bubbleRotation = Transform_get_localRotation_mD53D37611A5DAE93EC6C7BBCAC337408C5CACA77((Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1*)bubbleRt, NULL);
+						Transform_set_localRotation_mAB4A011D134BA58AB780BECC0025CA65F16185FA(lpTr, bubbleRotation, NULL);
+						Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 pillScale = Transform_get_localScale_m804A002A53A645CDFCD15BB0F37209162720363F(lpTr, NULL);
+						__android_log_print(ANDROID_LOG_INFO, "Unity", "[AIRIS][PanelPill] bubble=(%.2f,%.2f,%.2f) pill=(%.2f,%.2f,%.2f) size=(%.0f,%.0f) scale=(%.3f,%.3f)/(%.3f,%.3f) active=%d",
+							bubbleWorld.___x, bubbleWorld.___y, bubbleWorld.___z, pillWorld.___x, pillWorld.___y, pillWorld.___z,
+							bgW, bgH, bubbleScale.___x, bubbleScale.___y, pillScale.___x, pillScale.___y,
+							GameObject_get_activeInHierarchy_m49250F4F168DCC5388D5BE4F6A5681386907B109(dm->___listeningPanel, NULL));
+					}
+					else __android_log_print(ANDROID_LOG_WARN, "Unity", "[AIRIS][PanelPill] Bubble has stretched anchors");
+				}
+				else __android_log_print(ANDROID_LOG_WARN, "Unity", "[AIRIS][PanelPill] Bubble RectTransform unavailable or parent mismatch");
+			}
+
+			Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 sz;
+			Vector2__ctor_m9525B79969AFFE3254B303A40997A56DEEB6F548_inline((&sz), bgW, bgH, NULL);
+			RectTransform_set_sizeDelta_mC9A980EA6036E6725EF24CEDF3EE80A9B2B50EE5(bgRt, sz, NULL);
+		}
+	}
+}
+
+static void SuppressAllDeskButtons(DialogueManager_t9C5A5026BF70075C3D71B589FB5D5EA74A3B9B1E* dm)
+{
+	static bool s_SuppressInit;
+	if (!s_SuppressInit)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Resources_FindObjectsOfTypeAll_TisTransform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1_m56A6F564366266466FB378CA2FE4AE1DB2DB79C3_RuntimeMethod_var);
+		s_SuppressInit = true;
+	}
+
+	if (dm != NULL)
+	{
+		if (IsValidUnityObject((RuntimeObject*)dm->___nextQuestionButton))
+		{
+			GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(dm->___nextQuestionButton, (bool)0, NULL);
+		}
+		if (IsValidUnityObject((RuntimeObject*)dm->___stopRecordingButton))
+		{
+			GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(dm->___stopRecordingButton, (bool)0, NULL);
+		}
+		if (IsValidUnityObject((RuntimeObject*)dm->___endInterviewButton))
+		{
+			GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(dm->___endInterviewButton, (bool)0, NULL);
+		}
+		if (IsValidUnityObject((RuntimeObject*)dm->___startInterviewButton))
+		{
+			GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(dm->___startInterviewButton, (bool)0, NULL);
+		}
+		dm->___endInterviewButton = NULL;
+		dm->___nextQuestionButton = NULL;
+		dm->___stopRecordingButton = NULL;
+		dm->___startInterviewButton = NULL;
+	}
+
+	TransformU5BU5D_tBB9C5F5686CAE82E3D97D43DF0F3D68ABF75EC24* allTr = Resources_FindObjectsOfTypeAll_TisTransform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1_m56A6F564366266466FB378CA2FE4AE1DB2DB79C3(Resources_FindObjectsOfTypeAll_TisTransform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1_m56A6F564366266466FB378CA2FE4AE1DB2DB79C3_RuntimeMethod_var);
+	if (allTr != NULL)
+	{
+		int32_t len = (il2cpp_codegen_conv<int32_t,int64_t,int64_t,false,false>((((RuntimeArray*)allTr)->max_length),NULL));
+		for (int32_t i = 0; i < len; ++i)
+		{
+			Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* t = (allTr)->GetAt(static_cast<il2cpp_array_size_t>(i));
+			if (t != NULL)
+			{
+				String_t* uName = Object_get_name_mAC2F6B897CF1303BA4249B4CB55271AFACBB6392(t, NULL);
+				if (uName != NULL && uName->____stringLength > 0)
+				{
+					char buf[128];
+					int copyLen = (uName->____stringLength < 127) ? uName->____stringLength : 127;
+					const Il2CppChar* chars = &uName->____firstChar;
+					for (int c = 0; c < copyLen; ++c)
+					{
+						Il2CppChar ch = chars[c];
+						if (ch >= 'A' && ch <= 'Z') ch += ('a' - 'A');
+						buf[c] = (char)ch;
+					}
+					buf[copyLen] = '\0';
+
+					if (strstr(buf, "nextquestion") != NULL ||
+					    strstr(buf, "next question") != NULL ||
+					    strstr(buf, "next_question") != NULL ||
+					    strstr(buf, "startinterview") != NULL ||
+					    strstr(buf, "start interview") != NULL ||
+					    strstr(buf, "start_interview") != NULL ||
+					    strstr(buf, "stoprecording") != NULL ||
+					    strstr(buf, "stop recording") != NULL ||
+					    strstr(buf, "stop_recording") != NULL ||
+					    strstr(buf, "endinterview") != NULL ||
+					    strstr(buf, "end interview") != NULL ||
+					    strstr(buf, "end_interview") != NULL ||
+					    strstr(buf, "done answering") != NULL ||
+					    strstr(buf, "doneanswering") != NULL)
+					{
+						GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* go = Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B((Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*)t, NULL);
+						if (go != NULL)
+						{
+							GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(go, (bool)0, NULL);
+							__android_log_print(ANDROID_LOG_INFO, "Unity", "[DialogueManager] Suppressed desk/VR button: %s", buf);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DialogueManager_EnsureEndInterviewButton_m04272AA0BF77748417E7436B0E82F259254FD883 (DialogueManager_t9C5A5026BF70075C3D71B589FB5D5EA74A3B9B1E* __this, const RuntimeMethod* method) 
 {
 	static bool s_Il2CppMethodInitialized;
@@ -10887,10 +11310,20 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DialogueManager_EnsureEndInterviewButton
 	if (__this == NULL) return;
 
 	// Find canvas from speech bubble or scene
+	SuppressAllDeskButtons(__this);
 	Canvas_t2DB4CEFDFF732884866C83F11ABF75F5AE8FFB26* canvas = NULL;
 	if (IsValidUnityObject((RuntimeObject*)__this->___speechBubble))
 	{
 		canvas = GameObject_GetComponentInParent_TisCanvas_t2DB4CEFDFF732884866C83F11ABF75F5AE8FFB26_m0A41CB7A7F9A10FCC98D1C7B5799D57C2724D991(__this->___speechBubble, GameObject_GetComponentInParent_TisCanvas_t2DB4CEFDFF732884866C83F11ABF75F5AE8FFB26_m0A41CB7A7F9A10FCC98D1C7B5799D57C2724D991_RuntimeMethod_var);
+	}
+	if (canvas == NULL && __this->___interviewerSpeechBubbles != NULL &&
+		(il2cpp_codegen_conv<int32_t,int64_t,int64_t,false,false>((((RuntimeArray*)__this->___interviewerSpeechBubbles)->max_length),NULL)) > 1)
+	{
+		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* centerBubble = (__this->___interviewerSpeechBubbles)->GetAt(1);
+		if (IsValidUnityObject((RuntimeObject*)centerBubble))
+		{
+			canvas = GameObject_GetComponentInParent_TisCanvas_t2DB4CEFDFF732884866C83F11ABF75F5AE8FFB26_m0A41CB7A7F9A10FCC98D1C7B5799D57C2724D991(centerBubble, GameObject_GetComponentInParent_TisCanvas_t2DB4CEFDFF732884866C83F11ABF75F5AE8FFB26_m0A41CB7A7F9A10FCC98D1C7B5799D57C2724D991_RuntimeMethod_var);
+		}
 	}
 	if (canvas == NULL)
 	{
@@ -10945,14 +11378,28 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DialogueManager_EnsureEndInterviewButton
 
 	Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* canvasTr = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371((Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*)canvas, NULL);
 
-	// Disable all VR buttons cleanly - interaction is voice and silence driven
-	Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* endTr = Transform_Find_m3087032B0E1C5B96A2D2C27020BAEAE2DA08F932(canvasTr, il2cpp_string_new("EndInterviewButton_VR"), NULL);
-	Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* nextTr = Transform_Find_m3087032B0E1C5B96A2D2C27020BAEAE2DA08F932(canvasTr, il2cpp_string_new("NextQuestionButton_VR"), NULL);
-	Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* stopTr = Transform_Find_m3087032B0E1C5B96A2D2C27020BAEAE2DA08F932(canvasTr, il2cpp_string_new("StopRecordingButton_VR"), NULL);
-
-	if (endTr != NULL) GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B((Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*)endTr, NULL), (bool)0, NULL);
-	if (nextTr != NULL) GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B((Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*)nextTr, NULL), (bool)0, NULL);
-	if (stopTr != NULL) GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B((Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*)stopTr, NULL), (bool)0, NULL);
+	// Disable all VR & desk buttons cleanly - interaction is voice and silence driven
+	SuppressAllDeskButtons(__this);
+	const char* const kUnwantedButtons[] = {
+		"NextQuestion", "StartInterview", "StopRecording", "EndInterview", "StopInterview",
+		"Next Question", "Start Interview", "Stop Recording", "End Interview", "Stop Interview",
+		"NextQuestionButton", "StartInterviewButton", "StopRecordingButton", "EndInterviewButton",
+		"NextQuestionButton_VR", "StopRecordingButton_VR", "EndInterviewButton_VR", "StartInterviewButton_VR",
+		"Next Question Button", "Stop Recording Button", "End Interview Button"
+	};
+	for (int i = 0; i < 21; ++i)
+	{
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* tr = (canvasTr != NULL) ? Transform_Find_m3087032B0E1C5B96A2D2C27020BAEAE2DA08F932(canvasTr, il2cpp_string_new(kUnwantedButtons[i]), NULL) : NULL;
+		if (tr != NULL)
+		{
+			GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B((Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*)tr, NULL), (bool)0, NULL);
+		}
+		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* gBtn = GameObject_Find_m7A669B4EEC2617AB82F6E3FF007CDCD9F21DB300(il2cpp_string_new(kUnwantedButtons[i]), NULL);
+		if (gBtn != NULL)
+		{
+			GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(gBtn, (bool)0, NULL);
+		}
+	}
 
 	if (IsValidUnityObject((RuntimeObject*)__this->___nextQuestionButton))
 	{
@@ -10966,15 +11413,17 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DialogueManager_EnsureEndInterviewButton
 	{
 		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(__this->___endInterviewButton, (bool)0, NULL);
 	}
-	if (IsValidUnityObject((RuntimeObject*)__this->___listeningPanel))
+	if (IsValidUnityObject((RuntimeObject*)__this->___startInterviewButton))
 	{
-		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(__this->___listeningPanel, (bool)0, NULL);
+		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(__this->___startInterviewButton, (bool)0, NULL);
 	}
 
 	__this->___endInterviewButton = NULL;
 	__this->___nextQuestionButton = NULL;
 	__this->___stopRecordingButton = NULL;
+	__this->___startInterviewButton = NULL;
 
+	SuppressAllDeskButtons(__this);
 	__android_log_print(ANDROID_LOG_INFO, "Unity", "[DialogueManager] All buttons hidden and disabled. VR interaction is voice & silence driven.");
 }
 
@@ -11243,14 +11692,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DialogueManager_ShowSpeaker_mCD89D0F471D
 {
 	if (__this != NULL)
 	{
-		if (__this->___nextQuestionButton != NULL)
-		{
-			GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(__this->___nextQuestionButton, (bool)0, NULL);
-		}
-		if (__this->___stopRecordingButton != NULL)
-		{
-			GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(__this->___stopRecordingButton, (bool)0, NULL);
-		}
+		SuppressAllDeskButtons(__this);
 	}
 	static bool s_Il2CppMethodInitialized;
 	if (!s_Il2CppMethodInitialized)
@@ -11638,6 +12080,7 @@ IL_01b8:
 		L_84 = String_Concat_m8855A6DE10F84DA7F4EC113CADDB59873A25573B(_stringLiteral1AE680A89ACB03F8B96D705DAF3C5C9485F6CDA5, L_83, _stringLiteral272BE15A269D04BB49DD3F0D46CBB415C1D302AF, NULL);
 		il2cpp_codegen_runtime_class_init_inline(Debug_t8394C7EEAECA3689C2C9B9DE9C7166D73596276F_il2cpp_TypeInfo_var);
 		Debug_Log_m87A9A3C761FF5C43ED8A53B16190A53D08F818BB(L_84, NULL);
+		if (!IsOneOnOneScene()) SuppressAllDeskButtons(__this);
 		return;
 	}
 }
@@ -12424,7 +12867,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DialogueManager_ShowStartButton_m554044B
 	{
 		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_2 = __this->___startInterviewButton;
 		NullCheck(L_2);
-		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(L_2, (bool)1, NULL);
+		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(L_2, (bool)0, NULL);
 	}
 
 IL_001a:
@@ -12889,7 +13332,7 @@ IL_01dc:
 		}
 	}
 	{
-		DialogueManager_SetListeningStatusText_m9E105A170221D9E6F8F90E11932F9ABE7DAB4E0D(__this, _stringLiteral55864DA1FE58C25100E0AC53EC7D5DE4161E2D1D, NULL);
+		DialogueManager_SetListeningStatusText_m9E105A170221D9E6F8F90E11932F9ABE7DAB4E0D(__this, il2cpp_string_new("Listening... Speak your answer"), NULL);
 		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_90 = __this->___listeningPanel;
 		NullCheck(L_90);
 		String_t* L_91;
@@ -12913,77 +13356,11 @@ IL_0219:
 		{
 			GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(__this->___nextQuestionButton, (bool)0, NULL);
 		}
-		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_93 = __this->___stopRecordingButton;
-		il2cpp_codegen_runtime_class_init_inline(Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_il2cpp_TypeInfo_var);
-		bool L_94;
-		L_94 = Object_op_Inequality_mD0BE578448EAA61948F25C32F8DD55AB1F778602(L_93, (Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C*)NULL, NULL);
-		if (!L_94)
+		if (__this->___stopRecordingButton != NULL)
 		{
-			goto IL_027a;
+			GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(__this->___stopRecordingButton, (bool)0, NULL);
 		}
-	}
-	{
-		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_95 = __this->___stopRecordingButton;
-		NullCheck(L_95);
-		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(L_95, (bool)1, NULL);
-		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_96 = __this->___stopRecordingButton;
-		NullCheck(L_96);
-		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_97;
-		L_97 = GameObject_get_transform_m0BC10ADFA1632166AE5544BDF9038A2650C2AE56(L_96, NULL);
-		V_10 = L_97;
-		goto IL_0266;
-	}
-
-IL_0242:
-	{
-		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_98 = V_10;
-		NullCheck(L_98);
-		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_99;
-		L_99 = Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B(L_98, NULL);
-		NullCheck(L_99);
-		bool L_100;
-		L_100 = GameObject_get_activeSelf_m4F3E5240E138B66AAA080EA30759A3D0517DA368(L_99, NULL);
-		if (L_100)
-		{
-			goto IL_025d;
-		}
-	}
-	{
-		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_101 = V_10;
-		NullCheck(L_101);
-		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_102;
-		L_102 = Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B(L_101, NULL);
-		NullCheck(L_102);
-		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(L_102, (bool)1, NULL);
-	}
-
-IL_025d:
-	{
-		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_103 = V_10;
-		NullCheck(L_103);
-		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_104;
-		L_104 = Transform_get_parent_m65354E28A4C94EC00EBCF03532F7B0718380791E(L_103, NULL);
-		V_10 = L_104;
-	}
-
-IL_0266:
-	{
-		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_105 = V_10;
-		il2cpp_codegen_runtime_class_init_inline(Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_il2cpp_TypeInfo_var);
-		bool L_106;
-		L_106 = Object_op_Inequality_mD0BE578448EAA61948F25C32F8DD55AB1F778602(L_105, (Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C*)NULL, NULL);
-		if (L_106)
-		{
-			goto IL_0242;
-		}
-	}
-	{
-		il2cpp_codegen_runtime_class_init_inline(Debug_t8394C7EEAECA3689C2C9B9DE9C7166D73596276F_il2cpp_TypeInfo_var);
-		Debug_Log_m87A9A3C761FF5C43ED8A53B16190A53D08F818BB(_stringLiteral72330AF296DC7DB08A62B0C388EDA82371616C1C, NULL);
-	}
-
-IL_027a:
-	{
+		EnsureListeningBackground(__this);
 		return;
 	}
 }
@@ -13223,35 +13600,11 @@ IL_00a5:
 	}
 }
 // Method Definition Index: 71615
-IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DialogueManager_ShowNextQuestionButton_m9A336560C50A4C00BE1A31249AD3AF0EEC29EBEF (DialogueManager_t9C5A5026BF70075C3D71B589FB5D5EA74A3B9B1E* __this, const RuntimeMethod* method) 
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DialogueManager_ShowNextQuestionButton_m9A336560C50A4C00BE1A31249AD3AF0EEC29EBEF (DialogueManager_t9C5A5026BF70075C3D71B589FB5D5EA74A3B9B1E* __this, const RuntimeMethod* method)
 {
-	static bool s_Il2CppMethodInitialized;
-	if (!s_Il2CppMethodInitialized)
-	{
-		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_il2cpp_TypeInfo_var);
-		s_Il2CppMethodInitialized = true;
-	}
-	//<source_info:<no-source>:1>
-	{
-		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_0 = __this->___nextQuestionButton;
-		il2cpp_codegen_runtime_class_init_inline(Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_il2cpp_TypeInfo_var);
-		bool L_1;
-		L_1 = Object_op_Inequality_mD0BE578448EAA61948F25C32F8DD55AB1F778602(L_0, (Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C*)NULL, NULL);
-		if (!L_1)
-		{
-			goto IL_001a;
-		}
-	}
-	{
-		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_2 = __this->___nextQuestionButton;
-		NullCheck(L_2);
-		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(L_2, (bool)1, NULL);
-	}
-
-IL_001a:
-	{
-		return;
-	}
+	// Complete no-op: voice-first interaction suppresses all desk Next Question buttons permanently
+	SuppressAllDeskButtons(__this);
+	return;
 }
 // Method Definition Index: 71616
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DialogueManager_SetListeningStatusText_m9E105A170221D9E6F8F90E11932F9ABE7DAB4E0D (DialogueManager_t9C5A5026BF70075C3D71B589FB5D5EA74A3B9B1E* __this, String_t* ___0_text, const RuntimeMethod* method) 
@@ -13263,6 +13616,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DialogueManager_SetListeningStatusText_m
 		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_il2cpp_TypeInfo_var);
 		s_Il2CppMethodInitialized = true;
 	}
+	EnsureListeningBackground(__this);
 	//<source_info:<no-source>:1>
 	TMP_TextU5BU5D_t12384CBAF397196B9A7886087BDC8C19D800C24F* V_0 = NULL;
 	int32_t V_1 = 0;
@@ -13282,6 +13636,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DialogueManager_SetListeningStatusText_m
 		String_t* L_3 = ___0_text;
 		NullCheck(L_2);
 		VirtualActionInvoker1< String_t* >::Invoke(66, L_2, L_3);
+		EnsureListeningBackground(__this);
 		return;
 	}
 
@@ -13758,9 +14113,15 @@ IL_00f5:
 		RectTransform_set_anchorMin_m931442ABE3368D6D4309F43DF1D64AB64B0F52E3(bubbleRt, v_center, NULL);
 		RectTransform_set_anchorMax_m52829ABEDD229ABD3DA20BCA676FA1DCA4A39B7D(bubbleRt, v_center, NULL);
 
+		float bubbleY = 370.0f;
+		if (V_1 != NULL && V_1->___interviewerSpeechBubbles != NULL &&
+			(il2cpp_codegen_conv<int32_t,int64_t,int64_t,false,false>((((RuntimeArray*)V_1->___interviewerSpeechBubbles)->max_length),NULL)) > 1)
+		{
+			bubbleY = 340.0f;
+		}
 		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 bubblePos;
 		memset((&bubblePos), 0, sizeof(bubblePos));
-		Vector2__ctor_m9525B79969AFFE3254B303A40997A56DEEB6F548_inline((&bubblePos), 0.0f, 370.0f, NULL);
+		Vector2__ctor_m9525B79969AFFE3254B303A40997A56DEEB6F548_inline((&bubblePos), 0.0f, bubbleY, NULL);
 		RectTransform_set_anchoredPosition_mF903ACE04F6959B1CD67E2B94FABC0263068F965(bubbleRt, bubblePos, NULL);
 
 		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 bubbleSz;
@@ -13796,6 +14157,11 @@ IL_00f5:
 		// 7. Force text mesh generation and canvas redraw
 		VirtualActionInvoker2< bool, bool >::Invoke(106, txt, (bool)0, (bool)0);
 		Canvas_ForceUpdateCanvases_m6ECDBC5E85ADA3301BB20611753C45769F15EB51(NULL);
+		if (!IsOneOnOneScene() && IsValidUnityObject((RuntimeObject*)V_1->___listeningPanel) &&
+			GameObject_get_activeSelf_m4F3E5240E138B66AAA080EA30759A3D0517DA368(V_1->___listeningPanel, NULL))
+		{
+			EnsureListeningBackground(V_1);
+		}
 
 		__android_log_print(ANDROID_LOG_INFO, "Unity", "[DialogueManager] SpeechBubble bounded layout => bubble:(%.1f, %.1f) text:(%.1f, %.1f) autoSize:16-22", bubbleW, bubbleH, targetTextW, targetTextH);
 	}
@@ -20325,7 +20691,12 @@ IL_009e:
 		__this->___smoothedVolume = (0.0f);
 		__this->___ambientNoiseFloor = (0.00200000009f);
 		__this->___silenceThreshold = (0.0040f);
-		__this->___silenceDuration = (5.0f);
+		__this->___silenceDuration = (3.5f);
+		__this->___minimumRecordingTime = (2.0f);
+		__this->___maxInitialSilenceTime = (10.0f);
+		__this->___maximumRecordingTime = (60.0f);
+		__this->___silenceThreshold = (0.0040f);
+		__this->___silenceDuration = (3.5f);
 		__this->___minimumRecordingTime = (1.0f);
 		__this->___maxInitialSilenceTime = (10.0f);
 		String_t* L_25 = __this->___microphoneDevice;
@@ -21656,19 +22027,22 @@ IL_0059:
 		float L_32 = L_31->___recordingStartTime;
 		V_5 = ((float)il2cpp_codegen_subtract(L_30, L_32));
 		float L_33 = V_5;
-		if ((!(((float)L_33) < ((float)(2.5f)))))
+		if ((!(((float)L_33) < ((float)(0.8f)))))
 		{
 			goto IL_0125;
 		}
 	}
 	{
-		float L_34 = __this->___U3CnoiseSampleAccumulatorU3E5__2;
 		float L_35 = V_3;
-		__this->___U3CnoiseSampleAccumulatorU3E5__2 = ((float)il2cpp_codegen_add(L_34, L_35));
-		int32_t L_36 = __this->___U3CnoiseSampleCountU3E5__3;
-		V_8 = L_36;
-		int32_t L_37 = V_8;
-		__this->___U3CnoiseSampleCountU3E5__3 = ((int32_t)il2cpp_codegen_add(L_37, 1));
+		if (L_35 < 0.006f)
+		{
+			float L_34 = __this->___U3CnoiseSampleAccumulatorU3E5__2;
+			__this->___U3CnoiseSampleAccumulatorU3E5__2 = ((float)il2cpp_codegen_add(L_34, L_35));
+			int32_t L_36 = __this->___U3CnoiseSampleCountU3E5__3;
+			V_8 = L_36;
+			int32_t L_37 = V_8;
+			__this->___U3CnoiseSampleCountU3E5__3 = ((int32_t)il2cpp_codegen_add(L_37, 1));
+		}
 		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_38 = V_1;
 		float L_39 = __this->___U3CnoiseSampleAccumulatorU3E5__2;
 		int32_t L_40 = __this->___U3CnoiseSampleCountU3E5__3;
@@ -21676,9 +22050,13 @@ IL_0059:
 		L_41 = Mathf_Max_m7FA442918DE37E3A00106D1F2E789D65829792B8_inline(1, L_40, NULL);
 		float L_42 = (il2cpp_codegen_conv<float,int32_t,int32_t,false,false>(L_41,NULL));
 		NullCheck(L_38);
-		L_38->___ambientNoiseFloor = ((float)(L_39/L_42));
+		float calculated_noise = (L_40 > 0) ? ((float)(L_39/L_42)) : 0.0020f;
+		if (calculated_noise > 0.0035f) calculated_noise = 0.0035f;
+		if (calculated_noise < 0.0010f) calculated_noise = 0.0010f;
+		L_38->___ambientNoiseFloor = calculated_noise;
 		goto IL_0401;
 	}
+
 
 IL_0125:
 	{
@@ -21840,275 +22218,73 @@ IL_01e5:
 
 IL_025f:
 	{
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_115 = V_1;
-		NullCheck(L_115);
-		float L_116 = L_115->___smoothedVolume;
-		float L_117 = V_6;
-		if ((((float)L_116) > ((float)L_117)))
+		// 1. Dual-threshold VAD hysteresis:
+		// Onset requires higher threshold V_6 (ambientNoiseFloor * 2.5) or strong peak
+		// Once speechDetected is true, active voice continuity requires only silence threshold V_7 (0.0040f) or moderate peak
+		bool isVoiceActive = false;
+		if (!V_1->___speechDetected)
 		{
-			goto IL_0275;
+			// Looking for speech onset
+			isVoiceActive = IsOneOnOneScene() ? ((V_1->___smoothedVolume > V_6) || (V_4 > ((float)il2cpp_codegen_multiply(V_6, (1.6f))))) : (V_1->___smoothedVolume > V_6);
+			if (isVoiceActive)
+			{
+				V_1->___speechDetected = (bool)1;
+				__android_log_print(ANDROID_LOG_INFO, "Unity", "[AIRIS][RecordingManager] Speech onset detected! vol=%.5f, peak=%.5f, onsetThresh=%.5f, elapsed=%.2fs",
+					V_1->___smoothedVolume, V_4, V_6, V_5);
+			}
 		}
-	}
-	{
-		float L_118 = V_4;
-		float L_119 = V_6;
-		if ((!(((float)L_118) > ((float)((float)il2cpp_codegen_multiply(L_119, (2.0f)))))))
+		else
 		{
-			goto IL_02d5;
+			// Speech was already detected; maintain voice hold against silence threshold V_7
+			isVoiceActive = IsOneOnOneScene() ? ((V_1->___smoothedVolume > V_7) || (V_4 > ((float)il2cpp_codegen_multiply(V_7, (1.3f)))) || (V_3 > ((float)il2cpp_codegen_multiply(V_7, (1.2f))))) : (V_1->___smoothedVolume > V_7);
 		}
-	}
 
-IL_0275:
-	{
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_120 = V_1;
-		NullCheck(L_120);
-		bool L_121 = L_120->___speechDetected;
-		if (L_121)
+		if (isVoiceActive)
 		{
-			goto IL_02c5;
+			V_1->___currentSilenceTime = (0.0f);
 		}
-	}
-	{
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_122 = V_1;
-		NullCheck(L_122);
-		L_122->___speechDetected = (bool)1;
-		ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918* L_123 = (ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918*)(ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918*)SZArrayNew(ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918_il2cpp_TypeInfo_var, (uint32_t)4);
-		ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918* L_124 = L_123;
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_125 = V_1;
-		NullCheck(L_125);
-		float L_126 = L_125->___smoothedVolume;
-		float L_127 = L_126;
-		RuntimeObject* L_128 = Box(il2cpp_defaults.single_class, &L_127);
-		NullCheck(L_124);
-		ArrayElementTypeCheck (L_124, L_128);
-		(L_124)->SetAt(static_cast<il2cpp_array_size_t>(0), (RuntimeObject*)L_128);
-		ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918* L_129 = L_124;
-		float L_130 = V_4;
-		float L_131 = L_130;
-		RuntimeObject* L_132 = Box(il2cpp_defaults.single_class, &L_131);
-		NullCheck(L_129);
-		ArrayElementTypeCheck (L_129, L_132);
-		(L_129)->SetAt(static_cast<il2cpp_array_size_t>(1), (RuntimeObject*)L_132);
-		ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918* L_133 = L_129;
-		float L_134 = V_6;
-		float L_135 = L_134;
-		RuntimeObject* L_136 = Box(il2cpp_defaults.single_class, &L_135);
-		NullCheck(L_133);
-		ArrayElementTypeCheck (L_133, L_136);
-		(L_133)->SetAt(static_cast<il2cpp_array_size_t>(2), (RuntimeObject*)L_136);
-		ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918* L_137 = L_133;
-		float L_138 = V_5;
-		float L_139 = L_138;
-		RuntimeObject* L_140 = Box(il2cpp_defaults.single_class, &L_139);
-		NullCheck(L_137);
-		ArrayElementTypeCheck (L_137, L_140);
-		(L_137)->SetAt(static_cast<il2cpp_array_size_t>(3), (RuntimeObject*)L_140);
-		String_t* L_141;
-		L_141 = String_Format_m918500C1EFB475181349A79989BB79BB36102894(_stringLiteral84562C33F1D37BA893358127B1E15805B60ACAC8, L_137, NULL);
-		il2cpp_codegen_runtime_class_init_inline(Debug_t8394C7EEAECA3689C2C9B9DE9C7166D73596276F_il2cpp_TypeInfo_var);
-		Debug_Log_m87A9A3C761FF5C43ED8A53B16190A53D08F818BB(L_141, NULL);
-	}
 
-IL_02c5:
-	{
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_142 = V_1;
-		NullCheck(L_142);
-		L_142->___currentSilenceTime = (0.0f);
-		goto IL_03d5;
-	}
+		// 2. Silence / post-speech detection
+		if (V_1->___speechDetected)
+		{
+			// Candidate spoke. If not actively speaking, accumulate silence
+			if (!isVoiceActive)
+			{
+				if ((((float)V_5) >= ((float)V_1->___minimumRecordingTime)))
+				{
+					V_1->___currentSilenceTime = ((float)il2cpp_codegen_add(V_1->___currentSilenceTime, (0.100000001f)));
+					if ((((float)V_1->___currentSilenceTime) >= ((float)V_1->___silenceDuration)))
+					{
+						__android_log_print(ANDROID_LOG_INFO, "Unity", "[AIRIS][RecordingManager] Post-speech silence threshold reached (silence=%.2fs, elapsed=%.2fs). Stopping recording.",
+							V_1->___currentSilenceTime, V_5);
+						RecordingManager_StopRecording_m2DB440DFA21CD12C4F485BAFAF229C2AAE13F693(V_1, NULL);
+						return (bool)0;
+					}
+				}
+			}
+		}
+		else
+		{
+			// Candidate has not spoken yet: check initial silence timeout
+			if ((((float)V_5) >= ((float)V_1->___maxInitialSilenceTime)))
+			{
+				__android_log_print(ANDROID_LOG_INFO, "Unity", "[AIRIS][RecordingManager] Initial silence timeout reached (%.2fs >= %.2fs). Stopping recording.",
+					V_5, V_1->___maxInitialSilenceTime);
+				RecordingManager_StopRecording_m2DB440DFA21CD12C4F485BAFAF229C2AAE13F693(V_1, NULL);
+				return (bool)0;
+			}
+		}
 
-IL_02d5:
-	{
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_143 = V_1;
-		NullCheck(L_143);
-		float L_144 = L_143->___smoothedVolume;
-		float L_145 = V_7;
-		if ((!(((float)L_144) <= ((float)L_145))))
+		// 3. Absolute maximum recording time fallback
+		if ((((float)V_5) >= ((float)V_1->___maximumRecordingTime)))
 		{
-			goto IL_03ae;
+			__android_log_print(ANDROID_LOG_INFO, "Unity", "[AIRIS][RecordingManager] Maximum recording time reached (%.2fs >= %.2fs). Stopping recording.",
+				V_5, V_1->___maximumRecordingTime);
+			RecordingManager_StopRecording_m2DB440DFA21CD12C4F485BAFAF229C2AAE13F693(V_1, NULL);
+			return (bool)0;
 		}
-	}
-	{
-		float L_146 = V_4;
-		float L_147 = V_6;
-		if ((!(((float)L_146) <= ((float)((float)il2cpp_codegen_multiply(L_147, (1.20000005f)))))))
-		{
-			goto IL_03ae;
-		}
-	}
-	{
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_148 = V_1;
-		NullCheck(L_148);
-		bool L_149 = L_148->___speechDetected;
-		if (!L_149)
-		{
-			goto IL_034f;
-		}
-	}
-	{
-		float L_150 = V_5;
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_151 = V_1;
-		NullCheck(L_151);
-		float L_152 = L_151->___minimumRecordingTime;
-		if ((!(((float)L_150) >= ((float)L_152))))
-		{
-			goto IL_034f;
-		}
-	}
-	{
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_153 = V_1;
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_154 = V_1;
-		NullCheck(L_154);
-		float L_155 = L_154->___currentSilenceTime;
-		NullCheck(L_153);
-		L_153->___currentSilenceTime = ((float)il2cpp_codegen_add(L_155, (0.100000001f)));
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_156 = V_1;
-		NullCheck(L_156);
-		float L_157 = L_156->___currentSilenceTime;
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_158 = V_1;
-		NullCheck(L_158);
-		float L_159 = L_158->___silenceDuration;
-		if ((!(((float)L_157) >= ((float)L_159))))
-		{
-			goto IL_03d5;
-		}
-	}
-	{
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_160 = V_1;
-		NullCheck(L_160);
-		float L_161 = L_160->___currentSilenceTime;
-		float L_162 = L_161;
-		RuntimeObject* L_163 = Box(il2cpp_defaults.single_class, &L_162);
-		float L_164 = V_5;
-		float L_165 = L_164;
-		RuntimeObject* L_166 = Box(il2cpp_defaults.single_class, &L_165);
-		String_t* L_167;
-		L_167 = String_Format_mFB7DA489BD99F4670881FF50EC017BFB0A5C0987(_stringLiteral36D6E322AAFC7C83B7E70034F871754C4E0C5A7C, L_163, L_166, NULL);
-		il2cpp_codegen_runtime_class_init_inline(Debug_t8394C7EEAECA3689C2C9B9DE9C7166D73596276F_il2cpp_TypeInfo_var);
-		Debug_Log_m87A9A3C761FF5C43ED8A53B16190A53D08F818BB(L_167, NULL);
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_168 = V_1;
-		NullCheck(L_168);
-		RecordingManager_StopRecording_m2DB440DFA21CD12C4F485BAFAF229C2AAE13F693(L_168, NULL);
-		return (bool)0;
-	}
 
-IL_034f:
-	{
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_169 = V_1;
-		NullCheck(L_169);
-		bool L_170 = L_169->___speechDetected;
-		if (L_170)
-		{
-			goto IL_03d5;
-		}
-	}
-	{
-		float L_171 = V_5;
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_172 = V_1;
-		NullCheck(L_172);
-		float L_173 = L_172->___maxInitialSilenceTime;
-		if ((!(((float)L_171) >= ((float)L_173))))
-		{
-			goto IL_03d5;
-		}
-	}
-	{
-		ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918* L_174 = (ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918*)(ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918*)SZArrayNew(ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918_il2cpp_TypeInfo_var, (uint32_t)4);
-		ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918* L_175 = L_174;
-		float L_176 = V_5;
-		float L_177 = L_176;
-		RuntimeObject* L_178 = Box(il2cpp_defaults.single_class, &L_177);
-		NullCheck(L_175);
-		ArrayElementTypeCheck (L_175, L_178);
-		(L_175)->SetAt(static_cast<il2cpp_array_size_t>(0), (RuntimeObject*)L_178);
-		ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918* L_179 = L_175;
-		float L_180 = V_6;
-		float L_181 = L_180;
-		RuntimeObject* L_182 = Box(il2cpp_defaults.single_class, &L_181);
-		NullCheck(L_179);
-		ArrayElementTypeCheck (L_179, L_182);
-		(L_179)->SetAt(static_cast<il2cpp_array_size_t>(1), (RuntimeObject*)L_182);
-		ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918* L_183 = L_179;
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_184 = V_1;
-		NullCheck(L_184);
-		float L_185 = L_184->___currentPeak;
-		float L_186 = L_185;
-		RuntimeObject* L_187 = Box(il2cpp_defaults.single_class, &L_186);
-		NullCheck(L_183);
-		ArrayElementTypeCheck (L_183, L_187);
-		(L_183)->SetAt(static_cast<il2cpp_array_size_t>(2), (RuntimeObject*)L_187);
-		ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918* L_188 = L_183;
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_189 = V_1;
-		NullCheck(L_189);
-		float L_190 = L_189->___smoothedVolume;
-		float L_191 = L_190;
-		RuntimeObject* L_192 = Box(il2cpp_defaults.single_class, &L_191);
-		NullCheck(L_188);
-		ArrayElementTypeCheck (L_188, L_192);
-		(L_188)->SetAt(static_cast<il2cpp_array_size_t>(3), (RuntimeObject*)L_192);
-		String_t* L_193;
-		L_193 = String_Format_m918500C1EFB475181349A79989BB79BB36102894(_stringLiteral214A4EAD3C428A816677FD4B25341018EAA7BB71, L_188, NULL);
-		il2cpp_codegen_runtime_class_init_inline(Debug_t8394C7EEAECA3689C2C9B9DE9C7166D73596276F_il2cpp_TypeInfo_var);
-		Debug_Log_m87A9A3C761FF5C43ED8A53B16190A53D08F818BB(L_193, NULL);
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_194 = V_1;
-		NullCheck(L_194);
-		RecordingManager_StopRecording_m2DB440DFA21CD12C4F485BAFAF229C2AAE13F693(L_194, NULL);
-		return (bool)0;
-	}
-
-IL_03ae:
-	{
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_195 = V_1;
-		NullCheck(L_195);
-		bool L_196 = L_195->___speechDetected;
-		if (!L_196)
-		{
-			goto IL_03d5;
-		}
-	}
-	{
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_197 = V_1;
-		NullCheck(L_197);
-		float L_198 = L_197->___currentSilenceTime;
-		if ((!(((float)L_198) > ((float)(0.0f)))))
-		{
-			goto IL_03d5;
-		}
-	}
-	{
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_199 = V_1;
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_200 = V_1;
-		NullCheck(L_200);
-		float L_201 = L_200->___currentSilenceTime;
-		NullCheck(L_199);
-		L_199->___currentSilenceTime = ((float)il2cpp_codegen_add(L_201, (0.0300000012f)));
-	}
-
-IL_03d5:
-	{
-		float L_202 = V_5;
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_203 = V_1;
-		NullCheck(L_203);
-		float L_204 = L_203->___maximumRecordingTime;
-		if ((!(((float)L_202) >= ((float)L_204))))
-		{
-			goto IL_0401;
-		}
-	}
-	{
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_205 = V_1;
-		NullCheck(L_205);
-		float L_206 = L_205->___maximumRecordingTime;
-		float L_207 = L_206;
-		RuntimeObject* L_208 = Box(il2cpp_defaults.single_class, &L_207);
-		String_t* L_209;
-		L_209 = String_Format_mA8DBB4C2516B9723C5A41E6CB1E2FAF4BBE96DD8(_stringLiteral64D3D3EC3DB3CBFC17C378509305A9A6C8A55627, L_208, NULL);
-		il2cpp_codegen_runtime_class_init_inline(Debug_t8394C7EEAECA3689C2C9B9DE9C7166D73596276F_il2cpp_TypeInfo_var);
-		Debug_Log_m87A9A3C761FF5C43ED8A53B16190A53D08F818BB(L_209, NULL);
-		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_210 = V_1;
-		NullCheck(L_210);
-		RecordingManager_StopRecording_m2DB440DFA21CD12C4F485BAFAF229C2AAE13F693(L_210, NULL);
-		return (bool)0;
+		goto IL_0401;
 	}
 
 IL_0401:
@@ -22402,6 +22578,16 @@ IL_0046_1:
 			NullCheck(L_16);
 			RecordingManager_set_IsRecording_mFFEFEC00C28CB916C03F6DD815C17AADE7D188A7_inline(L_16, (bool)0, NULL);
 		}
+		if (!IsOneOnOneScene() && !V_1->___speechDetected)
+		{
+			__android_log_print(ANDROID_LOG_INFO, "Unity", "[AIRIS][RecordingManager] Panel no-speech recording discarded");
+			UaaLBridge_t01892D4E14A0FC836DBF5A0384CB1121D3DC06BC* bridge = UaaLBridge_get_Instance_mC704985B67D85B378A99F9C2D52DE746FFC2869A_inline(NULL);
+			if (bridge != NULL)
+			{
+				UaaLBridge_SendToRN_mFA9CA93D96956F051F0657CC57855F6C997592A1(bridge, il2cpp_string_new("NO_SPEECH"), il2cpp_string_new("{}"), NULL);
+			}
+			goto IL_0369;
+		}
 		try
 		{
 			{
@@ -22629,7 +22815,7 @@ IL_0133_1:
 		{
 			DialogueManager_t9C5A5026BF70075C3D71B589FB5D5EA74A3B9B1E* L_52 = V_3;
 			NullCheck(L_52);
-			DialogueManager_SetListeningStatusText_m9E105A170221D9E6F8F90E11932F9ABE7DAB4E0D(L_52, _stringLiteral1A3C68B450C788258AA185AFD6AA1D7D12713886, NULL);
+			DialogueManager_SetListeningStatusText_m9E105A170221D9E6F8F90E11932F9ABE7DAB4E0D(L_52, il2cpp_string_new("Processing answer..."), NULL);
 		}
 
 IL_014e_1:

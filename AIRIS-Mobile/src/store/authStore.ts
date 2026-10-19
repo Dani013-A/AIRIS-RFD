@@ -38,6 +38,7 @@ import {
   deleteUserAccountCascade,
 } from "../services/firebase/userService";
 import { useOnboardingStore } from "./onboardingStore";
+import { useAppearanceStore } from "./appearanceStore";
 import { clearLearningMemoryCache } from "../services/learning/learningCatalogService";
 import { mapAuthError, sanitizeErrorForLogging } from "../utils/errorMapper";
 import {
@@ -123,6 +124,9 @@ export async function handleAccountTermination(
     console.warn("SignOut error during account lifecycle cleanup:", err);
   } finally {
     useOnboardingStore.getState().reset();
+    try {
+      useAppearanceStore.getState().resetForNewSession();
+    } catch {}
     try {
       clearLearningMemoryCache();
     } catch {}
@@ -839,6 +843,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     } finally {
       useOnboardingStore.getState().reset();
       try {
+        useAppearanceStore.getState().resetForNewSession();
+      } catch {}
+      try {
         clearLearningMemoryCache();
       } catch (learningCacheErr) {
         console.warn("Failed to clear learning cache on logout:", learningCacheErr);
@@ -1212,6 +1219,10 @@ export const useAuthStore = create<AuthState>((set) => ({
           loading: false,
           error: null,
         });
+        try {
+          const { notifyProfilePhotoChanged } = await import("../components/ui/UserAvatar");
+          notifyProfilePhotoChanged();
+        } catch {}
         return true;
       } else {
         set({

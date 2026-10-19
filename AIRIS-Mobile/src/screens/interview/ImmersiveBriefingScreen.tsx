@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator, Alert, TouchableOpacity, ScrollView } from "react-native";
+import { View, ActivityIndicator, Alert, TouchableOpacity, ScrollView } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -33,7 +34,7 @@ export default function ImmersiveBriefingScreen() {
   const currentUser = useAuthStore((s) => s.currentUser);
   const activeResume = useResumeStore((s) => s.activeResume);
   const activeAnalysis = useResumeStore((s) => s.activeAnalysis);
-  const { initializeSession, session } = useInterviewStore();
+  const { initializeSession, session, clearSession } = useInterviewStore();
 
   useEffect(() => {
     // Kick off session initialisation as soon as the screen mounts
@@ -140,7 +141,7 @@ export default function ImmersiveBriefingScreen() {
   return (
     <SafeAreaView className="flex-1 bg-[#F4F8FB] px-6" edges={["top", "bottom"]}>
       <View className="py-4">
-        <TouchableOpacity onPress={() => router.back()} className="flex-row items-center mb-4">
+        <TouchableOpacity onPress={() => { clearSession(); router.back(); }} className="flex-row items-center mb-4">
           <Ionicons name="arrow-back" size={24} color="#1F3A5F" />
           <Text className="text-[#1F3A5F] font-bold ml-2">Exit</Text>
         </TouchableOpacity>
@@ -159,6 +160,20 @@ export default function ImmersiveBriefingScreen() {
           </Text>
         </View>
 
+        {/* Recording Disclosure Card */}
+        <View
+          className="bg-[#FEF5F1] border border-[#F4A47A] p-5 rounded-3xl mb-5 flex-row items-start"
+          style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}
+        >
+          <Ionicons name="mic" size={22} color="#CA5D25" style={{ marginTop: 2, marginRight: 12 }} />
+          <View className="flex-1">
+            <Text className="text-xs font-bold text-[#CA5D25] uppercase tracking-wider mb-1">Recording Disclosure</Text>
+            <Text className="text-xs font-medium text-[#1F3A5F] leading-5">
+              Your answers will be recorded so AIRIS can transcribe and evaluate your interview responses. Use a quiet place and speak clearly. Your microphone is active only during the answer portion of the interview.
+            </Text>
+          </View>
+        </View>
+
         {/* VR Environment Guidance */}
         <View
           className="bg-white p-6 rounded-3xl border border-[#BFD6EA] mb-5"
@@ -169,14 +184,14 @@ export default function ImmersiveBriefingScreen() {
             <Text className="text-base font-bold text-[#1F3A5F] ml-2">VR Environment Guidance</Text>
           </View>
           <Text className="text-sm text-[#4F6B82] leading-5 font-medium mb-4">
-            You will be placed inside a virtual office environment. The AI interviewer(s) will speak their questions aloud and your voice will be recorded automatically after each question. There is no need to tap any button — the simulation runs hands-free.
+            You will enter a virtual office. The interviewer reads each question out loud, and your spoken answer is recorded by itself. You do not need to tap any buttons.
           </Text>
 
           <View className="gap-2.5 mb-4">
             {[
               "Find a quiet location before starting",
               "Speak clearly and at a natural pace",
-              "The microphone is handled by the VR environment — no extra setup needed",
+              "Allow microphone access when your phone asks for it",
               "Wait for the interviewer to finish speaking before you begin your answer",
               "Remain in the environment until the simulation ends",
             ].map((tip, idx) => (
@@ -192,7 +207,7 @@ export default function ImmersiveBriefingScreen() {
             <View className="flex-1">
               <Text className="text-xs font-bold text-[#CA5D25] uppercase tracking-wider mb-0.5">VR Microphone Note</Text>
               <Text className="text-xs font-medium text-[#CA5D25] leading-4">
-                The VR interview uses speech detection to record your answers hands-free. Please ensure microphone access is granted when prompted so the interviewers can hear your voice.
+                Your answers are recorded by themselves. Just allow microphone access when asked so the interviewer can hear you.
               </Text>
             </View>
           </View>
@@ -217,7 +232,7 @@ export default function ImmersiveBriefingScreen() {
                 <Text className="text-xs font-bold text-[#CA5D25]">"Next"</Text>
               </View>
               <Text className="flex-1 text-sm text-[#1F3A5F] font-medium leading-5">
-                Say <Text className="font-bold">"Next"</Text> or <Text className="font-bold">"Next question"</Text> to advance to the next question.
+                Move to the next question.
               </Text>
             </View>
 
@@ -226,7 +241,7 @@ export default function ImmersiveBriefingScreen() {
                 <Text className="text-xs font-bold text-[#CA5D25]">"Repeat"</Text>
               </View>
               <Text className="flex-1 text-sm text-[#1F3A5F] font-medium leading-5">
-                Say <Text className="font-bold">"Repeat"</Text> or <Text className="font-bold">"Repeat the question"</Text> to hear the current question again.
+                Hear the current question again.
               </Text>
             </View>
 
@@ -235,7 +250,7 @@ export default function ImmersiveBriefingScreen() {
                 <Text className="text-xs font-bold text-[#CA5D25]">"Stop"</Text>
               </View>
               <Text className="flex-1 text-sm text-[#1F3A5F] font-medium leading-5">
-                Say <Text className="font-bold">"Stop"</Text> or <Text className="font-bold">"Stop the interview"</Text> to end the interview early.
+                End the interview early.
               </Text>
             </View>
           </View>

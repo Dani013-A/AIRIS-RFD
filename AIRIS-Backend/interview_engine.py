@@ -20,84 +20,83 @@ CORE_SURVEY_QUESTIONS = [
     {
         "id": "survey-1",
         "category": "introductory",
-        "competency": "communication",
-        "text": "Tell me about yourself.",
-        "spokenOpening": "Hi, thanks for joining me today. Let's start with a brief introduction. Tell me about yourself.",
-        "idealAnswer": "I am a recent graduate with a degree in my field, where I developed a strong foundation in both core academic principles and practical project work. Throughout my studies, I took the initiative to apply my skills to hands-on projects and collaborative coursework, focusing on solving concrete problems and continuously expanding my capabilities. I am enthusiastic about beginning my professional career, bringing a strong work ethic, adaptability, and an eagerness to contribute meaningfully to the team while continuing to learn and grow."
+        "competency": "communication and career orientation",
+        "text": "Tell me about yourself and your career goals.",
+        "spokenOpening": "Hi, thanks for joining me today. Let's start with a brief introduction. Tell me about yourself and your career goals.",
+        "idealAnswer": "I am a recent graduate in my field with a solid foundation in core academic principles and practical coursework deliverables. My career goal is to start as an entry-level professional where I can apply my foundational skills, contribute to real-world deliverables, and continuously expand my capabilities within a collaborative team."
     },
     {
         "id": "survey-2",
         "category": "motivation",
-        "competency": "motivation and company alignment",
-        "text": "Why are you interested in this position?",
-        "spokenTemplate": "That's helpful context. Now, why are you interested in this position?",
-        "roleAwareTemplate": "That's helpful context. What interests you most about starting your career in {target_role}?",
-        "idealAnswer": "I am interested in this position because it directly aligns with my career aspirations and provides the ideal environment to apply the competencies I built during my academic preparation. The responsibilities of this role match my strengths, and I am drawn to the impactful work your organization delivers. I want to contribute effectively from day one while continuing to develop my skills alongside experienced professionals."
+        "competency": "motivation and role alignment",
+        "text": "Why did you apply for this position, and how does it align with your background?",
+        "spokenTemplate": "That's helpful context. Why did you apply for this position, and how does it align with your background?",
+        "roleAwareTemplate": "That's helpful context. Why did you apply for the {target_role} position, and how does it align with your background?",
+        "idealAnswer": "I applied for this position because the core responsibilities closely align with the coursework, technical foundations, and project work I completed during my studies. I want to contribute effectively from day one while continuing to develop my skills alongside experienced professionals."
     },
     {
         "id": "survey-3",
-        "category": "academic",
-        "competency": "academic and technical alignment",
-        "text": "How does your educational background relate to this position?",
-        "spokenTemplate": "Got it. How does your educational background relate to this position?",
-        "roleAwareTemplate": "Got it. How does your educational background relate to the requirements of the {target_role} position?",
-        "idealAnswer": "My degree program provided me with specialized coursework, foundational theory, and practical project experience that directly align with the core requirements of this position. Through coursework and laboratory deliverables, I developed competencies in industry-relevant methodologies and modern problem-solving tools. In my capstone and major project work, I worked on deliverables that reflect the responsibilities of this role, giving me a solid practical transition from academic preparation to workplace execution."
+        "category": "company_awareness",
+        "competency": "company awareness and alignment",
+        "text": "What do you know about our company, and what interests you about its work?",
+        "spokenTemplate": "Got it. What do you know about our company, and what interests you about its work?",
+        "idealAnswer": "I know that your company focuses on delivering high-quality, innovative solutions and values teamwork and professional growth. What interests me most is your focus on impactful deliverables and providing a supportive environment where fresh graduates can learn and make meaningful contributions."
     },
     {
         "id": "survey-4",
         "category": "behavioral",
         "competency": "strengths and self-awareness",
-        "text": "What would you consider your greatest strengths?",
-        "spokenTemplate": "That gives me a clearer picture of your background. What would you consider your greatest strengths?",
-        "idealAnswer": "My greatest strengths are my structured analytical approach to problem-solving, attention to detail, and ability to learn and adapt quickly. When given a complex assignment, I break it down systematically into clear milestones and ensure thorough follow-through. I also communicate proactively and collaborate effectively with teammates to keep projects on track."
+        "text": "What are your greatest strengths, and what is one area you are working to improve?",
+        "spokenTemplate": "That gives me a clearer picture of your background. What are your greatest strengths, and what is one area you are working to improve?",
+        "idealAnswer": "My greatest strengths are my structured analytical approach to problem-solving, attention to detail, and ability to learn new concepts quickly. One area I am actively working to improve is delegating and asking for feedback earlier in a task rather than trying to resolve every challenge independently."
     },
     {
         "id": "survey-5",
         "category": "behavioral",
-        "competency": "growth mindset and development",
-        "text": "What is one area you are currently working to improve?",
-        "spokenTemplate": "I understand. What is one area you are currently working to improve?",
-        "idealAnswer": "One area I have been actively working to improve is delegating tasks and seeking input earlier rather than trying to resolve every bottleneck independently. During past projects, I sometimes spent excessive time exploring edge cases alone before asking for guidance. I have been practicing clearer check-ins with team members and mentors to validate approaches sooner and maintain collaborative alignment."
+        "competency": "adaptability and continuous learning",
+        "text": "Tell me about a time you had to learn a new skill or concept quickly. How did you approach it?",
+        "spokenTemplate": "I understand. Tell me about a time you had to learn a new skill or concept quickly. How did you approach it?",
+        "idealAnswer": "During a project deliverable, I needed to work with an unfamiliar tool and framework on short notice. I started by reading official documentation and core examples, created small practice prototypes to test my understanding, and consulted with peers when encountering blockers. This structured approach allowed me to apply the new skill quickly and meet our deadline."
     },
     {
         "id": "survey-6",
         "category": "situational",
         "competency": "problem solving and resilience",
-        "text": "Tell me about a challenging situation or project you faced and how you handled it.",
-        "spokenTemplate": "That's useful to know. Tell me about a challenging situation or project you faced and how you handled it.",
-        "idealAnswer": "During a major project with a tight deadline, our team encountered an unexpected technical bottleneck where a key deliverable failed integration testing. Rather than panicking, I systematically analyzed the error logs to isolate the root cause, researched potential workarounds, and proposed an alternative implementation to the team. By adjusting our task distribution and testing collaboratively, we resolved the issue and delivered the project on schedule."
+        "text": "Describe a difficult situation or setback you faced and explain how you handled it.",
+        "spokenTemplate": "That's useful to know. Describe a difficult situation or setback you faced and explain how you handled it.",
+        "idealAnswer": "In a team assignment, we faced a major setback when our initial design failed validation right before a milestone. I helped the team stay focused by breaking down the issue, systematically testing each component to find the root cause, and collaborating on a revised implementation that passed testing and kept us on schedule."
     },
     {
         "id": "survey-7",
         "category": "behavioral",
         "competency": "teamwork and collaboration",
-        "text": "Tell me about a time you worked as part of a team. What was your role?",
-        "spokenTemplate": "That gives me a good sense of how you approach challenges. Let's talk about teamwork. Tell me about a time you worked as part of a team. What was your role?",
-        "idealAnswer": "In a recent capstone team project, I served as a core contributor responsible for coordinating key deliverables and ensuring cross-functional alignment. Throughout the collaboration, I maintained open communication, assisted teammates when they hit roadblocks, and made sure our deliverables met quality standards. When differing opinions arose, I helped facilitate constructive discussions to find a practical consensus, allowing our team to complete our milestones smoothly."
+        "text": "Tell me about a time you worked with a team. What was your role, and how did you contribute?",
+        "spokenTemplate": "That gives me a good sense of how you approach challenges. Tell me about a time you worked with a team. What was your role, and how did you contribute?",
+        "idealAnswer": "In our capstone project, I served as a key contributor responsible for core implementation and cross-functional coordination. I maintained regular communication, supported teammates when they faced technical roadblocks, and ensured our modules integrated smoothly to achieve our shared goal."
     },
     {
         "id": "survey-8",
         "category": "behavioral",
         "competency": "time management and prioritization",
-        "text": "How do you prioritize your tasks when you have multiple deadlines?",
-        "spokenTemplate": "That's helpful context. How do you prioritize your tasks when you have multiple deadlines?",
-        "idealAnswer": "When handling multiple competing deadlines, I organize my deliverables using a structured task tracking system and evaluate each task by its urgency, impact, and dependencies. I focus on critical-path milestones first, allocate dedicated focus blocks for complex deliverables, and communicate proactively with stakeholders if any timeline adjustments are needed. This disciplined approach ensures all obligations are met without compromising quality."
+        "text": "How do you manage multiple deadlines while maintaining the quality of your work?",
+        "spokenTemplate": "That's helpful context. How do you manage multiple deadlines while maintaining the quality of your work?",
+        "idealAnswer": "When balancing competing deadlines, I list all deliverables, evaluate urgency and dependencies, and prioritize critical milestones first. I establish focused working sessions, track progress continuously, and communicate proactively with stakeholders if any timeline adjustments are needed."
     },
     {
         "id": "survey-9",
         "category": "synthesis",
-        "competency": "readiness and application",
-        "text": "Based on what we have discussed, how would you apply your strengths and experiences in this position?",
-        "spokenTemplate": "We've covered your background and experiences. Based on what we have discussed, how would you apply your strengths and experiences in this position?",
-        "idealAnswer": "I would bring the strengths and experiences I described into this position by applying what I learned in coursework and projects to real responsibilities. I would communicate with teammates, approach challenges methodically, seek feedback when needed, and continue building the skills required for this role."
+        "competency": "initiative and judgment",
+        "text": "Describe a situation where you solved a problem, took initiative, or helped someone. What did you do?",
+        "spokenTemplate": "We've covered your background and experiences. Describe a situation where you solved a problem, took initiative, or helped someone. What did you do?",
+        "idealAnswer": "During a laboratory project, I noticed a recurring error that several peers were struggling with. I investigated the root cause, documented a clear step-by-step resolution, and shared it with the group, saving valuable time and helping everyone complete their deliverables successfully."
     },
     {
         "id": "survey-10",
         "category": "closing",
-        "competency": "closing reflection and candidate engagement",
-        "text": "Before we end, what final point would you like to add or ask about this position?",
-        "spokenTemplate": "We've reached the end of our interview. Before we finish, what final point would you like to add or ask about this position?",
-        "idealAnswer": "I would briefly reinforce my interest in the position and the relevant strengths I can contribute. I would also ask a thoughtful question about the responsibilities, team, or support available to a fresh graduate."
+        "competency": "closing reflection and engagement",
+        "text": "Do you have any questions for us about the role, team, or company?",
+        "spokenTemplate": "We've reached the end of the interview. Do you have any questions for us about the role, team, or company?",
+        "idealAnswer": "Yes, I would love to learn more about the day-to-day collaboration within the team and what mentorship or growth opportunities are available for fresh graduates."
     },
 ]
 
@@ -376,6 +375,42 @@ def _discovery_follow_up(answer: str, is_weak: bool) -> Optional[str]:
         if re.search(pattern, answer, re.IGNORECASE):
             return question
     return None
+
+def classify_answer_relevance(question: str, answer: str, ideal_answer: str = "") -> str:
+    """
+    Classifies candidate answer into:
+    - 'Relevant': directly addresses the question topic.
+    - 'Partially Relevant': touches on the topic but partially or vaguely.
+    - 'Unrelated': off-topic / non-responsive to the question.
+    - 'Unclear': unintelligible / meaningless speech.
+    """
+    cleaned = (answer or "").strip()
+    words = [w for w in cleaned.split() if re.search(r'[a-zA-Z0-9]', w)]
+    if len(words) < 3:
+        return "Unclear"
+
+    try:
+        q_emb = _cached_encode(question)
+        ans_emb = _cached_encode(answer)
+        sim_q = calculate_cosine_similarity(q_emb, ans_emb)
+        sim_bm = 0.0
+        if ideal_answer:
+            bm_emb = _cached_encode(ideal_answer)
+            sim_bm = calculate_cosine_similarity(bm_emb, ans_emb)
+        max_sim = max(sim_q, sim_bm)
+
+        if max_sim < 0.18 and len(words) < 30:
+            return "Unrelated"
+        elif max_sim < 0.35:
+            return "Partially Relevant"
+        else:
+            return "Relevant"
+    except Exception:
+        if len(words) >= 12:
+            return "Relevant"
+        elif len(words) >= 5:
+            return "Partially Relevant"
+        return "Unclear"
 
 def evaluate_answer_and_generate_next(
     target_role: str,

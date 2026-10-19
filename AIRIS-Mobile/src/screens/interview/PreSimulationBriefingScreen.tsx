@@ -21,7 +21,7 @@ export default function PreSimulationBriefingScreen() {
   const currentUser = useAuthStore((state) => state.currentUser);
   const activeResume = useResumeStore((state) => state.activeResume);
   const activeAnalysis = useResumeStore((state) => state.activeAnalysis);
-  const { initializeSession, session } = useInterviewStore();
+  const { initializeSession, session, clearSession } = useInterviewStore();
 
   useEffect(() => {
     startSetup();
@@ -127,7 +127,7 @@ export default function PreSimulationBriefingScreen() {
         <ActivityIndicator size="large" color="#F4A47A" />
         <Text className="text-[#1F3A5F] font-bold text-lg mt-6">Preparing Interview...</Text>
         <Text className="text-[#4F6B82] text-sm text-center mt-2 font-medium">
-          Reviewing your resume and generating targeted questions.
+          Getting your questions ready.
         </Text>
       </SafeAreaView>
     );
@@ -136,7 +136,7 @@ export default function PreSimulationBriefingScreen() {
   return (
     <SafeAreaView className="flex-1 bg-[#F4F8FB] px-6" edges={["top", "bottom"]}>
       <View className="py-4">
-        <TouchableOpacity onPress={() => router.back()} className="flex-row items-center mb-4">
+        <TouchableOpacity onPress={() => { clearSession(); router.back(); }} className="flex-row items-center mb-4">
           <Ionicons name="arrow-back" size={24} color="#1F3A5F" />
           <Text className="text-[#1F3A5F] font-bold ml-2">Exit</Text>
         </TouchableOpacity>
@@ -147,6 +147,20 @@ export default function PreSimulationBriefingScreen() {
       </View>
 
       <ScrollView className="flex-1 mt-2" showsVerticalScrollIndicator={false}>
+        {/* Recording Disclosure Card */}
+        <View
+          className="bg-[#FEF5F1] border border-[#F4A47A] p-5 rounded-3xl mb-5 flex-row items-start"
+          style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}
+        >
+          <Ionicons name="mic" size={22} color="#CA5D25" style={{ marginTop: 2, marginRight: 12 }} />
+          <View className="flex-1">
+            <Text className="text-xs font-bold text-[#CA5D25] uppercase tracking-wider mb-1">Recording Disclosure</Text>
+            <Text className="text-xs font-medium text-[#1F3A5F] leading-5">
+              Your answers will be recorded so AIRIS can transcribe and evaluate your interview responses. Use a quiet place and speak clearly. Your microphone is active only during the answer portion of the interview.
+            </Text>
+          </View>
+        </View>
+
         <View className="bg-white p-5 rounded-2xl border border-[#BFD6EA] mb-5 gap-4">
           {[
             ["1. Prepare", "Find a quiet place and review the interview tips."],
@@ -160,7 +174,7 @@ export default function PreSimulationBriefingScreen() {
               <Text className="text-xs text-[#4F6B82] leading-5">{description}</Text>
             </View>
           ))}
-          <Text className="text-xs text-[#4F6B82]">The controls are on-screen; voice commands are available only in immersive VR.</Text>
+          <Text className="text-xs text-[#4F6B82]">All controls are buttons on this screen.</Text>
         </View>
 
         {/* Microphone Readiness Card */}
@@ -184,7 +198,7 @@ export default function PreSimulationBriefingScreen() {
           </View>
           {micStatus !== "granted" && (
             <Text className="text-xs text-[#4F6B82] font-medium mt-2 leading-4">
-              Spoken answers require microphone permission. Enable it above or in device settings before starting.
+              Your spoken answers need microphone access. Tap Enable Mic above first.
             </Text>
           )}
         </View>

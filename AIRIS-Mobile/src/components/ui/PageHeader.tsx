@@ -27,7 +27,7 @@ export function PageHeader({ title, subtitle, showBackButton = true, rightElemen
           </TouchableOpacity>
         )}
         <View className="flex-1 pr-4">
-          <Text className="text-2xl font-extrabold text-[#1F3A5F]" numberOfLines={1}>{title}</Text>
+          <Text className="text-2xl font-extrabold text-[#1F3A5F]" numberOfLines={2} ellipsizeMode="tail">{title}</Text>
           {subtitle && (
             <Text className="text-sm font-semibold text-[#4F6B82] mt-1">{subtitle}</Text>
           )}

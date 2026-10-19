@@ -8,6 +8,8 @@ import {
   View,
 } from "react-native";
 import { Text } from "../../components/ui/AppText";
+import { Tag } from "../../components/ui";
+import { formatSkillDisplayName } from "../../utils/displayNames";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore } from "../../store/authStore";
 import {
@@ -293,7 +295,7 @@ export default function HistoricalResumeViewScreen() {
         <View className="items-center">
           <Text className="text-lg font-extrabold text-[#1F3A5F]">Resume Details</Text>
           <Text className="text-[10px] font-bold text-[#CA5D25] uppercase tracking-wider">
-            {isCanonicalV3 ? "Canonical Activity Record" : "Historical Legacy Record"}
+            {isCanonicalV3 ? "Latest Result" : "Older Result"}
           </Text>
         </View>
 
@@ -304,7 +306,7 @@ export default function HistoricalResumeViewScreen() {
         <View className="flex-1 items-center justify-center py-20">
           <ActivityIndicator size="large" color="#F4A47A" />
           <Text className="mt-4 text-sm font-bold text-[#4F6B82]">
-            Loading historical resume details...
+            Loading resume details...
           </Text>
         </View>
       ) : notFound || (!resumeData && !analysisResult) ? (
@@ -313,17 +315,17 @@ export default function HistoricalResumeViewScreen() {
             <Ionicons name="document-text-outline" size={36} color="#CA5D25" />
           </View>
           <Text className="text-lg font-extrabold text-[#1F3A5F] text-center mb-2">
-            Resume Details Unavailable
+            Details not found
           </Text>
           <Text className="text-sm font-medium text-[#4F6B82] text-center leading-5 mb-6">
-            Resume details are no longer available for this historical activity.
+            This result is no longer saved on this device.
           </Text>
           <TouchableOpacity
             onPress={() => router.back()}
             className="px-6 py-3 bg-[#1F3A5F] rounded-xl"
           >
             <Text className="text-xs font-bold text-white uppercase tracking-wider">
-              Return to Dashboard
+              Go Back
             </Text>
           </TouchableOpacity>
         </View>
@@ -337,8 +339,8 @@ export default function HistoricalResumeViewScreen() {
             <View className="mb-4 p-3 bg-[#FEF5F1] rounded-2xl border border-[#F4A47A] flex-row items-center">
               <Ionicons name="time-outline" size={18} color="#CA5D25" className="mr-2" />
               <Text className="text-[11px] text-[#4F6B82] flex-1 leading-4">
-                <Text className="font-bold text-[#CA5D25]">Historical Record: </Text>
-                This resume was analyzed under a legacy model. Re-upload or re-analyze to view canonical 6-dimension ATS and 4-component Role Alignment breakdowns.
+                <Text className="font-bold text-[#CA5D25]">Older result: </Text>
+                This was checked with an older version. Upload your resume again for updated scores.
               </Text>
             </View>
           )}
@@ -378,7 +380,7 @@ export default function HistoricalResumeViewScreen() {
                   )}
                   {!isCanonicalV3 && typeof intrinsicScore === "number" && (
                     <Text className="text-[10px] font-semibold text-[#8B95A5] mt-1">
-                      Intrinsic: {intrinsicScore}/100
+                      Earlier score: {intrinsicScore}/100
                     </Text>
                   )}
                 </View>
@@ -565,17 +567,12 @@ export default function HistoricalResumeViewScreen() {
                   <View className="flex-row items-center mb-3">
                     <Ionicons name="construct-outline" size={18} color="#1F3A5F" />
                     <Text className="text-sm font-extrabold text-[#1F3A5F] uppercase tracking-wider ml-2">
-                      Demonstrated Skills
+                      Skills found
                     </Text>
                   </View>
                   <View className="flex-row flex-wrap gap-2">
                     {structured.skills!.map((skill, idx) => (
-                      <View
-                        key={idx}
-                        className="bg-[#EAF2F7] px-3 py-1.5 rounded-lg border border-[#BFD6EA]"
-                      >
-                        <Text className="text-xs font-bold text-[#1F3A5F]">{skill}</Text>
-                      </View>
+                      <Tag key={idx} label={formatSkillDisplayName(skill)} variant="info" />
                     ))}
                   </View>
                 </View>
@@ -774,7 +771,7 @@ export default function HistoricalResumeViewScreen() {
               ) : (
                 <View className="items-center py-10 bg-white rounded-2xl border border-[#BFD6EA]">
                   <Text className="text-sm font-medium text-[#8B95A5]">
-                    No textual sections recorded for this resume.
+                    No readable sections found in this resume.
                   </Text>
                 </View>
               )}
@@ -791,7 +788,7 @@ export default function HistoricalResumeViewScreen() {
                 <View className="flex-row items-center">
                   <Ionicons name="code-working-outline" size={18} color="#1F3A5F" />
                   <Text className="text-xs font-bold text-[#1F3A5F] ml-2">
-                    {showRawTextToggle ? "Hide Actual Text" : "View Actual Extracted Text"}
+                    {showRawTextToggle ? "Hide text" : "Show extracted text"}
                   </Text>
                 </View>
                 <Ionicons

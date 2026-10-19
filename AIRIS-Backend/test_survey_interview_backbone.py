@@ -15,17 +15,17 @@ def test_core_question_sequence_count_and_ids():
     assert actual_ids == expected_ids
 
     # Verify competencies match survey themes
-    assert CORE_SURVEY_QUESTIONS[0]["competency"] == "communication"
-    assert CORE_SURVEY_QUESTIONS[1]["competency"] == "motivation and company alignment"
-    assert CORE_SURVEY_QUESTIONS[2]["competency"] == "academic and technical alignment"
+    assert CORE_SURVEY_QUESTIONS[0]["competency"] == "communication and career orientation"
+    assert CORE_SURVEY_QUESTIONS[1]["competency"] == "motivation and role alignment"
+    assert CORE_SURVEY_QUESTIONS[2]["competency"] == "company awareness and alignment"
     assert CORE_SURVEY_QUESTIONS[3]["competency"] == "strengths and self-awareness"
-    assert CORE_SURVEY_QUESTIONS[4]["competency"] == "growth mindset and development"
+    assert CORE_SURVEY_QUESTIONS[4]["competency"] == "adaptability and continuous learning"
     assert CORE_SURVEY_QUESTIONS[5]["competency"] == "problem solving and resilience"
     assert CORE_SURVEY_QUESTIONS[6]["competency"] == "teamwork and collaboration"
     assert CORE_SURVEY_QUESTIONS[7]["competency"] == "time management and prioritization"
     assert CORE_SURVEY_QUESTIONS[8]["category"] == "synthesis"
     assert CORE_SURVEY_QUESTIONS[9]["category"] == "closing"
-    assert "before we end" in CORE_SURVEY_QUESTIONS[9]["text"].lower()
+    assert "questions" in CORE_SURVEY_QUESTIONS[9]["text"].lower()
 
 def test_generate_first_question_returns_survey_1():
     """First question must be survey-1 (Tell me about yourself)."""

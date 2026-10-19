@@ -84,14 +84,14 @@ export class PdfDocumentLayout {
     this.doc.setFont("helvetica", "bold");
     this.doc.setFontSize(7.5);
     this.doc.setTextColor(...DARK);
-    this.doc.text("Career Center & OJT Coordination Office", textX, 17);
+    this.doc.text("T.I.P. Career Center & OJT Coordination Office", textX, 17);
 
     this.doc.setFont("helvetica", "normal");
     this.doc.setFontSize(6.5);
     this.doc.setTextColor(...SLATE);
     this.doc.text("Manila Campus: 1338 Arlegui Street, Quiapo, Manila · www.tip.edu.ph", textX, 20.5);
 
-    // Restrained TIP orange divider
+    // Restrained T.I.P. orange divider
     this.doc.setFillColor(...TIP_GOLD);
     this.doc.rect(this.margin, 25.5, this.contentWidth, 0.8, "F");
 

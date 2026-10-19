@@ -1,11 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { ActivityIndicator, Alert, BackHandler, Modal, ScrollView, TouchableOpacity, View, AppState } from "react-native";
+import { ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Modal, Platform, ScrollView, TouchableOpacity, View, AppState, NativeModules } from "react-native";
 import { Text, TextInput } from "../../components/ui/AppText";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
+import TextRecognition from "@react-native-ml-kit/text-recognition";
 
 import { PrimaryButton } from "../../components/ui";
 import { useAuthStore } from "../../store/authStore";
@@ -52,6 +53,14 @@ export default function ResumeUploadIntroScreen() {
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [pastedText, setPastedText] = useState("");
   const [tempFile, setTempFile] = useState<{ uri: string; name: string; mimeType: string } | null>(null);
+
+  const [showOcrReviewModal, setShowOcrReviewModal] = useState(false);
+  const [ocrReviewText, setOcrReviewText] = useState("");
+  const [pendingOcrFile, setPendingOcrFile] = useState<{ uri: string; name: string; mimeType: string; size: number } | null>(null);
+  const [pendingOcrSourceType, setPendingOcrSourceType] = useState<any>("image");
+  const [pendingOcrDetailType, setPendingOcrDetailType] = useState<any>("image_ocr");
+  const [pendingOcrOriginalText, setPendingOcrOriginalText] = useState<string>("");
+  const [pendingPrecomputedAnalysis, setPendingPrecomputedAnalysis] = useState<any>(null);
 
   const [uploadProgress, setUploadProgress] = useState(0);
   const [bytesUploaded, setBytesUploaded] = useState<{ loaded: number; total: number }>({ loaded: 0, total: 0 });
@@ -195,7 +204,7 @@ export default function ResumeUploadIntroScreen() {
         setUploadStage("idle");
         setUploadProgress(0);
         setIsInvalidDocument(true);
-        setValidationError("This document was not analyzed. Choose another file or use the AIRIS standard template.");
+        setValidationError("This document was not analyzed. Choose another file or use the T.I.P. standard template.");
         Alert.alert("Resume cannot be analyzed", explainFormat(assessment), [
           { text: "Choose another file", style: "cancel", onPress: () => { void pickDocumentResume(); } },
           { text: "Download template", onPress: openStandardTemplate },
@@ -253,7 +262,7 @@ export default function ResumeUploadIntroScreen() {
         useResumeStore.getState().setProcessingStatus("idle");
         setUploadStage("idle");
         setUploadProgress(0);
-        setValidationError("Resume format warning. Choose another file or use the AIRIS standard template.");
+        setValidationError("Resume format warning. Choose another file or use the T.I.P. standard template.");
         return;
       }
     }
@@ -284,6 +293,19 @@ export default function ResumeUploadIntroScreen() {
       }
     }
 
+    if (sourceFileType === "image") {
+      setPendingOcrFile(fileToProcess);
+      setPendingOcrSourceType(sourceFileType);
+      setPendingOcrDetailType(sourceDetailType);
+      setPendingOcrOriginalText(extractedText);
+      setPendingPrecomputedAnalysis(precomputedAnalysis);
+      setOcrReviewText(extractedText);
+      setShowOcrReviewModal(true);
+      setUploadStage("idle");
+      useResumeStore.getState().setProcessingStatus("idle");
+      return;
+    }
+
     setUploadStage("saving");
     setUploadPhase("Finalizing resume analysis & saving...");
     setUploadProgress(100);
@@ -311,6 +333,96 @@ export default function ResumeUploadIntroScreen() {
     } finally {
       isSubmittingRef.current = false;
     }
+  };
+
+  const handleConfirmOcrReview = async () => {
+    if (!currentUser || !pendingOcrFile) return;
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+
+    try {
+      const trimmed = ocrReviewText.trim();
+      if (!trimmed) {
+        Alert.alert("Empty Resume Text", "Please enter or retain valid resume text before proceeding.");
+        return;
+      }
+
+      try {
+        validateResumeText(trimmed);
+      } catch (valErr) {
+        const normVal = normalizeApiError(valErr);
+        Alert.alert("Invalid Resume Text", normVal.userMessage);
+        return;
+      }
+
+      const nameCheck = classifyNameMatch(currentUser.fullName || "", trimmed);
+      if (nameCheck.classification === "CLEAR_MISMATCH") {
+        const confirmProceed = await new Promise<boolean>((resolve) => {
+          Alert.alert(
+            "Name Verification Warning",
+            "The candidate name in the reviewed text appears to differ from your profile name. Would you like to proceed or correct the text?",
+            [
+              { text: "Correct Text", style: "cancel", onPress: () => resolve(false) },
+              { text: "Proceed Anyway", style: "default", onPress: () => resolve(true) },
+            ]
+          );
+        });
+        if (!confirmProceed) return;
+      }
+
+      setShowOcrReviewModal(false);
+      setUploadStage("saving");
+      setUploadPhase("Finalizing resume analysis & saving...");
+      setUploadProgress(100);
+
+      const isTextModified = trimmed !== (pendingOcrOriginalText || "").trim();
+      const analysisToUse = isTextModified ? undefined : pendingPrecomputedAnalysis;
+
+      try {
+        await uploadAndProcessResume(
+          currentUser.uid,
+          currentUser.targetPosition || "",
+          pendingOcrFile,
+          pendingOcrSourceType,
+          isTextModified ? "image_ocr_edited" : pendingOcrDetailType,
+          trimmed,
+          analysisToUse
+        );
+
+        const currentStatus = useResumeStore.getState().processingStatus;
+        setIsInvalidDocument(false);
+        setValidationError(null);
+        setHasValidUploadCompleted(true);
+        if (currentStatus === "awaiting_self_assessment") {
+          setUploadStage("awaiting_assessment");
+          setUploadPhase("Please rate your confidence for the target skills below.");
+        } else {
+          setUploadStage("completed");
+        }
+      } catch (err) {
+        const normErr = normalizeApiError(err);
+        setIsInvalidDocument(true);
+        setValidationError(normErr.userMessage);
+        setHasValidUploadCompleted(false);
+        setUploadStage("idle");
+        Alert.alert("Analysis Error", normErr.userMessage);
+      } finally {
+        setPendingOcrFile(null);
+        setPendingPrecomputedAnalysis(null);
+      }
+    } finally {
+      isSubmittingRef.current = false;
+    }
+  };
+
+  const handleCancelOcrReview = () => {
+    setShowOcrReviewModal(false);
+    setPendingOcrFile(null);
+    setPendingPrecomputedAnalysis(null);
+    setOcrReviewText("");
+    setSelectedFile(null);
+    setUploadStage("idle");
+    useResumeStore.getState().setProcessingStatus("idle");
   };
 
   const pickDocumentResume = async () => {
@@ -345,6 +457,74 @@ export default function ResumeUploadIntroScreen() {
     }
   };
 
+  const processImageResumeWithMlKit = async (selectedFile: { uri: string; name: string; mimeType: string; size: number }) => {
+    if (!currentUser) return;
+    if (isSubmittingRef.current) {
+      console.log("[AIRIS Upload] Duplicate upload submission blocked.");
+      return;
+    }
+
+    const targetPosition = (currentUser?.targetPosition || "").trim();
+    if (!targetPosition) {
+      Alert.alert(
+        "Target Position Required",
+        "Please select a target position before uploading your resume.",
+        [
+          {
+            text: "Select Target Position",
+            onPress: () => router.push("/(student)/(onboarding)/job-selection" as any),
+          },
+        ]
+      );
+      return;
+    }
+
+    // On-Device Google ML Kit Text Recognition (Manuscript Section 3.2.1, Figure 3.4)
+    let onDeviceExtractedText = "";
+    let mlKitAvailable = false;
+    try {
+      if (NativeModules && NativeModules.TextRecognition) {
+        mlKitAvailable = true;
+        setUploadStage("extracting");
+        setUploadPhase("Scanning text on-device with Google ML Kit...");
+        const ocrResult = await TextRecognition.recognize(selectedFile.uri);
+        onDeviceExtractedText = (ocrResult?.text || "").trim();
+      }
+    } catch (mlKitErr) {
+      console.warn("[AIRIS ML Kit] On-device recognition encountered an error, falling back:", mlKitErr);
+      mlKitAvailable = false;
+    }
+
+    if (mlKitAvailable) {
+      if (!onDeviceExtractedText) {
+        useResumeStore.getState().setProcessingStatus("idle");
+        setUploadStage("idle");
+        setUploadProgress(0);
+        Alert.alert(
+          "Unreadable Resume Photo",
+          "Google ML Kit could not detect any readable text in this photo. Please ensure the document is clear, well-lit, and in focus, or select a document file instead."
+        );
+        return;
+      }
+
+      // Present on-device extracted text directly into editable review modal without uploading original image first
+      setSelectedFile(selectedFile);
+      setPendingOcrFile(selectedFile);
+      setPendingOcrSourceType("image");
+      setPendingOcrDetailType("image_ocr");
+      setPendingOcrOriginalText(onDeviceExtractedText);
+      setPendingPrecomputedAnalysis(undefined);
+      setOcrReviewText(onDeviceExtractedText);
+      setShowOcrReviewModal(true);
+      setUploadStage("idle");
+      useResumeStore.getState().setProcessingStatus("idle");
+      return;
+    }
+
+    // Safe fallback if runtime environment lacks linked native module (e.g. simulated environment)
+    await processSelectedResumeFile(selectedFile);
+  };
+
   const pickPhotoLibraryResume = async () => {
     try {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -373,12 +553,53 @@ export default function ResumeUploadIntroScreen() {
         size: asset.fileSize || 102400,
       };
 
-      await processSelectedResumeFile(selectedFile);
+      await processImageResumeWithMlKit(selectedFile);
     } catch (err) {
       useResumeStore.getState().setProcessingStatus("idle");
       setUploadStage("idle");
       setUploadProgress(0);
       const normalized = normalizeApiError(err, "Failed to process photo resume.");
+      setIsInvalidDocument(true);
+      setValidationError(normalized.userMessage);
+      setHasValidUploadCompleted(false);
+      Alert.alert("Upload Notice", normalized.userMessage);
+    }
+  };
+
+  const captureCameraResume = async () => {
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert("Permission Required", "AIRIS needs access to your Camera to capture a photo of your paper resume.");
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 1,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      const ext = asset.mimeType?.split("/")[1] || "jpg";
+      const fileName = asset.fileName || `resume_camera_${Date.now()}.${ext}`;
+      const selectedFile = {
+        uri: asset.uri,
+        name: fileName,
+        mimeType: asset.mimeType || "image/jpeg",
+        size: asset.fileSize || 102400,
+      };
+
+      await processImageResumeWithMlKit(selectedFile);
+    } catch (err) {
+      useResumeStore.getState().setProcessingStatus("idle");
+      setUploadStage("idle");
+      setUploadProgress(0);
+      const normalized = normalizeApiError(err, "Failed to capture photo of resume.");
       setIsInvalidDocument(true);
       setValidationError(normalized.userMessage);
       setHasValidUploadCompleted(false);
@@ -404,11 +625,15 @@ export default function ResumeUploadIntroScreen() {
 
     Alert.alert(
       "Choose Resume Source",
-      "Select your resume document or photo from library:",
+      "Upload a document or capture a photo of your paper resume:",
       [
         {
           text: "Document File (PDF, DOCX, TXT)",
           onPress: pickDocumentResume,
+        },
+        {
+          text: "Camera Capture (Paper Resume)",
+          onPress: captureCameraResume,
         },
         {
           text: "Photo Library (PNG, JPG, HEIC)",
@@ -556,16 +781,16 @@ export default function ResumeUploadIntroScreen() {
             Upload Your Resume
           </Text>
           <Text className="mt-2 text-center text-sm font-medium text-[#4F6B82] px-4 leading-6">
-            AIRIS expects its standard resume format as a selectable-text PDF. Other readable files can be reviewed with a format warning.
+            Upload your resume as a PDF with text you can select and copy. Other readable files can still be checked, with a warning about the format.
           </Text>
           <TouchableOpacity
             className="mt-3 rounded-xl bg-[#EAF2F7] px-4 py-3"
             onPress={openStandardTemplate}
           >
-            <Text className="text-center font-bold text-[#1F3A5F]">Download AIRIS Standard Resume Template</Text>
+            <Text className="text-center font-bold text-[#1F3A5F]">Download T.I.P. Standard Resume Template</Text>
           </TouchableOpacity>
           <Text className="mt-2 text-center text-xs text-[#4F6B82] px-4">
-            PDF is recommended. DOCX, RTF, TXT, and images may proceed after review when readable. Replace all template examples with your own information.
+            If you use the template below, replace every example with your own information.
           </Text>
         </View>
 
@@ -822,7 +1047,7 @@ export default function ResumeUploadIntroScreen() {
               </Text>
             </ScrollView>
 
-            <View className="pt-4 border-t border-[#EAF2F7]">
+            <View className="pt-4 border-t border-[#EAF2F7]" style={{ paddingBottom: Math.max(insets.bottom, 16) + 12 }}>
               <PrimaryButton
                 title="Agree & Close"
                 variant="orange"
@@ -854,7 +1079,7 @@ export default function ResumeUploadIntroScreen() {
             <ScrollView className="mt-4 flex-1 pr-2" showsVerticalScrollIndicator={true}>
               <Text className="text-sm font-bold text-[#1F3A5F] mb-2 uppercase tracking-wider">1. Data We Collect</Text>
               <Text className="text-sm leading-6 text-[#4F6B82] mb-6">
-                We collect profile data including your name, TIP email, college, degree program, and
+                We collect profile data including your name, T.I.P. email, college, degree program, and
                 target job roles. We parse resume details and mock interview transcripts locally or
                 securely send them to processors to generate feedback.
               </Text>
@@ -873,7 +1098,7 @@ export default function ResumeUploadIntroScreen() {
               </Text>
             </ScrollView>
 
-            <View className="pt-4 border-t border-[#EAF2F7]">
+            <View className="pt-4 border-t border-[#EAF2F7]" style={{ paddingBottom: Math.max(insets.bottom, 16) + 12 }}>
               <PrimaryButton
                 title="Agree & Close"
                 variant="orange"
@@ -904,6 +1129,85 @@ export default function ResumeUploadIntroScreen() {
           setHasValidUploadCompleted(true);
         }}
       />
+
+      {/* OCR TEXT REVIEW & EDIT MODAL */}
+      <Modal
+        visible={showOcrReviewModal}
+        transparent
+        animationType="slide"
+        onRequestClose={handleCancelOcrReview}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1 justify-end"
+          style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
+        >
+          <View
+            className="rounded-t-3xl bg-white p-5 shadow-lg border-t border-[#BFD6EA]"
+            style={{
+              maxHeight: "90%",
+              height: "86%",
+              paddingBottom: Math.max(insets.bottom, 16) + 8,
+            }}
+          >
+            <View className="flex-row items-start justify-between border-b border-[#EAF2F7] pb-3">
+              <View className="flex-1 pr-3">
+                <Text className="text-lg font-extrabold text-[#1F3A5F]">Review Scanned Resume</Text>
+                <Text className="text-xs text-[#4F6B82] mt-0.5 leading-4">Edit any text misread by OCR before analysis</Text>
+              </View>
+              <TouchableOpacity
+                onPress={handleCancelOcrReview}
+                className="p-1 -mr-1"
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                accessibilityLabel="Close OCR review"
+              >
+                <Ionicons name="close" size={24} color="#8B95A5" />
+              </TouchableOpacity>
+            </View>
+
+            <View className="mt-2.5 flex-row items-center justify-between px-1 flex-wrap gap-1">
+              <Text className="text-xs font-bold text-[#8B95A5] uppercase tracking-wider">
+                Extracted Text
+              </Text>
+              <Text className="text-xs font-medium text-[#4F6B82]">
+                {ocrReviewText.split(/\s+/).filter(Boolean).length} words · {ocrReviewText.length} chars
+              </Text>
+            </View>
+
+            <View className="mt-2 flex-1 rounded-xl border border-[#D3E2ED] bg-[#F8FAFC] p-3">
+              <TextInput
+                value={ocrReviewText}
+                onChangeText={setOcrReviewText}
+                multiline
+                scrollEnabled
+                textAlignVertical="top"
+                placeholder="Extracted resume text will appear here..."
+                className="flex-1 text-sm text-[#1F3A5F] leading-5"
+                style={{ minHeight: 120 }}
+              />
+            </View>
+
+            <View className="mt-3 flex-row gap-3 pt-3 border-t border-[#EAF2F7] items-center">
+              <View className="flex-1">
+                <TouchableOpacity
+                  onPress={handleCancelOcrReview}
+                  className="min-h-[48px] px-3 py-2.5 rounded-xl border border-[#BFD6EA] items-center justify-center bg-white"
+                >
+                  <Text className="text-sm font-bold text-[#4F6B82] text-center">Retake / Cancel</Text>
+                </TouchableOpacity>
+              </View>
+              <View className="flex-1">
+                <PrimaryButton
+                  title="Confirm & Analyze"
+                  variant="orange"
+                  onPress={handleConfirmOcrReview}
+                  className="min-h-[48px] px-3 py-2.5 rounded-xl"
+                />
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }

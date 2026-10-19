@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     "Interview Simulation",
     "Employability Platform",
     "Graduating Students",
-    "TIP Manila",
+    "T.I.P. Manila",
   ],
   authors: [{ name: "AIRIS Project Team" }],
 };

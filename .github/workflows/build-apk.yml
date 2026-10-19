@@ -101,7 +101,11 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-34 platforms;android-36 build-tools;34.0.0 build-tools;36.0.0'
+          packages: 'platform-tools platforms;android-34 platforms;android-36 build-tools;34.0.0 build-tools;36.0.0 ndk;27.2.12479018'
+
+      - name: Rebuild Unity native library from patched source
+        working-directory: AIRIS-Mobile/android
+        run: ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018" python3 build_native.py
 
       # Path A: EAS Build (if explicitly requested)
       - name: Install EAS CLI
@@ -176,10 +180,17 @@ jobs:
           ls -lh app/build/outputs/apk/release/app-release.apk
           cp app/build/outputs/apk/release/app-release.apk ../AIRIS-Release.apk
 
+      - name: Verify standalone APK and rebuilt native library
+        working-directory: AIRIS-Mobile
+        run: python3 android/verify_release_apk.py AIRIS-Release.apk
+
       - name: Upload APK as GitHub Actions Artifact
         uses: actions/upload-artifact@v4
         with:
           name: airis-mobile-release-apk
-          path: AIRIS-Mobile/AIRIS-Release.apk
+          path: |
+            AIRIS-Mobile/AIRIS-Release.apk
+            AIRIS-Mobile/AIRIS-Release.json
+            AIRIS-Mobile/android/unityLibrary/build/native-release/native-build.json
           if-no-files-found: error
           retention-days: 30

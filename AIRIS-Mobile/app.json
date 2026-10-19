@@ -39,7 +39,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow AIRIS to access your photo library to select resume image files."
+          "photosPermission": "Allow AIRIS to access your photo library to select resume image files.",
+          "cameraPermission": "Allow AIRIS to access your camera to capture paper resume photos for OCR analysis."
         }
       ],
       [

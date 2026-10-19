@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Text, TextInput } from "../../components/ui/AppText";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { PrimaryButton, SecondaryButton } from "../../components/ui";
 import { PasswordRequirementsView } from "../../components/ui/PasswordRequirementsView";
 import { useAuthStore } from "../../store/authStore";
@@ -185,6 +186,7 @@ export default function RegisterScreen() {
   };
 
   return (
+    <SafeAreaView className="flex-1 bg-[#F4F8FB]" edges={["top"]}>
     <KeyboardAwareScrollView
       className="flex-1 bg-[#F4F8FB]"
       enableOnAndroid
@@ -213,7 +215,7 @@ export default function RegisterScreen() {
           }}
         />
 
-        <Text className="text-4xl font-extrabold tracking-tight text-[#1F3A5F]">AIRIS</Text>
+        <Text className="text-3xl font-extrabold tracking-tight text-[#1F3A5F]">AIRIS</Text>
         <Text className="mt-2 text-center text-sm font-medium text-[#4F6B82]">
           Create your account
         </Text>
@@ -303,7 +305,7 @@ export default function RegisterScreen() {
           <TextInput
             className="ml-3 flex-1 h-full text-base text-[#1F3A5F]"
             style={{ paddingTop: 0, paddingBottom: 0, paddingVertical: 0, textAlignVertical: "center", includeFontPadding: false }}
-            placeholder="TIP Email Address"
+            placeholder="T.I.P. Email Address"
             placeholderTextColor="#94A3B8"
             value={email}
             onChangeText={setEmail}
@@ -377,7 +379,7 @@ export default function RegisterScreen() {
         ) : null}
 
         <Text className="mt-2 ml-1 text-xs text-[#4F6B82]">
-          Use your official TIP email. Password must meet the security requirements.
+          Use your official TIP email and choose a password that meets the requirements below.
         </Text>
       </View>
 
@@ -471,7 +473,7 @@ export default function RegisterScreen() {
               <Text className="text-center text-sm leading-5 text-[#4F6B82] mb-6">
                 A 6-digit code was sent to{" "}
                 <Text className="font-bold text-[#1F3A5F]">{otpMaskedEmail || "your TIP email"}</Text>.
-                Please enter it below to complete authentication:
+                Please enter it below:
               </Text>
             </View>
 
@@ -529,5 +531,6 @@ export default function RegisterScreen() {
         </View>
       </Modal>
     </KeyboardAwareScrollView>
+    </SafeAreaView>
   );
 }

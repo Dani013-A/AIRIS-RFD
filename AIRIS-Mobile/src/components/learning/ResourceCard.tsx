@@ -191,15 +191,15 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onPress })
 
           {resource.relevanceTier === "TIER_1_DIRECT_GAP" || resource.isPersonalizedGap ? (
             <View className="px-2 py-0.5 rounded-full bg-[#FEF5F1] border border-[#F4A47A]">
-              <Text className="text-[9px] font-extrabold uppercase tracking-wider text-[#CA5D25]">Skill Gap</Text>
+              <Text className="text-[9px] font-extrabold uppercase tracking-wider text-[#CA5D25]">Missing skill</Text>
             </View>
           ) : resource.relevanceTier === "TIER_2_ROLE_COMPETENCY" ? (
             <View className="px-2 py-0.5 rounded-full bg-[#EAF2F7] border border-[#BFD6EA]">
-              <Text className="text-[9px] font-extrabold uppercase tracking-wider text-[#1F3A5F]">Core Role</Text>
+              <Text className="text-[9px] font-extrabold uppercase tracking-wider text-[#1F3A5F]">For your role</Text>
             </View>
           ) : resource.relevanceTier === "TIER_3_SUPPORTING" ? (
             <View className="px-2 py-0.5 rounded-full bg-[#D7F1ED]/40 border border-[#79D5C8]">
-              <Text className="text-[9px] font-extrabold uppercase tracking-wider text-[#1E5D53]">Supporting</Text>
+              <Text className="text-[9px] font-extrabold uppercase tracking-wider text-[#1E5D53]">Extra learning</Text>
             </View>
           ) : null}
         </View>

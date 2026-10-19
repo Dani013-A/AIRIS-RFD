@@ -80,7 +80,7 @@ export default function OnboardingScreen() {
               <Text className="text-base font-bold text-[#1F3A5F]">Resume Analysis</Text>
             </View>
             <Text className="text-sm font-medium text-[#4F6B82] leading-5 ml-13">
-              Upload your resume for machine-level extraction and ATS scoring grounded directly in your evidence.
+              Upload your resume. AIRIS checks how clearly it is written and scores what hiring software can read.
             </Text>
           </View>
 
@@ -92,7 +92,7 @@ export default function OnboardingScreen() {
               <Text className="text-base font-bold text-[#1F3A5F]">Target Role Alignment</Text>
             </View>
             <Text className="text-sm font-medium text-[#4F6B82] leading-5 ml-13">
-              Compare your evidenced competencies against professional benchmarks for your chosen career.
+              See how well your resume fits the job you want, and what to improve.
             </Text>
           </View>
 
@@ -104,7 +104,7 @@ export default function OnboardingScreen() {
               <Text className="text-base font-bold text-[#1F3A5F]">Personalized Growth Path</Text>
             </View>
             <Text className="text-sm font-medium text-[#4F6B82] leading-5 ml-13">
-              Access verified learning resources and certifications designed to bridge specific skill gaps.
+              Get trusted lessons and courses that fix the exact gaps in your resume.
             </Text>
           </View>
 

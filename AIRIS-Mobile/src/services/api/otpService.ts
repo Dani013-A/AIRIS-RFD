@@ -10,12 +10,8 @@ export function getOtpBaseUrl(): string {
     return envUrl.trim().replace(/\/+$/, "");
   }
 
-  if (isProductionEnvironment()) {
-    return PRODUCTION_WEB_URL;
-  }
-
-  // Fallback for local development
-  return "http://localhost:3000";
+  // Authoritative production fallback - mobile clients should not default to localhost loopback
+  return PRODUCTION_WEB_URL;
 }
 
 export interface SendOtpResult {
@@ -49,32 +45,40 @@ export async function sendStudentOtp(idToken: string): Promise<SendOtpResult> {
   const baseUrl = getOtpBaseUrl();
   const url = `${baseUrl}/api/auth/otp/send`;
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify({ idToken }),
-  });
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ idToken }),
+    });
 
-  const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch(() => ({}));
 
-  if (!response.ok) {
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || `Server returned ${response.status}: Failed to send verification code.`,
+        cooldownRemaining: data.cooldownRemaining,
+      };
+    }
+
+    return {
+      success: true,
+      maskedEmail: data.maskedEmail,
+      cooldownSeconds: data.cooldownSeconds || 60,
+      expiresAt: data.expiresAt,
+      simulated: data.simulated,
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
     return {
       success: false,
-      error: data.error || "Failed to send verification code. Please try again.",
-      cooldownRemaining: data.cooldownRemaining,
+      error: `Network error reaching verification service (${baseUrl}): ${msg}`,
     };
   }
-
-  return {
-    success: true,
-    maskedEmail: data.maskedEmail,
-    cooldownSeconds: data.cooldownSeconds || 60,
-    expiresAt: data.expiresAt,
-    simulated: data.simulated,
-  };
 }
 
 /**
@@ -84,32 +88,40 @@ export async function verifyStudentOtp(idToken: string, code: string): Promise<V
   const baseUrl = getOtpBaseUrl();
   const url = `${baseUrl}/api/auth/otp/verify`;
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify({ idToken, code: code.trim() }),
-  });
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ idToken, code: code.trim() }),
+    });
 
-  const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch(() => ({}));
 
-  if (!response.ok) {
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || `Server returned ${response.status}: Verification failed. Please check the code and try again.`,
+        code: data.code,
+        remainingAttempts: data.remainingAttempts,
+      };
+    }
+
+    return {
+      success: true,
+      message: data.message,
+      sessionToken: data.sessionToken,
+      user: data.user,
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
     return {
       success: false,
-      error: data.error || "Verification failed. Please check the code and try again.",
-      code: data.code,
-      remainingAttempts: data.remainingAttempts,
+      error: `Network error reaching verification service (${baseUrl}): ${msg}`,
     };
   }
-
-  return {
-    success: true,
-    message: data.message,
-    sessionToken: data.sessionToken,
-    user: data.user,
-  };
 }
 
 /**

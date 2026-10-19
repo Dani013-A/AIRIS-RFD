@@ -33,11 +33,31 @@ interface InterviewStore {
   setFinalReport: (report: any) => void;
   setStatus: (status: InterviewStatus) => void;
   clearSession: () => void;
+  resetSessionForNewInterview: (interviewType: InterviewSession['interviewType']) => void;
 }
 
 export const useInterviewStore = create<InterviewStore>((set) => ({
   status: 'setup',
   session: null,
+
+  resetSessionForNewInterview: (interviewType) => set({
+    status: 'setup',
+    session: {
+      sessionId: `session_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      userId: '',
+      targetRole: '',
+      program: '',
+      resumeId: '',
+      interviewType,
+      startedAt: 0,
+      totalQuestions: 10,
+      currentQuestion: '',
+      currentQuestionType: '',
+      questionsAsked: 0,
+      history: [],
+      evaluations: [],
+    },
+  }),
 
   initializeSession: (data) => set({
     status: 'briefing',
@@ -96,7 +116,9 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
         currentQuestion: nextQuestion || 'Please continue.',
         currentQuestionType: nextQuestionType || 'follow-up',
         currentBenchmarkAnswer: nextBenchmark,
-        questionsAsked: isInteractionEvent ? state.session.questionsAsked : state.session.questionsAsked + 1,
+        questionsAsked: (isInteractionEvent === true || nextQuestionType === 'follow-up')
+          ? state.session.questionsAsked
+          : Math.min(state.session.questionsAsked + 1, state.session.totalQuestions || 10),
       }
     };
   }),

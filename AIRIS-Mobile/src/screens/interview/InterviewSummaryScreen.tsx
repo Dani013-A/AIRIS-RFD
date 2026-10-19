@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { View, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from "react-native";
+import { View, ScrollView, ActivityIndicator, TouchableOpacity } from "react-native";
 import { Text } from "../../components/ui/AppText";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useInterviewStore } from "../../store/interviewStore";
 import { generateInterviewReport } from "../../services/api/interviewApi";
-import { PrimaryButton } from "../../components/ui";
+import { PrimaryButton, SecondaryButton } from "../../components/ui";
 import { useAuthStore } from "../../store/authStore";
 import { saveInterviewSession } from "../../services/firebase/interviewService";
 import { saveUserActivity } from "../../services/firebase/activityService";
 import AirisOrientation from "../../utils/AirisOrientation";
 
 export default function InterviewSummaryScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { session, setFinalReport, clearSession } = useInterviewStore();
   const [loading, setLoading] = useState(true);
+  const [reportError, setReportError] = useState<string | null>(null);
 
   useEffect(() => {
     AirisOrientation.lockPortrait();
@@ -23,7 +25,13 @@ export default function InterviewSummaryScreen() {
   }, []);
 
   const generateReport = async () => {
-    if (!session) return;
+    setReportError(null);
+    setLoading(true);
+    if (!session) {
+      setReportError("Interview session is unavailable. Please start a new interview.");
+      setLoading(false);
+      return;
+    }
 
     // If we already have it, don't generate again
     if (session.finalReport) {
@@ -33,7 +41,7 @@ export default function InterviewSummaryScreen() {
 
     try {
       if (!session.evaluations || session.evaluations.length === 0) {
-        setLoading(false);
+        setReportError("No evaluated answers are available for this interview.");
         return;
       }
 
@@ -62,7 +70,7 @@ export default function InterviewSummaryScreen() {
       }
     } catch (err) {
       console.error(err);
-      Alert.alert("Error", "Failed to generate interview report.");
+      setReportError("Failed to generate the interview report. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -73,14 +81,34 @@ export default function InterviewSummaryScreen() {
     router.replace("/(student)/(tabs)/dashboard" as any);
   };
 
-  if (loading || !session?.finalReport) {
+  const handlePracticeAgain = () => {
+    clearSession();
+    router.replace("/(student)/(tabs)/interview" as any);
+  };
+
+  if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-[#1F3A5F] items-center justify-center px-6">
         <ActivityIndicator size="large" color="#79D5C8" />
         <Text className="text-white font-extrabold text-xl mt-6">Analyzing Performance...</Text>
         <Text className="text-[#BFD6EA] text-sm text-center mt-2 font-medium px-4 leading-5">
-          Evaluating your answers against the core competencies for {session?.targetRole || 'the role'}.
+          Checking your answers for {session?.targetRole || 'the role'}.
         </Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!session?.finalReport) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#F4F8FB] items-center justify-center px-6" edges={["top", "bottom"]}>
+        <Text className="text-[#1F3A5F] text-lg font-bold text-center mb-2">Interview result unavailable</Text>
+        <Text className="text-[#4F6B82] text-sm text-center leading-5 mb-6 px-4">
+          {reportError || "We couldn't put together your result. Your answers are safe — try again or go back to the dashboard."}
+        </Text>
+        <View className="w-full gap-3">
+          {session?.evaluations?.length ? <PrimaryButton title="Try again" onPress={generateReport} /> : null}
+          <SecondaryButton title="Return to dashboard" onPress={handleReturnToDashboard} />
+        </View>
       </SafeAreaView>
     );
   }
@@ -102,13 +130,21 @@ export default function InterviewSummaryScreen() {
 
         {/* OVERALL SCORE */}
         <View className="bg-white rounded-3xl p-6 items-center mb-6 border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-          <Text className="text-xs font-bold text-[#4F6B82] uppercase tracking-wider mb-4">Overall Performance</Text>
-          <View className="h-32 w-32 rounded-full border-8 border-[#79D5C8] items-center justify-center bg-[#F1FAF8] mb-4">
-             <Text className="text-5xl font-black text-[#1E5D53]">{report.overallPerformance}</Text>
-          </View>
-          <Text className="text-base font-extrabold text-[#1F3A5F]">
-            {report.overallPerformance >= 80 ? "Strong Potential" : report.overallPerformance >= 60 ? "Solid Baseline" : "Needs Practice"}
-          </Text>
+          <Text className="text-xs font-bold text-[#4F6B82] uppercase tracking-wider mb-4">Your interview score</Text>
+          {typeof report.overallPerformance === "number" ? (
+            <>
+              <View className="h-32 w-32 rounded-full border-8 border-[#79D5C8] items-center justify-center bg-[#F1FAF8] mb-4 px-2">
+                <Text className="text-4xl font-black text-[#1E5D53]" numberOfLines={1} adjustsFontSizeToFit>{report.overallPerformance}</Text>
+              </View>
+              <Text className="text-base font-extrabold text-[#1F3A5F]">
+                {report.overallPerformance >= 80 ? "Strong Potential" : report.overallPerformance >= 60 ? "Solid Baseline" : "Needs Practice"}
+              </Text>
+            </>
+          ) : (
+            <Text className="text-base font-extrabold text-[#1F3A5F] text-center">
+              Interview complete — review your feedback below.
+            </Text>
+          )}
         </View>
 
         {/* STRENGTHS */}
@@ -144,12 +180,18 @@ export default function InterviewSummaryScreen() {
         {/* WEAKEST ANSWER */}
         {report.weakestAnswer && (
           <View className="mb-6">
-            <Text className="text-sm font-extrabold text-[#1F3A5F] uppercase tracking-wider mb-3">Weakest Moment</Text>
-            <View className="bg-[#FEF5F1] rounded-2xl p-5 border border-[#FDEEE6]">
-               <Text className="text-xs font-bold text-[#CA5D25] mb-1 uppercase">The Question</Text>
+            <Text className="text-sm font-extrabold text-[#1F3A5F] uppercase tracking-wider mb-3">Hardest Question</Text>
+            <View className="bg-[#FEF2F2] rounded-2xl p-5 border border-[#FCA5A5]">
+               <View className="flex-row items-center mb-1">
+                 <Ionicons name="close-circle" size={14} color="#D32F2F" style={{ marginRight: 6 }} />
+                 <Text className="text-xs font-bold text-[#D32F2F] uppercase">The Question</Text>
+               </View>
                <Text className="text-sm font-bold text-[#1F3A5F] mb-4">"{report.weakestAnswer.question}"</Text>
 
-               <Text className="text-xs font-bold text-[#CA5D25] mb-1 uppercase">Why it was weak</Text>
+               <View className="flex-row items-center mb-1">
+                 <Ionicons name="alert-circle" size={14} color="#D32F2F" style={{ marginRight: 6 }} />
+                 <Text className="text-xs font-bold text-[#D32F2F] uppercase">What to fix</Text>
+               </View>
                <Text className="text-sm font-medium text-[#4F6B82] leading-5 mb-4">{report.weakestAnswer.whyItWasWeak}</Text>
 
                <Text className="text-xs font-bold text-[#1E5D53] mb-1 uppercase">How to improve</Text>
@@ -162,12 +204,18 @@ export default function InterviewSummaryScreen() {
 
       </ScrollView>
 
-      <View className="p-6 bg-white border-t border-[#EAF2F7]">
-        <PrimaryButton
-          title="Return to Dashboard"
-          variant="orange"
-          onPress={handleReturnToDashboard}
-        />
+      <View className="px-6 pt-4 bg-white border-t border-[#EAF2F7]" style={{ paddingBottom: Math.max(insets.bottom, 16) + 8 }}>
+        <View className="gap-3">
+          <PrimaryButton
+            title="Return to Dashboard"
+            variant="orange"
+            onPress={handleReturnToDashboard}
+          />
+          <SecondaryButton
+            title="Practice Again"
+            onPress={handlePracticeAgain}
+          />
+        </View>
       </View>
     </SafeAreaView>
   );

@@ -4,7 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import "../global.css";
 
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { ActivityIndicator, AppState, AppStateStatus, View } from "react-native";
 import { useAuthStore } from "../src/store/authStore";
 import { useResumeStore } from "../src/store/resumeStore";
@@ -48,19 +48,16 @@ export default function RootLayout() {
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
   const currentUser = useAuthStore((state) => state.currentUser);
   const isInitialized = useAuthStore((state) => state.isInitialized);
-  const [appearanceReady, setAppearanceReady] = useState(false);
+  // Session-only text size: no async restore, so appearance is ready immediately.
+  const appearanceReady = true;
 
   useEffect(() => {
-    Promise.resolve(useAppearanceStore.persist.rehydrate())
-      .catch(() => console.warn("Could not restore text-size preferences; using the default size."))
-      .finally(() => setAppearanceReady(true));
+    useAppearanceStore.getState().resetForNewSession();
   }, []);
 
   useLayoutEffect(() => {
-    if (appearanceReady) {
-      useAppearanceStore.getState().setActiveUser(currentUser?.uid || null);
-    }
-  }, [currentUser?.uid, appearanceReady]);
+    useAppearanceStore.getState().setActiveUser(currentUser?.uid || null);
+  }, [currentUser?.uid]);
 
   useEffect(() => {
     const unsubscribe = initializeAuth();
@@ -196,7 +193,7 @@ export default function RootLayout() {
         <Stack.Screen name="(student)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style={segments[0] === "(auth)" ? "dark" : "auto"} />
     </ThemeProvider>
   );
 }

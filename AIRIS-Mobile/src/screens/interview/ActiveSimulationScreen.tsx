@@ -8,10 +8,11 @@ import { useAuthStore } from "../../store/authStore";
 import { useResumeStore } from "../../store/resumeStore";
 import { useInterviewStore } from "../../store/interviewStore";
 import { submitInterviewAnswer, transcribeAudio, PauseMetrics } from "../../services/api/interviewApi";
-import { PrimaryButton } from "../../components/ui";
+import { PrimaryButton, CaptureStatusPill } from "../../components/ui";
 import * as Speech from "expo-speech";
 import { requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, RecordingPresets } from "expo-audio";
-import { standardInterviewUiState } from "./standardInterviewUi";
+import { standardInterviewUiState, resolveSubmissionOutcome } from "./standardInterviewUi";
+import { withTimeout } from "../../utils/promiseTimeout";
 
 export default function ActiveSimulationScreen() {
   const router = useRouter();
@@ -28,6 +29,7 @@ export default function ActiveSimulationScreen() {
   const operation = useRef(0);
   const startingRecording = useRef(false);
   const stoppingRecording = useRef(false);
+  const submittingRef = useRef(false);
 
   const currentUser = useAuthStore((state) => state.currentUser);
   const activeAnalysis = useResumeStore((state) => state.activeAnalysis);
@@ -121,7 +123,11 @@ export default function ActiveSimulationScreen() {
       await audioRecorder.stop();
       const uri = audioRecorder.uri;
       if (uri) {
-        const { transcription, pauseMetrics } = await transcribeAudio(uri, "audio/m4a");
+        const { transcription, pauseMetrics } = await withTimeout(
+          transcribeAudio(uri, "audio/m4a"),
+          60000,
+          "Transcription is taking too long. Please record your answer again."
+        );
         if (!mounted.current || requestId !== operation.current) return;
         if (!transcription.trim()) {
           setRecordingError("No speech was detected. Please record your answer again.");
@@ -134,9 +140,11 @@ export default function ActiveSimulationScreen() {
       } else {
         if (mounted.current && requestId === operation.current) setRecordingError("No recording was saved. Please try again.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Transcription failed", error);
-      if (mounted.current && requestId === operation.current) setRecordingError("Transcription failed. Please record your answer again.");
+      if (mounted.current && requestId === operation.current) {
+        setRecordingError(error?.message || "Transcription failed. Please record your answer again.");
+      }
     } finally {
       stoppingRecording.current = false;
       if (mounted.current && requestId === operation.current) setIsTranscribing(false);
@@ -149,16 +157,23 @@ export default function ActiveSimulationScreen() {
   };
 
   const handleSubmit = async () => {
+    // Synchronous guard: two rapid taps must not create duplicate submissions.
+    if (submittingRef.current) return;
     if (loading || isRecording || isTranscribing) return;
     if (!answer.trim()) {
       setRecordingError("Record an answer before continuing.");
       return;
     }
 
-    if (!session || !currentUser || !activeAnalysis) return;
+    if (!session || !currentUser || !activeAnalysis) {
+      setRecordingError("Your interview data is missing. Go back and start a new interview.");
+      return;
+    }
 
+    submittingRef.current = true;
     const requestId = ++operation.current;
     setLoading(true);
+    setRecordingError(null);
     try {
       const parsedResumeDict: Record<string, string> = {};
       if (Array.isArray(activeAnalysis.parsedSections)) {
@@ -169,29 +184,39 @@ export default function ActiveSimulationScreen() {
         Object.assign(parsedResumeDict, activeAnalysis.parsedSections || {});
       }
 
-      const response = await submitInterviewAnswer({
-        targetRole: session.targetRole,
-        program: session.program,
-        parsedResume: parsedResumeDict,
-        history: session.history,
-        currentQuestion: session.currentQuestion,
-        currentAnswer: answer.trim(),
-        currentQuestionType: session.currentQuestionType,
-        totalQuestions: session.totalQuestions,
-        pauseMetrics: lastPauseMetrics,
-      });
+      const response = await withTimeout(
+        submitInterviewAnswer({
+          targetRole: session.targetRole,
+          program: session.program,
+          parsedResume: parsedResumeDict,
+          history: session.history,
+          currentQuestion: session.currentQuestion,
+          currentAnswer: answer.trim(),
+          currentQuestionType: session.currentQuestionType,
+          totalQuestions: session.totalQuestions,
+          pauseMetrics: lastPauseMetrics,
+        }),
+        45000,
+        "Evaluation is taking too long. Your answer is saved here — please try again."
+      );
 
       if (!mounted.current || requestId !== operation.current) return;
 
       if (isSpeaking) Speech.stop();
 
+      const outcome = resolveSubmissionOutcome(response);
+      if (outcome.kind === "retry") {
+        setRecordingError(outcome.error);
+        return;
+      }
+
       submitAnswer(
         answer.trim(),
         response.evaluation,
-        response.nextQuestion?.question,
-        response.nextQuestion?.questionType,
-        response.nextQuestion?.benchmarkAnswer,
-        response.isComplete,
+        outcome.kind === "advance" ? outcome.question : undefined,
+        outcome.kind === "advance" ? outcome.questionType : undefined,
+        outcome.kind === "advance" ? outcome.benchmark : undefined,
+        outcome.kind === "complete",
         response.isInteractionEvent
       );
 
@@ -199,16 +224,21 @@ export default function ActiveSimulationScreen() {
       setLastPauseMetrics(undefined);
       setIsSpeaking(false);
 
-      if (response.isComplete) {
+      if (outcome.kind === "complete") {
         router.push("/(student)/interview-session/summary" as any);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       if (mounted.current && requestId === operation.current) {
-        setRecordingError("Submission failed. Your transcript is still here; please try again.");
+        setRecordingError(
+          error?.message || "Submission failed. Your transcript is still here; please try again."
+        );
       }
     } finally {
-      if (mounted.current && requestId === operation.current) setLoading(false);
+      if (mounted.current && requestId === operation.current) {
+        setLoading(false);
+        submittingRef.current = false;
+      }
     }
   };
 
@@ -255,7 +285,25 @@ export default function ActiveSimulationScreen() {
           </View>
 
           <View className="items-center rounded-2xl border border-[#BFD6EA] bg-white p-5 mb-6">
-            <View className="h-28 w-28 items-center justify-center">
+            <CaptureStatusPill
+              status={
+                ui.phase === "recording"
+                  ? "listening"
+                  : ui.phase === "processing"
+                    ? "processing"
+                    : ui.phase === "error"
+                      ? "error"
+                      : answer.trim()
+                        ? "ready"
+                        : "idle"
+              }
+              label={
+                ui.phase === "idle" && answer.trim()
+                  ? "Answer ready — tap Next Question"
+                  : ui.label
+              }
+            />
+            <View className="h-28 w-28 items-center justify-center mt-2">
               {ui.showPulse && <Animated.View className="absolute h-24 w-24 rounded-full bg-[#F4A47A]/30" style={{ transform: [{ scale: pulse }] }} />}
               <TouchableOpacity
                 onPress={toggleRecording}
@@ -267,9 +315,6 @@ export default function ActiveSimulationScreen() {
                 {isTranscribing ? <ActivityIndicator color="white" /> : <Ionicons name={isRecording ? "stop" : "mic"} size={32} color="white" />}
               </TouchableOpacity>
             </View>
-            <Text className="text-base font-bold text-[#1F3A5F] text-center">
-              {ui.label}
-            </Text>
             {recordingError && <Text className="text-sm text-[#B91C1C] text-center mt-2" accessibilityRole="alert">{recordingError}</Text>}
             {answer.trim() ? <Text className="text-sm leading-6 text-[#4F6B82] mt-4 self-stretch">Your response: {answer}</Text> : null}
           </View>
@@ -283,12 +328,21 @@ export default function ActiveSimulationScreen() {
               <Text className="ml-3 font-bold text-[#4F6B82]">Analyzing response...</Text>
             </View>
           ) : (
-            <PrimaryButton
-              title={session.questionsAsked >= session.totalQuestions ? "Finish Interview" : "Next Question"}
-              variant="orange"
-              onPress={handleSubmit}
-              disabled={!ui.canContinue}
-            />
+            <View>
+              <PrimaryButton
+                title={session.questionsAsked >= session.totalQuestions ? "Finish Interview" : "Next Question"}
+                variant="orange"
+                onPress={handleSubmit}
+                disabled={!ui.canContinue}
+              />
+              {!ui.canContinue ? (
+                <Text className="text-xs text-center text-[#4F6B82] mt-2">
+                  {!answer.trim()
+                    ? "Record your answer with the microphone first."
+                    : "Please wait — finishing up before you continue."}
+                </Text>
+              ) : null}
+            </View>
           )}
         </View>
       </View>

@@ -21,8 +21,11 @@ function typographyStyle(className: string | undefined, style: React.ComponentPr
   const fontSize = scaledFontSize(baseSize, textSize);
   const leading = className?.match(/(?:^|\s)leading-(\d+)(?=\s|$)/)?.[1];
   const baseLineHeight = inlineStyle?.lineHeight || (leading ? Number(leading) * 4 : undefined);
-  const lineHeight = baseLineHeight && textSize !== "medium"
-    ? Math.max(Math.round(baseLineHeight * TEXT_SIZE_SCALE[textSize]), Math.round(fontSize * 1.25))
+  const lineHeight = baseLineHeight
+    ? Math.max(
+        textSize !== "medium" ? Math.round(baseLineHeight * TEXT_SIZE_SCALE[textSize]) : baseLineHeight,
+        Math.round(fontSize * 1.25)
+      )
     : undefined;
   return { fontSize, ...(lineHeight ? { lineHeight } : {}) };
 }
