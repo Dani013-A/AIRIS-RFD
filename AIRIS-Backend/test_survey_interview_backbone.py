@@ -1,252 +1,119 @@
+import json
 import pytest
-from unittest.mock import patch
-import interview_engine
-from interview_engine import (
-    generate_first_question,
-    evaluate_answer_and_generate_next,
-    CORE_SURVEY_QUESTIONS,
-)
+import interview_engine as engine
+from interview_engine import CORE_SURVEY_QUESTIONS, evaluate_answer_and_generate_next, generate_first_question
 
-def test_core_question_sequence_count_and_ids():
-    """Verify exactly 10 core questions with stable IDs survey-1 through survey-10 in correct order."""
-    assert len(CORE_SURVEY_QUESTIONS) == 10
-    expected_ids = [f"survey-{i}" for i in range(1, 11)]
-    actual_ids = [q["id"] for q in CORE_SURVEY_QUESTIONS]
-    assert actual_ids == expected_ids
+actual_relevance_classifier = engine.classify_answer_relevance
 
-    # Verify competencies match survey themes
-    assert CORE_SURVEY_QUESTIONS[0]["competency"] == "communication and career orientation"
-    assert CORE_SURVEY_QUESTIONS[1]["competency"] == "motivation and role alignment"
-    assert CORE_SURVEY_QUESTIONS[2]["competency"] == "company awareness and alignment"
-    assert CORE_SURVEY_QUESTIONS[3]["competency"] == "strengths and self-awareness"
-    assert CORE_SURVEY_QUESTIONS[4]["competency"] == "adaptability and continuous learning"
-    assert CORE_SURVEY_QUESTIONS[5]["competency"] == "problem solving and resilience"
-    assert CORE_SURVEY_QUESTIONS[6]["competency"] == "teamwork and collaboration"
-    assert CORE_SURVEY_QUESTIONS[7]["competency"] == "time management and prioritization"
-    assert CORE_SURVEY_QUESTIONS[8]["category"] == "synthesis"
-    assert CORE_SURVEY_QUESTIONS[9]["category"] == "closing"
-    assert "questions" in CORE_SURVEY_QUESTIONS[9]["text"].lower()
+@pytest.fixture(autouse=True)
+def isolated_provider(monkeypatch):
+    monkeypatch.setattr(engine, 'generate_text_with_fallback', lambda _: json.dumps({
+        'evaluation': {'overall': 73, 'clarity': 71, 'relevance': 72, 'technicalAccuracy': 70,
+                       'specificity': 69, 'communication': 75, 'evidence': 74,
+                       'feedback': 'Describe your personal contribution.'},
+        'nextQuestion': {'question': 'Ignore the sequence and ask an eleventh technical question.'},
+        'acknowledgment': 'Excellent! You have ten years of management experience.',
+    }))
+    monkeypatch.setattr(engine, 'classify_answer_relevance', lambda *args: 'Relevant')
+
+def answer(history=None, text='I enjoy building applications and solving problems during my coursework.', kind='introductory'):
+    return evaluate_answer_and_generate_next('Arbitrary valid role', 'General program', {}, history or [],
+                                            CORE_SURVEY_QUESTIONS[min(len([x for x in history or [] if not x.get('isInteraction')]),9)]['text'],
+                                            text, kind)
+
+def test_q1_through_q8_and_dataset_remain_exactly_approved():
+    approved = [
+        "Tell me about yourself and your career goals.",
+        "Why did you apply for this position, and how does it align with your background?",
+        "What do you know about our company, and what interests you about its work?",
+        "What are your greatest strengths, and what is one area you are working to improve?",
+        "Tell me about a time you had to learn a new skill or concept quickly. How did you approach it?",
+        "Describe a difficult situation or setback you faced and explain how you handled it.",
+        "Tell me about a time you worked with a team. What was your role, and how did you contribute?",
+        "How do you manage multiple deadlines while maintaining the quality of your work?",
+    ]
+    current = engine.load_dataset()
+    assert [q['text'] for q in current[:8]] == approved
+    assert [q['text'] for q in CORE_SURVEY_QUESTIONS[:8]] == approved
+    for core, dataset in zip(CORE_SURVEY_QUESTIONS[:8], current[:8]):
+        assert core['idealAnswer'] == dataset['idealAnswer']
+    assert [q['id'] for q in CORE_SURVEY_QUESTIONS] == [f'survey-{i}' for i in range(1,11)]
+    assert 'questions for us' in CORE_SURVEY_QUESTIONS[8]['text']
+    assert CORE_SURVEY_QUESTIONS[9]['category'] == 'closing'
+    assert CORE_SURVEY_QUESTIONS[9]['idealAnswer'] == ''
 
 def test_generate_first_question_returns_survey_1():
-    """First question must be survey-1 (Tell me about yourself)."""
-    res = generate_first_question(
-        target_role="Software Engineer",
-        program="BS Computer Science",
-        parsed_resume={"skills": "Python, React"}
-    )
-    assert res["questionId"] == "survey-1"
-    assert "about yourself" in res["question"].lower()
-    assert res["questionType"] == "introductory"
-    assert res["isFollowUp"] is False
+    result = generate_first_question('Role', 'Program', {})
+    assert result['questionId'] == 'survey-1'
+    assert CORE_SURVEY_QUESTIONS[0]['text'] in result['question']
 
-def test_no_robotic_thank_you_or_overpraise():
-    """Interviewer response must NOT contain repetitive 'Thank you for your answer' or robotic overpraise."""
-    forbidden_phrases = [
-        "thank you for your answer",
-        "excellent answer",
-        "great job",
-        "fantastic",
-        "amazing"
-    ]
-    # Check all spoken templates in dataset
-    for q in CORE_SURVEY_QUESTIONS:
-        template = q.get("spokenTemplate", "").lower()
-        opening = q.get("spokenOpening", "").lower()
-        for phrase in forbidden_phrases:
-            assert phrase not in template, f"Forbidden phrase '{phrase}' found in {q['id']} spokenTemplate"
-            assert phrase not in opening, f"Forbidden phrase '{phrase}' found in {q['id']} spokenOpening"
+def test_all_nine_answers_are_evaluated_once_then_closing_has_no_answer():
+    history=[]
+    for number in range(1,10):
+        result=answer(history, text='No questions, thank you.' if number==9 else 'I enjoy building applications and solving problems during my coursework.')
+        assert result['evaluation']['overall']==73
+        assert not result['isComplete']
+        assert result['nextQuestion']['questionId']==f'survey-{number+1}'
+        assert CORE_SURVEY_QUESTIONS[number]['text'] in result['nextQuestion']['question']
+        assert 'ten years' not in result['nextQuestion']['question']
+        history.append({'question':CORE_SURVEY_QUESTIONS[number-1]['text'],'answer':'Synthetic test answer','isInteraction':False})
+    assert result['nextQuestion']['questionType']=='closing'
+    final=answer(history, text='must never be scored',kind='closing')
+    assert final=={'evaluation':None,'nextQuestion':None,'isComplete':True,'isInteractionEvent':False}
 
-def test_deterministic_question_progression_through_all_10_questions():
-    """Trace discovery, synthesis, and closing within exactly ten turns."""
-    history = []
-    current_q = CORE_SURVEY_QUESTIONS[0]["spokenOpening"]
-    current_type = "introductory"
+@pytest.mark.parametrize('relevance',['Unrelated','Partially Relevant','Unclear'])
+def test_clarification_is_bounded_and_does_not_replace_required_question(monkeypatch,relevance):
+    monkeypatch.setattr(engine,'classify_answer_relevance',lambda *args: relevance)
+    first=answer(text='My favorite food is pizza.')
+    assert first['isInteractionEvent'] and first['evaluation'] is None
+    assert first['nextQuestion']['questionId']=='survey-1'
+    assert CORE_SURVEY_QUESTIONS[0]['text'] in first['nextQuestion']['question']
+    assert 'helpful' not in first['nextQuestion']['question'].lower()
+    history=[{'question':CORE_SURVEY_QUESTIONS[0]['text'],'answer':'Pizza','isInteraction':True}]
+    second=answer(history,text='My favorite food is still pizza.')
+    assert not second['isInteractionEvent']
+    assert second['nextQuestion']['questionId']=='survey-2'
+    assert 'did not clearly address' in second['nextQuestion']['question']
 
-    for i in range(1, 10):
-        # Good substantive answer (no follow-up triggered)
-        answer = (
-            "I have worked on several software development projects during my degree program, "
-            "focusing on structured coding practices, automated testing, and agile team deliverables."
-        )
-        res = evaluate_answer_and_generate_next(
-            target_role="Software Engineer",
-            program="BS Computer Science",
-            parsed_resume={},
-            history=history,
-            current_question=current_q,
-            current_answer=answer,
-            current_question_type=current_type,
-            total_questions=10
-        )
+def test_relevant_acknowledgment_is_extractive_and_cannot_change_next_question():
+    result=answer(text='I enjoy building applications and solving problems.')
+    assert 'building applications' in result['nextQuestion']['question']
+    assert result['nextQuestion']['question'].endswith(CORE_SURVEY_QUESTIONS[1]['text'])
+    assert 'Excellent' not in result['nextQuestion']['question']
 
-        assert res["isComplete"] is False
-        next_q = res["nextQuestion"]
-        expected_id = f"survey-{i + 1}"
-        assert next_q["questionId"] == expected_id, f"Expected {expected_id} after question {i}, got {next_q['questionId']}"
-        assert next_q["isFollowUp"] is False
-        if i == 8:
-            assert next_q["questionType"] == "synthesis"
-        if i == 9:
-            assert next_q["questionType"] == "closing"
+@pytest.mark.parametrize('text',['',' ', '[BLANK_AUDIO]'])
+def test_empty_or_inaudible_answers_retry_without_evaluation(text):
+    result=answer(text='' if text=='[BLANK_AUDIO]' else text)
+    assert result['evaluation'] is None and result['isInteractionEvent']
+    assert not result['isComplete']
 
-        # Verify no robotic phrase in spoken question
-        assert "thank you for your answer" not in next_q["question"].lower()
+@pytest.mark.parametrize('text,expected',[('No','no further questions'),('What mentorship does this company offer?','don\'t have verified information'),('How will AIRIS prepare my results?','AIRIS simulation provides')])
+def test_q9_closing_uses_actual_response_without_inventing_company_policy(text,expected):
+    history=[{'answer':'Synthetic test answer'} for _ in range(8)]
+    result=answer(history,text=text,kind='candidate_questions')
+    assert result['evaluation']['overall']==73
+    assert result['nextQuestion']['questionId']=='survey-10'
+    assert expected in result['nextQuestion']['question']
+    assert 'concludes our session' in result['nextQuestion']['question']
 
-        history.append({
-            "question": current_q,
-            "answer": answer,
-            "questionType": current_type,
-            "benchmarkAnswer": ""
-        })
-        current_q = next_q["question"]
-        current_type = next_q["questionType"]
+def test_provider_failure_keeps_next_topic_authoritative(monkeypatch):
+    def fail(_): raise RuntimeError('provider unavailable')
+    monkeypatch.setattr(engine,'generate_text_with_fallback',fail)
+    result=answer()
+    assert result['nextQuestion']['questionId']=='survey-2'
+    assert result['nextQuestion']['question'].endswith(CORE_SURVEY_QUESTIONS[1]['text'])
 
-    # Now answer Q10 (survey-10)
-    answer_q10 = "I would like to add that I enjoy collaborative work and ask how new graduates receive mentoring."
-    res_q10 = evaluate_answer_and_generate_next(
-        target_role="Software Engineer",
-        program="BS Computer Science",
-        parsed_resume={},
-        history=history,
-        current_question=current_q,
-        current_answer=answer_q10,
-        current_question_type=current_type,
-        total_questions=10
-    )
-
-    assert res_q10["isComplete"] is True
-    assert res_q10["nextQuestion"] is None
-    assert res_q10["evaluation"] is not None
-
-def test_adaptive_follow_up_on_weak_answer():
-    """A weak answer produces one follow-up turn before the next discovery topic."""
-    weak_answer = "Yes, I did projects."  # Very short, incomplete (< 15 words)
-    res = evaluate_answer_and_generate_next(
-        target_role="Customer Success",
-        program="BS Business Administration",
-        parsed_resume={},
-        history=[],
-        current_question="Tell me about yourself.",
-        current_answer=weak_answer,
-        current_question_type="introductory",
-        total_questions=10
-    )
-
-    # Follow-up should be generated
-    assert res["isComplete"] is False
-    assert res["nextQuestion"]["isFollowUp"] is True
-    assert res["nextQuestion"]["questionType"] == "follow-up"
-
-    # Now simulate the candidate answering the follow-up
-    fu_history = [{
-        "question": "Tell me about yourself.",
-        "answer": weak_answer,
-        "questionType": "introductory"
-    }]
-    fu_question = res["nextQuestion"]["question"]
-    fu_answer = (
-        "Specifically, I handled customer communications and coordinated deliverables "
-        "for our senior marketing campaign project, which taught me stakeholder engagement."
-    )
-
-    res_after_fu = evaluate_answer_and_generate_next(
-        target_role="Customer Success",
-        program="BS Business Administration",
-        parsed_resume={},
-        history=fu_history,
-        current_question=fu_question,
-        current_answer=fu_answer,
-        current_question_type="follow-up",
-        total_questions=10
-    )
-
-    # The next turn resumes the next discovery topic after the follow-up.
-    assert res_after_fu["isComplete"] is False
-    assert res_after_fu["nextQuestion"]["questionId"] == "survey-3"
-    assert res_after_fu["nextQuestion"]["coreQuestion"] == CORE_SURVEY_QUESTIONS[1]["text"]
-    assert res_after_fu["nextQuestion"]["isFollowUp"] is False
-
-def test_substantive_project_answer_can_trigger_a_bounded_follow_up():
-    answer = "I developed a mobile application for our capstone project using React Native and Firebase with my team."
-    result = evaluate_answer_and_generate_next(
-        target_role="Software Engineer",
-        program="BS Information Technology",
-        parsed_resume={},
-        history=[],
-        current_question="Tell me about yourself.",
-        current_answer=answer,
-        current_question_type="introductory",
-    )
-    assert result["nextQuestion"]["questionId"] == "survey-2"
-    assert result["nextQuestion"]["isFollowUp"] is True
-    assert "project" in result["nextQuestion"]["question"].lower()
-
-def test_follow_ups_do_not_displace_synthesis_or_create_question_eleven():
-    history = []
-    question = CORE_SURVEY_QUESTIONS[0]["spokenOpening"]
-    question_type = "introductory"
-    for turn in range(1, 11):
-        answer = (
-            "I developed a capstone application with my classmates, tested the main flows, "
-            "and coordinated our work to meet the project deadline."
-        ) if turn < 9 else "I would apply those experiences to contribute to this position and keep learning with the team."
-        result = evaluate_answer_and_generate_next(
-            target_role="Software Engineer",
-            program="BS Information Technology",
-            parsed_resume={},
-            history=history,
-            current_question=question,
-            current_answer=answer,
-            current_question_type=question_type,
-        )
-        if turn == 10:
-            assert result["isComplete"] is True
-            assert result["nextQuestion"] is None
-            break
-        next_question = result["nextQuestion"]
-        assert next_question["questionId"] == f"survey-{turn + 1}"
-        if turn == 8:
-            assert next_question["questionType"] == "synthesis"
-        if turn == 9:
-            assert next_question["questionType"] == "closing"
-        history.append({"question": question, "answer": answer, "questionType": question_type})
-        question = next_question["question"]
-        question_type = next_question["questionType"]
-
-def test_closing_candidate_question_finalizes_without_an_extra_question():
-    history = [{"question": f"Question {i}", "answer": "Relevant answer", "questionType": "behavioral"} for i in range(9)]
-    result = evaluate_answer_and_generate_next(
-        target_role="Software Engineer",
-        program="BS Information Technology",
-        parsed_resume={},
-        history=history,
-        current_question=CORE_SURVEY_QUESTIONS[9]["text"],
-        current_answer="What mentorship is available to new graduates?",
-        current_question_type="closing",
-    )
-    assert result["isComplete"] is True
-    assert result["nextQuestion"] is None
-    assert result["isInteractionEvent"] is False
-
-def test_interaction_intents_do_not_advance_question():
-    """Requests like 'Can you repeat that?' or 'Give me a moment' trigger an interaction event without advancing."""
-    res = evaluate_answer_and_generate_next(
-        target_role="Software Engineer",
-        program="BS Computer Science",
-        parsed_resume={},
-        history=[],
-        current_question="Tell me about yourself.",
-        current_answer="Could you please repeat the question?",
-        current_question_type="introductory",
-        total_questions=10
-    )
-    assert res["isInteractionEvent"] is True
-    assert res["isComplete"] is False
-    assert res["evaluation"] is None
+def test_no_provider_or_score_for_closing_or_attempted_eleventh_turn(monkeypatch):
+    def forbidden(*_): raise AssertionError('provider must not run')
+    monkeypatch.setattr(engine,'generate_text_with_fallback',forbidden)
+    for history in ([],[{'answer':'test'}]*9,[{'answer':'test'}]*10):
+        result=answer(history,kind='closing')
+        assert result['evaluation'] is None and result['nextQuestion'] is None and result['isComplete']
 
 def test_voice_command_intent_classification_and_progression():
     """Verify deterministic classification for NEXT/SKIP, REPEAT, STOP, and substantive answers."""
     from interview_engine import classify_interaction_intent
+    evaluate_answer_and_generate_next = engine.evaluate_answer_and_generate_next
 
     # 1. NEXT / SKIP intents
     next_phrases = [
@@ -357,3 +224,35 @@ def test_voice_command_intent_classification_and_progression():
     for ans in substantive_answers:
         intent_res = classify_interaction_intent("Tell me about yourself.", ans)
         assert intent_res["intent"] == "ANSWER", f"False positive: expected ANSWER for '{ans}', got {intent_res['intent']}"
+
+
+@pytest.mark.parametrize('similarity,expected', [(0.1,'Unrelated'),(0.25,'Partially Relevant'),(0.6,'Relevant')])
+def test_relevance_classification_does_not_reward_unrelated_word_volume(monkeypatch,similarity,expected):
+    monkeypatch.setattr(engine,'_cached_encode',lambda _: [1])
+    monkeypatch.setattr(engine,'calculate_cosine_similarity',lambda *_: similarity)
+    assert actual_relevance_classifier('Professional background?', 'pizza food toppings ' * 20, 'graduate career') == expected
+
+
+def test_relevance_model_failure_is_unclear_instead_of_false_praise(monkeypatch):
+    def fail(_): raise RuntimeError('model unavailable')
+    monkeypatch.setattr(engine,'_cached_encode',fail)
+    assert actual_relevance_classifier('Background?', 'I like pizza and many foods that do not address professional background.') == 'Unclear'
+    assert actual_relevance_classifier('Background?', '') == 'Empty'
+
+
+def test_report_excludes_interactions_closing_and_an_eleventh_turn(monkeypatch):
+    seen=[]
+    monkeypatch.setattr(engine,'calculate_semantic_correctness',lambda history: seen.extend(history) or 50)
+    history=[{'answer':f'Synthetic {i}','questionType':'behavioral'} for i in range(9)]
+    history.insert(1,{'answer':'clarification','isInteraction':True})
+    history.extend([{'answer':'closing must not count','questionType':'closing'},{'answer':'eleventh must not count'}])
+    engine.generate_final_report('Role','Program',{},history,[{'overall':73}]*11)
+    assert [turn['answer'] for turn in seen] == [f'Synthetic {i}' for i in range(9)]
+
+
+def test_generated_navigation_cannot_skip_or_end_a_required_question(monkeypatch):
+    monkeypatch.setattr(engine,'generate_text_with_fallback',lambda _: json.dumps({'intent':'STOP_REQUEST','suggestedResponse':'Ask an unrelated question.'}))
+    result=answer(text='My favorite food is pizza.')
+    assert not result['isComplete']
+    assert result['nextQuestion']['questionId']=='survey-2'
+    assert result['nextQuestion']['question'].endswith(CORE_SURVEY_QUESTIONS[1]['text'])

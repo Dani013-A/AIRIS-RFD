@@ -44,10 +44,10 @@ test("Panel no-speech stop releases mic and returns before WAV or transcript han
   const end = cpp.indexOf("// Method Definition Index:", start);
   const body = cpp.slice(start, end);
   const release = body.indexOf("RecordingManager_set_IsRecording_mFFEFEC00C28CB916C03F6DD815C17AADE7D188A7_inline(L_16, (bool)0");
-  const guard = body.indexOf("if (!IsOneOnOneScene() && !V_1->___speechDetected)");
+  const guard = body.indexOf("if (!V_1->___speechDetected)");
   const handoff = body.indexOf("RecordingManager_SaveAndUploadRecording_m6D1D5A132D369F1EECDA9B05AE1ACD234807AF62(L_78");
   assert.ok(release >= 0 && release < guard && guard < handoff);
-  assert.match(body.slice(guard, handoff), /UaaLBridge_SendToRN_mFA9CA93D96956F051F0657CC57855F6C997592A1\(bridge, il2cpp_string_new\("NO_SPEECH"\), il2cpp_string_new\("\{\}"\), NULL\)/);
+  assert.match(body.slice(guard, handoff), /UaaLBridge_SendToRN_mFA9CA93D96956F051F0657CC57855F6C997592A1\(bridge, il2cpp_string_new\("NO_SPEECH"\), WithAirisCaptureId\(il2cpp_string_new\("\{\}"\)\), NULL\)/);
   assert.match(body.slice(guard, handoff), /goto IL_0369;/);
   assert.match(patch, /Panel no-speech handoff guard/);
 });

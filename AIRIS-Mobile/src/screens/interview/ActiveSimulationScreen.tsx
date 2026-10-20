@@ -59,8 +59,31 @@ export default function ActiveSimulationScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    if (session?.currentQuestionType !== "closing") return;
+    Speech.stop();
+    setIsSpeaking(true);
+    Speech.speak(session.currentQuestion, {
+      onDone: () => {
+        if (!mounted.current || useInterviewStore.getState().session?.sessionId !== session.sessionId) return;
+        setIsSpeaking(false);
+        useInterviewStore.getState().completeClosing();
+        router.replace("/(student)/interview-session/summary" as any);
+      },
+      onError: () => { if (mounted.current) { setIsSpeaking(false); setRecordingError("Closing audio was unavailable. Tap the speaker to retry."); } },
+    });
+  }, [session?.currentQuestion, session?.currentQuestionType, router]);
+
   const handleSpeak = () => {
     if (!session) return;
+    if (session.currentQuestionType === "closing") {
+      Speech.speak(session.currentQuestion, { onDone: () => {
+        if (!mounted.current) return;
+        useInterviewStore.getState().completeClosing();
+        router.replace("/(student)/interview-session/summary" as any);
+      } });
+      return;
+    }
     if (isSpeaking) {
       Speech.stop();
       setIsSpeaking(false);
@@ -83,6 +106,7 @@ export default function ActiveSimulationScreen() {
   };
 
   const startRecording = async () => {
+    if (useInterviewStore.getState().session?.currentQuestionType === "closing") return;
     if (isRecording || isTranscribing || loading || startingRecording.current) return;
     startingRecording.current = true;
     const requestId = operation.current;
@@ -157,6 +181,7 @@ export default function ActiveSimulationScreen() {
   };
 
   const handleSubmit = async () => {
+    if (useInterviewStore.getState().session?.currentQuestionType === "closing") return;
     // Synchronous guard: two rapid taps must not create duplicate submissions.
     if (submittingRef.current) return;
     if (loading || isRecording || isTranscribing) return;
@@ -284,7 +309,7 @@ export default function ActiveSimulationScreen() {
             </View>
           </View>
 
-          <View className="items-center rounded-2xl border border-[#BFD6EA] bg-white p-5 mb-6">
+          {session.currentQuestionType !== "closing" && <View className="items-center rounded-2xl border border-[#BFD6EA] bg-white p-5 mb-6">
             <CaptureStatusPill
               status={
                 ui.phase === "recording"
@@ -317,11 +342,11 @@ export default function ActiveSimulationScreen() {
             </View>
             {recordingError && <Text className="text-sm text-[#B91C1C] text-center mt-2" accessibilityRole="alert">{recordingError}</Text>}
             {answer.trim() ? <Text className="text-sm leading-6 text-[#4F6B82] mt-4 self-stretch">Your response: {answer}</Text> : null}
-          </View>
+          </View>}
 
         </ScrollView>
 
-        <View className="p-6 bg-white border-t border-[#EAF2F7]">
+        {session.currentQuestionType !== "closing" ? <View className="p-6 bg-white border-t border-[#EAF2F7]">
           {loading ? (
             <View className="h-14 items-center justify-center flex-row rounded-full bg-[#F4F8FB] border border-[#BFD6EA]">
               <ActivityIndicator size="small" color="#CA5D25" />
@@ -344,7 +369,7 @@ export default function ActiveSimulationScreen() {
               ) : null}
             </View>
           )}
-        </View>
+        </View> : <View className="p-6 bg-white"><Text className="text-center text-[#4F6B82]">{recordingError || "The interviewer is closing the session. Your results will follow."}</Text></View>}
       </View>
     </SafeAreaView>
   );

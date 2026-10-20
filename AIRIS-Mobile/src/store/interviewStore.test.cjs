@@ -87,3 +87,37 @@ test("follow-up question does not increment questionsAsked index", () => {
   assert.equal(after.history.length, 1);
 });
 
+
+test("Q9 is the ninth scored answer; Q10 closes once without accepting a tenth answer", () => {
+  seedSession();
+  for (let index = 1; index <= 8; index++) {
+    useInterviewStore.getState().submitAnswer(`Synthetic answer ${index}`, { overall: 73 },
+      index === 8 ? "Do you have any questions for us?" : `Core question ${index + 1}`,
+      index === 8 ? "candidate_questions" : "behavioral", "Benchmark", false, false);
+  }
+  assert.equal(useInterviewStore.getState().session.questionsAsked, 9);
+  useInterviewStore.getState().submitAnswer("What mentorship is available?", { overall: 71 },
+    "Our session has concluded. Please wait while your results are prepared.", "closing", "", false, false);
+  const before = useInterviewStore.getState().session;
+  assert.equal(before.history.filter(turn => !turn.isInteraction).length, 9);
+  assert.equal(before.evaluations.length, 9);
+  assert.equal(before.questionsAsked, 10);
+  useInterviewStore.getState().submitAnswer("Late background speech", { overall: 99 }, "Question eleven", "behavioral");
+  assert.equal(useInterviewStore.getState().session, before);
+  useInterviewStore.getState().completeClosing();
+  const completed = useInterviewStore.getState().session;
+  useInterviewStore.getState().completeClosing();
+  assert.equal(useInterviewStore.getState().status, "completed");
+  assert.equal(useInterviewStore.getState().session, completed);
+  assert.equal(completed.history.length, 9);
+});
+
+test("clarification interaction leaves the numbered topic and scoring count unchanged", () => {
+  seedSession();
+  useInterviewStore.getState().submitAnswer("Synthetic unrelated reply", null, "Please introduce yourself.", "follow-up", "Benchmark", false, true);
+  assert.equal(useInterviewStore.getState().session.questionsAsked, 1);
+  assert.equal(useInterviewStore.getState().session.evaluations.length, 0);
+  useInterviewStore.getState().submitAnswer("Synthetic relevant answer", { overall: 73 }, "Why this role?", "motivation", "Benchmark", false, false);
+  assert.equal(useInterviewStore.getState().session.questionsAsked, 2);
+  assert.equal(useInterviewStore.getState().session.evaluations.length, 1);
+});

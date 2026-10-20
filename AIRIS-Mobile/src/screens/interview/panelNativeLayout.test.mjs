@@ -42,7 +42,7 @@ test("Panel keeps one pill in the active bubble's parent and resizes for status 
   assert.match(helper, /refBubble = IsOneOnOneScene\(\) \? dm->___speechBubble : PanelQuestionPanel\(dm\)/);
   assert.match(helper, /TMP_Text_get_preferredWidth_m/);
   assert.match(helper, /TMP_Text_get_preferredHeight_m/);
-  assert.match(helper, /340\.0f - 50\.0f/);
+  assert.match(helper, /310\.0f - 50\.0f/);
   const panelCenter = helper.indexOf("// Panel's serialized status text has an offset from its parent.");
   const position = helper.indexOf("const float gap = 14.0f;");
   assert.ok(panelCenter > 0 && panelCenter < position);
@@ -64,7 +64,7 @@ test("Panel bubble and pill stay separated across speaker and multiline sizes", 
       for (const pillHeight of [60, 90]) {
         const pivot = 0.5;
         const gap = 14;
-        const baseline = 340 - 50;
+        const baseline = 310 - 50;
         const bubbleBottom = baseline + pillHeight + gap;
         const bubblePosition = bubbleBottom + pivot * bubbleHeight;
         const pillPosition = bubbleBottom - gap - (1 - pivot) * pillHeight;

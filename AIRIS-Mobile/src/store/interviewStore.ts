@@ -30,6 +30,7 @@ interface InterviewStore {
 
   initializeSession: (data: Partial<InterviewSession> & { firstQuestion: string; firstQuestionType: string; firstQuestionBenchmark?: string }) => void;
   submitAnswer: (answer: string, evaluation: any, nextQuestion?: string, nextQuestionType?: string, nextBenchmark?: string, isComplete?: boolean, isInteractionEvent?: boolean) => void;
+  completeClosing: () => void;
   setFinalReport: (report: any) => void;
   setStatus: (status: InterviewStatus) => void;
   clearSession: () => void;
@@ -80,7 +81,7 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
   }),
 
   submitAnswer: (answer, evaluation, nextQuestion, nextQuestionType, nextBenchmark, isComplete, isInteractionEvent) => set((state) => {
-    if (!state.session) return state;
+    if (!state.session || state.session.currentQuestionType === 'closing' || state.status === 'completed' || !answer.trim()) return state;
 
     const updatedHistory = [
       ...state.session.history,
@@ -121,6 +122,11 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
           : Math.min(state.session.questionsAsked + 1, state.session.totalQuestions || 10),
       }
     };
+  }),
+
+  completeClosing: () => set((state) => {
+    if (!state.session || state.session.currentQuestionType !== 'closing' || state.status === 'completed') return state;
+    return { status: 'completed', session: { ...state.session, completedAt: Date.now() } };
   }),
 
   setFinalReport: (report) => set((state) => {

@@ -1,4 +1,5 @@
 import sys
+import re
 
 cpp_path = 'android/unityLibrary/src/main/Il2CppOutputProject/Source/il2cppOutput/Assembly-CSharp.cpp'
 
@@ -424,8 +425,8 @@ static void EnsureListeningBackground(DialogueManager_t9C5A5026BF70075C3D71B589F
 						RectTransform_set_anchorMax_m52829ABEDD229ABD3DA20BCA676FA1DCA4A39B7D(lpRt, bubbleAnchorMax, NULL);
 						RectTransform_set_pivot_m79D0177D383D432A93C2615F1932B739B1C6E146(lpRt, bubblePivot, NULL);
 						const float gap = 14.0f;
-						// Keep the pill's lower edge at the original 340-center, 100-minimum bubble clearance.
-						float safeBottom = 340.0f - 50.0f;
+						// Move the Panel question and pill together; retain the measured 14-unit gap.
+						float safeBottom = 310.0f - 50.0f;
 						float bubbleBottom = safeBottom + bgH + gap;
 						Vector2__ctor_m9525B79969AFFE3254B303A40997A56DEEB6F548_inline((&bubblePos), bubblePos.___x, bubbleBottom + bubblePivot.___y * bubbleSize.___y, NULL);
 						RectTransform_set_anchoredPosition_mF903ACE04F6959B1CD67E2B94FABC0263068F965(bubbleRt, bubblePos, NULL);
@@ -1064,14 +1065,15 @@ new_bubble_pos = """\t\tfloat bubbleY = 370.0f;
 \t\tif (V_1 != NULL && V_1->___interviewerSpeechBubbles != NULL &&
 \t\t\t(il2cpp_codegen_conv<int32_t,int64_t,int64_t,false,false>((((RuntimeArray*)V_1->___interviewerSpeechBubbles)->max_length),NULL)) > 1)
 \t\t{
-\t\t\tbubbleY = 340.0f;
+\t\t\tbubbleY = 310.0f;
 \t\t}
 \t\tVector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 bubblePos;
 \t\tmemset((&bubblePos), 0, sizeof(bubblePos));
 \t\tVector2__ctor_m9525B79969AFFE3254B303A40997A56DEEB6F548_inline((&bubblePos), 0.0f, bubbleY, NULL);
 \t\tRectTransform_set_anchoredPosition_mF903ACE04F6959B1CD67E2B94FABC0263068F965(bubbleRt, bubblePos, NULL);"""
 
-content = apply_patch("7. Speech bubble y position (Panel 340, One-on-One 370)", old_bubble_pos, new_bubble_pos, content)
+content = content.replace("\t\t\tbubbleY = 340.0f;", "\t\t\tbubbleY = 310.0f;")
+content = apply_patch("7. Speech bubble y position (Panel 310, One-on-One 370)", old_bubble_pos, new_bubble_pos, content)
 
 # 7b. ResizeSpeechBubbleCoroutine: bypass activeInHierarchy check so it never prematurely aborts
 old_coroutine_check = """\t\tGameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_9 = __this->___bubbleRoot;
@@ -1628,8 +1630,9 @@ content = content[:recording_start] + recording + content[recording_end:]
 stop_start = content.rfind("IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void U3CStopRecordingU3Ed__31_MoveNext_m")
 stop_end = content.index("// Method Definition Index:", stop_start)
 stop_body = content[stop_start:stop_end]
+stop_body = stop_body.replace("if (!IsOneOnOneScene() && !V_1->___speechDetected)", "if (!V_1->___speechDetected)")
 no_speech_anchor = "\t\ttry\n\t\t{\n\t\t\t{\n\t\t\t\tAndroidJavaClass_tE6296B30CC4BF84434A9B765267F3FD0DD8DDB03* L_17 ="
-no_speech_branch = '''\t\tif (!IsOneOnOneScene() && !V_1->___speechDetected)
+no_speech_branch = '''\t\tif (!V_1->___speechDetected)
 \t\t{
 \t\t\t__android_log_print(ANDROID_LOG_INFO, "Unity", "[AIRIS][RecordingManager] Panel no-speech recording discarded");
 \t\t\tUaaLBridge_t01892D4E14A0FC836DBF5A0384CB1121D3DC06BC* bridge = UaaLBridge_get_Instance_mC704985B67D85B378A99F9C2D52DE746FFC2869A_inline(NULL);
@@ -1640,6 +1643,8 @@ no_speech_branch = '''\t\tif (!IsOneOnOneScene() && !V_1->___speechDetected)
 \t\t\tgoto IL_0369;
 \t\t}
 '''
+stop_body = stop_body.replace('il2cpp_string_new("NO_SPEECH"), il2cpp_string_new("{}"), NULL);', 'il2cpp_string_new("NO_SPEECH"), WithAirisCaptureId(il2cpp_string_new("{}")), NULL);')
+no_speech_branch = no_speech_branch.replace('il2cpp_string_new("{}"), NULL);', 'WithAirisCaptureId(il2cpp_string_new("{}")), NULL);')
 if no_speech_branch in stop_body:
     print("[PATCH] Already present: Panel no-speech handoff guard")
 elif no_speech_anchor in stop_body:
@@ -1648,6 +1653,58 @@ elif no_speech_anchor in stop_body:
 else:
     raise RuntimeError("Panel no-speech handoff target not found")
 content = content[:stop_start] + stop_body + content[stop_end:]
+
+# Associate every native recording event with the capture that created it.
+# This prevents a delayed WAV from a timed-out capture from consuming its retry.
+capture_helper = '''#include <cstdio>
+static unsigned long long s_AirisCaptureId = 0;
+static String_t* WithAirisCaptureId(String_t* json)
+{
+    char suffix[64];
+    snprintf(suffix, sizeof(suffix), "%s\\"captureId\\":%llu}", String_get_Length_m42625D67623FA5CC7A44D47425CE86FB946542D2_inline(json, NULL) > 2 ? "," : "", s_AirisCaptureId);
+    String_t* prefix = String_Substring_mB1D94F47935D22E130FF2C01DBB6A4135FBB76CE(json, 0, String_get_Length_m42625D67623FA5CC7A44D47425CE86FB946542D2_inline(json, NULL) - 1, NULL);
+    return String_Concat_m9E3155FB84015C823606188F53B47CB44C444991(prefix, il2cpp_string_new(suffix), NULL);
+}
+'''
+capture_declaration = 'static String_t* WithAirisCaptureId(String_t* json);'
+if capture_declaration not in content:
+    definition = re.search(r'IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void UaaLBridge_SendTranscriptReady_m[^\n]*\n\{', content)
+    if definition is None:
+        raise RuntimeError('Transcript-ready definition missing')
+    content = content[:definition.start()] + capture_declaration + '\n' + content[definition.start():]
+if capture_helper not in content:
+    marker = 'static bool IsOneOnOneScene()'
+    if content.count(marker) != 1:
+        raise RuntimeError('Expected one scene helper before recording ID helpers')
+    old_helper = content.find('#include <cstdio>\nstatic unsigned long long s_AirisCaptureId')
+    if old_helper >= 0:
+        helper_end = content.index(marker, old_helper)
+        content = content[:old_helper] + capture_helper + '\n' + content[helper_end:]
+    else:
+        content = content.replace(marker, capture_helper + '\n' + marker, 1)
+
+for method_name in ('UaaLBridge_SendRecordingStarted_m', 'UaaLBridge_SendRecordingStopped_m', 'UaaLBridge_SendTranscriptReady_m'):
+    signature = re.compile(r'IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void ' + method_name + r'[^\n]*\n\{')
+    matches = list(signature.finditer(content))
+    if len(matches) != 1:
+        raise RuntimeError('Expected one definition for ' + method_name)
+    start = matches[0].start()
+    end = content.index('// Method Definition Index:', start)
+    body = content[start:end]
+    send = re.compile(r'(UaaLBridge_SendToRN_m\w+\(__this, [^,]+, )([^,\n]+)(, NULL\);)')
+    if 'WithAirisCaptureId(' not in body:
+        body, count = send.subn(lambda m: m[1] + 'WithAirisCaptureId(' + m[2] + ')' + m[3], body)
+        if count != 1:
+            raise RuntimeError('Expected one recording event sender in ' + method_name)
+    content = content[:start] + body + content[end:]
+
+capture_start = '\t\t__this->___recordingStartTime = L_24;'
+if '\t\t++s_AirisCaptureId;\n' + capture_start not in content:
+    if content.count(capture_start) != 1:
+        raise RuntimeError('Expected one successful capture start')
+    content = content.replace(capture_start, '\t\t++s_AirisCaptureId;\n' + capture_start, 1)
+content = content.replace('il2cpp_string_new("NO_SPEECH"), il2cpp_string_new("{}"), NULL);',
+                          'il2cpp_string_new("NO_SPEECH"), WithAirisCaptureId(il2cpp_string_new("{}")), NULL);')
 
 with open(cpp_path, 'w', encoding='utf-8') as f:
     f.write(content)

@@ -114,21 +114,7 @@
   },
   {
     "id": "survey-9",
-    "category": "synthesis",
-    "competency": "initiative and judgment",
-    "tags": [
-      "general",
-      "all roles",
-      "initiative",
-      "problem solving",
-      "judgment"
-    ],
-    "text": "Describe a situation where you solved a problem, took initiative, or helped someone. What did you do?",
-    "idealAnswer": "During a laboratory project, I noticed a recurring error that several peers were struggling with. I investigated the root cause, documented a clear step-by-step resolution, and shared it with the group, saving valuable time and helping everyone complete their deliverables successfully."
-  },
-  {
-    "id": "survey-10",
-    "category": "closing",
+    "category": "candidate_questions",
     "competency": "closing reflection and engagement",
     "tags": [
       "general",
@@ -139,5 +125,15 @@
     ],
     "text": "Do you have any questions for us about the role, team, or company?",
     "idealAnswer": "Yes, I would love to learn more about the day-to-day collaboration within the team and what mentorship or growth opportunities are available for fresh graduates."
+  },
+  {
+    "id": "survey-10",
+    "category": "closing",
+    "competency": "interview closure",
+    "tags": [
+      "closing"
+    ],
+    "text": "Thank you for taking part in this interview simulation. That concludes our session. Please wait while your responses are processed and your interview results are prepared.",
+    "idealAnswer": ""
   }
 ]

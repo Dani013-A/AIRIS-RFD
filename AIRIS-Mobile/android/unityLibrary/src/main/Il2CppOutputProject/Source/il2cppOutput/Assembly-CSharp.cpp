@@ -7650,6 +7650,7 @@ IL_00ae:
 	}
 }
 // Method Definition Index: 71532
+static String_t* WithAirisCaptureId(String_t* json);
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void UaaLBridge_SendTranscriptReady_mC346AC999A0B0926C24E9459A69F3EE5CA4B6A6E (UaaLBridge_t01892D4E14A0FC836DBF5A0384CB1121D3DC06BC* __this, String_t* ___0_transcript, const RuntimeMethod* method) 
 {
 	static bool s_Il2CppMethodInitialized;
@@ -7687,7 +7688,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void UaaLBridge_SendTranscriptReady_mC346AC99
 		TranscriptPayload_t215F1E983D79E65B288412C4D7888C99DCB92E73* L_6 = V_0;
 		String_t* L_7;
 		L_7 = JsonUtility_ToJson_m28CC6843B9D3723D88AD13EA3829B71FDE7826BA(L_6, NULL);
-		UaaLBridge_SendToRN_mFA9CA93D96956F051F0657CC57855F6C997592A1(__this, _stringLiteralCFE712E89FE07ACD69CEE38C99822DB5CF72BB97, L_7, NULL);
+		UaaLBridge_SendToRN_mFA9CA93D96956F051F0657CC57855F6C997592A1(__this, _stringLiteralCFE712E89FE07ACD69CEE38C99822DB5CF72BB97, WithAirisCaptureId(L_7), NULL);
 		return;
 	}
 }
@@ -7703,7 +7704,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void UaaLBridge_SendRecordingStarted_mC35D426
 	}
 	//<source_info:<no-source>:1>
 	{
-		UaaLBridge_SendToRN_mFA9CA93D96956F051F0657CC57855F6C997592A1(__this, _stringLiteral38887F8102D16BB5EC45A11C3C02F147745F4E37, _stringLiteral9ED931619E39F59A8520C1E3B03FEA2E9A56FB60, NULL);
+		UaaLBridge_SendToRN_mFA9CA93D96956F051F0657CC57855F6C997592A1(__this, _stringLiteral38887F8102D16BB5EC45A11C3C02F147745F4E37, WithAirisCaptureId(_stringLiteral9ED931619E39F59A8520C1E3B03FEA2E9A56FB60), NULL);
 		return;
 	}
 }
@@ -7719,7 +7720,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void UaaLBridge_SendRecordingStopped_m9236FF6
 	}
 	//<source_info:<no-source>:1>
 	{
-		UaaLBridge_SendToRN_mFA9CA93D96956F051F0657CC57855F6C997592A1(__this, _stringLiteral044F8A6B4BD155B38B90139D3947CA287C2FC048, _stringLiteral9ED931619E39F59A8520C1E3B03FEA2E9A56FB60, NULL);
+		UaaLBridge_SendToRN_mFA9CA93D96956F051F0657CC57855F6C997592A1(__this, _stringLiteral044F8A6B4BD155B38B90139D3947CA287C2FC048, WithAirisCaptureId(_stringLiteral9ED931619E39F59A8520C1E3B03FEA2E9A56FB60), NULL);
 		return;
 	}
 }
@@ -10871,6 +10872,16 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR float TMP_Text_get_preferredWidth_mE30D1F5B8573BD0A558054D004A53DE868BD208A (TMP_Text_tE8D677872D43AD4B2AAF0D6101692A17D0B251A9* __this, const RuntimeMethod* method) ;
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR float TMP_Text_get_preferredHeight_m4F28E8FB388AFF1DC052F5F982DB2F959598B004 (TMP_Text_tE8D677872D43AD4B2AAF0D6101692A17D0B251A9* __this, const RuntimeMethod* method) ;
 
+#include <cstdio>
+static unsigned long long s_AirisCaptureId = 0;
+static String_t* WithAirisCaptureId(String_t* json)
+{
+    char suffix[64];
+    snprintf(suffix, sizeof(suffix), "%s\"captureId\":%llu}", String_get_Length_m42625D67623FA5CC7A44D47425CE86FB946542D2_inline(json, NULL) > 2 ? "," : "", s_AirisCaptureId);
+    String_t* prefix = String_Substring_mB1D94F47935D22E130FF2C01DBB6A4135FBB76CE(json, 0, String_get_Length_m42625D67623FA5CC7A44D47425CE86FB946542D2_inline(json, NULL) - 1, NULL);
+    return String_Concat_m9E3155FB84015C823606188F53B47CB44C444991(prefix, il2cpp_string_new(suffix), NULL);
+}
+
 static bool IsOneOnOneScene()
 {
 	Scene_tA1DC762B79745EB5140F054C884855B922318356 scene = SceneManager_GetActiveScene_m0B320EC4302F51A71495D1CCD1A0FF9C2ED1FDC8(NULL);
@@ -11163,8 +11174,8 @@ static void EnsureListeningBackground(DialogueManager_t9C5A5026BF70075C3D71B589F
 						RectTransform_set_anchorMax_m52829ABEDD229ABD3DA20BCA676FA1DCA4A39B7D(lpRt, bubbleAnchorMax, NULL);
 						RectTransform_set_pivot_m79D0177D383D432A93C2615F1932B739B1C6E146(lpRt, bubblePivot, NULL);
 						const float gap = 14.0f;
-						// Keep the pill's lower edge at the original 340-center, 100-minimum bubble clearance.
-						float safeBottom = 340.0f - 50.0f;
+						// Move the Panel question and pill together; retain the measured 14-unit gap.
+						float safeBottom = 310.0f - 50.0f;
 						float bubbleBottom = safeBottom + bgH + gap;
 						Vector2__ctor_m9525B79969AFFE3254B303A40997A56DEEB6F548_inline((&bubblePos), bubblePos.___x, bubbleBottom + bubblePivot.___y * bubbleSize.___y, NULL);
 						RectTransform_set_anchoredPosition_mF903ACE04F6959B1CD67E2B94FABC0263068F965(bubbleRt, bubblePos, NULL);
@@ -14117,7 +14128,7 @@ IL_00f5:
 		if (V_1 != NULL && V_1->___interviewerSpeechBubbles != NULL &&
 			(il2cpp_codegen_conv<int32_t,int64_t,int64_t,false,false>((((RuntimeArray*)V_1->___interviewerSpeechBubbles)->max_length),NULL)) > 1)
 		{
-			bubbleY = 340.0f;
+			bubbleY = 310.0f;
 		}
 		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 bubblePos;
 		memset((&bubblePos), 0, sizeof(bubblePos));
@@ -20682,6 +20693,7 @@ IL_009e:
 		RecordingManager_set_IsRecording_mFFEFEC00C28CB916C03F6DD815C17AADE7D188A7_inline(__this, (bool)1, NULL);
 		float L_24;
 		L_24 = Time_get_time_m3A271BB1B20041144AC5B7863B71AB1F0150374B(NULL);
+		++s_AirisCaptureId;
 		__this->___recordingStartTime = L_24;
 		__this->___speechDetected = (bool)0;
 		__this->___calibrationComplete = (bool)0;
@@ -22578,13 +22590,13 @@ IL_0046_1:
 			NullCheck(L_16);
 			RecordingManager_set_IsRecording_mFFEFEC00C28CB916C03F6DD815C17AADE7D188A7_inline(L_16, (bool)0, NULL);
 		}
-		if (!IsOneOnOneScene() && !V_1->___speechDetected)
+		if (!V_1->___speechDetected)
 		{
 			__android_log_print(ANDROID_LOG_INFO, "Unity", "[AIRIS][RecordingManager] Panel no-speech recording discarded");
 			UaaLBridge_t01892D4E14A0FC836DBF5A0384CB1121D3DC06BC* bridge = UaaLBridge_get_Instance_mC704985B67D85B378A99F9C2D52DE746FFC2869A_inline(NULL);
 			if (bridge != NULL)
 			{
-				UaaLBridge_SendToRN_mFA9CA93D96956F051F0657CC57855F6C997592A1(bridge, il2cpp_string_new("NO_SPEECH"), il2cpp_string_new("{}"), NULL);
+				UaaLBridge_SendToRN_mFA9CA93D96956F051F0657CC57855F6C997592A1(bridge, il2cpp_string_new("NO_SPEECH"), WithAirisCaptureId(il2cpp_string_new("{}")), NULL);
 			}
 			goto IL_0369;
 		}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { View, ScrollView, ActivityIndicator, TouchableOpacity } from "react-native";
 import { Text } from "../../components/ui/AppText";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,21 +10,27 @@ import { PrimaryButton, SecondaryButton } from "../../components/ui";
 import { useAuthStore } from "../../store/authStore";
 import { saveInterviewSession } from "../../services/firebase/interviewService";
 import { saveUserActivity } from "../../services/firebase/activityService";
+import { withTimeout } from "../../utils/promiseTimeout";
 import AirisOrientation from "../../utils/AirisOrientation";
 
 export default function InterviewSummaryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { session, setFinalReport, clearSession } = useInterviewStore();
+  const generatingRef = useRef(false);
+  const mountedRef = useRef(true);
   const [loading, setLoading] = useState(true);
   const [reportError, setReportError] = useState<string | null>(null);
 
   useEffect(() => {
+    mountedRef.current = true;
     AirisOrientation.lockPortrait();
     generateReport();
+    return () => { mountedRef.current = false; };
   }, []);
 
   const generateReport = async () => {
+    if (generatingRef.current) return;
     setReportError(null);
     setLoading(true);
     if (!session) {
@@ -39,19 +45,21 @@ export default function InterviewSummaryScreen() {
       return;
     }
 
+    generatingRef.current = true;
     try {
       if (!session.evaluations || session.evaluations.length === 0) {
         setReportError("No evaluated answers are available for this interview.");
         return;
       }
 
-      const response = await generateInterviewReport({
+      const response = await withTimeout(generateInterviewReport({
         targetRole: session.targetRole,
         program: session.program,
         parsedResume: {},
         history: session.history,
         evaluations: session.evaluations,
-      });
+      }), 45000, "Report processing took too long. Please retry.");
+      if (!mountedRef.current || useInterviewStore.getState().session?.sessionId !== session.sessionId) return;
       setFinalReport(response);
 
       // Save to Firestore so it persists across reloads and for the dashboard
@@ -70,9 +78,10 @@ export default function InterviewSummaryScreen() {
       }
     } catch (err) {
       console.error(err);
-      setReportError("Failed to generate the interview report. Please try again.");
+      if (mountedRef.current) setReportError("Failed to generate the interview report. Please try again.");
     } finally {
-      setLoading(false);
+      generatingRef.current = false;
+      if (mountedRef.current) setLoading(false);
     }
   };
 

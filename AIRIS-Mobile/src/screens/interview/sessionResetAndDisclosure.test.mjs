@@ -114,8 +114,8 @@ test("ImmersiveInterviewScreen has race-safe scene loading machine and attempt t
     "Must have listening safety watchdog timer"
   );
   assert.ok(
-    content.includes("35000"),
-    "Must enforce 35s listening safety limit"
+    content.includes("65000"),
+    "Listening recovery must allow Unity’s 60s recording maximum and handoff"
   );
 });
 
