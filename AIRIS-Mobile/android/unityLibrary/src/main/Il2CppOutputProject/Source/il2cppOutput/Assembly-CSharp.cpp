@@ -7784,6 +7784,23 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void UaaLBridge_HandleLoadScene_m53A3C0C07BAA
 		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&_stringLiteralF944DCD635F9801F7AC90A407FBC479964DEC024);
 		s_Il2CppMethodInitialized = true;
 	}
+	// Cancel the previous scene's capture without saving or submitting an answer.
+	if (__this->___recordingManager != NULL)
+	{
+		auto recorder = __this->___recordingManager;
+		if (recorder->___U3CIsRecordingU3Ek__BackingField)
+		{
+			Microphone_End_mB368877FCC9EA1522914006671E637848A0F7CC6(recorder->___microphoneDevice, NULL);
+			recorder->___U3CIsRecordingU3Ek__BackingField = false;
+		}
+		if (recorder->___silenceDetectionCoroutine != NULL)
+		{
+			MonoBehaviour_StopCoroutine_mB0FC91BE84203BD8E360B3FBAE5B958B4C5ED22A(recorder, recorder->___silenceDetectionCoroutine, NULL);
+			recorder->___silenceDetectionCoroutine = NULL;
+		}
+		recorder->___speechDetected = false;
+		recorder->___recording = NULL;
+	}
 	//<source_info:<no-source>:1>
 	String_t* V_0 = NULL;
 	String_t* V_1 = NULL;

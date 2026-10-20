@@ -356,3 +356,16 @@ test("bridge retries restore Listening only after capture successfully starts", 
   assert.ok(capture >= 0 && successful > capture && feedback > successful,
     "a no-speech/nonverbal retry must replace Processing with Listening after a successful start");
 });
+
+test("scene load invalidates previous native capture without submitting it", () => {
+  const cpp = fs.readFileSync(path.resolve(__dirname, "../../../android/unityLibrary/src/main/Il2CppOutputProject/Source/il2cppOutput/Assembly-CSharp.cpp"), "utf8");
+  const start = cpp.lastIndexOf("IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void UaaLBridge_HandleLoadScene_");
+  const handler = cpp.slice(start, cpp.indexOf("// Method Definition Index:", start));
+  const reset = handler.slice(handler.indexOf("// Cancel the previous scene's capture"), handler.indexOf("//<source_info:"));
+  assert.match(reset, /Microphone_End_/);
+  assert.match(reset, /U3CIsRecordingU3Ek__BackingField = false/);
+  assert.match(reset, /MonoBehaviour_StopCoroutine_/);
+  assert.match(reset, /silenceDetectionCoroutine = NULL/);
+  assert.match(reset, /speechDetected = false/);
+  assert.doesNotMatch(reset, /StopRecording_|SaveWav|SendToRN/);
+});

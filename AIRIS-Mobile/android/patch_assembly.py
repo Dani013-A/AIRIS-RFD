@@ -1718,6 +1718,35 @@ if listening_reset not in body:
     body = body.replace(start_call, listening_reset, 1)
 content = content[:start_handler] + body + content[start_end:]
 
+# Unity can retain a recording flag when its coroutine is interrupted by scene exit.
+load_start = content.rindex('IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void UaaLBridge_HandleLoadScene_')
+load_end = content.index('// Method Definition Index:', load_start)
+load_body = content[load_start:load_end]
+load_anchor = '\t//<source_info:<no-source>:1>\n'
+load_reset = """\t// Cancel the previous scene's capture without saving or submitting an answer.
+\tif (__this->___recordingManager != NULL)
+\t{
+\t\tauto recorder = __this->___recordingManager;
+\t\tif (recorder->___U3CIsRecordingU3Ek__BackingField)
+\t\t{
+\t\t\tMicrophone_End_mB368877FCC9EA1522914006671E637848A0F7CC6(recorder->___microphoneDevice, NULL);
+\t\t\trecorder->___U3CIsRecordingU3Ek__BackingField = false;
+\t\t}
+\t\tif (recorder->___silenceDetectionCoroutine != NULL)
+\t\t{
+\t\t\tMonoBehaviour_StopCoroutine_mB0FC91BE84203BD8E360B3FBAE5B958B4C5ED22A(recorder, recorder->___silenceDetectionCoroutine, NULL);
+\t\t\trecorder->___silenceDetectionCoroutine = NULL;
+\t\t}
+\t\trecorder->___speechDetected = false;
+\t\trecorder->___recording = NULL;
+\t}
+"""
+if load_reset not in load_body:
+    if load_body.count(load_anchor) != 1:
+        raise RuntimeError('Expected one scene-load entry')
+    load_body = load_body.replace(load_anchor, load_reset + load_anchor, 1)
+content = content[:load_start] + load_body + content[load_end:]
+
 with open(cpp_path, 'w', encoding='utf-8') as f:
     f.write(content)
 
