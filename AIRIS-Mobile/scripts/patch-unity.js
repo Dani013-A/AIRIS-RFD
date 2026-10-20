@@ -77,3 +77,10 @@ patchJava('ReactNativeUnityView.java',
 patchJava('ReactNativeUnityViewManager.java',
   'if (getPlayer() != null) {\n            getPlayer().pause();',
   'if (getPlayer() != null && isUnityPaused()) {\n            getPlayer().pause();');
+
+patchJava('ReactNativeUnityView.java',
+  'protected void onDetachedFromWindow() {\n    if (!this.keepPlayerMounted) {',
+  'protected void onDetachedFromWindow() {\n    if (this.keepPlayerMounted && (ReactNativeUnityViewManager.view == this || ReactNativeUnityViewManager.view == null)) {\n      ReactNativeUnity.pause();\n    }\n    if (!this.keepPlayerMounted) {');
+patchJava('ReactNativeUnityViewManager.java',
+  'getPlayer().windowFocusChanged(true);\n      getPlayer().resume();',
+  'getPlayer().windowFocusChanged(true);\n      ReactNativeUnity.resume();');

@@ -44,3 +44,9 @@ test('delayed pause restoration rechecks the current pause state',()=>{
  const source=method('ReactNativeUnityViewManager.java','private void restoreUnityUserState(');
  assert.match(source,/getPlayer\(\) != null && isUnityPaused\(\)/);
 });
+
+test('retained current player pauses before its rendering surface detaches',()=>{
+ const source=method('ReactNativeUnityView.java','protected void onDetachedFromWindow(');
+ assert.match(source,/this.keepPlayerMounted && \(ReactNativeUnityViewManager.view == this \|\| ReactNativeUnityViewManager.view == null\)/);
+ assert.ok(source.indexOf('ReactNativeUnity.pause()')<source.indexOf('super.onDetachedFromWindow()'));
+});
