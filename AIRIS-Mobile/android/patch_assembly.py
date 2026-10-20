@@ -1706,6 +1706,18 @@ if '\t\t++s_AirisCaptureId;\n' + capture_start not in content:
 content = content.replace('il2cpp_string_new("NO_SPEECH"), il2cpp_string_new("{}"), NULL);',
                           'il2cpp_string_new("NO_SPEECH"), WithAirisCaptureId(il2cpp_string_new("{}")), NULL);')
 
+# Retry capture has no question/TTS completion event to restore the status label.
+start_handler = content.rindex('IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void UaaLBridge_HandleStartRecording_')
+start_end = content.index('// Method Definition Index:', start_handler)
+body = content[start_handler:start_end]
+start_call = '\t\tRecordingManager_StartRecording_m580F92B936D4B2E0C0E103900D80E922C3CF26FA(L_2, NULL);'
+listening_reset = start_call + '\n\t\tif (L_2->___U3CIsRecordingU3Ek__BackingField && __this->___dialogueManager != NULL)\n\t\t{\n\t\t\tDialogueManager_ShowListening_m24F42C86ABB159E331CEE3A759EBCED61BAD95BD(__this->___dialogueManager, NULL);\n\t\t}'
+if listening_reset not in body:
+    if body.count(start_call) != 1:
+        raise RuntimeError('Expected one bridge capture start')
+    body = body.replace(start_call, listening_reset, 1)
+content = content[:start_handler] + body + content[start_end:]
+
 with open(cpp_path, 'w', encoding='utf-8') as f:
     f.write(content)
 

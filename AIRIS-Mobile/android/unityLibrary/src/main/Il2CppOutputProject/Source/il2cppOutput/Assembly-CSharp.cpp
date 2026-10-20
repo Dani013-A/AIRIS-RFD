@@ -8315,6 +8315,10 @@ IL_0019:
 		RecordingManager_tC9C0101B7FDE7694D4CC094118FCF4FA0EDD9349* L_2 = __this->___recordingManager;
 		NullCheck(L_2);
 		RecordingManager_StartRecording_m580F92B936D4B2E0C0E103900D80E922C3CF26FA(L_2, NULL);
+		if (L_2->___U3CIsRecordingU3Ek__BackingField && __this->___dialogueManager != NULL)
+		{
+			DialogueManager_ShowListening_m24F42C86ABB159E331CEE3A759EBCED61BAD95BD(__this->___dialogueManager, NULL);
+		}
 		return;
 	}
 }
