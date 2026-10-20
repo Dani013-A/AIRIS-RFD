@@ -71,3 +71,9 @@ patchJava('ReactNativeUnityViewManager.java',
 patchJava('ReactNativeUnity.java',
   'if (unityPlayer.getParentPlayer() != null) {\n            ((ViewGroup) unityPlayer.getParentPlayer()).removeView(frame);\n        }',
   'if (unityPlayer.getParentPlayer() != null) {\n            ((ViewGroup) unityPlayer.getParentPlayer()).endViewTransition(frame);\n            ((ViewGroup) unityPlayer.getParentPlayer()).removeView(frame);\n        }');
+patchJava('ReactNativeUnityView.java',
+  'if (hasWindowFocus && _isUnityPaused) {\n      // view.requestFocus();\n      view.resume();\n    } else if (!hasWindowFocus && !_isUnityPaused) {\n      view.pause();\n    }',
+  'if (hasWindowFocus) {\n      ReactNativeUnity.resume();\n    } else {\n      ReactNativeUnity.pause();\n    }');
+patchJava('ReactNativeUnityViewManager.java',
+  'if (getPlayer() != null) {\n            getPlayer().pause();',
+  'if (getPlayer() != null && isUnityPaused()) {\n            getPlayer().pause();');
