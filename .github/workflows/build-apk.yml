@@ -102,6 +102,10 @@ jobs:
           distribution: "temurin"
           java-version: "17"
 
+      - name: Verify shared Unity view ownership
+        working-directory: AIRIS-Mobile
+        run: node --test scripts/unityViewOwnership.test.cjs
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:

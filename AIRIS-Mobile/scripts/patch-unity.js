@@ -52,3 +52,22 @@ for (const filePath of unityViewFiles) {
     }
   }
 }
+
+// Shared players can receive focus callbacks from a view being removed during navigation.
+const unityJavaRoot = path.join(unityModuleRoot, 'android', 'src', 'main', 'java', 'com', 'azesmwayreactnativeunity');
+function patchJava(fileName, before, after) {
+  const file = path.join(unityJavaRoot, fileName);
+  let source = fs.readFileSync(file, 'utf8');
+  if (source.includes(after)) return;
+  if (!source.includes(before)) throw new Error(`Unity lifecycle patch target missing: ${fileName}`);
+  fs.writeFileSync(file, source.replace(before, after));
+}
+patchJava('ReactNativeUnityView.java',
+  'if (view == null || !isUnityReady()) {',
+  'if (view == null || !isUnityReady() || ReactNativeUnityViewManager.view != this) {');
+patchJava('ReactNativeUnityViewManager.java',
+  'public void onViewAttachedToWindow(View v) {\n    restoreUnityUserState();',
+  'public void onViewAttachedToWindow(View v) {\n    if (v == view && isUnityReady() && getPlayer() != null && v.hasWindowFocus()) {\n      getPlayer().windowFocusChanged(true);\n      getPlayer().resume();\n    }\n    restoreUnityUserState();');
+patchJava('ReactNativeUnity.java',
+  'if (unityPlayer.getParentPlayer() != null) {\n            ((ViewGroup) unityPlayer.getParentPlayer()).removeView(frame);\n        }',
+  'if (unityPlayer.getParentPlayer() != null) {\n            ((ViewGroup) unityPlayer.getParentPlayer()).endViewTransition(frame);\n            ((ViewGroup) unityPlayer.getParentPlayer()).removeView(frame);\n        }');
