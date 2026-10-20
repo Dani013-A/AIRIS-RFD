@@ -81,7 +81,10 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
   }),
 
   submitAnswer: (answer, evaluation, nextQuestion, nextQuestionType, nextBenchmark, isComplete, isInteractionEvent) => set((state) => {
-    if (!state.session || state.session.currentQuestionType === 'closing' || state.status === 'completed' || !answer.trim()) return state;
+    if (!state.session || state.session.currentQuestionType === 'closing' || ['completed', 'evaluating'].includes(state.status) || !answer.trim()) return state;
+
+    if (!isInteractionEvent && (!evaluation || !Number.isFinite(evaluation.overall ?? evaluation.score) || (evaluation.overall ?? evaluation.score) < 0 || (evaluation.overall ?? evaluation.score) > 100)) return state;
+    if (isComplete && state.session.evaluations.length + (evaluation ? 1 : 0) !== 9) return state;
 
     const updatedHistory = [
       ...state.session.history,
@@ -98,12 +101,11 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
 
     if (isComplete) {
       return {
-        status: 'completed',
+        status: 'evaluating',
         session: {
           ...state.session,
           history: updatedHistory,
           evaluations: updatedEvaluations,
-          completedAt: Date.now(),
         }
       };
     }
@@ -125,15 +127,18 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
   }),
 
   completeClosing: () => set((state) => {
-    if (!state.session || state.session.currentQuestionType !== 'closing' || state.status === 'completed') return state;
-    return { status: 'completed', session: { ...state.session, completedAt: Date.now() } };
+    if (!state.session || state.session.currentQuestionType !== 'closing' || ['completed', 'evaluating'].includes(state.status) || state.session.evaluations.length !== 9) return state;
+    return { status: 'evaluating' };
   }),
 
   setFinalReport: (report) => set((state) => {
-    if (!state.session) return state;
+    if (!state.session || state.session.evaluations.length !== 9 || !Number.isFinite(report?.overallPerformance)
+      || report.overallPerformance < 0 || report.overallPerformance > 100) return state;
     return {
+      status: 'completed',
       session: {
         ...state.session,
+        completedAt: Date.now(),
         finalReport: report,
       }
     };

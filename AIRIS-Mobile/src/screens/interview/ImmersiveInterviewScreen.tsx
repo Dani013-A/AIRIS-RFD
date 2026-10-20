@@ -778,10 +778,13 @@ export default function ImmersiveInterviewScreen() {
             if (!response.isComplete && !response.nextQuestion?.question?.trim()) {
               throw new Error("The next question is unavailable. Please retry this answer.");
             }
-            const isInteraction = response.isInteractionEvent && command !== "NEXT_QUESTION";
+            if (!response.isInteractionEvent && !Number.isFinite(response.evaluation?.overall)) {
+              throw new Error("Answer evaluation is unavailable. Please retry this answer.");
+            }
+            const isInteraction = response.isInteractionEvent;
             submitAnswer(
               finalTranscript,
-              command === "NEXT_QUESTION" ? null : response.evaluation,
+              response.evaluation,
               response.nextQuestion?.question,
               response.nextQuestion?.questionType,
               response.nextQuestion?.benchmarkAnswer,

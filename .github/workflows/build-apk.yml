@@ -90,7 +90,7 @@ jobs:
 
       - name: Run Node-native test suites
         working-directory: AIRIS-Mobile
-        run: node --test src/components/ui/typographyScale.test.mjs src/screens/interview/standardInterviewUi.test.mjs src/services/learning/learningCatalogQuality.test.cjs src/store/appearanceStore.test.cjs src/screens/interview/audioHandoffGuard.test.cjs src/screens/interview/immersiveLifecycle.integration.test.cjs src/store/interviewStore.test.cjs
+        run: node --test src/components/ui/typographyScale.test.mjs src/screens/interview/standardInterviewUi.test.mjs src/services/learning/learningCatalogQuality.test.cjs src/store/appearanceStore.test.cjs src/screens/interview/audioHandoffGuard.test.cjs src/screens/interview/immersiveLifecycle.integration.test.cjs src/screens/interview/reportLifecycle.integration.test.cjs src/store/interviewStore.test.cjs
 
       - name: Verify native recording capture payloads
         working-directory: AIRIS-Mobile

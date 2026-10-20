@@ -2,6 +2,7 @@ import json
 import os
 import re
 import random
+import math
 import numpy as np
 from typing import Dict, Any, List, Optional
 from ai_service import generate_text_with_fallback
@@ -375,12 +376,17 @@ def evaluate_answer_and_generate_next(
             "isComplete": False
         }
 
-    is_skip = (intent == "SKIP_REQUEST")
+    if intent == "SKIP_REQUEST":
+        return {"evaluation": None, "isComplete": False, "isInteractionEvent": True,
+                "nextQuestion": {"questionId": current_meta["id"],
+                    "question": f"Please provide an answer before we continue. {current_meta['text']}",
+                    "questionType": "interaction", "coreQuestion": current_meta["text"],
+                    "benchmarkAnswer": current_meta["idealAnswer"], "isFollowUp": False}}
 
     # 2. Deterministic Validation for Empty/Corrupted Text (for substantive answers)
     cleaned_ans = current_answer.strip()
     words = [w for w in cleaned_ans.split() if re.search(r'[a-zA-Z0-9]', w)]
-    if not is_skip and (not cleaned_ans or (len(words) < 2 and not is_candidate_questions)):
+    if (not cleaned_ans or (len(words) < 2 and not is_candidate_questions)):
         return {
             "isInteractionEvent": True,
             "nextQuestion": {
@@ -433,7 +439,7 @@ def evaluate_answer_and_generate_next(
         if not previous.get("isInteraction", False):
             break
         interactions_since_answer += 1
-    if not is_skip and not is_candidate_questions and relevance != "Relevant" and interactions_since_answer < 1:
+    if not is_candidate_questions and relevance != "Relevant" and interactions_since_answer < 1:
         clarification = {
             "Unrelated": "That response did not address the question. Please refocus on it.",
             "Partially Relevant": "Please connect your example more directly to the question and explain your own contribution.",
@@ -463,8 +469,6 @@ def evaluate_answer_and_generate_next(
                           f'You described "{detail}". Next, let us discuss another aspect of your experience.']
     else:
         acknowledgments = ["That did not clearly address the question, but we can move forward."]
-    if is_skip:
-        acknowledgments = ["We'll move to the next topic."]
     fallback_acknowledgment = acknowledgments[completed % len(acknowledgments)]
     next_spoken_default = f"{fallback_acknowledgment} {next_core_text}"
 
@@ -547,9 +551,11 @@ def evaluate_answer_and_generate_next(
         extracted_json = {}
 
     # Evaluation normalization
-    if is_skip:
-        extracted_json["evaluation"] = None
-    elif not isinstance(extracted_json.get("evaluation"), dict):
+    if (not isinstance(extracted_json.get("evaluation"), dict)
+          or isinstance(extracted_json["evaluation"].get("overall"), bool)
+          or not isinstance(extracted_json["evaluation"].get("overall"), (int, float))
+          or not math.isfinite(extracted_json["evaluation"]["overall"])
+          or not 0 <= extracted_json["evaluation"]["overall"] <= 100):
         eval_score = 30 if is_weak_answer else 75
         extracted_json["evaluation"] = {
             "overall": eval_score,
@@ -624,6 +630,12 @@ def generate_final_report(target_role: str, program: str, parsed_resume: dict, h
     history = [turn for turn in history if not turn.get("isInteraction", False)
                and turn.get("questionType") != "closing"][:9]
     evaluations = evaluations[:len(history)]
+    if len(history) != 9 or len(evaluations) != 9 or any(
+        not str(turn.get("answer", turn.get("candidateAnswer", ""))).strip() for turn in history
+    ) or any(not isinstance(item, dict) or not isinstance(item.get("overall"), (int, float))
+             or isinstance(item.get("overall"), bool) or not math.isfinite(item["overall"])
+             or not 0 <= item["overall"] <= 100 for item in evaluations):
+        raise ValueError("Nine evaluated candidate answers are required before generating a report.")
     semantic_score = calculate_semantic_correctness(history)
 
     prompt = f"""
@@ -678,8 +690,12 @@ def generate_final_report(target_role: str, program: str, parsed_resume: dict, h
         if not isinstance(parsed_report, dict):
             parsed_report = {}
         metrics = parsed_report.get("metrics") if isinstance(parsed_report.get("metrics"), dict) else {}
-        ai_holistic = float(metrics.get("aiHolisticEvaluation", 0))
-        comm_clarity = float(metrics.get("communicationClarity", 0))
+        for metric in ("aiHolisticEvaluation", "communicationClarity"):
+            value = metrics.get(metric)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 <= value <= 100:
+                raise ValueError("Report provider returned invalid metrics.")
+        ai_holistic = float(metrics["aiHolisticEvaluation"])
+        comm_clarity = float(metrics["communicationClarity"])
         sem_correct = float(semantic_score)
 
         # Formula mandated by manuscript: (Semantic Correctness x 0.40) + (AI Holistic x 0.40) + (Communication Clarity x 0.20)
@@ -698,21 +714,4 @@ def generate_final_report(target_role: str, program: str, parsed_resume: dict, h
         return parsed_report
 
     except Exception as e:
-        print("Failed to generate final report:", e)
-        return {
-            "overallPerformance": 0,
-            "categoryBreakdown": {
-                "SemanticCorrectness": semantic_score,
-                "AIHolisticEvaluation": 0,
-                "CommunicationClarity": 0
-            },
-            "strengths": [],
-            "areasToImprove": ["Analysis failed. Please try again."],
-            "weakestAnswer": {
-                "question": "N/A",
-                "whyItWasWeak": "N/A",
-                "howToImprove": "N/A",
-                "betterResponseStructure": "N/A"
-            },
-            "recommendedPractice": []
-        }
+        raise RuntimeError("Interview report could not be generated. Please retry.") from e

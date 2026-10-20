@@ -95,3 +95,9 @@ test('empty transcript retries without evaluation; old completion events cannot 
  await h.send('TRANSCRIPT_READY',{transcript:'/stale.wav',captureId:1});
  assert.deepEqual(h.counts(),{evaluations:0,advances:0});
 });
+
+test('missing evaluation cannot commit or advance a scored answer',async()=>{
+ const h=harness();h.ctx.submitInterviewAnswer=async()=>({evaluation:null,nextQuestion:{question:'Next',questionType:'behavioral'},isComplete:false});
+ await h.send('QUESTION_SPOKEN');await h.send('TRANSCRIPT_READY',{transcript:'/missing-evaluation.wav'});
+ assert.equal(h.counts().advances,0);assert.equal(h.events.at(-1).type,'SHOW_QUESTION');
+});

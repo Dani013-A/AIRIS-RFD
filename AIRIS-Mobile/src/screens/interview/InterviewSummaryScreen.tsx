@@ -47,8 +47,8 @@ export default function InterviewSummaryScreen() {
 
     generatingRef.current = true;
     try {
-      if (!session.evaluations || session.evaluations.length === 0) {
-        setReportError("No evaluated answers are available for this interview.");
+      if (!session.evaluations || session.evaluations.length !== 9) {
+        setReportError("Nine evaluated answers are required to prepare the final report.");
         return;
       }
 
@@ -60,6 +60,9 @@ export default function InterviewSummaryScreen() {
         evaluations: session.evaluations,
       }), 45000, "Report processing took too long. Please retry.");
       if (!mountedRef.current || useInterviewStore.getState().session?.sessionId !== session.sessionId) return;
+      if (!Number.isFinite(response?.overallPerformance) || response.overallPerformance < 0 || response.overallPerformance > 100) {
+        throw new Error("The report response is incomplete. Please retry.");
+      }
       setFinalReport(response);
 
       // Save to Firestore so it persists across reloads and for the dashboard

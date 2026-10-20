@@ -58,12 +58,12 @@ test("first answer advances to question 2 exactly once", () => {
   assert.equal(after.history[0].question, "Tell me about yourself.");
 });
 
-test("final answer completes instead of advancing", () => {
+test("an early completion response cannot complete an incomplete interview", () => {
   seedSession();
   useInterviewStore.getState().submitAnswer("Final answer.", { score: 90 }, undefined, undefined, undefined, true, false);
   const session = useInterviewStore.getState().session;
-  assert.equal(useInterviewStore.getState().status, "completed");
-  assert.equal(session.history.length, 1);
+  assert.equal(useInterviewStore.getState().status, "briefing");
+  assert.equal(session.history.length, 0);
 });
 
 test("follow-up question does not increment questionsAsked index", () => {
@@ -107,8 +107,11 @@ test("Q9 is the ninth scored answer; Q10 closes once without accepting a tenth a
   useInterviewStore.getState().completeClosing();
   const completed = useInterviewStore.getState().session;
   useInterviewStore.getState().completeClosing();
-  assert.equal(useInterviewStore.getState().status, "completed");
+  assert.equal(useInterviewStore.getState().status, "evaluating");
   assert.equal(useInterviewStore.getState().session, completed);
+  assert.equal(completed.finalReport, undefined);
+  useInterviewStore.getState().setFinalReport({overallPerformance: 73});
+  assert.equal(useInterviewStore.getState().status, "completed");
   assert.equal(completed.history.length, 9);
 });
 

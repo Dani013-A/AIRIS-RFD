@@ -137,7 +137,7 @@ def test_voice_command_intent_classification_and_progression():
         intent_res = classify_interaction_intent("Tell me about yourself.", phrase)
         assert intent_res["intent"] == "SKIP_REQUEST", f"Expected SKIP_REQUEST for '{phrase}', got {intent_res['intent']}"
 
-        # Test that evaluate_answer_and_generate_next cleanly advances to survey-2 without follow-up
+        # Skip remains a control request; it cannot replace a required scored answer.
         eval_res = evaluate_answer_and_generate_next(
             target_role="Software Engineer",
             program="BS Computer Science",
@@ -149,9 +149,9 @@ def test_voice_command_intent_classification_and_progression():
             total_questions=10
         )
         assert eval_res["isComplete"] is False, f"Expected isComplete False for '{phrase}'"
-        assert eval_res["isInteractionEvent"] is False, f"Expected isInteractionEvent False for '{phrase}'"
+        assert eval_res["isInteractionEvent"] is True, f"Expected retry interaction for '{phrase}'"
         assert eval_res["evaluation"] is None, f"Expected evaluation None for '{phrase}'"
-        assert eval_res["nextQuestion"]["questionId"] == "survey-2", f"Expected survey-2 for '{phrase}', got {eval_res['nextQuestion']['questionId']}"
+        assert eval_res["nextQuestion"]["questionId"] == "survey-1"
         assert eval_res["nextQuestion"]["isFollowUp"] is False, f"Expected isFollowUp False for '{phrase}'"
 
     # 2. REPEAT intents
@@ -246,6 +246,7 @@ def test_report_excludes_interactions_closing_and_an_eleventh_turn(monkeypatch):
     history=[{'answer':f'Synthetic {i}','questionType':'behavioral'} for i in range(9)]
     history.insert(1,{'answer':'clarification','isInteraction':True})
     history.extend([{'answer':'closing must not count','questionType':'closing'},{'answer':'eleventh must not count'}])
+    monkeypatch.setattr(engine,'generate_text_with_fallback',lambda _: json.dumps({'metrics':{'aiHolisticEvaluation':70,'communicationClarity':80}}))
     engine.generate_final_report('Role','Program',{},history,[{'overall':73}]*11)
     assert [turn['answer'] for turn in seen] == [f'Synthetic {i}' for i in range(9)]
 
@@ -256,3 +257,15 @@ def test_generated_navigation_cannot_skip_or_end_a_required_question(monkeypatch
     assert not result['isComplete']
     assert result['nextQuestion']['questionId']=='survey-2'
     assert result['nextQuestion']['question'].endswith(CORE_SURVEY_QUESTIONS[1]['text'])
+
+@pytest.mark.parametrize("provider", [lambda _: "{}", lambda _: '{"metrics":{"aiHolisticEvaluation":101,"communicationClarity":80}}'])
+def test_invalid_report_never_becomes_a_successful_zero_score(monkeypatch, provider):
+    monkeypatch.setattr(engine, 'generate_text_with_fallback', provider)
+    monkeypatch.setattr(engine, 'calculate_semantic_correctness', lambda _: 50)
+    with pytest.raises(RuntimeError, match="Please retry"):
+        engine.generate_final_report('Role','Program',{},[{'answer':'Synthetic valid answer'}]*9,[{'overall':73}]*9)
+
+def test_incomplete_interview_cannot_generate_report(monkeypatch):
+    monkeypatch.setattr(engine, 'generate_text_with_fallback', lambda _: pytest.fail('provider must not run'))
+    with pytest.raises(ValueError, match="Nine evaluated"):
+        engine.generate_final_report('Role','Program',{},[{'answer':'Synthetic answer'}]*8,[{'overall':73}]*8)

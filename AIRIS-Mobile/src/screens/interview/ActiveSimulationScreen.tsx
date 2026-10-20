@@ -235,6 +235,9 @@ export default function ActiveSimulationScreen() {
         return;
       }
 
+      if (!response.isInteractionEvent && !Number.isFinite(response.evaluation?.overall)) {
+        throw new Error("Answer evaluation is unavailable. Please retry this answer.");
+      }
       submitAnswer(
         answer.trim(),
         response.evaluation,
