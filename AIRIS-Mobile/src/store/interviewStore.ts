@@ -86,12 +86,24 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
     if (!isInteractionEvent && (!evaluation || !Number.isFinite(evaluation.overall ?? evaluation.score) || (evaluation.overall ?? evaluation.score) < 0 || (evaluation.overall ?? evaluation.score) > 100)) return state;
     if (isComplete && state.session.evaluations.length + (evaluation ? 1 : 0) !== 9) return state;
 
+    let questionForHistory = state.session.currentQuestion;
+    let questionTypeForHistory = state.session.currentQuestionType;
+    if (!isInteractionEvent) {
+      // Retry prompts are presentation; the accepted answer still belongs to the original topic.
+      for (let index = state.session.history.length - 1; index >= 0; index--) {
+        const turn = state.session.history[index];
+        if (!turn.isInteraction) break;
+        questionForHistory = turn.question;
+        questionTypeForHistory = turn.questionType ?? questionTypeForHistory;
+      }
+    }
+
     const updatedHistory = [
       ...state.session.history,
       {
-        question: state.session.currentQuestion,
+        question: questionForHistory,
         answer: answer,
-        questionType: state.session.currentQuestionType,
+        questionType: questionTypeForHistory,
         benchmarkAnswer: state.session.currentBenchmarkAnswer,
         isInteraction: isInteractionEvent === true,
       }
@@ -117,8 +129,8 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
         history: updatedHistory,
         evaluations: updatedEvaluations,
         currentQuestion: nextQuestion || 'Please continue.',
-        currentQuestionType: nextQuestionType || 'follow-up',
-        currentBenchmarkAnswer: nextBenchmark,
+        currentQuestionType: isInteractionEvent ? state.session.currentQuestionType : nextQuestionType || 'follow-up',
+        currentBenchmarkAnswer: isInteractionEvent ? state.session.currentBenchmarkAnswer ?? nextBenchmark : nextBenchmark,
         questionsAsked: (isInteractionEvent === true || nextQuestionType === 'follow-up')
           ? state.session.questionsAsked
           : Math.min(state.session.questionsAsked + 1, state.session.totalQuestions || 10),

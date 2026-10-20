@@ -124,3 +124,21 @@ test("clarification interaction leaves the numbered topic and scoring count unch
   assert.equal(useInterviewStore.getState().session.questionsAsked, 2);
   assert.equal(useInterviewStore.getState().session.evaluations.length, 1);
 });
+
+test("unclear retries preserve the scored question, category and semantic benchmark", () => {
+  seedSession();
+  useInterviewStore.setState(state => ({session: {...state.session, currentBenchmarkAnswer: "Original benchmark"}}));
+  useInterviewStore.getState().submitAnswer("Hello", null, "Please repeat yourself.", "interaction", undefined, false, true);
+  let session = useInterviewStore.getState().session;
+  assert.equal(session.currentQuestion, "Please repeat yourself.");
+  assert.equal(session.currentQuestionType, "intro");
+  assert.equal(session.currentBenchmarkAnswer, "Original benchmark");
+  useInterviewStore.getState().submitAnswer("Another unclear reply", null, "Please explain further.", "follow-up", undefined, false, true);
+  useInterviewStore.getState().submitAnswer("Synthetic complete introduction", {overall: 75}, "Why this role?", "motivation", "Next benchmark", false, false);
+  session = useInterviewStore.getState().session;
+  assert.equal(session.history.length, 3);
+  assert.deepEqual(session.history[2], {question: "Tell me about yourself.", answer: "Synthetic complete introduction", questionType: "intro", benchmarkAnswer: "Original benchmark", isInteraction: false});
+  assert.equal(session.evaluations.length, 1);
+  assert.equal(session.questionsAsked, 2);
+  assert.equal(session.currentBenchmarkAnswer, "Next benchmark");
+});
