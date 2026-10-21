@@ -585,7 +585,7 @@ def evaluate_answer_and_generate_next(
         no_questions = bool(re.fullmatch(r"(?:no|none|no questions(?:,? thank you)?|no thank you|no thanks|i have no questions|not at this time)[.! ]*", cleaned_ans, re.I))
         if no_questions:
             acknowledgment = "Understood; you have no further questions."
-        elif re.search(r"\b(simulation|results|evaluation|feedback)\b", cleaned_ans, re.I):
+        elif re.search(r"\b(AIRIS|this simulation|interview simulation)\b", cleaned_ans, re.I):
             acknowledgment = "This AIRIS simulation provides interview practice and prepares feedback from the responses you have given."
         else:
             acknowledgment = "I don't have verified information about that role, team, or company, so I can't give a reliable answer to your question."

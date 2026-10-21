@@ -88,7 +88,7 @@ def test_empty_or_inaudible_answers_retry_without_evaluation(text):
     assert result['evaluation'] is None and result['isInteractionEvent']
     assert not result['isComplete']
 
-@pytest.mark.parametrize('text,expected',[('No','no further questions'),('What mentorship does this company offer?','don\'t have verified information'),('How will AIRIS prepare my results?','AIRIS simulation provides')])
+@pytest.mark.parametrize('text,expected',[('No','no further questions'),('What mentorship does this company offer?','don\'t have verified information'),('What mentorship and regular feedback would this company offer?','don\'t have verified information'),('How will AIRIS prepare my results?','AIRIS simulation provides')])
 def test_q9_closing_uses_actual_response_without_inventing_company_policy(text,expected):
     history=[{'answer':'Synthetic test answer'} for _ in range(8)]
     result=answer(history,text=text,kind='candidate_questions')
