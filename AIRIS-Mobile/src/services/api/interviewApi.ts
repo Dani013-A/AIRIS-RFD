@@ -65,7 +65,11 @@ export const startInterviewSimulation = async (payload: InterviewStartRequest) =
       } catch (_) {}
       throw new Error(userMsg);
     }
-    return await response.json();
+    const result = await response.json();
+    if (/^[a-f0-9]{32}$/.test(result.speechDecisionId || "")) {
+      console.log(`[API][INTERVIEW_DECISION] id=${result.speechDecisionId} question=${result.nextQuestion?.questionId || result.questionId || "interaction"}`);
+    }
+    return result;
   } catch (error: any) {
     console.error('Failed to start interview:', error.message || error);
     throw error;
@@ -97,7 +101,11 @@ export const submitInterviewAnswer = async (payload: InterviewAnswerRequest, opt
       } catch (_) {}
       throw new Error(userMsg);
     }
-    return await response.json();
+    const result = await response.json();
+    if (/^[a-f0-9]{32}$/.test(result.speechDecisionId || "")) {
+      console.log(`[API][INTERVIEW_DECISION] id=${result.speechDecisionId} question=${result.nextQuestion?.questionId || result.questionId || "interaction"}`);
+    }
+    return result;
   } catch (error: any) {
     console.error('Failed to submit interview answer:', error.message || error);
     throw error;

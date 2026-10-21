@@ -250,7 +250,8 @@ export default function ImmersiveInterviewScreen() {
       const delivery = speechDeliveryRef.current.claim(`${request.sessionId}:${request.questionRevision}:${request.speechAttempt || 0}`);
       if (!delivery) return;
       deliveryPayload = { ...payload, ...delivery, closing: current.currentQuestionType === "closing" };
-      console.log(`[VR][SPEECH_SENT] id=${delivery.utteranceId} turn=${current.questionsAsked} revision=${request.questionRevision}`);
+      const decision = (payload as { decisionId?: string }).decisionId || "";
+      console.log(`[VR][SPEECH_SENT] id=${delivery.utteranceId} turn=${current.questionsAsked} revision=${request.questionRevision} decision=${/^[a-f0-9]{32}$/.test(decision) ? decision : "local"}`);
     }
     const envelope: BridgeEnvelope = {
       type,
@@ -829,7 +830,7 @@ export default function ImmersiveInterviewScreen() {
               const sendFollowUp = () => {
                 if (isExitingRef.current) return;
                 postToUnity("SHOW_QUESTION", {
-                  questionText: followUpText,
+                  questionText: followUpText, decisionId: response.speechDecisionId,
                   sessionId: nextSession.sessionId, questionRevision: nextSession.history.length,
                   speakerIndex: speaker.index,
                   speakerName: speaker.name,
@@ -854,7 +855,7 @@ export default function ImmersiveInterviewScreen() {
                 const sendNextQ = () => {
                   if (isExitingRef.current) return;
                   postToUnity("SHOW_QUESTION", {
-                    questionText: nextQuestionText,
+                    questionText: nextQuestionText, decisionId: response.speechDecisionId,
                     sessionId: nextSession.sessionId, questionRevision: nextSession.history.length,
                     speakerIndex: nextSpeaker.index,
                     speakerName: nextSpeaker.name,

@@ -604,6 +604,8 @@ def start_interview(req: InterviewStartRequest, auth_uid: str = Depends(get_auth
     try:
         from interview_engine import generate_first_question
         result = generate_first_question(target_role, program, parsed_resume)
+        result["speechDecisionId"] = uuid.uuid4().hex
+        print(f"[INTERVIEW][DECISION] id={result['speechDecisionId']} question={result.get('questionId', 'unknown')}")
         print(f"[{timestamp}] [INTERVIEW] Successfully generated first question.")
         return result
     except HTTPException:
@@ -630,6 +632,10 @@ def evaluate_interview_answer(req: InterviewAnswerRequest, auth_uid: str = Depen
             total_questions=req.totalQuestions,
             pause_metrics=req.pauseMetrics
         )
+        if isinstance(result, dict):
+            result["speechDecisionId"] = uuid.uuid4().hex
+            next_question = result.get("nextQuestion") or {}
+            print(f"[INTERVIEW][DECISION] id={result['speechDecisionId']} question={next_question.get('questionId', 'interaction')} interaction={result.get('isInteractionEvent', False)}")
         eval_dict = result.get("evaluation") if isinstance(result, dict) and isinstance(result.get("evaluation"), dict) else {}
         score_val = eval_dict.get("overall", "N/A")
         print(f"[{timestamp}] [INTERVIEW] Evaluation complete. Score: {score_val}")
