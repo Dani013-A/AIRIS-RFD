@@ -439,7 +439,8 @@ def evaluate_answer_and_generate_next(
         if not previous.get("isInteraction", False):
             break
         interactions_since_answer += 1
-    if not is_candidate_questions and relevance != "Relevant" and interactions_since_answer < 1:
+    needs_clarification = relevance in ("Unrelated", "Unclear") or (relevance == "Partially Relevant" and is_weak_answer)
+    if not is_candidate_questions and needs_clarification and interactions_since_answer < 1:
         clarification = {
             "Unrelated": "I haven't yet understood how that connects to this question. Let's try it again.",
             "Partially Relevant": "Thank you for sharing that. You've covered part of the topic. Could you add a little more detail?",

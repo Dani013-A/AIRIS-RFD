@@ -303,3 +303,12 @@ def test_semantically_correct_different_wording_uses_existing_similarity_thresho
 def test_real_sbert_recognizes_meaningful_paraphrases(index,text):
     question=CORE_SURVEY_QUESTIONS[index]
     assert actual_relevance_classifier(question['text'],text,question['idealAnswer'])=='Relevant'
+
+
+def test_substantive_partial_answer_is_evaluated_without_unnecessary_repetition(monkeypatch):
+    monkeypatch.setattr(engine,'classify_answer_relevance',lambda *args:'Partially Relevant')
+    result=answer(text='I needed to learn database joins for a class project. I read the documentation, tried small examples, checked the results, and applied the approach with my teammates.')
+    assert result['evaluation']['overall']==73
+    assert not result['isInteractionEvent']
+    assert result['nextQuestion']['questionId']=='survey-2'
+    assert "We'll move to the next topic" in result['nextQuestion']['question']
