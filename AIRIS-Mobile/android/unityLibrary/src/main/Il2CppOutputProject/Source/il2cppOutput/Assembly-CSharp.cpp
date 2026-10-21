@@ -1,5 +1,7 @@
 #include "pch-cpp.hpp"
 #include <android/log.h>
+#include "airis_speech_delivery.h"
+static AirisSpeechDelivery airisSpeech;
 
 
 
@@ -1135,6 +1137,15 @@ struct String_t  : public RuntimeObject
 	int32_t ____stringLength;
 	Il2CppChar ____firstChar;
 };
+
+static std::string airisSpeechAscii(String_t* value) {
+    std::string result;
+    if (!value) return result;
+    const Il2CppChar* chars = &value->____firstChar;
+    for (int i = 0; i < value->____stringLength && i < 65536; ++i)
+        result += chars[i] < 128 ? static_cast<char>(chars[i]) : '?';
+    return result;
+}
 struct StringBuilder_t  : public RuntimeObject
 {
 	CharU5BU5D_t799905CF001DD5F13F7DBB310181FC4D8B7D0AAB* ___m_ChunkChars;
@@ -7036,6 +7047,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void UaaLBridge_CacheManagers_mC08D13FD7B1C52
 	}
 }
 // Method Definition Index: 71530
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void InterviewerTTSManager_StopSpeaking_m0A1378D41DF442C8A0682437149D50656F04ED34 (InterviewerTTSManager_t46D67B0DE2C195CD1A68B797C5E6032D3F7AEE96* __this, const RuntimeMethod* method);
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void UaaLBridge_ReceiveMessage_mB902F03ACBD7B1C430B04981C14B451F8C96F248 (UaaLBridge_t01892D4E14A0FC836DBF5A0384CB1121D3DC06BC* __this, String_t* ___0_json, const RuntimeMethod* method) 
 {
 	static bool s_Il2CppMethodInitialized;
@@ -7094,11 +7106,16 @@ IL_0022:
 		String_t* L_3;
 		L_3 = String_Concat_m9E3155FB84015C823606188F53B47CB44C444991(_stringLiteral313DD839FA8EC9ECCAAC674823485CC50390ECC9, L_2, NULL);
 		il2cpp_codegen_runtime_class_init_inline(Debug_t8394C7EEAECA3689C2C9B9DE9C7166D73596276F_il2cpp_TypeInfo_var);
-		Debug_Log_m87A9A3C761FF5C43ED8A53B16190A53D08F818BB(L_3, NULL);
+		(void)L_3;
 		String_t* L_4 = ___0_json;
 		BridgeMessage_tD10BB7F9E143400C91E526FDCB52AA94E406216A* L_5;
 		L_5 = JsonUtility_FromJson_TisBridgeMessage_tD10BB7F9E143400C91E526FDCB52AA94E406216A_mD720F5F96567B79FFEDFE9A60CA32C0721F8E690(L_4, JsonUtility_FromJson_TisBridgeMessage_tD10BB7F9E143400C91E526FDCB52AA94E406216A_mD720F5F96567B79FFEDFE9A60CA32C0721F8E690_RuntimeMethod_var);
 		V_0 = L_5;
+        if (V_0 != NULL && airisSpeechAscii(V_0->___type) == "SESSION_EXIT") {
+            airisSpeech.cancel();
+            if (__this->___ttsManager != NULL) InterviewerTTSManager_StopSpeaking_m0A1378D41DF442C8A0682437149D50656F04ED34(__this->___ttsManager, NULL);
+            return;
+        }
 		BridgeMessage_tD10BB7F9E143400C91E526FDCB52AA94E406216A* L_6 = V_0;
 		if (!L_6)
 		{
@@ -7761,6 +7778,8 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void UaaLBridge_SendSessionExit_m2F93BE1E4469
 // Method Definition Index: 71537
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void UaaLBridge_HandleLoadScene_m53A3C0C07BAAD69D19A76A7BCC623CA633305A56 (UaaLBridge_t01892D4E14A0FC836DBF5A0384CB1121D3DC06BC* __this, String_t* ___0_payloadJson, const RuntimeMethod* method) 
 {
+    airisSpeech.cancel();
+    if (__this->___ttsManager != NULL) InterviewerTTSManager_StopSpeaking_m0A1378D41DF442C8A0682437149D50656F04ED34(__this->___ttsManager, NULL);
 	static bool s_Il2CppMethodInitialized;
 	if (!s_Il2CppMethodInitialized)
 	{
@@ -8169,6 +8188,12 @@ IL_01f1:
 // Method Definition Index: 71538
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void UaaLBridge_HandleShowQuestion_mC549233D50568045BC079BD07EBCBD67886B194E (UaaLBridge_t01892D4E14A0FC836DBF5A0384CB1121D3DC06BC* __this, String_t* ___0_payloadJson, const RuntimeMethod* method) 
 {
+    if (!airisSpeech.begin(airisSpeechAscii(___0_payloadJson))) {
+        __android_log_print(ANDROID_LOG_INFO, "Unity", "[AIRIS][SPEECH_DROPPED] duplicate or stale delivery");
+        return;
+    }
+    if (__this->___ttsManager != NULL) InterviewerTTSManager_StopSpeaking_m0A1378D41DF442C8A0682437149D50656F04ED34(__this->___ttsManager, NULL);
+    __android_log_print(ANDROID_LOG_INFO, "Unity", "[AIRIS][SPEECH_ACCEPTED] %s", airisSpeech.payload().c_str());
 	static bool s_Il2CppMethodInitialized;
 	if (!s_Il2CppMethodInitialized)
 	{
@@ -8266,7 +8291,7 @@ IL_0047:
 
 IL_006f:
 	{
-		UaaLBridge_SendToRN_mFA9CA93D96956F051F0657CC57855F6C997592A1(__this, _stringLiteralBB61753A1209E3A30364E5A44031906599736683, _stringLiteral9ED931619E39F59A8520C1E3B03FEA2E9A56FB60, NULL);
+		UaaLBridge_SendToRN_mFA9CA93D96956F051F0657CC57855F6C997592A1(__this, _stringLiteralBB61753A1209E3A30364E5A44031906599736683, il2cpp_string_new(airisSpeech.payload().c_str()), NULL);
 		return;
 	}
 }
@@ -8296,6 +8321,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* UaaLBridge_SpeakThenNotify_m12
 		int32_t L_5 = ___1_speakerIndex;
 		NullCheck(L_4);
 		L_4->___speakerIndex = L_5;
+        airisSpeech.attach(L_0);
 		return L_4;
 	}
 }
@@ -9162,6 +9188,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void U3CSpeakThenNotifyU3Ed__30_System_IDispo
 // Method Definition Index: 71567
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool U3CSpeakThenNotifyU3Ed__30_MoveNext_mC086BFDD17A87DED84AF69A0025D2EBF3B088087 (U3CSpeakThenNotifyU3Ed__30_tCF62DF66CCF06ACCDF57E50CF66B83B576DF9F32* __this, const RuntimeMethod* method) 
 {
+    if (!airisSpeech.current(__this)) return false;
 	static bool s_Il2CppMethodInitialized;
 	if (!s_Il2CppMethodInitialized)
 	{
@@ -9360,14 +9387,18 @@ IL_010e:
 		NullCheck(L_51);
 		DialogueManager_t9C5A5026BF70075C3D71B589FB5D5EA74A3B9B1E* L_52 = L_51->___dialogueManager;
 		NullCheck(L_52);
-		DialogueManager_ShowListening_m24F42C86ABB159E331CEE3A759EBCED61BAD95BD(L_52, NULL);
+		if (airisSpeech.expectsAnswer()) DialogueManager_ShowListening_m24F42C86ABB159E331CEE3A759EBCED61BAD95BD(L_52, NULL); else DialogueManager_HideListening_m315365A5231BCA401133E9B2FEA85AD2ABB5A71B(L_52, NULL);
 	}
 
 IL_012e:
 	{
 		UaaLBridge_t01892D4E14A0FC836DBF5A0384CB1121D3DC06BC* L_53 = V_1;
 		NullCheck(L_53);
-		UaaLBridge_SendToRN_mFA9CA93D96956F051F0657CC57855F6C997592A1(L_53, _stringLiteralBB61753A1209E3A30364E5A44031906599736683, _stringLiteral9ED931619E39F59A8520C1E3B03FEA2E9A56FB60, NULL);
+		const std::string speechDone = airisSpeech.complete(__this);
+        if (!speechDone.empty()) {
+            __android_log_print(ANDROID_LOG_INFO, "Unity", "[AIRIS][SPEECH_DONE] %s", speechDone.c_str());
+            UaaLBridge_SendToRN_mFA9CA93D96956F051F0657CC57855F6C997592A1(L_53, _stringLiteralBB61753A1209E3A30364E5A44031906599736683, il2cpp_string_new(speechDone.c_str()), NULL);
+        }
 		return (bool)0;
 	}
 }
@@ -20012,7 +20043,7 @@ IL_024e:
 		String_t* L_88;
 		L_88 = String_Format_mA0534D6E2AE4D67A6BD8D45B3321323930EB930C(_stringLiteral95237052C4F3867744FE04DAADBBDFD9FA1C8881, L_81, L_84, L_87, NULL);
 		il2cpp_codegen_runtime_class_init_inline(Debug_t8394C7EEAECA3689C2C9B9DE9C7166D73596276F_il2cpp_TypeInfo_var);
-		Debug_Log_m87A9A3C761FF5C43ED8A53B16190A53D08F818BB(L_88, NULL);
+		(void)L_88;
 		ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918* L_89;
 		L_89 = Array_Empty_TisRuntimeObject_mFB8A63D602BB6974D31E20300D9EB89C6FE7C278_inline(Array_Empty_TisRuntimeObject_mFB8A63D602BB6974D31E20300D9EB89C6FE7C278_RuntimeMethod_var);
 		AndroidJavaObject_t8FFB930F335C1178405B82AC2BF512BB1EEF9EB0* L_90 = (AndroidJavaObject_t8FFB930F335C1178405B82AC2BF512BB1EEF9EB0*)il2cpp_codegen_object_new(AndroidJavaObject_t8FFB930F335C1178405B82AC2BF512BB1EEF9EB0_il2cpp_TypeInfo_var);
@@ -20074,7 +20105,7 @@ IL_024e:
 		RuntimeObject* L_115 = Box(il2cpp_defaults.int32_class, &L_114);
 		String_t* L_116;
 		L_116 = String_Format_mA8DBB4C2516B9723C5A41E6CB1E2FAF4BBE96DD8(_stringLiteral9E3A47034A40C1581DB5B607EFCFB17AED799B96, L_115, NULL);
-		Debug_Log_m87A9A3C761FF5C43ED8A53B16190A53D08F818BB(L_116, NULL);
+		(void)L_116;
 		int32_t L_117 = V_4;
 		if (!L_117)
 		{
@@ -20179,7 +20210,7 @@ IL_03b9:
 		String_t* L_148;
 		L_148 = String_Format_mA8DBB4C2516B9723C5A41E6CB1E2FAF4BBE96DD8(_stringLiteral856AD9F22E54030215EB11CBD5FBFE20B76FB953, L_147, NULL);
 		il2cpp_codegen_runtime_class_init_inline(Debug_t8394C7EEAECA3689C2C9B9DE9C7166D73596276F_il2cpp_TypeInfo_var);
-		Debug_Log_m87A9A3C761FF5C43ED8A53B16190A53D08F818BB(L_148, NULL);
+		(void)L_148;
 		__this->___U3CspeakWaitedU3E5__4 = (0.400000006f);
 		goto IL_0450;
 	}
@@ -20240,7 +20271,7 @@ IL_0462:
 		String_t* L_162;
 		L_162 = String_Format_mA8DBB4C2516B9723C5A41E6CB1E2FAF4BBE96DD8(_stringLiteral5360C8FD4711570461137509A1158E23BD0B6F4A, L_161, NULL);
 		il2cpp_codegen_runtime_class_init_inline(Debug_t8394C7EEAECA3689C2C9B9DE9C7166D73596276F_il2cpp_TypeInfo_var);
-		Debug_Log_m87A9A3C761FF5C43ED8A53B16190A53D08F818BB(L_162, NULL);
+		(void)L_162;
 		WaitForSeconds_tF179DF251655B8DF044952E70A60DF4B358A3DD3* L_163 = (WaitForSeconds_tF179DF251655B8DF044952E70A60DF4B358A3DD3*)il2cpp_codegen_object_new(WaitForSeconds_tF179DF251655B8DF044952E70A60DF4B358A3DD3_il2cpp_TypeInfo_var);
 		WaitForSeconds__ctor_m579F95BADEDBAB4B3A7E302C6EE3995926EF2EFC(L_163, (0.200000003f), NULL);
 		__this->___U3CU3E2__current = L_163;

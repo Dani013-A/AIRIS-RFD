@@ -28,6 +28,7 @@ def main():
         return value.replace(str(CACHE), str(BUILD))
 
     subprocess.run(['python3', str(ANDROID / 'patch_panel_bubbles.py')], check=True)
+    subprocess.run(['python3', str(ANDROID / 'patch_speech_delivery.py')], check=True)
     for name, content in manifest['generated'].items():
         target = Path(resolve(name))
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -38,7 +39,7 @@ def main():
         output.parent.mkdir(parents=True, exist_ok=True)
         command = [str(tools / 'clang++')]
         command += [resolve(arg) for arg in manifest['flags'][unit['flags']]]
-        command += ['-o', str(output), resolve(unit['source'])]
+        command += ['-I', str(ANDROID), '-o', str(output), resolve(unit['source'])]
         subprocess.run(command, cwd=ANDROID, check=True, stdout=subprocess.DEVNULL)
 
     # Every source is compiled on each release run; no committed .so or old object cache is trusted.
@@ -56,6 +57,7 @@ def main():
         'assembly_sha256': hashlib.sha256((ANDROID / 'unityLibrary/src/main/Il2CppOutputProject/Source/il2cppOutput/Assembly-CSharp.cpp').read_bytes()).hexdigest(),
         'manifest_sha256': hashlib.sha256(MANIFEST.read_bytes()).hexdigest(),
         'compiled_units': len(manifest['compile']),
+        'speech_header_sha256': hashlib.sha256((ANDROID / 'airis_speech_delivery.h').read_bytes()).hexdigest(),
     }
     (BUILD / 'native-build.json').write_text(json.dumps(record, indent=2) + '\n')
     print(json.dumps(record), flush=True)

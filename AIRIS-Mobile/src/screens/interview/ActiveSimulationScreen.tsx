@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { View, TouchableOpacity, ActivityIndicator, ScrollView, Alert, Animated, Linking } from "react-native";
 import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -10,6 +10,7 @@ import { useInterviewStore } from "../../store/interviewStore";
 import { submitInterviewAnswer, transcribeAudio, PauseMetrics } from "../../services/api/interviewApi";
 import { PrimaryButton, CaptureStatusPill } from "../../components/ui";
 import * as Speech from "expo-speech";
+import { SpeechDelivery } from "./speechDelivery";
 import { requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, RecordingPresets } from "expo-audio";
 import { standardInterviewUiState, resolveSubmissionOutcome } from "./standardInterviewUi";
 import { withTimeout } from "../../utils/promiseTimeout";
@@ -30,6 +31,8 @@ export default function ActiveSimulationScreen() {
   const startingRecording = useRef(false);
   const stoppingRecording = useRef(false);
   const submittingRef = useRef(false);
+  const speechDelivery = useRef(new SpeechDelivery());
+  const speechAttempt = useRef(0);
 
   const currentUser = useAuthStore((state) => state.currentUser);
   const activeAnalysis = useResumeStore((state) => state.activeAnalysis);
@@ -54,49 +57,59 @@ export default function ActiveSimulationScreen() {
     mounted.current = true;
     return () => {
       mounted.current = false;
+      speechDelivery.current.cancel();
       operation.current += 1;
       Speech.stop();
     };
   }, []);
 
-  useEffect(() => {
-    if (session?.currentQuestionType !== "closing") return;
-    Speech.stop();
+  const speakCurrentQuestion = useCallback(() => {
+    if (!session) return;
+    const revision = session.history.length;
+    const delivery = speechDelivery.current.claim(`${session.sessionId}:${revision}:${speechAttempt.current}`);
+    if (!delivery) return;
     setIsSpeaking(true);
+    console.log(`[INTERVIEW][SPEECH_SENT] id=${delivery.utteranceId} turn=${session.questionsAsked}`);
+    Speech.stop();
     Speech.speak(session.currentQuestion, {
       onDone: () => {
-        if (!mounted.current || useInterviewStore.getState().session?.sessionId !== session.sessionId) return;
+        const current = useInterviewStore.getState().session;
+        if (!mounted.current || current?.sessionId !== session.sessionId || current.history.length !== revision || !speechDelivery.current.complete(delivery.utteranceId)) return;
         setIsSpeaking(false);
-        useInterviewStore.getState().completeClosing();
-        router.replace("/(student)/interview-session/summary" as any);
+        console.log(`[INTERVIEW][SPEECH_COMPLETED] id=${delivery.utteranceId}`);
+        if (session.currentQuestionType === "closing") {
+          useInterviewStore.getState().completeClosing();
+          router.replace("/(student)/interview-session/summary" as any);
+        }
       },
-      onError: () => { if (mounted.current) { setIsSpeaking(false); setRecordingError("Closing audio was unavailable. Tap the speaker to retry."); } },
+      onError: () => {
+        const current = useInterviewStore.getState().session;
+        if (mounted.current && current?.sessionId === session.sessionId && current.history.length === revision && speechDelivery.current.complete(delivery.utteranceId)) {
+          setIsSpeaking(false);
+          setRecordingError("Audio was unavailable. Tap the speaker to retry.");
+        }
+      },
     });
-  }, [session?.currentQuestion, session?.currentQuestionType, router]);
+  }, [session, router]);
+
+  useEffect(() => {
+    if (session?.currentQuestionType === "closing") speakCurrentQuestion();
+  }, [session?.currentQuestionType, speakCurrentQuestion]);
 
   const handleSpeak = () => {
-    if (!session) return;
-    if (session.currentQuestionType === "closing") {
-      Speech.speak(session.currentQuestion, { onDone: () => {
-        if (!mounted.current) return;
-        useInterviewStore.getState().completeClosing();
-        router.replace("/(student)/interview-session/summary" as any);
-      } });
-      return;
-    }
+    if (!session || (session.currentQuestionType === "closing" && isSpeaking)) return;
     if (isSpeaking) {
+      speechDelivery.current.cancel();
       Speech.stop();
       setIsSpeaking(false);
     } else {
-      setIsSpeaking(true);
-      Speech.speak(session.currentQuestion, {
-        onDone: () => setIsSpeaking(false),
-        onError: () => setIsSpeaking(false),
-      });
+      speechAttempt.current += 1;
+      speakCurrentQuestion();
     }
   };
 
   const handleExit = () => {
+    speechDelivery.current.cancel();
     operation.current += 1;
     Speech.stop();
     if (audioRecorder.isRecording) void audioRecorder.stop().catch(() => undefined);

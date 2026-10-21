@@ -73,7 +73,8 @@ def test_clarification_is_bounded_and_does_not_replace_required_question(monkeyp
     second=answer(history,text='My favorite food is still pizza.')
     assert not second['isInteractionEvent']
     assert second['nextQuestion']['questionId']=='survey-2'
-    assert 'did not clearly address' in second['nextQuestion']['question']
+    assert "We'll move to the next topic" in second['nextQuestion']['question']
+    assert second['evaluation']['overall'] == 73
 
 def test_relevant_acknowledgment_is_extractive_and_cannot_change_next_question():
     result=answer(text='I enjoy building applications and solving problems.')
@@ -269,3 +270,36 @@ def test_incomplete_interview_cannot_generate_report(monkeypatch):
     monkeypatch.setattr(engine, 'generate_text_with_fallback', lambda _: pytest.fail('provider must not run'))
     with pytest.raises(ValueError, match="Nine evaluated"):
         engine.generate_final_report('Role','Program',{},[{'answer':'Synthetic answer'}]*8,[{'overall':73}]*8)
+
+@pytest.mark.parametrize('relevance,phrase', [('Relevant','You mentioned'),('Partially Relevant',"covered part"),('Unrelated',"haven't yet understood"),('Unclear','No worries')])
+def test_supportive_feedback_preserves_evaluation_and_bounded_progression(monkeypatch,relevance,phrase):
+    monkeypatch.setattr(engine,'classify_answer_relevance',lambda *args: relevance)
+    result=answer(text='I checked the task and tried a small example to understand it.')
+    assert phrase in result['nextQuestion']['question']
+    if relevance=='Relevant':
+        assert result['evaluation']['overall']==73
+        assert result['nextQuestion']['questionId']=='survey-2'
+    else:
+        assert result['evaluation'] is None and result['isInteractionEvent']
+        retry=answer([{'isInteraction':True,'answer':'Synthetic initial response'}],text='I tried again and explained my example.')
+        assert retry['evaluation']['overall']==73
+        assert retry['nextQuestion']['questionId']=='survey-2'
+        assert 'did not clearly address' not in retry['nextQuestion']['question']
+
+def test_semantically_correct_different_wording_uses_existing_similarity_threshold(monkeypatch):
+    monkeypatch.setattr(engine,'_cached_encode',lambda text: text)
+    monkeypatch.setattr(engine,'calculate_cosine_similarity',lambda *_: .61)
+    assert actual_relevance_classifier('Describe teamwork.','I coordinated with classmates and helped combine our contributions.','I collaborated with colleagues.')=='Relevant'
+    monkeypatch.setattr(engine,'calculate_cosine_similarity',lambda *_: .27)
+    assert actual_relevance_classifier('Describe teamwork.','I attended a group meeting.','I collaborated with colleagues.')=='Partially Relevant'
+    assert actual_relevance_classifier('Describe teamwork.','Maybe')=='Unclear'
+    assert actual_relevance_classifier('Describe teamwork.','')=='Empty'
+
+@pytest.mark.parametrize('index,text', [
+    (0,'I recently finished university and want to begin a career where I can apply what I learned and continue developing through practical work.'),
+    (3,'I solve problems step by step and communicate clearly with my teammates. I am working on speaking confidently by practicing presentations.'),
+    (6,'My classmates and I built a course project together. I connected our modules, checked progress with the group, and helped solve integration problems.'),
+])
+def test_real_sbert_recognizes_meaningful_paraphrases(index,text):
+    question=CORE_SURVEY_QUESTIONS[index]
+    assert actual_relevance_classifier(question['text'],text,question['idealAnswer'])=='Relevant'

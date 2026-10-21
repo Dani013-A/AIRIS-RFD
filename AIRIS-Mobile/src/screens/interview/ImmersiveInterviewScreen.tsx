@@ -45,6 +45,7 @@ type VRInterviewState =
   | "EXITING";
 
 import { parseVRVoiceCommand } from "./voiceCommands";
+import { SpeechDelivery } from "./speechDelivery";
 import { AudioHandoffGuard } from "./audioHandoffGuard";
 import { withTimeout } from "../../utils/promiseTimeout";
 
@@ -96,6 +97,8 @@ function getSpeakerForQuestion(
 export default function ImmersiveInterviewScreen() {
   const router = useRouter();
   const unityRef = useRef<UnityView>(null);
+  const speechDeliveryRef = useRef(new SpeechDelivery());
+  const speechRetryRef = useRef(0);
 
   const currentUser = useAuthStore((s) => s.currentUser);
   const activeAnalysis = useResumeStore((s) => s.activeAnalysis);
@@ -186,6 +189,7 @@ export default function ImmersiveInterviewScreen() {
     isExitingRef.current = false;
     isProcessingAnswerRef.current = false;
     audioHandoffRef.current.cancel();
+    speechDeliveryRef.current.cancel();
     stateRef.current = "INTERVIEWER_SPEAKING";
     activeSessionIdRef.current = session?.sessionId || null;
     sceneLoadAttemptRef.current = 0;
@@ -238,9 +242,19 @@ export default function ImmersiveInterviewScreen() {
       console.warn(`[Immersive] postToUnity(${type}) called but UnityView ref is null`);
       return;
     }
+    let deliveryPayload = payload;
+    if (type === "SHOW_QUESTION") {
+      const request = payload as { sessionId: string; questionRevision: number; speechAttempt?: number };
+      const current = useInterviewStore.getState().session;
+      if (isExitingRef.current || !current || current.sessionId !== request.sessionId || current.history.length !== request.questionRevision) return;
+      const delivery = speechDeliveryRef.current.claim(`${request.sessionId}:${request.questionRevision}:${request.speechAttempt || 0}`);
+      if (!delivery) return;
+      deliveryPayload = { ...payload, ...delivery, closing: current.currentQuestionType === "closing" };
+      console.log(`[VR][SPEECH_SENT] id=${delivery.utteranceId} turn=${current.questionsAsked} revision=${request.questionRevision}`);
+    }
     const envelope: BridgeEnvelope = {
       type,
-      payload: JSON.stringify(payload),
+      payload: JSON.stringify(deliveryPayload),
     };
     console.log(`[Immersive] postToUnity: ${type} sent to UaaLBridge`);
     unityRef.current.postMessage(
@@ -261,6 +275,7 @@ export default function ImmersiveInterviewScreen() {
   const handleStopInterview = useCallback(() => {
     if (isExitingRef.current) return;
     isExitingRef.current = true;
+    speechDeliveryRef.current.cancel();
     audioHandoffRef.current.cancel();
     setSceneLoadingState("exiting");
     stateRef.current = "EXITING";
@@ -334,12 +349,10 @@ export default function ImmersiveInterviewScreen() {
       stateRef.current = "INTERVIEWER_SPEAKING";
       const initialSpeaker = getSpeakerForQuestion(sceneName, currentSession.questionsAsked || 1);
       currentSpeakerRef.current = initialSpeaker;
-      console.log(`[VR][QUESTION_CONTEXT] targetRole="${currentSession.targetRole}" program="${currentSession.program}" resumeId="${currentSession.resumeId}"`);
-      console.log(`[VR][QUESTION_READY] question="${currentSession.currentQuestion}" (speaker=${initialSpeaker.name})`);
-      console.log("[TIMING][VR] Scheduling initial SHOW_QUESTION (1600ms after sceneLoaded):", currentSession.currentQuestion);
       const timer = setTimeout(() => {
         postToUnity("SHOW_QUESTION", {
           questionText: currentSession.currentQuestion,
+          sessionId: currentSession.sessionId, questionRevision: currentSession.history.length,
           speakerIndex: initialSpeaker.index,
           speakerName: initialSpeaker.name,
         });
@@ -484,6 +497,10 @@ export default function ImmersiveInterviewScreen() {
         // ── TTS finished speaking the question → start listening for user answer ───
         case "QUESTION_SPOKEN": {
           if (isExitingRef.current) return;
+          let speechPayload;
+          try { speechPayload = typeof msg.payload === "string" ? JSON.parse(msg.payload) : msg.payload; } catch { return; }
+          if (!speechDeliveryRef.current.complete(speechPayload?.utteranceId)) return;
+          console.log(`[VR][SPEECH_COMPLETED] id=${speechPayload.utteranceId}`);
           if (!sceneLoadedRef.current || stateRef.current !== "INTERVIEWER_SPEAKING") return;
           confirmUnityRuntimeReady();
           if (watchdogTimerRef.current) {
@@ -529,9 +546,9 @@ export default function ImmersiveInterviewScreen() {
             pendingNextQuestionRef.current = null;
             currentSpeakerRef.current = speaker;
             stateRef.current = "INTERVIEWER_SPEAKING";
-            console.log(`[VR][INTERVIEW_PROGRESSION] Feedback complete → presenting next question / follow-up: "${nextQ}" (speaker=${speaker.name})`);
             postToUnity("SHOW_QUESTION", {
               questionText: nextQ,
+              sessionId: currentSession.sessionId, questionRevision: currentSession.history.length,
               speakerIndex: speaker.index,
               speakerName: speaker.name,
             });
@@ -547,9 +564,9 @@ export default function ImmersiveInterviewScreen() {
             pendingNextQuestionRef.current = null;
             currentSpeakerRef.current = speaker;
             stateRef.current = "INTERVIEWER_SPEAKING";
-            console.log(`[VR][QUESTION_READY] question="${nextQ}" (speaker=${speaker.name})`);
             postToUnity("SHOW_QUESTION", {
               questionText: nextQ,
+              sessionId: currentSession.sessionId, questionRevision: currentSession.history.length,
               speakerIndex: speaker.index,
               speakerName: speaker.name,
             });
@@ -692,10 +709,11 @@ export default function ImmersiveInterviewScreen() {
             // 2. "REPEAT" VOICE COMMAND — REPEAT CURRENT QUESTION IMMEDIATELY
             // ═════════════════════════════════════════════════════════════════
             if (command === "REPEAT_QUESTION") {
-              console.log(`[VR][VOICE_COMMAND] Action: REPEAT recognized — repeating "${currentSession.currentQuestion}"`);
               stateRef.current = "INTERVIEWER_SPEAKING";
               postToUnity("SHOW_QUESTION", {
+                speechAttempt: ++speechRetryRef.current,
                 questionText: currentSession.currentQuestion,
+                sessionId: currentSession.sessionId, questionRevision: currentSession.history.length,
                 speakerIndex: currentSpeakerRef.current.index,
                 speakerName: currentSpeakerRef.current.name,
               });
@@ -807,23 +825,18 @@ export default function ImmersiveInterviewScreen() {
               const followUpText = response.nextQuestion?.question || "Take your time. Whenever you are ready.";
               const speaker = currentSpeakerRef.current;
               stateRef.current = "INTERVIEWER_SPEAKING";
-              console.log(`[VR][FOLLOW_UP] Interaction follow-up: "${followUpText}" (speaker=${speaker.name})`);
+              const nextSession = useInterviewStore.getState().session!;
               const sendFollowUp = () => {
                 if (isExitingRef.current) return;
                 postToUnity("SHOW_QUESTION", {
                   questionText: followUpText,
+                  sessionId: nextSession.sessionId, questionRevision: nextSession.history.length,
                   speakerIndex: speaker.index,
                   speakerName: speaker.name,
                 });
               };
               setTimeout(sendFollowUp, 350);
-              if (watchdogTimerRef.current) clearTimeout(watchdogTimerRef.current);
-              watchdogTimerRef.current = setTimeout(() => {
-                if (stateRef.current === "INTERVIEWER_SPEAKING" && !isExitingRef.current) {
-                  console.warn("[VR] Follow-up progression watchdog timeout: Resending SHOW_QUESTION");
-                  sendFollowUp();
-                }
-              }, 12000);
+
             } else {
               const nextQuestionText = response.nextQuestion?.question;
               const isFollowUp = response.nextQuestion?.isFollowUp || response.nextQuestion?.questionType === "follow-up";
@@ -837,23 +850,18 @@ export default function ImmersiveInterviewScreen() {
               if (nextQuestionText) {
                 currentSpeakerRef.current = nextSpeaker;
                 stateRef.current = "INTERVIEWER_SPEAKING";
-                console.log(`[VR][NEXT_QUESTION] Showing next question directly: "${nextQuestionText}" (speaker=${nextSpeaker.name})`);
+                const nextSession = useInterviewStore.getState().session!;
                 const sendNextQ = () => {
                   if (isExitingRef.current) return;
                   postToUnity("SHOW_QUESTION", {
                     questionText: nextQuestionText,
+                    sessionId: nextSession.sessionId, questionRevision: nextSession.history.length,
                     speakerIndex: nextSpeaker.index,
                     speakerName: nextSpeaker.name,
                   });
                 };
                 setTimeout(sendNextQ, 350);
-                if (watchdogTimerRef.current) clearTimeout(watchdogTimerRef.current);
-                watchdogTimerRef.current = setTimeout(() => {
-                  if (stateRef.current === "INTERVIEWER_SPEAKING" && !isExitingRef.current) {
-                    console.warn("[VR] Question progression watchdog timeout: Resending SHOW_QUESTION");
-                    sendNextQ();
-                  }
-                }, 12000);
+
               } else {
                 console.warn("[VR] No next question text received in response");
               }
@@ -867,6 +875,7 @@ export default function ImmersiveInterviewScreen() {
               if (questionToSpeak) {
                 postToUnity("SHOW_QUESTION", {
                   questionText: questionToSpeak,
+                  sessionId: currentSession.sessionId, questionRevision: currentSession.history.length, speechAttempt: ++speechRetryRef.current,
                   speakerIndex: currentSpeakerRef.current.index,
                   speakerName: currentSpeakerRef.current.name,
                 });

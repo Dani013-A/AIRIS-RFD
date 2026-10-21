@@ -390,7 +390,7 @@ def evaluate_answer_and_generate_next(
         return {
             "isInteractionEvent": True,
             "nextQuestion": {
-                "question": "I'm sorry, I didn't quite catch that. Could you please repeat yourself?",
+                "question": "No worries. I didn't catch an answer that time. Please try again when you're ready.",
                 "questionType": "interaction",
                 "difficulty": 0,
                 "isFollowUp": False,
@@ -441,9 +441,9 @@ def evaluate_answer_and_generate_next(
         interactions_since_answer += 1
     if not is_candidate_questions and relevance != "Relevant" and interactions_since_answer < 1:
         clarification = {
-            "Unrelated": "That response did not address the question. Please refocus on it.",
-            "Partially Relevant": "Please connect your example more directly to the question and explain your own contribution.",
-            "Unclear": "I couldn't clearly identify your answer. Please explain your experience in a little more detail.",
+            "Unrelated": "I haven't yet understood how that connects to this question. Let's try it again.",
+            "Partially Relevant": "Thank you for sharing that. You've covered part of the topic. Could you add a little more detail?",
+            "Unclear": "No worries. Take your time and explain your answer in a little more detail.",
         }.get(relevance, "Please try your answer again.")
         return {
             "evaluation": None, "isComplete": False, "isInteractionEvent": True,
@@ -468,7 +468,7 @@ def evaluate_answer_and_generate_next(
         acknowledgments = [f'You mentioned "{detail}". Let us move to the next topic.',
                           f'You described "{detail}". Next, let us discuss another aspect of your experience.']
     else:
-        acknowledgments = ["That did not clearly address the question, but we can move forward."]
+        acknowledgments = ["Thank you for sharing your response. We'll move to the next topic."]
     fallback_acknowledgment = acknowledgments[completed % len(acknowledgments)]
     next_spoken_default = f"{fallback_acknowledgment} {next_core_text}"
 

@@ -90,11 +90,13 @@ jobs:
 
       - name: Run Node-native test suites
         working-directory: AIRIS-Mobile
-        run: node --test src/components/ui/typographyScale.test.mjs src/screens/interview/standardInterviewUi.test.mjs src/services/learning/learningCatalogQuality.test.cjs src/store/appearanceStore.test.cjs src/screens/interview/audioHandoffGuard.test.cjs src/screens/interview/immersiveLifecycle.integration.test.cjs src/screens/interview/reportLifecycle.integration.test.cjs src/store/interviewStore.test.cjs
+        run: node --test src/components/ui/typographyScale.test.mjs src/screens/interview/standardInterviewUi.test.mjs src/services/learning/learningCatalogQuality.test.cjs src/store/appearanceStore.test.cjs src/screens/interview/audioHandoffGuard.test.cjs src/screens/interview/immersiveLifecycle.integration.test.cjs src/screens/interview/reportLifecycle.integration.test.cjs src/screens/interview/speechDelivery.test.cjs src/store/interviewStore.test.cjs
 
       - name: Verify native recording capture payloads
         working-directory: AIRIS-Mobile
-        run: python3 android/test_capture_id.py
+        run: |
+          python3 android/test_capture_id.py
+          python3 android/test_speech_delivery.py
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
