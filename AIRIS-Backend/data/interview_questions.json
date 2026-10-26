@@ -114,17 +114,17 @@
   },
   {
     "id": "survey-9",
-    "category": "candidate_questions",
+    "category": "reflection",
     "competency": "closing reflection and engagement",
     "tags": [
       "general",
       "all roles",
-      "closing",
-      "candidate questions",
-      "reflection"
+      "reflection",
+      "continuous improvement",
+      "learning transfer"
     ],
-    "text": "Do you have any questions for us about the role, team, or company?",
-    "idealAnswer": "Yes, I would love to learn more about the day-to-day collaboration within the team and what mentorship or growth opportunities are available for fresh graduates."
+    "text": "Looking back at your examples, what would you improve in your approach, and how would you apply that learning in your next role?",
+    "idealAnswer": "I would seek feedback earlier and review my progress against clear goals. I would apply what I learned from my project experiences to improve my planning, collaboration, and quality of work in my next role."
   },
   {
     "id": "survey-10",

@@ -67,6 +67,7 @@ def start(uid, target_role, program, parsed_resume, resume_id="none", interview_
              "program": program, "parsedResume": parsed_resume, "resumeId": resume_id,
              "interviewType": interview_type, "startedAt": int(now.timestamp() * 1000),
              "expiresAt": now + datetime.timedelta(hours=24), "status": "active",
+             "questionSetVersion": engine.INTERVIEW_QUESTION_SET_VERSION,
              "revision": 0, "currentQuestion": first, "history": [], "evaluations": []}
     db = _database()
     def create(transaction):
@@ -90,6 +91,12 @@ def answer(uid, session_id, question_id, turn, text):
         return previous["response"]
     if state["status"] != "active" or turn != state["revision"]:
         raise HTTPException(409, "Interview turn is out of order.")
+    if state.get("questionSetVersion") != engine.INTERVIEW_QUESTION_SET_VERSION:
+        raise HTTPException(409, "The interview question set has changed. Please start a new interview.")
+    try:
+        engine.validate_conversation_history(state["history"], state["evaluations"])
+    except ValueError as error:
+        raise HTTPException(409, "Interview context is incomplete. Please start a new interview.") from error
     number = len(state["evaluations"]) + 1
     if number > 9 or question_id != f"survey-{number}":
         raise HTTPException(400, "Question does not belong to the active scored turn.")
@@ -112,7 +119,14 @@ def answer(uid, session_id, question_id, turn, text):
         result["cancelled"] = True
     else:
         record = {"questionId": question_id, "turn": turn, "question": meta["text"],
-                  "questionType": meta["category"], "answer": text, "isInteraction": interaction}
+                  "questionType": meta["category"], "answer": text, "isInteraction": interaction,
+                  "spokenQuestion": state["currentQuestion"]["question"],
+                  "clarificationAnswer": bool(interaction and result.get("nextQuestion", {}).get("isFollowUp"))}
+        if not interaction:
+            earlier = [item["answer"] for item in state["history"]
+                       if item.get("questionId") == question_id and item.get("clarificationAnswer")]
+            if earlier:
+                record["answer"] = "\n".join(earlier + [text])
         if pause_metrics:
             record["pauseMetrics"] = pause_metrics
         updated["history"].append(record)
@@ -162,6 +176,8 @@ def report(uid, session_id):
     state = _state(ref, uid)
     if state["status"] == "completed":
         return completion_status(uid, session_id)["report"]
+    if state.get("questionSetVersion") != engine.INTERVIEW_QUESTION_SET_VERSION:
+        raise HTTPException(409, "The interview question set has changed. Please start a new interview.")
     if state["status"] not in ("ready", "finalizing") or len(state["evaluations"]) != 9:
         raise HTTPException(400, "Nine evaluated candidate answers are required before generating a report.")
     scored = [item for item in state["history"] if not item.get("isInteraction")]

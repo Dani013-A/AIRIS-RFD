@@ -41,8 +41,8 @@ def flow(monkeypatch):
     monkeypatch.setattr(engine, 'generate_text_with_fallback', provider)
     client = TestClient(app)
     class Flow:
-        def start(self, role='Arbitrary approved employability role'):
-            response = client.post('/interview/start', json={'targetRole': role, 'program': 'Synthetic Program', 'parsedResume': {}, 'resumeId': 'synthetic-resume', 'interviewType': 'panel'})
+        def start(self, role='Arbitrary approved employability role', interview_type='panel'):
+            response = client.post('/interview/start', json={'targetRole': role, 'program': 'Synthetic Program', 'parsedResume': {}, 'resumeId': 'synthetic-resume', 'interviewType': interview_type})
             assert response.status_code == 200, response.text
             return response.json()['sessionId']
         def answer(self, sid, number, turn=None, text=None, **extra):
@@ -468,3 +468,78 @@ def test_failed_answer_transaction_without_a_receipt_cannot_advance(flow):
     assert state['revision'] == 0 and state['evaluations'] == []
     assert not list(flow.state(sid).collection('turns').stream())
     assert flow.report(sid).status_code == 400
+
+
+def test_clarification_preserves_original_answer_and_actual_spoken_question(flow):
+    sid=flow.start()
+    for number in range(1,7):
+        assert flow.answer(sid,number).status_code==200
+    initial='We built a scheduling application and coordinated the integration with our team.'
+    first=flow.answer(sid,7,text=initial)
+    assert first.status_code==200
+    assert first.json()['isInteractionEvent']
+    spoken=first.json()['nextQuestion']['question']
+    assert 'own responsibility' in spoken
+    detail='I built the scheduling service and documented the integration requests for my teammates.'
+    second=flow.answer(sid,7,turn=7,text=detail)
+    assert second.status_code==200
+    assert second.json()['nextQuestion']['questionId']=='survey-8'
+    state=flow.state(sid).get().to_dict()
+    record=state['history'][-1]
+    assert record['answer']==initial+'\n'+detail
+    assert record['spokenQuestion']==spoken
+    assert len(state['evaluations'])==7
+
+
+@pytest.mark.parametrize('mutation',['missing','duplicate','order'])
+def test_corrupt_server_history_fails_closed_without_new_evaluation(flow,mutation):
+    sid=flow.start()
+    assert flow.answer(sid,1).status_code==200
+    state=flow.state(sid).get().to_dict()
+    history=state['history']
+    if mutation=='missing':history=[]
+    elif mutation=='duplicate':history=history*2
+    else:history[0]['turn']=3
+    flow.state(sid).update({'history':history})
+    before=len(flow.calls)
+    response=flow.answer(sid,2)
+    assert response.status_code==409
+    assert len(flow.calls)==before
+    assert flow.state(sid).get().to_dict()['revision']==1
+
+
+def test_older_active_question_set_cannot_be_scored_against_new_benchmark(flow):
+    sid=flow.start()
+    flow.state(sid).update({'questionSetVersion':'previous-candidate-questions'})
+    before=len(flow.calls)
+    response=flow.answer(sid,1)
+    assert response.status_code==409
+    assert len(flow.calls)==before
+    assert flow.state(sid).get().to_dict()['revision']==0
+
+
+def test_completed_older_question_set_remains_readable_without_rescoring(flow):
+    sid=flow.start()
+    completed=flow.complete(sid)
+    assert completed.status_code==200
+    flow.state(sid).update({'questionSetVersion':'previous-candidate-questions'})
+    before=len(flow.calls)
+    cached=flow.report(sid)
+    assert cached.status_code==200
+    assert cached.json()==completed.json()
+    assert len(flow.calls)==before
+
+
+@pytest.mark.parametrize('mode',['one-on-one','panel','immersive-one-on-one','immersive-panel','vr'])
+def test_shared_modes_complete_nine_answers_and_persist_one_report(flow,mode):
+    sid=flow.start(interview_type=mode)
+    result=flow.complete(sid)
+    assert result.status_code==200
+    assert flow.report(sid).json()==result.json()
+    state=flow.state(sid).get().to_dict()
+    assert state['status']=='completed'
+    assert state['interviewType']==mode
+    assert len(state['evaluations'])==9
+    assert state['currentQuestion']['questionId']=='survey-10'
+    assert state['currentQuestion']['questionType']=='closing'
+    assert [t['questionId'] for t in state['history'] if not t['isInteraction']]==[f'survey-{n}' for n in range(1,10)]

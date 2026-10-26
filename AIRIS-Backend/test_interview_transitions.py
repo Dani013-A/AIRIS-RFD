@@ -85,7 +85,7 @@ def test_provider_cannot_speak_a_name_or_replace_the_approved_next_topic(monkeyp
         engine.CORE_SURVEY_QUESTIONS[0]['text'],'My name is Daniel. Good morning and it is nice to meet the interview team today.','introductory',10)
     assert result['evaluation']['overall']==73
     assert result['nextQuestion']['questionId']=='survey-2'
-    assert result['nextQuestion']['question']==engine.CORE_SURVEY_QUESTIONS[1]['text']
+    assert result['nextQuestion']['question']==engine.question_delivery(engine.CORE_SURVEY_QUESTIONS[1], 'Synthetic role', [])
 
 
 def test_server_canonical_history_does_not_repeat_the_previous_spoken_acknowledgment():

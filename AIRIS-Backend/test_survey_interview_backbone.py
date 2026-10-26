@@ -38,7 +38,8 @@ def test_q1_through_q8_and_dataset_remain_exactly_approved():
     for core, dataset in zip(CORE_SURVEY_QUESTIONS[:8], current[:8]):
         assert core['idealAnswer'] == dataset['idealAnswer']
     assert [q['id'] for q in CORE_SURVEY_QUESTIONS] == [f'survey-{i}' for i in range(1,11)]
-    assert 'questions for us' in CORE_SURVEY_QUESTIONS[8]['text']
+    assert CORE_SURVEY_QUESTIONS[8]['category'] == 'reflection'
+    assert 'what would you improve' in CORE_SURVEY_QUESTIONS[8]['text']
     assert CORE_SURVEY_QUESTIONS[9]['category'] == 'closing'
     assert CORE_SURVEY_QUESTIONS[9]['idealAnswer'] == ''
 
@@ -50,11 +51,11 @@ def test_generate_first_question_returns_survey_1():
 def test_all_nine_answers_are_evaluated_once_then_closing_has_no_answer():
     history=[]
     for number in range(1,10):
-        result=answer(history, text='No questions, thank you.' if number==9 else 'I enjoy building applications and solving problems during my coursework.')
+        result=answer(history, text='I would improve my planning by seeking feedback earlier and reviewing the outcome of my work.' if number==9 else 'I enjoy building applications and solving problems during my coursework.')
         assert result['evaluation']['overall']==73
         assert not result['isComplete']
         assert result['nextQuestion']['questionId']==f'survey-{number+1}'
-        assert CORE_SURVEY_QUESTIONS[number]['text'] in result['nextQuestion']['question']
+        assert engine.question_delivery(CORE_SURVEY_QUESTIONS[number], 'Arbitrary valid role', history + [{'answer':'I enjoy building applications and solving problems during my coursework.'}]) in result['nextQuestion']['question']
         assert 'ten years' not in result['nextQuestion']['question']
         history.append({'question':CORE_SURVEY_QUESTIONS[number-1]['text'],'answer':'Synthetic test answer','isInteraction':False})
     assert result['nextQuestion']['questionType']=='closing'
@@ -73,13 +74,13 @@ def test_clarification_is_bounded_and_does_not_replace_required_question(monkeyp
     second=answer(history,text='My favorite food is still pizza.')
     assert not second['isInteractionEvent']
     assert second['nextQuestion']['questionId']=='survey-2'
-    assert second['nextQuestion']['question'] == CORE_SURVEY_QUESTIONS[1]['text']
+    assert second['nextQuestion']['question'] == engine.question_delivery(CORE_SURVEY_QUESTIONS[1], 'Arbitrary valid role', history)
     assert second['evaluation']['overall'] == 73
 
 def test_short_answer_is_not_quoted_and_cannot_change_next_question():
     result=answer(text='I enjoy building applications and solving problems.')
-    assert result['nextQuestion']['question'] == CORE_SURVEY_QUESTIONS[1]['text']
-    assert result['nextQuestion']['question'].endswith(CORE_SURVEY_QUESTIONS[1]['text'])
+    assert result['nextQuestion']['question'] == engine.question_delivery(CORE_SURVEY_QUESTIONS[1], 'Arbitrary valid role', [])
+    assert result['nextQuestion']['question'].endswith(engine.question_delivery(CORE_SURVEY_QUESTIONS[1], 'Arbitrary valid role', []))
     assert 'Excellent' not in result['nextQuestion']['question']
 
 @pytest.mark.parametrize('text',['',' ', '[BLANK_AUDIO]'])
@@ -88,14 +89,18 @@ def test_empty_or_inaudible_answers_retry_without_evaluation(text):
     assert result['evaluation'] is None and result['isInteractionEvent']
     assert not result['isComplete']
 
-@pytest.mark.parametrize('text,expected',[('No','no further questions'),('What mentorship does this company offer?','don\'t have verified information'),('What mentorship and regular feedback would this company offer?','don\'t have verified information'),('How will AIRIS prepare my results?','AIRIS simulation provides')])
-def test_q9_closing_uses_actual_response_without_inventing_company_policy(text,expected):
+@pytest.mark.parametrize('text',[
+    'I would ask for feedback earlier and check progress against the agreed goals.',
+    'I learned to explain risks clearly and would apply that lesson when coordinating future work.',
+])
+def test_q9_reflection_is_scored_then_closes_without_company_claims(text):
     history=[{'answer':'Synthetic test answer'} for _ in range(8)]
-    result=answer(history,text=text,kind='candidate_questions')
+    result=answer(history,text=text,kind='reflection')
     assert result['evaluation']['overall']==73
     assert result['nextQuestion']['questionId']=='survey-10'
-    assert expected in result['nextQuestion']['question']
     assert 'concludes our session' in result['nextQuestion']['question']
+    assert '?' not in result['nextQuestion']['question']
+    assert 'company policy' not in result['nextQuestion']['question']
 
 def test_provider_failure_does_not_score_or_advance(monkeypatch):
     def fail(_): raise RuntimeError('provider unavailable')
@@ -256,7 +261,7 @@ def test_generated_navigation_cannot_skip_or_end_a_required_question(monkeypatch
     result=answer(text='My favorite food is pizza.')
     assert not result['isComplete']
     assert result['nextQuestion']['questionId']=='survey-2'
-    assert result['nextQuestion']['question'].endswith(CORE_SURVEY_QUESTIONS[1]['text'])
+    assert result['nextQuestion']['question'].endswith(engine.question_delivery(CORE_SURVEY_QUESTIONS[1], 'Arbitrary valid role', []))
 
 @pytest.mark.parametrize("provider", [lambda _: "{}", lambda _: '{"metrics":{"aiHolisticEvaluation":101,"communicationClarity":80}}'])
 def test_invalid_report_never_becomes_a_successful_zero_score(monkeypatch, provider):
@@ -270,7 +275,7 @@ def test_incomplete_interview_cannot_generate_report(monkeypatch):
     with pytest.raises(ValueError, match="Nine evaluated"):
         engine.generate_final_report('Role','Program',{},[{'answer':'Synthetic answer'}]*8,[{'overall':73}]*8)
 
-@pytest.mark.parametrize('relevance,phrase', [('Relevant',CORE_SURVEY_QUESTIONS[1]['text']),('Partially Relevant',"A specific example would help"),('Unrelated','Please focus on this topic'),('Unclear','Please add a little more detail')])
+@pytest.mark.parametrize('relevance,phrase', [('Relevant','how does your background prepare you'),('Partially Relevant',"A specific example would help"),('Unrelated','Please focus on this topic'),('Unclear','Please add a little more detail')])
 def test_supportive_feedback_preserves_evaluation_and_bounded_progression(monkeypatch,relevance,phrase):
     monkeypatch.setattr(engine,'classify_answer_relevance',lambda *args: relevance)
     result=answer(text='I checked the task and tried a small example to understand it.')
@@ -310,4 +315,4 @@ def test_substantive_partial_answer_is_evaluated_without_unnecessary_repetition(
     assert result['evaluation']['overall']==73
     assert not result['isInteractionEvent']
     assert result['nextQuestion']['questionId']=='survey-2'
-    assert result['nextQuestion']['question'] == CORE_SURVEY_QUESTIONS[1]['text']
+    assert result['nextQuestion']['question'] == engine.question_delivery(CORE_SURVEY_QUESTIONS[1], 'Arbitrary valid role', [])

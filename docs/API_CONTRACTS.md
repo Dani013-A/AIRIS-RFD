@@ -147,7 +147,7 @@ The backend binds measured pause metrics to that session, attempt, and transcrip
 { "sessionId": "0123456789abcdef0123456789abcdef" }
 ```
 
-Extra fields, including client history, evaluations, benchmarks, identity, or scores, return `422`. A session requires nine server-evaluated candidate responses with matching UID/session/question/attempt bindings. Q9 is scored; Q10 is an unscored closing statement. Normal mobile completion requests the report after closing delivery; cancellation never requests a completed report.
+Extra fields, including client history, evaluations, benchmarks, identity, or scores, return `422`. A session requires nine server-evaluated candidate responses with matching UID/session/question/attempt bindings. Q9 is a scored final reflection on improvement and learning transfer; it does not invite company questions. Q10 is an unscored closing statement. The backend may adapt spoken wording within the same numbered competency; `coreQuestion` and `questionId` retain their canonical scoring binding. `reflection` is derived from exact current-answer evidence, and `question` is the single composed bubble/TTS value. Normal mobile completion requests the report after closing delivery; cancellation never requests a completed report.
 
 The formula remains `round(SemanticCorrectness × 0.40 + AIHolisticEvaluation × 0.40 + CommunicationClarity × 0.20)`. The backend atomically persists the completed interview and matching `Mock Interview` activity under `users/{uid}` before returning success. The activity uses `completedAt`, preserving dashboard ordering. Response retains report fields and includes:
 
