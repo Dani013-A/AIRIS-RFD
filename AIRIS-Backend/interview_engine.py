@@ -3,7 +3,6 @@ import os
 import re
 import random
 import math
-import logging
 import numpy as np
 from typing import Dict, Any, List, Optional
 from interview_transitions import answer_evidence, grounded_reflection, conversation_context, question_delivery, focused_followup, validate_conversation_history
@@ -576,6 +575,7 @@ def evaluate_answer_and_generate_next(
     acknowledgment = grounded_reflection(evidence, index, turn_number)
     if index is not None and not acknowledgment:
         acknowledgment = fallback_acknowledgment
+    extracted_json["acknowledgment"] = acknowledgment
     extracted_json["reflection"] = acknowledgment
     extracted_json["nextQuestion"] = {
         "questionId": next_id, "question": f"{acknowledgment} {next_delivery}".strip(),

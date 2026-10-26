@@ -49,6 +49,8 @@ def test_prompt_contains_previous_answers_and_actual_spoken_question(monkeypatch
     assert 'I developed a scheduling application during my capstone.' in captured[0]
     assert 'Tell me about your background.' in captured[0]
     assert 'fifty' not in result['nextQuestion']['question']
+    assert result['acknowledgment']==result['reflection']
+    assert 'fifty' not in result['acknowledgment']
     assert 'I tested the booking flow' in result['reflection']
 
 
