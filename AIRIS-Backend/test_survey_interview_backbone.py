@@ -315,4 +315,6 @@ def test_substantive_partial_answer_is_evaluated_without_unnecessary_repetition(
     assert result['evaluation']['overall']==73
     assert not result['isInteractionEvent']
     assert result['nextQuestion']['questionId']=='survey-2'
-    assert result['nextQuestion']['question'] == engine.question_delivery(CORE_SURVEY_QUESTIONS[1], 'Arbitrary valid role', [])
+    assert result['nextQuestion']['question'].endswith(engine.question_delivery(CORE_SURVEY_QUESTIONS[1], 'Arbitrary valid role', []))
+    assert 'I needed to learn database joins for a class project.' in result['reflection']
+    assert 'excellent' not in result['reflection'].lower()

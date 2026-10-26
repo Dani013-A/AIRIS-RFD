@@ -464,7 +464,7 @@ def evaluate_answer_and_generate_next(
     next_ideal = next_base_meta["idealAnswer"]
     next_core_text = next_base_meta["text"]
     next_delivery = question_delivery(next_base_meta, target_role, history + [{"answer": current_answer}])
-    evidence = answer_evidence(current_answer) if relevance == "Relevant" else []
+    evidence = answer_evidence(current_answer) if relevance in ("Relevant", "Partially Relevant") else []
     recent_spoken = current_question + " " + " ".join(str(t.get("spokenQuestion", "")) for t in history[-2:])
     evidence = [claim for claim in evidence if claim not in recent_spoken]
     fallback_acknowledgment = grounded_reflection(evidence, 0, turn_number)
@@ -573,7 +573,7 @@ def evaluate_answer_and_generate_next(
 
     index = extracted_json.get("evidenceIndex", 0)
     acknowledgment = grounded_reflection(evidence, index, turn_number)
-    if index is not None and not acknowledgment:
+    if not acknowledgment:
         acknowledgment = fallback_acknowledgment
     extracted_json["acknowledgment"] = acknowledgment
     extracted_json["reflection"] = acknowledgment

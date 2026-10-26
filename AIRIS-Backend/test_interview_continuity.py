@@ -144,3 +144,16 @@ def test_career_goal_is_not_treated_as_completed_teamwork():
     answer='I want to help a team deliver reliable services and learn from experienced colleagues.'
     meta=engine.CORE_SURVEY_QUESTIONS[6]
     assert question_delivery(meta,'Role',[{'answer':answer}])==meta['text']
+
+
+@pytest.mark.parametrize('relevance',['Relevant','Partially Relevant'])
+def test_provider_null_cannot_discard_a_substantive_grounded_detail(monkeypatch,relevance):
+    monkeypatch.setattr(engine,'classify_answer_relevance',lambda *_:relevance)
+    monkeypatch.setattr(engine,'generate_text_with_fallback',lambda _:json.dumps({'evaluation':{'overall':73},'evidenceIndex':None}))
+    text='I handled the backend integration myself during a class project, documented request formats, and tested the scheduling API with my teammates.'
+    result=engine.evaluate_answer_and_generate_next('QA analyst','Program',{},[],engine.CORE_SURVEY_QUESTIONS[0]['text'],text,'introductory')
+    assert 'backend integration' in result['reflection']
+    assert result['acknowledgment']==result['reflection']
+    assert text in result['nextQuestion']['question']
+    assert result['evaluation']['overall']==73
+    assert not any(word in result['reflection'].lower() for word in ['excellent','successfully','resolved','independently'])
