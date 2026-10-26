@@ -5,6 +5,8 @@
  * Enforces ALIGNED, PIVOT, and DISTANT classifications dynamically without hardcoded program-specific conditionals.
  */
 
+import { isSkillGroundedInText } from "../resume/selfAssessmentService";
+
 export interface CareerCompatibilityResult {
   classification: "ALIGNED" | "PIVOT" | "DISTANT";
   score: number; // 0 to 100
@@ -348,7 +350,7 @@ export function evaluateCareerTargetCompatibility(
   const demonstratedTargetSkills: string[] = [];
   if (targetDomain) {
     for (const comp of targetDomain.coreCompetencies) {
-      if (resumeSkillsLower.includes(comp) || rawTextLower.includes(comp)) {
+      if (isSkillGroundedInText(comp, rawTextLower || resumeSkillsLower.join("\n"))) {
         demonstratedTargetSkills.push(comp);
       }
     }
@@ -361,35 +363,29 @@ export function evaluateCareerTargetCompatibility(
   let classification: "ALIGNED" | "PIVOT" | "DISTANT" = "DISTANT";
   let score = 30;
   let reason = "";
-  let missingPrerequisites: string[] = targetDomain ? [...targetDomain.prerequisiteKnowledge] : [];
-  let transferableSkills: string[] = [];
 
   if (isDirectPrimaryMatch) {
     classification = "ALIGNED";
     score = 95;
     reason = `Strong academic background alignment between ${cleanProgram} and ${cleanCareer}.`;
-    missingPrerequisites = [];
-    transferableSkills = targetDomain ? targetDomain.coreCompetencies.slice(0, 3) : [];
+
   } else if (isAdjacentMatch) {
     classification = "PIVOT";
     score = 70;
     reason = `${cleanCareer} is a related career pivot from your ${cleanProgram} academic background. Additional specialized skills may be required.`;
-    missingPrerequisites = targetDomain ? targetDomain.prerequisiteKnowledge.slice(0, 2) : [];
-    transferableSkills = ["Core Problem Solving", "Analytical Thinking", "Technical Literacy"];
+
   } else {
     // Check if resume evidence elevates a disjoint academic background
     if (demonstratedTargetSkills.length >= 2) {
       classification = "PIVOT";
       score = 65;
-      reason = `${cleanCareer} differs from your ${cleanProgram} degree, but your resume demonstrates relevant experience in ${demonstratedTargetSkills.join(", ")}.`;
-      missingPrerequisites = targetDomain ? targetDomain.prerequisiteKnowledge.slice(0, 2) : [];
-      transferableSkills = demonstratedTargetSkills;
+      reason = `${cleanCareer} differs from your ${cleanProgram} degree, but your resume mentions ${demonstratedTargetSkills.join(", ")}.`;
+
     } else {
       classification = "DISTANT";
       score = 25;
-      reason = `${cleanCareer} has low direct academic alignment with ${cleanProgram} and requires substantial domain-specific education and prerequisite training.`;
-      missingPrerequisites = targetDomain ? targetDomain.prerequisiteKnowledge : ["Domain-Specific Core Competencies", "Specialized Professional Training"];
-      transferableSkills = ["Transferable Analytical Skills", "General Problem Solving"];
+      reason = `${cleanCareer} has low direct academic alignment with ${cleanProgram} in the current program-to-domain mapping. Review actual role requirements and your resume evidence before drawing conclusions.`;
+
     }
   }
 
@@ -400,9 +396,9 @@ export function evaluateCareerTargetCompatibility(
     targetCareer: cleanCareer,
     targetDomainName,
     reason,
-    relevantCompetencies: demonstratedTargetSkills.length > 0 ? demonstratedTargetSkills : (targetDomain ? targetDomain.coreCompetencies.slice(0, 3) : []),
-    missingPrerequisites,
-    transferableSkills,
+    relevantCompetencies: demonstratedTargetSkills,
+    missingPrerequisites: [],
+    transferableSkills: demonstratedTargetSkills,
     requiresExplicitConfirmation: classification === "DISTANT"
   };
 }
@@ -427,14 +423,14 @@ export function formatCompatibilityNotice(result: CareerCompatibilityResult): {
   if (result.classification === "PIVOT") {
     return {
       title: "Career Transition Focus",
-      body: `"${result.targetCareer}" is a related specialization. Additional background competencies (${result.missingPrerequisites.join(", ") || "domain skills"}) will strengthen your alignment.`,
+      body: `"${result.targetCareer}" is a related specialization. Review the actual role requirements against your resume evidence.`,
       badgeColor: "#F59E0B"
     };
   }
 
   return {
     title: "Low Academic Alignment Notice",
-    body: `"${result.targetCareer}" differs substantially from your ${result.academicProgram} background. Substantial additional domain preparation (${result.missingPrerequisites.join(", ")}) is recommended before activating this career target.`,
+    body: `"${result.targetCareer}" differs substantially from your ${result.academicProgram} background. This mapping does not establish missing qualifications or employer requirements. Review your evidence and the actual job description.`,
     badgeColor: "#EF4444"
   };
 }

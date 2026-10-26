@@ -232,6 +232,14 @@ export function isSkillGroundedInText(skillName: string, rawText: string): boole
   if (!skillClean || skillClean.length < 2) return false;
   const skillLower = skillClean.toLowerCase();
 
+  const hasAffirmativeMatch = (pattern: RegExp): boolean => {
+    for (const match of rawNorm.matchAll(new RegExp(pattern.source, "gi"))) {
+      const clause = rawNorm.slice(0, match.index).split(/\n|;|[.!?]\s+|\bbut\b|\bhowever\b/).pop()!.replace(/\bnot only\b/g, "");
+      if (!/\b(no|not|never|without|lack|lacks|lacking|unfamiliar)\b/.test(clause)) return true;
+    }
+    return false;
+  };
+
   // Expand search terms with canonical aliases
   const searchTerms = [skillLower];
   const canonTarget = CANONICAL_SKILL_MAP[skillLower];
@@ -253,7 +261,7 @@ export function isSkillGroundedInText(skillName: string, rawText: string): boole
 
     if (cleanT.toLowerCase() === ".net" || cleanT.toLowerCase() === "net") {
       const pat = /(?<!asp)(?<!asp\.)(?<!vb)(?<!vb\.)(?:\.net|\bnet)\b/i;
-      if (pat.test(rawNorm)) return true;
+      if (hasAffirmativeMatch(pat)) return true;
       continue;
     }
 
@@ -261,7 +269,7 @@ export function isSkillGroundedInText(skillName: string, rawText: string): boole
       // Purely alphanumeric: enforce word boundaries so e.g. "java" does not match "javascript"
       const words = cleanT.split(/\s+/).map((w) => w.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&"));
       const pat = new RegExp(`\\b${words.join("\\s+")}\\b`, "i");
-      if (pat.test(rawNorm)) return true;
+      if (hasAffirmativeMatch(pat)) return true;
     } else {
       // Term contains symbols like C++, C#, .NET, Node.js, STAAD.Pro
       let escaped = cleanT.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
@@ -269,7 +277,7 @@ export function isSkillGroundedInText(skillName: string, rawText: string): boole
       const leftB = /^\w/.test(cleanT) ? "(?:\\b|(?<=[^a-zA-Z0-9]))" : "(?:^|(?<=[\\s,;:(•|\\n\\r]))";
       const rightB = /.*\w$/.test(cleanT) ? "(?:\\b|(?=[^a-zA-Z0-9]))" : "(?:$|(?=[\\s,;:.)•|\\n\\r]))";
       const pat = new RegExp(`${leftB}${escaped}${rightB}`, "i");
-      if (pat.test(rawNorm)) return true;
+      if (hasAffirmativeMatch(pat)) return true;
     }
   }
 
@@ -590,9 +598,10 @@ const SELF_ASSESSMENT_STORAGE_KEY = "@airis_skill_self_assessments_v1";
 /**
  * Loads stored student skill self-assessments from persistent local storage.
  */
-export async function getStoredSelfAssessments(): Promise<SkillSelfAssessmentMap> {
+export async function getStoredSelfAssessments(userId?: string): Promise<SkillSelfAssessmentMap> {
   try {
-    const raw = await AsyncStorage.getItem(SELF_ASSESSMENT_STORAGE_KEY);
+    if (!userId) return {};
+    const raw = await AsyncStorage.getItem(`${SELF_ASSESSMENT_STORAGE_KEY}:${userId}`);
     if (!raw) return {};
     return JSON.parse(raw);
   } catch (err) {
@@ -604,9 +613,10 @@ export async function getStoredSelfAssessments(): Promise<SkillSelfAssessmentMap
 /**
  * Saves or updates student skill self-assessments in persistent local storage.
  */
-export async function saveSelfAssessments(newRatings: SkillSelfAssessmentMap): Promise<SkillSelfAssessmentMap> {
+export async function saveSelfAssessments(newRatings: SkillSelfAssessmentMap, userId?: string): Promise<SkillSelfAssessmentMap> {
   try {
-    const existing = await getStoredSelfAssessments();
+    if (!userId) return {};
+    const existing = await getStoredSelfAssessments(userId);
     const merged: SkillSelfAssessmentMap = { ...existing };
     
     for (const [skill, rating] of Object.entries(newRatings)) {
@@ -615,7 +625,7 @@ export async function saveSelfAssessments(newRatings: SkillSelfAssessmentMap): P
       }
     }
 
-    await AsyncStorage.setItem(SELF_ASSESSMENT_STORAGE_KEY, JSON.stringify(merged));
+    await AsyncStorage.setItem(`${SELF_ASSESSMENT_STORAGE_KEY}:${userId}`, JSON.stringify(merged));
     return merged;
   } catch (err) {
     console.error("[AIRIS Self-Assessment] Failed to save ratings:", err);

@@ -151,6 +151,9 @@ def _detect_section_heading(line: str, current_key: str = None) -> str:
     if current_key in ("Projects", "WorkExperience", "Internships", "Education"):
         return None
 
+    if current_key == "Skills" and len(header_part.split()) == 1 and len(header_part) <= 10:
+        return None
+
     if _is_probable_heading(header_part):
         for alias_norm, section in NORMALIZED_ALIASES.items():
             if len(alias_norm) > 4 and alias_norm in norm:
@@ -201,7 +204,7 @@ def parse_resume(text: str) -> Dict[str, str]:
 
         sections.setdefault(current_key, []).append(line)
 
-    result = {k: "\n".join(v) for k, v in sections.items() if v}
+    result = {k: "\n".join(dict.fromkeys(v)) if k == "Skills" else "\n".join(v) for k, v in sections.items()}
     # Always preserve the complete authoritative raw text for grounding validation
     result["raw_text"] = text
     return result

@@ -55,14 +55,16 @@ export default function DashboardScreen() {
   const [showAtsCompatDetails, setShowAtsCompatDetails] = useState(false);
   const [infoModalContent, setInfoModalContent] = useState<{ title: string; explanation: string; roleDependence: string } | null>(null);
 
-  const [selfRatings, setSelfRatings] = useState<SkillSelfAssessmentMap>({});
+  const [storedRatings, setStoredRatings] = useState<{uid?: string; ratings: SkillSelfAssessmentMap}>({ ratings: {} });
+  const selfRatings = storedRatings.uid === currentUser?.uid ? storedRatings.ratings : {};
+  const setSelfRatings = (ratings: SkillSelfAssessmentMap) => setStoredRatings({ uid: currentUser?.uid, ratings });
   const [showSelfAssessmentModal, setShowSelfAssessmentModal] = useState(false);
   const [dismissedZeroScoreModal, setDismissedZeroScoreModal] = useState(false);
   const fetchActiveResume = useResumeStore((state) => state.fetchActiveResume);
 
   React.useEffect(() => {
     let isMounted = true;
-    getStoredSelfAssessments().then((ratings) => {
+    getStoredSelfAssessments(currentUser?.uid).then((ratings) => {
       if (!isMounted) return;
       setSelfRatings(ratings);
     });
@@ -70,7 +72,7 @@ export default function DashboardScreen() {
     return () => {
       isMounted = false;
     };
-  }, [activeAnalysis]);
+  }, [activeAnalysis, currentUser?.uid]);
 
   // Synchronize active resume from database if store state is stale or unaligned
   React.useEffect(() => {
@@ -239,6 +241,7 @@ export default function DashboardScreen() {
   }
 
   const isCanonicalV3 = isCanonicalRecord(activeAnalysis);
+  const isTwoTierScore = activeAnalysis?.scoringModelVersion === "3.1.0-manuscript" || activeAnalysis?.analysisVersion === "3.1.0-manuscript";
   const isLegacy = isLegacyRecord(activeAnalysis);
 
   const atsScoreVal = activeAnalysis.atsScore.overallScore;
@@ -250,13 +253,6 @@ export default function DashboardScreen() {
   const displayResumeScore = isCanonicalV3
     ? (activeAnalysis.resumeScore?.overallScore ?? alignScoreVal)
     : activeAnalysis.atsScore.overallScore;
-
-  const atsContribution = isCanonicalV3
-    ? (activeAnalysis.resumeScore?.atsContribution ?? Math.round(atsScoreVal * 0.4 * 10) / 10)
-    : 0;
-  const alignContribution = isCanonicalV3
-    ? (activeAnalysis.resumeScore?.alignmentContribution ?? Math.round(alignScoreVal * 0.6 * 10) / 10)
-    : 0;
 
   const overallScore = displayResumeScore;
   const levelKey = activeAnalysis.resumeScore?.level || activeAnalysis.atsScore.level;
@@ -277,9 +273,9 @@ export default function DashboardScreen() {
       ? "Somewhat hard to read"
       : "Hard to read");
 
-  let scoreInterpretation = "Good foundation. A few targeted improvements will make it even stronger.";
-  if (overallScore >= 85) scoreInterpretation = "Outstanding! Your resume is highly effective and clearly highlights your strengths.";
-  else if (overallScore < 50) scoreInterpretation = "Needs attention. Your resume requires some important improvements to get noticed.";
+  let scoreInterpretation = "Review the evidence and recommendations for your selected role. This score does not predict hiring outcomes.";
+  if (overallScore >= 85) scoreInterpretation = "The analysis found strong resume evidence for this role. Review the extracted information and recommendations.";
+  else if (overallScore < 50) scoreInterpretation = "Some target-role evidence is not clearly demonstrated in the extracted resume. Check extraction before deciding what to improve.";
 
   const priorityWeights: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
   const sortedSuggestions = [...(activeAnalysis.suggestions || [])].sort((a, b) => {
@@ -387,10 +383,10 @@ export default function DashboardScreen() {
                   setInfoModalContent({
                     title: isCanonicalV3 ? "Resume Score" : "Overall ATS Score (Legacy)",
                     explanation: isCanonicalV3
-                      ? "Your Resume Score has two parts: how easily hiring software can read your resume (40%), and how well your resume fits your chosen job (60%)."
+                      ? (isTwoTierScore ? "Your Resume Score combines ATS Readability (40%) and Role Alignment (60%). Role Alignment uses Skills (40%), Experience (30%), Education (20%), and Certifications (10%)." : "This historical Resume Score uses Skills (40%), Experience (30%), Education (20%), and Certifications (10%). ATS readability was a separate diagnostic.")
                       : "Evaluates your resume using an earlier scoring model.",
                     roleDependence: isCanonicalV3
-                      ? "Resume Score = Reading score × 0.40 + Job-fit score × 0.60."
+                      ? (isTwoTierScore ? "Resume Score = ATS Readability × 0.40 + Role Alignment × 0.60." : "Historical Resume Score = Skills × 0.40 + Experience × 0.30 + Education × 0.20 + Certifications × 0.10.")
                       : "Legacy score.",
                   })
                 }
@@ -448,7 +444,7 @@ export default function DashboardScreen() {
             {/* Formula Toggle */}
             <TouchableOpacity onPress={() => setShowScoreMath(!showScoreMath)} className="mt-4 bg-[#F4F8FB] px-4 py-2 rounded-full border border-[#EAF2F7] flex-row items-center" style={{ alignSelf: 'center' }}>
               <Text className="text-[10px] font-bold text-[#4F6B82] mr-2 text-center flex-shrink" style={{ flexShrink: 1 }}>
-                {isCanonicalV3 ? `How your score adds up: Skills 40% + Experience 30% + Education 20% + Certificates 10% = ${displayResumeScore}` : "Earlier score version"}
+                {isCanonicalV3 ? (isTwoTierScore ? `How your score adds up: Reading check 40% + Job fit 60% = ${displayResumeScore}` : `Historical score: Skills 40% + Experience 30% + Education 20% + Certificates 10% = ${displayResumeScore}`) : "Earlier score version"}
               </Text>
               <Ionicons name={showScoreMath ? "chevron-up" : "chevron-down"} size={14} color="#8B95A5" />
             </TouchableOpacity>
@@ -1011,7 +1007,7 @@ export default function DashboardScreen() {
 
           <View className="bg-white rounded-2xl border border-[#BFD6EA] mx-6 mb-4 p-4 gap-2">
             <Text className="text-sm font-bold text-[#1F3A5F]">How your score works</Text>
-            <Text className="text-sm text-[#4F6B82] leading-5">Resume Score = Reading check (40%) + Job fit (60%). Your self-rated confidence is separate and never changes your score.</Text>
+            <Text className="text-sm text-[#4F6B82] leading-5">{isTwoTierScore ? "Resume Score = ATS Readability (40%) + Role Alignment (60%). Role Alignment = Skills (40%) + Experience (30%) + Education (20%) + Certifications (10%). Self-rated confidence does not change these scores." : "Historical score: Skills (40%) + Experience (30%) + Education (20%) + Certifications (10%). ATS readability was a separate diagnostic. Self-rated confidence does not change the score."}</Text>
           </View>
 
         </View>
@@ -1362,7 +1358,7 @@ export default function DashboardScreen() {
         initialRatings={selfRatings}
         onSave={async (newRatings) => {
           await refreshPersonalizedGuidance(newRatings);
-          const updated = await getStoredSelfAssessments();
+          const updated = await getStoredSelfAssessments(currentUser?.uid);
           setSelfRatings(updated);
           setShowSelfAssessmentModal(false);
         }}
@@ -1372,7 +1368,7 @@ export default function DashboardScreen() {
       />
       {/* ZERO-SCORE ANALYSIS FALLBACK / ERROR MODAL */}
       <Modal
-        visible={(overallScore === 0 || (activeAnalysis as any)?.isLocalFallback === true || (activeAnalysis as any)?.isFallback === true) && !dismissedZeroScoreModal}
+        visible={((activeAnalysis as any)?.isLocalFallback === true || (activeAnalysis as any)?.isFallback === true) && !dismissedZeroScoreModal}
         transparent
         animationType="fade"
         onRequestClose={() => setDismissedZeroScoreModal(true)}
@@ -1389,7 +1385,7 @@ export default function DashboardScreen() {
               </Text>
 
               <Text className="text-center text-sm leading-6 text-[#4F6B82] mb-4 font-medium">
-                We couldn't reliably analyze your resume right now. Your score is temporarily shown as 0 because a complete analysis was not available.
+                This historical result used a local fallback and is not a verified backend analysis. Retry analysis before relying on its score.
               </Text>
 
               <Text className="text-center text-xs leading-5 text-[#4F6B82] mb-6 font-medium">

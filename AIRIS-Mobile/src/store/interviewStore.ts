@@ -1,4 +1,6 @@
+import { assertCompletedInterviewReport } from '../services/api/interviewCompletion';
 import { create } from 'zustand';
+import type { PauseMetrics } from '../services/api/interviewApi';
 
 export type InterviewStatus = 'setup' | 'briefing' | 'active' | 'evaluating' | 'completed';
 
@@ -18,7 +20,7 @@ export interface InterviewSession {
   currentBenchmarkAnswer?: string;
   questionsAsked: number; // to track 1 of N
 
-  history: Array<{ question: string; answer: string; questionType?: string; benchmarkAnswer?: string; isInteraction?: boolean }>;
+  history: Array<{ question: string; answer: string; questionType?: string; benchmarkAnswer?: string; isInteraction?: boolean; pauseMetrics?: PauseMetrics }>;
   evaluations: Array<any>;
 
   finalReport?: any;
@@ -29,7 +31,7 @@ interface InterviewStore {
   session: InterviewSession | null;
 
   initializeSession: (data: Partial<InterviewSession> & { firstQuestion: string; firstQuestionType: string; firstQuestionBenchmark?: string }) => void;
-  submitAnswer: (answer: string, evaluation: any, nextQuestion?: string, nextQuestionType?: string, nextBenchmark?: string, isComplete?: boolean, isInteractionEvent?: boolean) => void;
+  submitAnswer: (answer: string, evaluation: any, nextQuestion?: string, nextQuestionType?: string, nextBenchmark?: string, isComplete?: boolean, isInteractionEvent?: boolean, expected?: { sessionId: string; historyLength: number }, pauseMetrics?: PauseMetrics) => boolean;
   completeClosing: () => void;
   setFinalReport: (report: any) => void;
   setStatus: (status: InterviewStatus) => void;
@@ -63,7 +65,7 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
   initializeSession: (data) => set({
     status: 'briefing',
     session: {
-      sessionId: `session_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      sessionId: data.sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(7)}`,
       userId: data.userId || 'guest',
       targetRole: data.targetRole || 'Unknown Role',
       program: data.program || 'Unknown Program',
@@ -80,12 +82,16 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
     }
   }),
 
-  submitAnswer: (answer, evaluation, nextQuestion, nextQuestionType, nextBenchmark, isComplete, isInteractionEvent) => set((state) => {
+  submitAnswer: (answer, evaluation, nextQuestion, nextQuestionType, nextBenchmark, isComplete, isInteractionEvent, expected, pauseMetrics) => {
+    let accepted = false;
+    set((state) => {
+    if (expected && (state.session?.sessionId !== expected.sessionId || state.session.history.length !== expected.historyLength)) return state;
     if (!state.session || state.session.currentQuestionType === 'closing' || ['completed', 'evaluating'].includes(state.status) || !answer.trim()) return state;
 
     if (!isInteractionEvent && (!evaluation || !Number.isFinite(evaluation.overall ?? evaluation.score) || (evaluation.overall ?? evaluation.score) < 0 || (evaluation.overall ?? evaluation.score) > 100)) return state;
     if (isComplete && state.session.evaluations.length + (evaluation ? 1 : 0) !== 9) return state;
 
+    accepted = true;
     let questionForHistory = state.session.currentQuestion;
     let questionTypeForHistory = state.session.currentQuestionType;
     if (!isInteractionEvent) {
@@ -106,6 +112,7 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
         questionType: questionTypeForHistory,
         benchmarkAnswer: state.session.currentBenchmarkAnswer,
         isInteraction: isInteractionEvent === true,
+        ...(pauseMetrics ? { pauseMetrics: { ...pauseMetrics } } : {}),
       }
     ];
 
@@ -136,7 +143,9 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
           : Math.min(state.session.questionsAsked + 1, state.session.totalQuestions || 10),
       }
     };
-  }),
+  });
+    return accepted;
+  },
 
   completeClosing: () => set((state) => {
     if (!state.session || state.session.currentQuestionType !== 'closing' || ['completed', 'evaluating'].includes(state.status) || state.session.evaluations.length !== 9) return state;
@@ -146,11 +155,12 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
   setFinalReport: (report) => set((state) => {
     if (!state.session || state.session.evaluations.length !== 9 || !Number.isFinite(report?.overallPerformance)
       || report.overallPerformance < 0 || report.overallPerformance > 100) return state;
+    try { assertCompletedInterviewReport(report, state.session.sessionId); } catch { return state; }
     return {
       status: 'completed',
       session: {
         ...state.session,
-        completedAt: Date.now(),
+        completedAt: report.completedAt,
         finalReport: report,
       }
     };

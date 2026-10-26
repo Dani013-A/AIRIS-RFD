@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
+import { PasswordCredentialSettings } from "../../components/profile/PasswordCredentialSettings";
 import {
   ActivityIndicator,
   Alert,
@@ -683,10 +684,11 @@ export default function StudentProfileScreen() {
 
               {expandedPanel === "privacy" && (
                 <View className="px-5 pb-6 border-t border-[#EAF2F7] pt-5 gap-5">
-                  <Text className="text-sm font-bold text-[#CA5D25] uppercase tracking-wider">Change Password</Text>
+                  <PasswordCredentialSettings providers={auth.currentUser?.providerData}>
+                  <Text className="text-sm font-bold text-[#CA5D25] uppercase tracking-wider">Change AIRIS Password</Text>
 
                   <View className="gap-2">
-                    <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">Current Password</Text>
+                    <Text className="text-xs font-bold text-[#4F6B82] ml-1 uppercase tracking-wider">Current AIRIS Password</Text>
                     <View className="flex-row items-center rounded-xl border border-[#BFD6EA] px-4 bg-[#F4F8FB] h-12">
                       <TextInput
                         className="flex-1 h-full text-base text-[#1F3A5F]"
@@ -781,6 +783,8 @@ export default function StudentProfileScreen() {
                   {authError && (
                     <Text className="text-center text-sm font-bold text-[#CA5D25] px-2 mt-1">{authError}</Text>
                   )}
+
+                  </PasswordCredentialSettings>
 
                   <View className="border-t border-[#EAF2F7] my-4 pt-5">
                     <Text className="text-xs font-bold text-[#1F3A5F] uppercase tracking-wider mb-2">Data Privacy Statement</Text>

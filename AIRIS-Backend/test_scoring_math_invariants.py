@@ -50,8 +50,8 @@ class TestScoringMathInvariants(unittest.TestCase):
         self.assertEqual(payload["roleRelevance"]["matchedCompetencies"], [])
         self.assertEqual(payload["roleRelevance"]["transferableCompetencies"], [])
         self.assertGreater(len(payload["roleRelevance"]["priorityGaps"]), 0)
-        self.assertIn("alignmentSummary", payload["roleRelevance"])
-        self.assertEqual(payload["level"], "NeedsImprovement")
+        self.assertEqual(payload["level"], "LowParseability")
+        self.assertEqual(payload["resumeScore"]["level"], "NeedsImprovement")
 
     def test_invariant_3_clean_omission_certification_rule(self):
         """
@@ -65,8 +65,8 @@ class TestScoringMathInvariants(unittest.TestCase):
             required_competencies=["Network Administration"],
             sbert_edu_sim_score=50.0
         )
-        self.assertEqual(payload["resumeScore"]["breakdown"]["certifications"]["rawScore"], 100)
-        self.assertEqual(payload["resumeScore"]["breakdown"]["certifications"]["weightedScore"], 10.0)
+        self.assertEqual(payload["resumeScore"]["breakdown"]["certifications"]["rawScore"], 0)
+        self.assertEqual(payload["resumeScore"]["breakdown"]["certifications"]["weightedScore"], 0.0)
 
     def test_invariant_4_anti_stacking_duplicate_chunks(self):
         """
@@ -231,7 +231,7 @@ class TestScoringMathInvariants(unittest.TestCase):
             sbert_edu_sim_score=85.0
         )
 
-        overall = payload["overallScore"]
+        overall = payload["canonicalResumeScore"]
         exp_score = payload["resumeScore"]["breakdown"]["experience"]["rawScore"]
         edu_score = payload["resumeScore"]["breakdown"]["education"]["rawScore"]
 
@@ -352,8 +352,13 @@ class TestScoringMathInvariants(unittest.TestCase):
             recommended_competencies=[]
         )
         # ATS Machine-friendliness invariant
-        self.assertEqual(p_relevant["overallScore"], p_wrong["overallScore"])
+        self.assertEqual(p_relevant["diagnosticAtsScore"], p_wrong["diagnosticAtsScore"])
         self.assertEqual(
+            p_relevant["breakdown"]["skillsFormatting"]["rawScore"],
+            p_wrong["breakdown"]["skillsFormatting"]["rawScore"]
+        )
+        # Target alignment strictly differentiates role fit
+        self.assertGreater(
             p_relevant["resumeScore"]["breakdown"]["skills"]["rawScore"],
             p_wrong["resumeScore"]["breakdown"]["skills"]["rawScore"]
         )
@@ -513,14 +518,13 @@ class TestScoringMathInvariants(unittest.TestCase):
         cert_raw = b["certifications"]["rawScore"]
 
         # Decoupled ATS and Target Alignment assertions:
-        # ATS measures machine-friendliness:
-        self.assertEqual(cert_raw, 100, "Certifications cleanly omitted receives 100 under document hygiene rule")
+        self.assertEqual(cert_raw, 0, "Zero verified industry certifications produces 0 in Role Alignment")
         self.assertGreaterEqual(exp_raw, 30, f"Experience parseability should be >= 30, got {exp_raw}")
         self.assertGreaterEqual(edu_raw, 50, f"Education parseability should be >= 50, got {edu_raw}")
-        self.assertGreaterEqual(payload["overallScore"], 50, f"Fresh graduate ATS parseability should be >= 50, got {payload['overallScore']}")
+        self.assertGreaterEqual(payload["diagnosticAtsScore"], 50, f"Fresh graduate ATS parseability should be >= 50, got {payload['diagnosticAtsScore']}")
 
         # Target Alignment measures career match:
-        self.assertEqual(payload["roleRelevance"]["alignmentPercentage"], 10, "Target alignment reflects 10% Python match")
+        self.assertEqual(payload["roleRelevance"]["alignmentPercentage"], 7, "Target alignment reflects 7% Python match in denominator of 9.0")
         self.assertIn("Python", payload["roleRelevance"]["matchedCompetencies"])
         self.assertIn("Network Administration", payload["roleRelevance"]["priorityGaps"])
 
@@ -676,7 +680,7 @@ class TestScoringMathInvariants(unittest.TestCase):
         # 3. Category C skills DO NOT inflate target alignment (only Python contributed)
         self.assertNotIn("React", rr["matchedCompetencies"])
         self.assertNotIn("Node.js", rr["matchedCompetencies"])
-        self.assertEqual(rr["alignmentPercentage"], 10)
+        self.assertEqual(rr["alignmentPercentage"], 7)
         # 4. Alignment summary acknowledges technical breadth constructively
         self.assertIn("Shows technical breadth in", rr["alignmentSummary"])
 
@@ -705,14 +709,14 @@ class TestScoringMathInvariants(unittest.TestCase):
             recommended_competencies=rec,
             sbert_edu_sim_score=85.0
         )
-        # 4 required skills * 1.0 / 6.0 = 66.7% -> round = 67
-        self.assertEqual(payload["roleRelevance"]["alignmentPercentage"], 67)
+        # 4 required skills * 1.0 / 9.0 = 44.4% -> round = 44
+        self.assertEqual(payload["roleRelevance"]["alignmentPercentage"], 44)
         self.assertEqual(len(payload["roleRelevance"]["matchedCompetencies"]), 4)
 
     def test_case_21_strong_resume_weak_target_alignment_vs_weak_resume_strong_target_alignment(self):
         """
         21. Distinction between Resume Strength and Target Alignment.
-        Candidate 1: Strong projects (Experience parseability >= 40), strong degree (75), weak target alignment (10%).
+        Candidate 1: Strong projects (Experience parseability >= 40), strong degree (75), weak target alignment (9%).
         Candidate 2: Zero projects (Experience 0), zero degree (0), strong target alignment (100%).
         Evaluates that each component reflects its distinct evidence.
         """
@@ -732,8 +736,8 @@ class TestScoringMathInvariants(unittest.TestCase):
         )
 
         # Candidate 1 has strong experience from capstone, low target alignment
-        self.assertGreaterEqual(res_c1["resumeScore"]["breakdown"]["experience"]["rawScore"], 20)
-        self.assertEqual(res_c1["roleRelevance"]["alignmentPercentage"], 10)
+        self.assertGreaterEqual(res_c1["breakdown"]["experienceStructure"]["rawScore"], 20)
+        self.assertEqual(res_c1["roleRelevance"]["alignmentPercentage"], 9)
 
         # Candidate 2 has 0 experience chunks, higher target alignment
         f_c2_net = AuditedFinding(chunkId="c_sk", competency="Network Administration", classification="STRONG_MATCH", evidenceLevel="EXPLICIT",

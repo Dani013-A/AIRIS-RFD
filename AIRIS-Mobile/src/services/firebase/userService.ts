@@ -1,25 +1,43 @@
 import { doc, serverTimestamp, updateDoc, runTransaction } from "firebase/firestore";
 
-import { db } from "../../config/firebase";
+import { auth, db } from "../../config/firebase";
 import type { AppUser } from "../../types/user.types";
 import { ACCOUNT_PAUSED_MSG, ACCOUNT_REMOVED_MSG } from "../../utils/accountLifecycle";
+import { accountLifecycleRequest } from "../api/accountLifecycleService";
 
 const USERS_COLLECTION = "users";
 
 export const createProfileTransaction = async (uid: string, profile: AppUser): Promise<AppUser> => {
+  if (auth.currentUser?.uid !== uid) throw new Error("Account identity changed. Please sign in again.");
+
+  try {
+    const result = await accountLifecycleRequest('register', profile.fullName);
+    if (result?.profile) return result.profile;
+  } catch (lifecycleErr: any) {
+    if (lifecycleErr?.code === 'ACCOUNT_DISABLED') {
+      throw lifecycleErr;
+    }
+    if (lifecycleErr?.code === 'ACCOUNT_REMOVED') {
+      throw lifecycleErr;
+    }
+    console.warn(`[AUTH][REGISTER][LIFECYCLE_FALLBACK] Server lifecycle endpoint unavailable (${lifecycleErr?.message || lifecycleErr}), falling back to direct Firestore profile transaction.`);
+  }
+
   const userRef = doc(db, USERS_COLLECTION, uid);
   return await runTransaction(db, async (transaction) => {
     const userSnap = await transaction.get(userRef);
     if (userSnap.exists()) {
       const existingData = userSnap.data() as AppUser;
-      if (existingData?.isDeleted || existingData?.accountState === "DELETED") {
-        throw new Error(ACCOUNT_REMOVED_MSG);
-      }
       if (existingData?.isDisabled || existingData?.accountState === "DISABLED") {
         throw new Error(ACCOUNT_PAUSED_MSG);
       }
-      // Idempotent recovery / concurrent creation: return existing valid active profile
-      return existingData;
+      if (existingData?.accountState === "DELETED" || existingData?.isDeleted) {
+        if (existingData?.deletionOrigin === "ADMIN") {
+          throw new Error(ACCOUNT_REMOVED_MSG);
+        }
+      } else {
+        return existingData;
+      }
     }
     transaction.set(userRef, profile);
     return profile;
@@ -139,42 +157,45 @@ export const updateProfileDetails = async (
 };
 
 export const deleteUserAccountCascade = async (uid: string): Promise<void> => {
-  const { setDoc, collection, getDocs, deleteDoc } = await import("firebase/firestore");
-  const { deleteUser } = await import("firebase/auth");
-  const { auth } = await import("../../config/firebase");
-
-  console.log(`[AUTH][ACCOUNT_DELETE][START] Initiating account cascade deletion for user UID: ${uid}`);
-
-  // 1. Delete user-owned subcollections (resumes, resumeAnalyses, interviews, activities)
-  const subcollections = ["resumes", "resumeAnalyses", "interviews", "activities"];
-  for (const subcol of subcollections) {
-    try {
-      const colRef = collection(db, USERS_COLLECTION, uid, subcol);
-      const snap = await getDocs(colRef);
-      for (const docSnap of snap.docs) {
-        await deleteDoc(docSnap.ref);
-      }
-      console.log(`[AUTH][ACCOUNT_DELETE][SUBCOL] Cleared ${snap.docs.length} docs from ${subcol}.`);
-    } catch (subErr: any) {
-      console.warn(`[AUTH][ACCOUNT_DELETE][SUBCOL_WARN] Subcollection ${subcol} deletion notice:`, subErr?.message || subErr);
-    }
-  }
-
-  // 2. Record minimal non-sensitive tombstone record (no personal data retained)
+  if (auth.currentUser?.uid !== uid) throw new Error("Account identity changed. Please sign in again.");
   try {
-    console.log(`[AUTH][ACCOUNT_DELETE][TOMBSTONE] Writing minimal non-sensitive lifecycle tombstone for users/${uid}...`);
-    const userRef = doc(db, USERS_COLLECTION, uid);
-    await setDoc(userRef, {
-      uid,
-      accountState: "DELETED",
-      isDeleted: true,
-      isDisabled: true,
-      deletedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    console.log(`[AUTH][ACCOUNT_DELETE][TOMBSTONE_SUCCESS] Minimal lifecycle tombstone recorded.`);
-  } catch (fsErr: any) {
-    console.warn(`[AUTH][ACCOUNT_DELETE][TOMBSTONE_WARN] Firestore tombstone write notice:`, fsErr?.message || fsErr);
+    await accountLifecycleRequest('self_delete');
+  } catch (lifecycleErr: any) {
+    if (lifecycleErr?.code === 'RECENT_LOGIN_REQUIRED' || String(lifecycleErr?.message || '').includes('sign in again')) {
+      throw lifecycleErr;
+    }
+    console.warn(`[AUTH][ACCOUNT_DELETE][LIFECYCLE_FALLBACK] Server lifecycle endpoint unavailable (${lifecycleErr?.message || lifecycleErr}), proceeding with direct client auth deletion.`);
+    const { collection, getDocs, deleteDoc, setDoc } = await import("firebase/firestore");
+    const subcollections = ["resumes", "resumeAnalyses", "interviews", "activities"];
+    for (const subcol of subcollections) {
+      try {
+        const colRef = collection(db, USERS_COLLECTION, uid, subcol);
+        const snap = await getDocs(colRef);
+        for (const docSnap of snap.docs) {
+          await deleteDoc(docSnap.ref);
+        }
+      } catch (subErr: any) {
+        console.warn(`[AUTH][ACCOUNT_DELETE][SUBCOL_WARN] Subcollection ${subcol} deletion notice:`, subErr?.message || subErr);
+      }
+    }
+    try {
+      const userRef = doc(db, USERS_COLLECTION, uid);
+      await setDoc(userRef, {
+        uid,
+        accountState: "DELETED",
+        isDeleted: true,
+        isDisabled: true,
+        deletionOrigin: "SELF",
+        deletedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    } catch (fsErr: any) {
+      console.warn(`[AUTH][ACCOUNT_DELETE][TOMBSTONE_WARN] Firestore tombstone write notice:`, fsErr?.message || fsErr);
+    }
+    const { deleteUser } = await import("firebase/auth");
+    if (auth.currentUser) {
+      await deleteUser(auth.currentUser);
+    }
   }
 
   // 3. Clean up local persistent profile photo and local cached resume files
@@ -192,22 +213,6 @@ export const deleteUserAccountCascade = async (uid: string): Promise<void> => {
     console.warn(`[AUTH][ACCOUNT_DELETE][LOCAL_RESUME_WARN] Local resume delete notice:`, resumeErr);
   }
 
-  // 4. Delete Firebase Auth user record if active
-  if (auth.currentUser) {
-    console.log(`[AUTH][ACCOUNT_DELETE][AUTH_DELETE] Deleting Firebase Auth user account...`);
-    try {
-      await deleteUser(auth.currentUser);
-      console.log(`[AUTH][ACCOUNT_DELETE][SUCCESS] Account cascade deletion finished cleanly for ${uid}`);
-    } catch (authErr: any) {
-      const errCode = authErr?.code || "";
-      if (errCode === "auth/user-not-found" || errCode === "auth/null-user") {
-        console.warn(`[AUTH][ACCOUNT_DELETE][WARN] Auth user already deleted on server.`);
-      } else {
-        console.error(`[AUTH][ACCOUNT_DELETE][ERROR] Auth deletion failed:`, authErr?.code || authErr?.message);
-        throw authErr;
-      }
-    }
-  } else {
-    console.warn(`[AUTH][ACCOUNT_DELETE][WARN] No active auth.currentUser found, proceeding with local cleanup.`);
-  }
+  const { signOut } = await import("firebase/auth");
+  if (auth.currentUser?.uid === uid) await signOut(auth);
 };

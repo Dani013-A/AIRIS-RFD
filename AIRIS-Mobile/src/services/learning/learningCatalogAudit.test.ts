@@ -204,9 +204,9 @@ describe("AIRIS — Comprehensive Audit-Quality Remediation Verification Suite",
       // Semantic Content Verifications
       expect(civilItems.some((i) => i.academicPrograms?.includes("BS Civil Engineering") || i.careerPaths.includes("civil engineer") || i.skills.some((s) => s.includes("structural")))).toBe(true); // Source Expect #16
       expect(psychItems.some((i) => i.academicPrograms?.includes("Bachelor of Arts in Psychology") || i.careerPaths.includes("psychometrician") || i.skills.some((s) => s.includes("psycholog")))).toBe(true); // Source Expect #17
-      expect(acct.some((t) => t.toLowerCase().includes("cpa") || t.toLowerCase().includes("accountant"))).toBe(true); // Source Expect #18
-      expect(mech.some((t) => t.toLowerCase().includes("mechanical") || t.toLowerCase().includes("solidworks"))).toBe(true); // Source Expect #19
-      expect(elec.some((t) => t.toLowerCase().includes("electrical") || t.toLowerCase().includes("etap"))).toBe(true); // Source Expect #20
+      expect(acct.some((t) => t.toLowerCase().includes("accounting"))).toBe(true); // Source Expect #18
+      expect(mech.some((t) => t.toLowerCase().includes("dynamics") || t.toLowerCase().includes("simulink"))).toBe(true); // Source Expect #19
+      expect(elec.some((t) => t.toLowerCase().includes("circuits"))).toBe(true); // Source Expect #20
     });
   });
 
@@ -215,14 +215,14 @@ describe("AIRIS — Comprehensive Audit-Quality Remediation Verification Suite",
   // ---------------------------------------------------------------------------
   describe("5. Deep Resume Deduplication Test Suite", () => {
     it("Verifies resume exclusion across credential codes and aliases", () => {
-      const awsItem = VERIFIED_LEARNING_CATALOG.find((i) => i.credentialCode === "CLF-C02");
-      if (!awsItem) return;
+      const awsItem = VERIFIED_LEARNING_CATALOG.find((i) => i.id === "cert_aws_certified_cloud_practitioner");
+      expect(awsItem).toBeDefined();
 
       const profA = extractResumeCredentialProfile("AWS Certified Cloud Practitioner CLF-C02", {}, []);
-      expect(isResourceAlreadyInResume(awsItem, profA).isDuplicate).toBe(true); // Source Expect #21
+      expect(isResourceAlreadyInResume(awsItem!, profA).isDuplicate).toBe(true); // Source Expect #21
 
       const profB = extractResumeCredentialProfile("Completed AWS Cloud Practitioner certification exam", {}, []);
-      expect(isResourceAlreadyInResume(awsItem, profB).isDuplicate).toBe(true); // Source Expect #22
+      expect(isResourceAlreadyInResume(awsItem!, profB).isDuplicate).toBe(true); // Source Expect #22
     });
   });
 
@@ -271,14 +271,14 @@ describe("AIRIS — Comprehensive Audit-Quality Remediation Verification Suite",
   });
 
   // ---------------------------------------------------------------------------
-  // 7. CATALOG INTEGRITY & QUALITY GATE INVARIANTS (162 RECORDS)
+  // 7. CATALOG INTEGRITY & QUALITY GATE INVARIANTS
   // ---------------------------------------------------------------------------
   describe("7. Catalog Integrity & Quality Gate Invariants", () => {
-    it("Validates 232 total catalog records and strict quality gate compliance", () => {
-      expect(VERIFIED_LEARNING_CATALOG.length).toBe(232);
+    it("Validates 255 total catalog records and strict quality gate compliance", () => {
+      expect(VERIFIED_LEARNING_CATALOG.length).toBe(255);
 
       const uniqueIds = new Set(VERIFIED_LEARNING_CATALOG.map((r) => r.id));
-      expect(uniqueIds.size).toBe(232);
+      expect(uniqueIds.size).toBe(255);
 
       for (const res of VERIFIED_LEARNING_CATALOG) {
         expect(res.id).toBeDefined();
@@ -298,12 +298,12 @@ describe("AIRIS — Comprehensive Audit-Quality Remediation Verification Suite",
   describe("8. Phase 9 — Executable Boundary & Safety Assertions", () => {
     it("Validates runtime predicate enforcement via real production calls", () => {
       // Assertion 1: Valid verified resource passes validator
-      const validRes = VERIFIED_LEARNING_CATALOG.find((r) => r.id === "interview_star_method_video");
+      const validRes = VERIFIED_LEARNING_CATALOG.find((r) => r.id === "interview_berkeley_overview");
       expect(validRes).toBeDefined();
       expect(validateLearningResource(validRes!)).toBe(true);
 
       // Assertion 2: Redirected verified resource passes validator
-      const nistRes = VERIFIED_LEARNING_CATALOG.find((r) => r.id === "guide_nist_incident_handling");
+      const nistRes = VERIFIED_LEARNING_CATALOG.find((r) => r.id === "practice_owasp_top_10");
       expect(nistRes).toBeDefined();
       expect(validateLearningResource(nistRes!)).toBe(true);
 
@@ -331,7 +331,7 @@ describe("AIRIS — Comprehensive Audit-Quality Remediation Verification Suite",
         isActive: true,
         verification: { status: "broken" as VerificationStatus, checkedAt: new Date().toISOString() },
       };
-      expect(validateLearningResource(wrongTypeRes)).toBe(false);
+      expect(validateLearningResource({ ...validRes!, type: "invalid_resource_type" as any })).toBe(false);
 
       // Assertion 5: Expired seminar is rejected by isSeminarExpired
       const expiredSeminar = {
@@ -366,7 +366,7 @@ describe("AIRIS — Comprehensive Audit-Quality Remediation Verification Suite",
       expect(validateLearningResource(dupRes)).toBe(false);
 
       // Assertion 8: Valid replacement resource passes validator
-      const replaceRes = VERIFIED_LEARNING_CATALOG.find((r) => r.id === "cert_comptia_itf_01");
+      const replaceRes = VERIFIED_LEARNING_CATALOG.find((r) => r.id === "cert_ms_az900_azure_fundamentals");
       expect(replaceRes).toBeDefined();
       expect(validateLearningResource(replaceRes!)).toBe(true);
 
@@ -440,8 +440,8 @@ describe("AIRIS — Comprehensive Audit-Quality Remediation Verification Suite",
 
       // Assertion 15: Phase 5 additions are correctly verified or deactivated based on quality audit
       const activePhase5Ids = [
-        "course_mit_intro_cs_python_01",
-        "course_yale_intro_psychology_01",
+        "doc_python_tutorial",
+        "guide_openstax_psychology",
       ];
       for (const id of activePhase5Ids) {
         const item = VERIFIED_LEARNING_CATALOG.find((r) => r.id === id);

@@ -1,0 +1,26 @@
+import React from 'react';
+const {act,create}=require('react-test-renderer');
+jest.mock('@expo/vector-icons',()=>({Ionicons:'Icon'}));
+jest.mock('expo-file-system/legacy',()=>({documentDirectory:'file://synthetic/',EncodingType:{UTF8:'utf8'},writeAsStringAsync:jest.fn()}));
+jest.mock('expo-sharing',()=>({isAvailableAsync:async()=>false}));
+jest.mock('expo-router',()=>({useRouter:()=>({back:jest.fn()})}));
+jest.mock('react-native',()=>({ActivityIndicator:'ActivityIndicator',Alert:{alert:jest.fn()},ScrollView:'ScrollView',TouchableOpacity:'TouchableOpacity',View:'View'}));
+jest.mock('../../components/ui/AppText',()=>({Text:'Text',TextInput:'TextInput'}));
+jest.mock('react-native-safe-area-context',()=>({SafeAreaView:'SafeAreaView'}));
+jest.mock('../../components/ui',()=>({Tag:'Tag',SkeletonResourceCard:'SkeletonResourceCard'}));
+jest.mock('../../components/learning/ResourceCard',()=>({ResourceCard:'ResourceCard'}));
+jest.mock('../../store/authStore',()=>{const state={currentUser:{uid:'synthetic-owner',targetPosition:'Accountant',degreeProgram:'BS Accountancy'}};return {useAuthStore:(selector: any)=>selector(state)};});
+jest.mock('../../store/resumeStore',()=>{const state={activeAnalysis:{learningSnapshot:{careerSummary:'An unsupported historical proficiency claim',strengths:['An inferred historical strength'],skillGaps:[{skill:'SQL'}]}},activeResume:{rawText:'Synthetic accounting student'},fetchActiveResume:jest.fn()};return {useResumeStore:(selector: any)=>selector(state)};});
+jest.mock('../../services/resume/selfAssessmentService',()=>({getStoredSelfAssessments:async()=>({})}));
+jest.mock('../../services/learning/learningCatalogService',()=>({getInstantCatalog:()=>({resources:[],categories:[]}),loadCachedCatalog:async()=>({resources:[],categories:[]}),refreshCatalog:async()=>({resources:[],categories:[]}),subscribeToCatalog:()=>()=>{},matchLearningRecommendations:()=>[],logForYouRecommendations:jest.fn()}));
+import LearningScreen from './LearningScreen';
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
+it('historical narrative and inferred strengths are visibly unverified, not confirmed deficiencies or abilities',async()=>{
+ let renderer: any;await act(async()=>{renderer=create(<LearningScreen initialCategory="for_you"/>)});
+ const labels=renderer.root.findAllByType('Text').map((node: any)=>node.props.children);
+ expect(labels).toContain('Analysis guidance (unverified). Check these suggestions against your original resume before treating them as facts.');
+ expect(labels).toContain('Inferred strengths (unverified)');expect(labels).toContain('Resume evidence to review');
+ expect(labels).not.toContain('Your strong points');expect(labels).not.toContain('Skills to improve');
+ const strength=renderer.root.findAllByType('Tag').find((node: any)=>node.props.label==='An inferred historical strength');expect(strength.props.variant).toBe('neutral');
+ await act(async()=>renderer.unmount());
+});

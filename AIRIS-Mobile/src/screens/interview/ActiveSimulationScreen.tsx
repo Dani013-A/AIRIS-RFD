@@ -1,14 +1,14 @@
+import { rememberInterviewCompletion } from '../../services/firebase/pendingInterviewCompletion';
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { View, TouchableOpacity, ActivityIndicator, ScrollView, Alert, Animated, Linking } from "react-native";
+import { View, TouchableOpacity, ActivityIndicator, ScrollView, Alert, Animated, Linking, Modal } from "react-native";
 import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../../store/authStore";
-import { useResumeStore } from "../../store/resumeStore";
 import { useInterviewStore } from "../../store/interviewStore";
-import { submitInterviewAnswer, transcribeAudio, PauseMetrics } from "../../services/api/interviewApi";
-import { PrimaryButton, CaptureStatusPill } from "../../components/ui";
+import { cancelInterviewSimulation, submitInterviewAnswer, transcribeAudio, PauseMetrics } from "../../services/api/interviewApi";
+import { PrimaryButton, SecondaryButton, CaptureStatusPill } from "../../components/ui";
 import * as Speech from "expo-speech";
 import { SpeechDelivery } from "./speechDelivery";
 import { requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, RecordingPresets } from "expo-audio";
@@ -35,7 +35,6 @@ export default function ActiveSimulationScreen() {
   const speechAttempt = useRef(0);
 
   const currentUser = useAuthStore((state) => state.currentUser);
-  const activeAnalysis = useResumeStore((state) => state.activeAnalysis);
   const { session, submitAnswer, clearSession } = useInterviewStore();
   const ui = standardInterviewUiState({ recording: isRecording, transcribing: isTranscribing, evaluating: loading, error: recordingError, answer });
 
@@ -78,8 +77,13 @@ export default function ActiveSimulationScreen() {
         setIsSpeaking(false);
         console.log(`[INTERVIEW][SPEECH_COMPLETED] id=${delivery.utteranceId}`);
         if (session.currentQuestionType === "closing") {
-          useInterviewStore.getState().completeClosing();
-          router.replace("/(student)/interview-session/summary" as any);
+          void (async () => {
+            try { await withTimeout(rememberInterviewCompletion(session.userId, session.sessionId), 5000, 'Recovery storage timed out'); }
+            catch { if (mounted.current) setRecordingError('Could not prepare result recovery. Tap the speaker to retry the closing.'); return; }
+            if (!mounted.current || useInterviewStore.getState().session?.sessionId !== session.sessionId) return;
+            useInterviewStore.getState().completeClosing();
+            router.replace("/(student)/interview-session/summary" as any);
+          })();
         }
       },
       onError: () => {
@@ -108,14 +112,46 @@ export default function ActiveSimulationScreen() {
     }
   };
 
+  const [stopModalVisible, setStopModalVisible] = useState(false);
+
   const handleExit = () => {
+    // 1. Immediately halt audio capture, playback, and cancel pending background operations
     speechDelivery.current.cancel();
     operation.current += 1;
     Speech.stop();
     if (audioRecorder.isRecording) void audioRecorder.stop().catch(() => undefined);
+
+    // Synchronously restore UI to a clean, usable state so pending work does not leave controls stuck
     setIsRecording(false);
+    setIsSpeaking(false);
+    setIsTranscribing(false);
+    setLoading(false);
+    submittingRef.current = false;
+    startingRecording.current = false;
+    stoppingRecording.current = false;
+
+    setStopModalVisible(true);
+  };
+
+  const confirmExitWithoutScore = () => {
+    setStopModalVisible(false);
+    const cancellingSession = useInterviewStore.getState().session;
+    if (cancellingSession) void cancelInterviewSimulation(cancellingSession.sessionId).catch(() => { console.warn("Server cancellation could not be confirmed; the unfinished session will expire."); });
     clearSession();
     router.replace("/(student)/(tabs)/interview" as any);
+  };
+
+  const handleRetrySession = () => {
+    setStopModalVisible(false);
+    // Keep the current interview session alive, ensuring controls are unlocked for candidate retry
+    setLoading(false);
+    setIsTranscribing(false);
+    setIsRecording(false);
+    submittingRef.current = false;
+    if (session?.currentQuestionType === "closing") {
+      speechAttempt.current += 1;
+      speakCurrentQuestion();
+    }
   };
 
   const startRecording = async () => {
@@ -161,7 +197,7 @@ export default function ActiveSimulationScreen() {
       const uri = audioRecorder.uri;
       if (uri) {
         const { transcription, pauseMetrics } = await withTimeout(
-          transcribeAudio(uri, "audio/m4a"),
+          transcribeAudio(uri, "audio/m4a", session ? { sessionId: session.sessionId, turn: session.history.length } : undefined),
           60000,
           "Transcription is taking too long. Please record your answer again."
         );
@@ -203,7 +239,7 @@ export default function ActiveSimulationScreen() {
       return;
     }
 
-    if (!session || !currentUser || !activeAnalysis) {
+    if (!session || !currentUser) {
       setRecordingError("Your interview data is missing. Go back and start a new interview.");
       return;
     }
@@ -213,26 +249,12 @@ export default function ActiveSimulationScreen() {
     setLoading(true);
     setRecordingError(null);
     try {
-      const parsedResumeDict: Record<string, string> = {};
-      if (Array.isArray(activeAnalysis.parsedSections)) {
-        for (const sec of activeAnalysis.parsedSections) {
-          parsedResumeDict[sec.name] = sec.content;
-        }
-      } else {
-        Object.assign(parsedResumeDict, activeAnalysis.parsedSections || {});
-      }
-
       const response = await withTimeout(
         submitInterviewAnswer({
-          targetRole: session.targetRole,
-          program: session.program,
-          parsedResume: parsedResumeDict,
-          history: session.history,
-          currentQuestion: session.currentQuestion,
+          sessionId: session.sessionId,
+          questionId: `survey-${session.questionsAsked}`,
+          turn: session.history.length,
           currentAnswer: answer.trim(),
-          currentQuestionType: session.currentQuestionType,
-          totalQuestions: session.totalQuestions,
-          pauseMetrics: lastPauseMetrics,
         }),
         45000,
         "Evaluation is taking too long. Your answer is saved here — please try again."
@@ -240,6 +262,7 @@ export default function ActiveSimulationScreen() {
 
       if (!mounted.current || requestId !== operation.current) return;
 
+      if (response.cancelled) { confirmExitWithoutScore(); return; }
       if (isSpeaking) Speech.stop();
 
       const outcome = resolveSubmissionOutcome(response);
@@ -251,16 +274,19 @@ export default function ActiveSimulationScreen() {
       if (!response.isInteractionEvent && !Number.isFinite(response.evaluation?.overall)) {
         throw new Error("Answer evaluation is unavailable. Please retry this answer.");
       }
-      submitAnswer(
+      const accepted = submitAnswer(
         answer.trim(),
         response.evaluation,
         outcome.kind === "advance" ? outcome.question : undefined,
         outcome.kind === "advance" ? outcome.questionType : undefined,
         outcome.kind === "advance" ? outcome.benchmark : undefined,
         outcome.kind === "complete",
-        response.isInteractionEvent
+        response.isInteractionEvent,
+        { sessionId: session.sessionId, historyLength: session.history.length },
+        lastPauseMetrics
       );
 
+      if (!accepted) throw new Error("The interview changed while processing. Your answer is still here; please review the current question.");
       setAnswer("");
       setLastPauseMetrics(undefined);
       setIsSpeaking(false);
@@ -387,6 +413,38 @@ export default function ActiveSimulationScreen() {
           )}
         </View> : <View className="p-6 bg-white"><Text className="text-center text-[#4F6B82]">{recordingError || "The interviewer is closing the session. Your results will follow."}</Text></View>}
       </View>
+
+      <Modal
+        visible={stopModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setStopModalVisible(false)}
+      >
+        <View className="flex-1 bg-black/60 items-center justify-center p-6">
+          <View className="bg-white rounded-3xl p-6 w-full max-w-sm border border-[#BFD6EA]" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 5 }}>
+            <View className="h-14 w-14 rounded-full bg-[#CA5D25]/10 items-center justify-center self-center mb-4">
+              <Ionicons name="alert-circle" size={32} color="#CA5D25" />
+            </View>
+            <Text className="text-xl font-bold text-[#1F3A5F] text-center mb-2">
+              {session?.evaluations.length === 9 ? "Stop interview?" : "Insufficient Interview Evidence"}
+            </Text>
+            <Text className="text-sm text-[#4F6B82] text-center leading-5 mb-6">
+              You have completed {session?.evaluations?.length || 0} of 9 evaluated questions. Stopping cancels this interview without a completed report or score. Choose Continue Interview to finish the approved workflow.
+            </Text>
+            <View className="gap-3">
+              <PrimaryButton
+                title="Continue Interview"
+                variant="orange"
+                onPress={handleRetrySession}
+              />
+              <SecondaryButton
+                title="Exit Without Score"
+                onPress={confirmExitWithoutScore}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

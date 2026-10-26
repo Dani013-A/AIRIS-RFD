@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { collection, doc, getDocs, writeBatch } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { DEFAULT_LEARNING_CATEGORIES } from "../../data/learningCategories";
 import { VERIFIED_LEARNING_CATALOG } from "../../data/verifiedLearningCatalog";
@@ -15,12 +15,12 @@ import {
   RecommendationTier,
   ResourceType,
 } from "../../types/learning.types";
-import { validateAndSanitizeCatalog, validateLearningResource } from "./catalogValidator";
+import { validateAndSanitizeCatalog, validateLearningResource, canonicalResourceUrl } from "./catalogValidator";
 import { evaluateCareerTargetCompatibility } from "../ai/careerCompatibilityGuardrail";
 import { filterAndVerifyAiCandidates } from "./aiRecommendationValidator";
 
-const CACHE_STORAGE_KEY = "@airis_learning_catalog_v5";
-const CACHE_VERSION = 5;
+const CACHE_STORAGE_KEY = "@airis_learning_catalog_v7";
+const CACHE_VERSION = 7;
 
 const RESOURCES_COLLECTION = "learning_resources";
 const CATEGORIES_COLLECTION = "learning_categories";
@@ -133,39 +133,6 @@ async function saveCatalogToCache(
 }
 
 /**
- * Seeds Firestore collections if empty, safely and idempotently.
- */
-async function seedFirestoreIfEmpty(): Promise<void> {
-  try {
-    const resCol = collection(db, RESOURCES_COLLECTION);
-    const resSnap = await getDocs(resCol);
-
-    if (resSnap.empty) {
-      const batch = writeBatch(db);
-      for (const item of VERIFIED_LEARNING_CATALOG) {
-        const itemRef = doc(db, RESOURCES_COLLECTION, item.id);
-        batch.set(itemRef, item);
-      }
-      await batch.commit();
-    }
-
-    const catCol = collection(db, CATEGORIES_COLLECTION);
-    const catSnap = await getDocs(catCol);
-
-    if (catSnap.empty) {
-      const catBatch = writeBatch(db);
-      for (const cat of DEFAULT_LEARNING_CATEGORIES) {
-        const catRef = doc(db, CATEGORIES_COLLECTION, cat.id);
-        catBatch.set(catRef, cat);
-      }
-      await catBatch.commit();
-    }
-  } catch (err) {
-    // Quiet fallback to local verified catalog
-  }
-}
-
-/**
  * Background non-blocking refresh from Firestore.
  * Updates local cache and notifies UI silently.
  */
@@ -176,9 +143,6 @@ export async function refreshCatalog(): Promise<{ resources: LearningResource[];
 
   isRefreshing = true;
   try {
-    // 1. Ensure Firestore has seed if completely empty
-    await seedFirestoreIfEmpty();
-
     // 2. Fetch resources from Firestore
     const resCol = collection(db, RESOURCES_COLLECTION);
     const resSnap = await getDocs(resCol);
@@ -221,7 +185,7 @@ export async function refreshCatalog(): Promise<{ resources: LearningResource[];
       if (retiredSeedIds.has(fsItem.id)) continue;
       if (fsItem.isActive === false) {
         resourceMap.delete(fsItem.id); // Firestore explicitly deactivated item
-      } else {
+      } else if (validateLearningResource(fsItem)) {
         resourceMap.set(fsItem.id, fsItem); // Firestore overwrites local seed
       }
     }
@@ -1589,7 +1553,7 @@ export function normalizeGap(
     substantiveConcepts.push("time series forecasting", "time series analysis", "forecasting", "arima", "temporal modeling");
   }
   if (normalized.includes("performance") || normalized.includes("tuning") || normalized.includes("optimization") || normalized.includes("indexing") || normalized.includes("execution plan")) {
-    if (normalized.includes("sql") || normalized.includes("query") || normalized.includes("database") || normalized.includes("tuning") || normalized.includes("optimization")) {
+    if (/\b(?:sql|query|queries|databases?|mysql|postgres(?:ql)?|bigquery)\b/.test(normalized)) {
       substantiveConcepts.push("sql performance tuning", "query optimization", "performance tuning", "database indexing", "execution plans", "database tuning");
     }
   }
@@ -1665,7 +1629,7 @@ export function normalizeGap(
 export function getResourceDomains(resource: LearningResource): CareerDomainProfile[] {
   const resourceCareerPaths = (resource.careerPaths || []).map((c) => c.toLowerCase());
   return CAREER_DOMAINS.filter((d) =>
-    resourceCareerPaths.some((cp) => d.roleKeywords.includes(cp) || cp === d.id || cp.includes(d.id))
+    resourceCareerPaths.some((cp) => d.roleKeywords.some(keyword => cp === keyword || cp.startsWith(keyword + " ") || cp.endsWith(" " + keyword)) || cp === d.id)
   );
 }
 
@@ -1876,7 +1840,7 @@ export function evaluateGapMatch(
 
       let groundedRationale = "";
       if (isDirect) {
-        groundedRationale = `Directly addresses your identified gap in "${gap.raw}" by developing ${matchedStr} for your target role.`;
+        groundedRationale = `Develops competencies not clearly demonstrated in your current resume: "${gap.raw}" by developing ${matchedStr} for your target role.`;
       } else {
         groundedRationale = `Builds practical ${matchedStr} skills related to your identified ${gapTopic} gap for your target role.`;
       }
@@ -2099,7 +2063,7 @@ export function extractResumeCredentialProfile(
   structuredData?: any,
   detectedSkills: string[] = []
 ): ResumeCredentialProfile {
-  const cleanRaw = (rawText || "").toLowerCase();
+  const cleanRaw = (rawText || "").split(/\n|;/).filter(line => !/\b(in progress|studying|preparing|preparation|planned|plan to|intend|pursuing|candidate|expired|not certified|not earned)\b/i.test(line)).join("\n").toLowerCase();
   const normalizedRaw = cleanRaw.replace(/[^a-z0-9\s]/g, " ");
 
   const normalizedTitles = new Set<string>();
@@ -2113,6 +2077,7 @@ export function extractResumeCredentialProfile(
   // 1. Structured certifications
   if (structuredData && Array.isArray(structuredData.certifications)) {
     for (const cert of structuredData.certifications) {
+      if (typeof cert === "object" && cert && cert.status && !["earned", "completed", "active", "valid"].includes(cert.status.toLowerCase())) continue;
       const certName = typeof cert === "string" ? cert : cert.name || cert.title || "";
       if (certName) {
         normalizedTitles.add(certName.toLowerCase().trim());
@@ -2132,6 +2097,7 @@ export function extractResumeCredentialProfile(
   for (const arr of courseArrays) {
     if (Array.isArray(arr)) {
       for (const item of arr) {
+        if (typeof item === "object" && item && item.status && !["earned", "completed", "active", "valid"].includes(item.status.toLowerCase())) continue;
         const itemName = typeof item === "string" ? item : item.name || item.title || "";
         if (itemName) {
           completedCourseTitles.add(itemName.toLowerCase().trim());
@@ -2349,6 +2315,27 @@ export interface RecommendationMatchParams {
  * core role competencies, and supporting tracks.
  * Irrelevant disjoint domains and generic keyword false-positives are strictly excluded.
  */
+function limitPersonalizedRecommendations(items: MatchedResourceItem[], category: string): MatchedResourceItem[] {
+  if (category !== "for_you") return items;
+  const result: MatchedResourceItem[] = [];
+  for (const tier of Array.from(new Set(items.map(item => item.relevanceTier)))) {
+    const selected: MatchedResourceItem[] = [];
+    const deferred: MatchedResourceItem[] = [];
+    const providers = new Map<string, number>();
+    const topics = new Map<string, number>();
+    for (const item of items.filter(candidate => candidate.relevanceTier === tier)) {
+      const provider = item.provider.toLowerCase();
+      const topic = (item.matchedSkillGap || item.matchedCompetency || item.skills[0] || "").toLowerCase();
+      if ((providers.get(provider) || 0) >= 3 || (topics.get(topic) || 0) >= 2) { deferred.push(item); continue; }
+      selected.push(item);
+      providers.set(provider, (providers.get(provider) || 0) + 1);
+      topics.set(topic, (topics.get(topic) || 0) + 1);
+    }
+    result.push(...selected, ...deferred);
+  }
+  return result.slice(0, 10);
+}
+
 export function matchLearningRecommendations(params: RecommendationMatchParams): MatchedResourceItem[] {
   const catalog = params.customCatalog || memoryCache?.resources || VERIFIED_LEARNING_CATALOG;
   const targetPos = (params.targetPosition || "").toLowerCase().trim();
@@ -2373,17 +2360,17 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
       if (resource.category !== categoryId) continue;
       if (resourceType !== "all" && resource.type !== resourceType) continue;
 
-      const normUrl = resource.url.toLowerCase().trim();
+      const normUrl = canonicalResourceUrl(resource.url);
       if (seenUrls.has(normUrl)) continue;
       seenUrls.add(normUrl);
 
-      let reason = "Essential career preparation material.";
+      let reason = "General career preparation material.";
       if (categoryId === "interviews") {
-        reason = "Essential interview preparation framework and technique.";
+        reason = "General interview preparation guidance.";
       } else if (categoryId === "resume") {
-        reason = "Authoritative resume writing guide and ATS formatting standard.";
+        reason = "Guidance on resume structure and clear formatting.";
       } else if (categoryId === "communication") {
-        reason = "Professional workplace communication and presentation mastery.";
+        reason = "Guidance on professional communication.";
       }
 
       genericItems.push({
@@ -2464,7 +2451,7 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
     // Demote basic tutorials if skill is already demonstrated without a gap
     const isDemotedForDepth = isResourceDemotedForSkillDepth(resource, resumeProfile, normalizedGaps);
 
-    const normUrl = resource.url.toLowerCase().trim();
+    const normUrl = canonicalResourceUrl(resource.url);
     if (seenUrls.has(normUrl)) continue;
 
     const resourceSkills = (resource.skills || []).map((s) => s.toLowerCase().trim());
@@ -2560,11 +2547,11 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
       score += 400 + bestGapScore;
 
       if (compatibility === "PIVOT" && params.degreeProgram) {
-        reason = `As a ${params.degreeProgram} student pivoting to ${params.targetPosition || "your target role"}, directly addresses your gap in "${matchedGapName}".`;
+        reason = `As a ${params.degreeProgram} student pivoting to ${params.targetPosition || "your target role"}, covers resume evidence to develop in "${matchedGapName}".`;
       } else if (compatibility === "DISTANT" && params.degreeProgram) {
-        reason = `Essential foundational course in "${matchedGapName}" for transitioning from ${params.degreeProgram} to ${params.targetPosition || "your target role"}.`;
+        reason = `Foundational learning in "${matchedGapName}" for transitioning from ${params.degreeProgram} to ${params.targetPosition || "your target role"}.`;
       } else {
-        reason = `Directly addresses your identified gap in "${matchedGapName}" by developing ${matchedComp} for ${params.targetPosition || "your target role"}.`;
+        reason = `Develops competencies not clearly demonstrated in your current resume: "${matchedGapName}" by developing ${matchedComp} for ${params.targetPosition || "your target role"}.`;
       }
     } else if (partialGapEvaluated && bestPartialScore > 0) {
       if (partialEvidence.roleRelevance) {
@@ -2631,7 +2618,7 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
         if (compatibility === "PIVOT" && params.degreeProgram) {
           reason = `Builds core ${matchedComp} competencies for ${params.targetPosition || "your target role"}, bridging your ${params.degreeProgram} background.`;
         } else {
-          reason = `Develops core ${matchedComp} competencies essential for ${params.targetPosition || "your target role"} roles.`;
+          reason = `Develops core ${matchedComp} competencies relevant to ${params.targetPosition || "your target role"} roles.`;
         }
         itemEvidence = {
           gapSubjectOverlap: false,
@@ -2704,8 +2691,27 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
       };
     }
 
+    const normalizeContext = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const explicitRole = resourceCareerPaths.some(role => {
+      const normalized = normalizeContext(role);
+      const selected = normalizeContext(targetPos);
+      return normalized.length > 5 && (normalized === selected || selected.startsWith(normalized));
+    });
+    if (explicitRole && tier === "TIER_5_IRRELEVANT") {
+      tier = "TIER_2_ROLE_COMPETENCY";
+      reason = `Covers ${resource.skills[0] || "a topic"} relevant to your selected role, ${params.targetPosition}.`;
+    }
+    const explicitAcademic = !!params.degreeProgram && (resource.academicPrograms || [])
+      .some(program => normalizeContext(program) === normalizeContext(params.degreeProgram || ""));
+    const gapEvidence = !!itemEvidence?.gapSubjectOverlap || !!itemEvidence?.subskillOverlap;
+    if (tier !== "TIER_1_DIRECT_GAP" && !gapEvidence && !explicitRole) {
+      if (!explicitAcademic) continue;
+      tier = "TIER_3_SUPPORTING";
+      reason = `Supports your selected academic background in ${params.degreeProgram} through ${resource.skills[0] || "this topic"}. This is supplementary learning, not an employer requirement.`;
+    }
+
     const isCategoryTab = params.categoryId && params.categoryId !== "for_you";
-    if (isCategoryTab || tier === "TIER_1_DIRECT_GAP" || tier === "TIER_2_ROLE_COMPETENCY" || tier === "TIER_3_SUPPORTING") {
+    if (tier === "TIER_1_DIRECT_GAP" || tier === "TIER_2_ROLE_COMPETENCY" || tier === "TIER_3_SUPPORTING") {
       if (!reason && isCategoryTab) {
         const firstSkill = (resource.skills && resource.skills[0]) || resource.title;
         reason = `Prepares for ${params.targetPosition || "target role"} competencies by covering ${firstSkill}.`;
@@ -2718,7 +2724,7 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
         recommendationReason: reason || resource.description,
         matchedSkillGap: matchedGapName || "NONE",
         matchedCompetency: matchedComp || "core technical",
-        relevanceTier: tier === "TIER_5_IRRELEVANT" ? "TIER_3_SUPPORTING" : tier,
+        relevanceTier: tier,
         matchEvidence: itemEvidence,
         isPersonalizedGap: tier === "TIER_1_DIRECT_GAP",
       });
@@ -2726,7 +2732,8 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
   }
 
   // Sort raw items by relevance score
-  scoredItems.sort((a, b) => b.relevanceScore - a.relevanceScore);
+  const tierOrder: RecommendationTier[] = ["TIER_1_DIRECT_GAP", "TIER_2_ROLE_COMPETENCY", "TIER_3_SUPPORTING", "TIER_4_GENERIC", "TIER_5_IRRELEVANT"];
+  scoredItems.sort((a, b) => tierOrder.indexOf(a.relevanceTier || "TIER_5_IRRELEVANT") - tierOrder.indexOf(b.relevanceTier || "TIER_5_IRRELEVANT") || b.relevanceScore - a.relevanceScore || a.id.localeCompare(b.id));
 
   // MULTI-COMPETENCY SLOT ALLOCATION (Prevent Single-Gap Dominance)
   if (normalizedGaps.length >= 2) {
@@ -2767,10 +2774,10 @@ export function matchLearningRecommendations(params: RecommendationMatchParams):
     const balancedTier1 = balanceItemsByGap(tier1Items, 2);
     const balancedTier2 = balanceItemsByGap(tier2Items, 2);
 
-    return [...balancedTier1, ...balancedTier2, ...otherItems];
+    return limitPersonalizedRecommendations([...balancedTier1, ...balancedTier2, ...otherItems], categoryId);
   }
 
-  return scoredItems;
+  return limitPersonalizedRecommendations(scoredItems, categoryId);
 }
 
 /**
@@ -2866,7 +2873,7 @@ export function getGrowthPathRecommendations(params: GrowthPathParams): GrowthPa
           ...curatedItem,
           gapRationale:
             curatedItem.recommendationReason ||
-            `Industry recognized credential for ${targetPos || "your career"}.`,
+            `Credential information relevant to ${targetPos || "your career"}; check provider eligibility requirements.`,
         });
       }
     } else if (curatedItem.type === "course") {
@@ -2967,6 +2974,7 @@ export function logForYouRecommendations(
   gaps: Array<{ skill: string } | string> | undefined,
   items: MatchedResourceItem[]
 ): void {
+  if (typeof __DEV__ !== "undefined" && !__DEV__) return;
   console.log("============================================================");
   console.log("AIRIS - FOR YOU RECOMMENDATIONS");
   console.log("============================================================");

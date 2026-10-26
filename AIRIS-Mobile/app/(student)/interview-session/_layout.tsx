@@ -9,6 +9,7 @@ export default function InterviewSessionLayout() {
       <Stack.Screen name="immersive-briefing" />
       <Stack.Screen name="immersive-active" />
       <Stack.Screen name="summary" />
+      <Stack.Screen name="saved" />
     </Stack>
   );
 }

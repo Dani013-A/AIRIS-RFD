@@ -181,7 +181,7 @@ export default function LoginScreen() {
       >
         <View className="items-center mb-8">
           <Image
-            source={require("../../../assets/images/airis-logo-final.png")}
+            source={require("../../../assets/images/airis-logo-real-final.png")}
             className="mb-4 h-24 w-24 rounded-3xl"
             resizeMode="contain"
             style={{

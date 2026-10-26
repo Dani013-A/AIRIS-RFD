@@ -145,26 +145,22 @@ def evaluate_semantic_alignment(
         if not concept_candidates:
             concept_candidates = [c_lower]
 
-        # Extract constituent technical terms for transferable competency grounding
         constituent_tokens = [w for w in re.findall(r'[a-zA-Z0-9\+\#\.]+', c_lower) if len(w) >= 3 and w not in STOP_WORDS and w not in ROLE_GENERIC_TERMS]
 
         for idx, chunk in enumerate(evidence_chunks):
             raw_sim = calculate_cosine_similarity(c_emb, chunk_embs[idx])
             chunk_text = chunk.text
 
-            # 1. Direct concept or authoritative alias match in chunk
             has_direct = is_skill_grounded_in_text(concept, chunk_text)
             if not has_direct and concept_candidates:
                 has_direct = any(is_skill_grounded_in_text(cand, chunk_text) for cand in concept_candidates)
 
-            # 2. Transferable constituent technical competency match
             has_transferable = False
             if not has_direct and constituent_tokens:
                 has_transferable = any(is_skill_grounded_in_text(tok, chunk_text) for tok in constituent_tokens)
 
             if has_direct:
                 sim = min(1.0, raw_sim + 0.25)
-                # Prioritize demonstrated, contextual project/work evidence over raw comma-separated skill lists
                 if chunk.section in ("Projects", "WorkExperience", "Internships"):
                     sim = min(1.0, sim + 0.12)
                 grounding_type = "DIRECT"
@@ -174,7 +170,7 @@ def evaluate_semantic_alignment(
                     sim = min(1.0, sim + 0.08)
                 grounding_type = "TRANSFERABLE"
             else:
-                sim = raw_sim
+                sim = 0.0
                 grounding_type = "NONE"
 
             if sim > best_sim:

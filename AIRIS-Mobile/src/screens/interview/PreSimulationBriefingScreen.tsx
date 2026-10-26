@@ -85,9 +85,12 @@ export default function PreSimulationBriefingScreen() {
         targetRole: user.targetPosition || "Unknown Role",
         program: user.degreeProgram || "Unknown Program",
         parsedResume: parsedResumeDict,
+        resumeId: user.activeResumeId || "none",
+        interviewType: "one-on-one",
       });
 
       initializeSession({
+        sessionId: response.sessionId,
         userId: user.uid,
         targetRole: user.targetPosition,
         program: user.degreeProgram,

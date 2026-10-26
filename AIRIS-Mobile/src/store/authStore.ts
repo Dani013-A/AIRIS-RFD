@@ -1328,6 +1328,10 @@ export const useAuthStore = create<AuthState>((set) => ({
         await deleteUserAccountCascade(activeUid);
       }
 
+      if (auth.currentUser && auth.currentUser.uid !== activeUid) {
+        set({ loading: false });
+        return;
+      }
       // Execute full logout & store reset
       await useAuthStore.getState().logout();
       console.log(`[AUTH][ACCOUNT_DELETE][SUCCESS] Account deletion complete and local session cleared.`);

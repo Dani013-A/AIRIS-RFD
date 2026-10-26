@@ -8,7 +8,9 @@ export function isValidUrl(urlString: string): boolean {
   if (!urlString || typeof urlString !== "string") return false;
   try {
     const url = new URL(urlString);
-    return (url.protocol === "https:" || url.protocol === "http:") && url.hostname.includes(".");
+    return url.protocol === "https:" && !url.username && !url.password
+      && url.hostname.includes(".") && !/^(?:\d+\.){3}\d+$/.test(url.hostname)
+      && !url.hostname.endsWith(".local") && !url.hostname.endsWith(".localhost");
   } catch {
     return false;
   }
@@ -31,10 +33,19 @@ export function validateLearningResource(resource: Partial<LearningResource>): b
   if (!isValidUrl(resource.url)) {
     return false;
   }
+  if (!["course", "certification", "seminar", "guide", "documentation", "practice", "video", "article", "example", "module"].includes(resource.type || "")) return false;
   // Require active and verified flags
-  if (resource.isActive === false || resource.isVerified === false) {
+  if (resource.isActive !== true || resource.isVerified !== true) {
     return false;
   }
+  const verification = resource.verification;
+  const checkedAt = Date.parse(verification?.checkedAt || "");
+  const age = Date.now() - checkedAt;
+  if (verification?.status !== "verified" || verification.contentReviewed !== true
+    || verification.reviewedTitle !== resource.title || verification.reviewedProvider !== resource.provider
+    || !verification.sourceUrl || canonicalResourceUrl(verification.sourceUrl) !== canonicalResourceUrl(resource.url)
+    || !Number.isFinite(checkedAt) || age < -86400000 || age > 90 * 86400000
+    || (resource.verificationStatus && resource.verificationStatus !== "verified")) return false;
   // Reject search query fallbacks or dummy domains
   if (
     resource.url.includes("google.com/search") ||
@@ -43,32 +54,25 @@ export function validateLearningResource(resource: Partial<LearningResource>): b
   ) {
     return false;
   }
-  // Reject unverified, broken, blocked, or invalid status
-  const unverifiedStatuses = [
-    "broken",
-    "not_found",
-    "server_error",
-    "timeout",
-    "waf_blocked",
-    "generic_landing",
-    "insufficiently_specific",
-    "duplicate",
-    "domain_mismatch",
-    "type_mismatch",
-    "unverified",
-  ];
-  if (resource.verification?.status && unverifiedStatuses.includes(resource.verification.status)) {
-    return false;
-  }
-  // If thumbnail exists, validate it's a valid URL
-  if (resource.thumbnailUrl && !isValidUrl(resource.thumbnailUrl)) {
-    return false;
-  }
   return true;
+}
+
+export function canonicalResourceUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    url.hash = "";
+    for (const key of Array.from(url.searchParams.keys())) {
+      if (/^utm_/i.test(key) || key === "fbclid" || key === "gclid") url.searchParams.delete(key);
+    }
+    url.searchParams.sort();
+    return url.toString().replace(/\/$/, "");
+  } catch { return ""; }
 }
 
 export function sanitizeLearningResource(resource: LearningResource): LearningResource {
   const cleanThumb = resource.thumbnailUrl && isValidUrl(resource.thumbnailUrl)
+    && resource.thumbnailVerification?.status === "verified"
+    && resource.thumbnailVerification.sourceUrl === resource.thumbnailUrl
     ? resource.thumbnailUrl
     : undefined;
 

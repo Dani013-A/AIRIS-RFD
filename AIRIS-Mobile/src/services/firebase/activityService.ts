@@ -59,5 +59,5 @@ export async function fetchUserActivities(userId: string): Promise<UserActivity[
   const q = query(activitiesColRef, orderBy("completedAt", "desc"));
   const querySnapshot = await getDocs(q);
 
-  return querySnapshot.docs.map(doc => doc.data() as UserActivity);
+  return querySnapshot.docs.map(snapshot => ({ ...snapshot.data(), id: snapshot.id }) as UserActivity);
 }

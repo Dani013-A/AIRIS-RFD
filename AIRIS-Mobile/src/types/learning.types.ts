@@ -30,7 +30,11 @@ export interface VerificationMetadata {
   statusCode?: number;
   contentType?: string;
   providerDomain?: string;
-  verificationMethod?: "http" | "manual";
+  verificationMethod?: "http" | "manual" | "source_review";
+  sourceUrl?: string;
+  contentReviewed?: boolean;
+  reviewedTitle?: string;
+  reviewedProvider?: string;
 }
 
 export interface AccreditationMetadata {
@@ -56,6 +60,7 @@ export interface LearningResource {
   provider: string;
   type: ResourceType;
   category: PrimaryLearnCategory | string;
+  careerStages?: string[];
   careerPaths: string[];
   skills: string[];
   subskills?: string[];
@@ -65,6 +70,7 @@ export interface LearningResource {
   prerequisites?: string[];
   url: string;
   thumbnailUrl?: string;
+  thumbnailVerification?: { status: "verified"; sourceUrl: string; checkedAt: string };
   isVerified: boolean;
   isActive: boolean;
   priority: number;

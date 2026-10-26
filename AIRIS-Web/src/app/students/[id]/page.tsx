@@ -137,6 +137,7 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
             <div className="space-y-1 min-w-0">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-2xl font-black text-[#1E3E6B]">{student.fullName}</h1>
+                {(student.isDefenseDemo || student.isSyntheticUat) && <span className="text-xs font-semibold text-brand-slate">Test / demo account</span>}
                 <span
                   className={`px-3 py-0.5 rounded-full text-xs font-black border ${
                     student.isDisabled

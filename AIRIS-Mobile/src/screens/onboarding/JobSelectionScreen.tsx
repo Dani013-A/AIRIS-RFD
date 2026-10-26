@@ -65,11 +65,11 @@ export default function JobSelectionScreen() {
     if (!cleanProg) return null;
     return tipManilaCollegePrograms
       .flatMap((c) => c.programs)
-      .find((p) => p.name.toLowerCase().trim() === cleanProg || p.name.toLowerCase().includes(cleanProg) || cleanProg.includes(p.name.toLowerCase()));
+      .find((p) => p.name.toLowerCase().trim() === cleanProg);
   }, [degreeProgram]);
 
   const defaultSuggestions = React.useMemo(() => {
-    return programData?.suggestedPositions ?? tipManilaCollegePrograms.flatMap((c) => c.programs.flatMap((p) => p.suggestedPositions)).slice(0, 12);
+    return programData?.suggestedPositions ?? [];
   }, [programData]);
 
   // Instant multi-level search filtering across program suggestions + all catalog roles
@@ -313,7 +313,7 @@ export default function JobSelectionScreen() {
         {filtered.length === 0 && !isCustomQueryNew && (
           <View className="py-8 items-center justify-center">
             <Ionicons name="search-outline" size={36} color="#94A3B8" />
-            <Text className="mt-2 text-sm font-semibold text-[#64748B]">No matching jobs found</Text>
+            <Text className="mt-2 text-sm font-semibold text-[#64748B]">{!programData && !search.trim() ? "No verified role suggestions for this program" : "No matching jobs found"}</Text>
             <Text className="text-xs text-[#94A3B8] text-center mt-1 px-6">
               Try searching with different keywords or type a custom role title above.
             </Text>

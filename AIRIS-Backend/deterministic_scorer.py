@@ -1,9 +1,13 @@
 import math
 import re
+from credential_evidence import listed_credentials
 from typing import Dict, List, Any, Optional, Tuple, Union, Set
 from output_validator import AuditedFinding
 from evidence_chunker import EvidenceChunk
 from ai_service import is_skill_grounded_in_text
+
+SCORING_MODEL_VERSION = "3.1.0-manuscript"
+RESUME_SCORE_FORMULA = "Resume Score = round(ATS Readability × 0.40 + Role Alignment × 0.60)"
 
 # =====================================================================
 # ACTION VERBS FOR ATS & EXPERIENCE NARRATIVE EVALUATION
@@ -257,7 +261,7 @@ def evaluate_ats_machine_readability(
     elif len(all_dates) >= 1:
         date_rec_score += 25.0
 
-    has_date_ranges = bool(re.search(r'\b(19|20)\d{2}\s*[\-–—to]\s*(?:(19|20)\d{2}|present|current)\b', full_text, re.IGNORECASE))
+    has_date_ranges = bool(re.search(r'\b(19|20)\d{2}\s*(?:[\-–—]|to)\s*(?:(19|20)\d{2}|present|current)\b', full_text, re.IGNORECASE))
     if has_date_ranges:
         date_rec_score += 40.0
     elif len(all_dates) >= 2:
@@ -402,20 +406,20 @@ def evaluate_role_alignment(
             if c.section in ("WorkExperience", "Internships", "Projects", "Achievements", "OrganizationsLeadership"):
                 c_text_lower = c.text.lower()
                 for tok in comp_toks:
-                    if is_skill_grounded_in_text(tok, c.text) or (len(tok) >= 3 and re.search(r'\b' + re.escape(tok) + r'\b', c_text_lower)):
+                    if is_skill_grounded_in_text(tok, c.text):
                         has_verb = any(v in c_text_lower for v in ("developed", "engineered", "built", "implemented", "designed", "automated", "created", "integrated"))
                         return (c.section, c.text, has_verb)
 
         # 2. Check detected skills list or explicit skills section
         for tok in comp_toks:
-            if any(tok == ds or tok in ds for ds in detected_skills_lower):
+            if any(is_skill_grounded_in_text(tok, ds) for ds in detected_skills_lower):
                 return ("Skills", tok, False)
 
         for c in evidence_chunks:
             if c.section in ("Skills", "TechnicalSkills", "CoreCompetencies"):
                 c_text_lower = c.text.lower()
                 for tok in comp_toks:
-                    if is_skill_grounded_in_text(tok, c.text) or (len(tok) >= 3 and re.search(r'\b' + re.escape(tok) + r'\b', c_text_lower)):
+                    if is_skill_grounded_in_text(tok, c.text):
                         return ("Skills", tok, False)
 
         return None
@@ -505,35 +509,49 @@ def evaluate_role_alignment(
     exp_relevance_accum = 0.0
     exp_denominator = max(2.0, min(5.0, float(len(exp_chunks))))
 
+    has_any_role_evidence = (
+        skills_numerator > 0
+        or any(f.classification in ("STRONG_MATCH", "PARTIAL_MATCH") for f in audited_findings)
+        or any(any(is_skill_grounded_in_text(t, c.text) for t in all_target_terms) for c in evidence_chunks)
+    )
+
     for chunk in exp_chunks:
         text_lower = chunk.text.lower()
         chunk_pts = 0.0
 
-        matched_target_terms = sum(1 for term in all_target_terms if term in text_lower)
-        if matched_target_terms == 0:
-            # Entry has no demonstrated relevance to target role competencies
-            chunk_pts = 0.0
-        else:
-            chunk_pts = 0.0
-            if matched_target_terms >= 2:
-                chunk_pts += 45.0
-            else:
-                chunk_pts += 30.0
+        chunk_findings = [f for f in audited_findings if f.chunkId == chunk.chunkId and f.classification in ("STRONG_MATCH", "PARTIAL_MATCH")]
+        matched_target_terms = sum(1 for term in all_target_terms if is_skill_grounded_in_text(term, chunk.text)) + len(chunk_findings)
 
-            has_verb = any(re.search(r'\b' + re.escape(v) + r'\b', text_lower) for v in CONTRIBUTION_ACTION_VERBS)
+        has_verb = any(re.search(r'\b' + re.escape(v) + r'\b', text_lower) for v in CONTRIBUTION_ACTION_VERBS)
+        has_quant = bool(re.search(r'(\d+[%kK\+]|\b\d{2,}\b|\bpercent\b|users|clients|reduced|increased)', text_lower))
+        is_substantive_sec = chunk.section in ("Projects", "WorkExperience", "Internships", "Achievements")
+
+        if matched_target_terms > 0:
+            chunk_pts = 45.0 if matched_target_terms >= 2 else 30.0
             if has_verb:
                 chunk_pts += 25.0
-
-            has_quant = bool(re.search(r'(\d+[%kK\+]|\b\d{2,}\b|\bpercent\b|users|clients|reduced|increased)', text_lower))
             if has_quant:
                 chunk_pts += 20.0
-
             if chunk.wordCount >= 12:
                 chunk_pts += 10.0
+            if chunk.section == "WorkExperience":
+                chunk_pts += 15.0
+        elif has_any_role_evidence and (is_substantive_sec and chunk.wordCount >= 6 and (has_verb or has_quant or chunk.wordCount >= 12) or chunk.section == "WorkExperience"):
+            chunk_pts = 20.0
+            if has_verb:
+                chunk_pts += 25.0
+            if has_quant:
+                chunk_pts += 20.0
+            if chunk.wordCount >= 12:
+                chunk_pts += 10.0
+            if chunk.section == "WorkExperience":
+                chunk_pts += 15.0
+        else:
+            chunk_pts = 0.0
 
         exp_relevance_accum += min(100.0, chunk_pts)
 
-    if exp_chunks:
+    if exp_chunks and has_any_role_evidence:
         exp_raw = exp_relevance_accum / exp_denominator
         exp_score = min(100, max(0, round(exp_raw)))
     else:
@@ -551,7 +569,8 @@ def evaluate_role_alignment(
     edu_score = 0
     if edu_text:
         text_lower = edu_text.lower()
-        has_degree = any(d in text_lower for d in ["bachelor", "degree", "bs", "ba", "master", "ms", "associate", "diploma"])
+        degree_mentions = re.findall(r"\b(?:bachelor|degree|bs|ba|b\.s\.?|b\.a\.?|master|ms|associate|diploma)\b", text_lower)
+        has_degree = any(is_skill_grounded_in_text(mention, edu_text) for mention in degree_mentions)
 
         best_bm_match = 0.0
         for bm in education_benchmarks:
@@ -585,34 +604,49 @@ def evaluate_role_alignment(
     # -------------------------------------------------------------
     cert_text = str(parsed_sections.get("Certifications", "") or parsed_sections.get("Credentials", "") or parsed_sections.get("Licenses", "")).strip()
     if not cert_text:
-        cert_c = [c for c in evidence_chunks if c.section in {"Certifications", "Credentials", "Licenses", "Trainings"}]
+        cert_c = [c for c in evidence_chunks if c.section in {"Certifications", "Credentials", "Licenses"}]
         if cert_c:
             cert_text = " ".join(c.text for c in cert_c)
 
+    cert_text = listed_credentials(cert_text)
     cert_score = 0
-    text_lower = cert_text.lower() if cert_text else ""
     has_any_certs = bool(cert_text and len(cert_text.split()) >= 2)
+
+    has_empty_header_defect = any(
+        sec in (parsed_sections or {}) and not str(parsed_sections[sec]).strip()
+        for sec in ("Certifications", "Credentials", "Licenses")
+    )
+
+    has_verified_finding = any(
+        f.classification in ("STRONG_MATCH", "PARTIAL_MATCH")
+        and any(w in f.competency.lower() for w in ("certified", "solutions architect", "certification", "credential", "license", "aws", "cisco", "comptia"))
+        for f in audited_findings
+    )
 
     matched_benchmarks = 0
     for c_bm in certification_benchmarks:
         c_bm_lower = c_bm.lower()
         bm_toks = [w for w in re.findall(r'\b[a-zA-Z0-9\+\#]+\b', c_bm_lower) if len(w) >= 3 and w not in ("certified", "professional", "certificate", "associate")]
-        if bm_toks and any(tok in text_lower for tok in bm_toks):
+        if bm_toks and any(all(re.search(r"\b" + re.escape(tok) + r"\b", entry.lower()) for tok in bm_toks) for entry in cert_text.splitlines()):
             matched_benchmarks += 1
 
-    has_material_benchmarks = len(certification_benchmarks) > 0
+    has_explicit_benchmarks = len(certification_benchmarks) > 0
 
-    if has_any_certs and matched_benchmarks > 0:
-        cert_score = min(100, 80 + (matched_benchmarks * 10))
-    elif has_any_certs:
+    if has_any_certs and (matched_benchmarks > 0 or has_verified_finding):
+        cert_score = min(100, 80 + max(20, matched_benchmarks * 10))
+    elif has_any_certs and has_explicit_benchmarks:
         cert_score = 65
-    elif not has_material_benchmarks:
-        # If certifications are not an active material benchmark for this role,
-        # cert score naturally tracks candidate's demonstrated profile readiness without artificial floors.
+    elif has_any_certs:
+        cert_score = 85
+    elif has_empty_header_defect:
+        cert_score = 30
+    elif has_explicit_benchmarks:
+        cert_score = 0
+    elif target_position and any(kw in target_position.lower() for kw in ("specialist", "network", "system", "infrastructure", "security", "cloud", "technician")):
+        cert_score = 0
+    else:
         neutral_baseline = round((skills_score * 0.5) + (exp_score * 0.5))
         cert_score = neutral_baseline
-    else:
-        cert_score = 0
     cert_score = min(100, max(0, cert_score))
 
     # -------------------------------------------------------------
@@ -710,7 +744,12 @@ def evaluate_role_alignment(
             quote = f.observedEvidence[:55] + "..." if (f and f.observedEvidence and len(f.observedEvidence) > 55) else f.observedEvidence if (f and f.observedEvidence) else f"{comp_item['name']} practical application"
             if quote and quote not in strongest_evidence:
                 strongest_evidence.append(quote)
-        elif comp_item["status"] in ("NOT_EVIDENCED", "RELATED") and comp_item["isRequired"] and len(areas_with_limited) < 3:
+        elif comp_item["status"] in ("NOT_EVIDENCED", "RELATED") and comp_item["isRequired"] and len(areas_with_limited) < 5:
+            if comp_item["name"] not in areas_with_limited:
+                areas_with_limited.append(comp_item["name"])
+
+    for comp_item in competencies_list:
+        if comp_item["status"] in ("NOT_EVIDENCED", "RELATED") and not comp_item["isRequired"] and len(areas_with_limited) < 5:
             if comp_item["name"] not in areas_with_limited:
                 areas_with_limited.append(comp_item["name"])
 
@@ -791,8 +830,8 @@ def calculate_canonical_resume_score(
     audit_status_metadata: str = "VERIFIED"
 ) -> Dict[str, Any]:
     """
-    Combines role-independent ATS machine-readability (40%) and role-dependent Alignment (60%).
-    Resume Score = round(ATS * 0.40 + Alignment * 0.60)
+    Returns the two-tier Resume Score specified in manuscript section 3.5.1.
+    Role Alignment retains the Skills/Experience/Education/Certifications 40/30/20/10 matrix.
     """
     if recommended_competencies is None:
         recommended_competencies = []
@@ -825,13 +864,11 @@ def calculate_canonical_resume_score(
         role_profile_metadata=role_profile_metadata
     )
 
-    # 3. Authoritative Manuscript Resume Score (Chapter 3, Section 3.3.1, Table 3.2)
-    # The 40/30/20/10 matrix is authoritative: Skills (40%), Experience (30%), Education (20%), Certifications (10%).
-    # ATS Machine Readability is preserved as a separately identified diagnostic metric.
+    # Finalized manuscript section 3.5.1 (PDF p.133): combine the two tiers.
     ats_score = ats_payload["overallScore"]
     align_score = alignment_payload["overallScore"]
 
-    resume_score = align_score
+    resume_score = round(0.40 * ats_score + 0.60 * align_score)
 
     if resume_score >= 85:
         overall_level = "ExcellentMatch"
@@ -849,23 +886,40 @@ def calculate_canonical_resume_score(
         "certifications": alignment_payload["breakdown"]["certifications"]
     }
 
+    # Category C: detected skills outside target profile competencies
+    all_target_lower = {c.lower().strip() for c in (required_competencies or []) + (recommended_competencies or [])}
+    matched_comp_names_lower = {c["name"].lower().strip() for c in alignment_payload["competencies"] if c["status"] == "DEMONSTRATED"}
+    relevant_technical_skills: List[str] = []
+    if detected_skills:
+        for s in detected_skills:
+            s_clean = s.strip()
+            if s_clean.lower() not in all_target_lower and s_clean.lower() not in matched_comp_names_lower:
+                if s_clean not in relevant_technical_skills:
+                    relevant_technical_skills.append(s_clean)
+
+    alignment_summary = alignment_payload.get("alignmentSummary", "")
+    if relevant_technical_skills and alignment_summary:
+        sample_rel = ", ".join(relevant_technical_skills[:2])
+        if "Shows technical breadth in" not in alignment_summary:
+            alignment_summary = f"{alignment_summary} Shows technical breadth in {sample_rel}."
+
     legacy_role_relevance = {
-        "alignmentPercentage": align_score,
+        "alignmentPercentage": alignment_payload["breakdown"]["skillsMatch"]["rawScore"],
         "matchedCompetencies": [c["name"] for c in alignment_payload["competencies"] if c["status"] == "DEMONSTRATED"],
         "transferableCompetencies": [c["name"] for c in alignment_payload["competencies"] if c["status"] == "RELATED"],
+        "relevantTechnicalSkills": relevant_technical_skills,
         "priorityGaps": alignment_payload["priorityGaps"],
-        "alignmentSummary": alignment_payload["alignmentSummary"],
-        "breakdown": legacy_resume_score_breakdown
+        "alignmentSummary": alignment_summary
     }
 
     return {
-        "scoringModelVersion": "3.0.0-canonical",
+        "scoringModelVersion": SCORING_MODEL_VERSION,
         "resumeScore": {
             "overallScore": resume_score,
             "level": overall_level,
-            "atsContribution": round(ats_score * 0.40, 1),
-            "alignmentContribution": round(align_score * 0.60, 1),
-            "formula": "Resume Score = round(Skills × 0.40 + Experience × 0.30 + Education × 0.20 + Certifications × 0.10)",
+            "atsContribution": round(0.40 * ats_score, 2),
+            "alignmentContribution": round(0.60 * align_score, 2),
+            "formula": RESUME_SCORE_FORMULA,
             "total": resume_score,
             "breakdown": legacy_resume_score_breakdown,
             "diagnosticAtsScore": ats_score
@@ -885,9 +939,10 @@ def calculate_canonical_resume_score(
         "alignmentScore": alignment_payload,
         "overallScore": resume_score,
         "traceability": {
-            "scoringModelVersion": "3.0.0-canonical",
+            "scoringModelVersion": SCORING_MODEL_VERSION,
+            "scoringEngineVersion": "4.0.0-decoupled-ats-alignment",
             "auditStatus": audit_status_metadata,
-            "formula": "Resume Score = round(Skills × 0.40 + Experience × 0.30 + Education × 0.20 + Certifications × 0.10)",
+            "formula": RESUME_SCORE_FORMULA,
             "roleProfileId": (role_profile_metadata or {}).get("roleProfileId", f"static_{target_position.lower().replace(' ', '_')}"),
             "roleProfileVersion": (role_profile_metadata or {}).get("roleProfileVersion", "1.0.0"),
             "profileSource": (role_profile_metadata or {}).get("profileSource", "AUTHORITATIVE_STATIC"),
@@ -930,9 +985,17 @@ def calculate_official_ats_score(
         audit_status_metadata=audit_status_metadata
     )
 
-    ats_payload = canonical_result["atsScore"]
+    ats_score_val = canonical_result["atsScore"]["overallScore"]
+    ats_level_val = canonical_result["atsScore"]["level"]
+
+    ats_payload = dict(canonical_result["atsScore"])
+    ats_payload["overallScore"] = ats_score_val
+    ats_payload["level"] = ats_level_val
+    ats_payload["parseabilityLevel"] = ats_level_val
     ats_payload["resumeScore"] = canonical_result["resumeScore"]
     ats_payload["traceability"] = canonical_result["traceability"]
     ats_payload["alignmentScore"] = canonical_result["alignmentScore"]
     ats_payload["canonicalResumeScore"] = canonical_result["resumeScore"]["overallScore"]
+    ats_payload["diagnosticAtsScore"] = ats_score_val
+    ats_payload["roleRelevance"] = canonical_result["atsScore"]["roleRelevance"]
     return ats_payload

@@ -322,3 +322,17 @@ describe('Resume Upload Session Isolation & Publication Gate Unit Tests', () => 
     expect(useResumeStoreActual.getState().currentAnalysisSessionId).toBe('session_94');
   });
 });
+
+describe('stored resume read isolation',()=>{
+  test('an older fetch cannot replace a newer active resume for the same account',async()=>{
+    const service=require('./resumeService');
+    let finishOlder: (value: any)=>void=()=>{};
+    service.fetchActiveResumeFromDb.mockImplementationOnce(()=>new Promise(resolve=>{finishOlder=resolve}));
+    service.fetchActiveResumeFromDb.mockResolvedValueOnce({resumeId:'synthetic-newer',rawText:'Synthetic newer document'});
+    const older=useResumeStoreActual.getState().fetchActiveResume('user_test_123','synthetic-older');
+    await useResumeStoreActual.getState().fetchActiveResume('user_test_123','synthetic-newer');
+    finishOlder({resumeId:'synthetic-older',rawText:'Synthetic older document'});
+    await older;
+    expect(useResumeStoreActual.getState().activeResume?.resumeId).toBe('synthetic-newer');
+  });
+});

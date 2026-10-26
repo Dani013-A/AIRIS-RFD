@@ -1,23 +1,7 @@
+import reviewedResources from "./reviewedLearningResources.json";
 import { LearningResource } from "../types/learning.types";
 
-/**
- * Authoritative, human-curated catalog of verified real learning resources.
- * Contains:
- * 1. Generic Interview preparation materials (STAR method, behavioral, mock interviews, videos)
- * 2. Generic Resume writing materials (Purdue OWL, UC Berkeley, MIT, templates, tutorials)
- * 3. Generic Professional Communication materials (Stanford Talk Smart, public speaking, active listening)
- * 4. High-impact Career & Skill Gap materials across:
- *    - Data Analytics & BI
- *    - Cybersecurity & Infosec
- *    - Software Engineering (Frontend, Backend, Full-Stack)
- *    - Cloud & DevOps
- *    - AI, Machine Learning & Data Science
- *    - Mobile Development
- *    - QA & Test Automation
- *    - UI/UX Design
- *    - Database Administration & Networking
- *    - Seminars & Tech Conferences
- */
+/** Historical candidates remain for stable IDs. Only dated source-reviewed records are published. */
 const CATALOG_RESOURCES: LearningResource[] = [
   // ==========================================
   // 1. INTERVIEWS CATEGORY (Generic Prep)
@@ -4670,33 +4654,17 @@ const RETIRED_BROKEN_RESOURCE_IDS = new Set([
   "practice_investopedia_dcf_guide_01",
 ]);
 
-// These entries point to a different resource type, an outdated version, or a duplicate destination.
-const RETIRED_MISLABELED_RESOURCE_IDS = new Set([
-  "cert_comptia_network_plus_01",
-  "course_comptia_a_plus_core_hardware_01",
-  "cert_ncees_fe_electrical_01",
-  "cert_ncees_fe_chemical_01",
-  "practice_inventory_routing_excel_lab_01",
-  "cert_deped_let_review_01",
-  "practice_deped_lesson_plan_guide_01",
-  "cert_purdue_academic_writing_cert_01",
-  "practice_value_stream_mapping_01",
-  "practice_hr_job_description_builder_01",
-  "practice_google_ads_conversion_lab_01",
-  "practice_unreal_engine_beginner_lab_01",
-  "course_mit_supply_chain_micromasters_01",
-]);
+const reviewed = reviewedResources as LearningResource[];
+const reviewedById = new Map(reviewed.map(resource => [resource.id, resource]));
 
-export const VERIFIED_LEARNING_CATALOG: LearningResource[] = CATALOG_RESOURCES.map((resource) => {
-  if (RETIRED_BROKEN_RESOURCE_IDS.has(resource.id)) {
-    return { ...resource, isVerified: false, isActive: false, verificationStatus: "broken" };
-  }
-  if (RETIRED_MISLABELED_RESOURCE_IDS.has(resource.id)) {
-    return { ...resource, isVerified: false, isActive: false, verificationStatus: "review_required" };
-  }
-  // Generic stock photos misrepresent unrelated courses; use a resource-specific text preview instead.
-  if (resource.thumbnailUrl?.startsWith("https://images.unsplash.com/")) {
-    return { ...resource, thumbnailUrl: undefined };
-  }
-  return resource;
-});
+// Unreviewed historical entries stay addressable but cannot be published or recommended.
+export const VERIFIED_LEARNING_CATALOG: LearningResource[] = [
+  ...CATALOG_RESOURCES.map(resource => reviewedById.get(resource.id) || {
+    ...resource,
+    thumbnailUrl: undefined,
+    isActive: false,
+    isVerified: false,
+    verificationStatus: RETIRED_BROKEN_RESOURCE_IDS.has(resource.id) ? "broken" as const : "review_required" as const,
+  }),
+  ...reviewed.filter(resource => !CATALOG_RESOURCES.some(old => old.id === resource.id)),
+];

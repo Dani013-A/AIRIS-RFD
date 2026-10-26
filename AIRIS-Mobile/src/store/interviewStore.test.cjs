@@ -24,6 +24,7 @@ const { useInterviewStore } = require("./interviewStore.ts");
 
 function seedSession() {
   useInterviewStore.getState().initializeSession({
+    sessionId: "a".repeat(32),
     userId: "qa-user",
     targetRole: "Full Stack Developer",
     program: "BSIT",
@@ -110,7 +111,7 @@ test("Q9 is the ninth scored answer; Q10 closes once without accepting a tenth a
   assert.equal(useInterviewStore.getState().status, "evaluating");
   assert.equal(useInterviewStore.getState().session, completed);
   assert.equal(completed.finalReport, undefined);
-  useInterviewStore.getState().setFinalReport({overallPerformance: 73});
+  useInterviewStore.getState().setFinalReport({overallPerformance:73,persisted:true,status:"completed",reportId:"a".repeat(32),sessionId:"a".repeat(32),completedAt:123});
   assert.equal(useInterviewStore.getState().status, "completed");
   assert.equal(completed.history.length, 9);
 });
@@ -141,4 +142,66 @@ test("unclear retries preserve the scored question, category and semantic benchm
   assert.equal(session.evaluations.length, 1);
   assert.equal(session.questionsAsked, 2);
   assert.equal(session.currentBenchmarkAnswer, "Next benchmark");
+});
+
+test('revision-checked Q1 to Q3 commits once and rejects delayed duplicates', () => {
+  seedSession();
+  for (let number = 1; number <= 2; number++) {
+    const before = useInterviewStore.getState().session;
+    const expected = { sessionId: before.sessionId, historyLength: before.history.length };
+    const submit = () => useInterviewStore.getState().submitAnswer(`Synthetic answer ${number}`, { overall: 73 }, `Q${number + 1}`, 'behavioral', '', false, false, expected);
+    assert.equal(submit(), true);
+    assert.equal(submit(), false);
+    const after = useInterviewStore.getState().session;
+    assert.equal(after.currentQuestion, `Q${number + 1}`);
+    assert.equal(after.history.length, number);
+    assert.equal(after.evaluations.length, number);
+  }
+});
+
+test('invalid evaluation can be retried at the same revision without losing or advancing history', () => {
+  seedSession();
+  const before = useInterviewStore.getState().session;
+  const expected = { sessionId: before.sessionId, historyLength: 0 };
+  assert.equal(useInterviewStore.getState().submitAnswer('Retained synthetic answer', null, 'Q2', 'behavioral', '', false, false, expected), false);
+  assert.equal(useInterviewStore.getState().session, before);
+  assert.equal(useInterviewStore.getState().submitAnswer('Retained synthetic answer', {overall: 73}, 'Q2', 'behavioral', '', false, false, expected), true);
+});
+
+test('response from a previous mode or stopped session cannot change a new session', () => {
+  seedSession();
+  const previous = useInterviewStore.getState().session;
+  useInterviewStore.getState().resetSessionForNewInterview('panel');
+  const current = useInterviewStore.getState().session;
+  assert.equal(useInterviewStore.getState().submitAnswer('Old answer', {overall: 73}, 'Old Q2', 'behavioral', '', false, false, {sessionId: previous.sessionId, historyLength: 0}), false);
+  assert.equal(useInterviewStore.getState().session, current);
+});
+
+test('accepted audio telemetry survives into report history',()=>{
+ seedSession();
+ const metrics={totalPauseDuration:2,pauseCount:1,pausePeriodEquivalent:2,longestPause:2,averagePauseDuration:2};
+ useInterviewStore.getState().submitAnswer('Synthetic spoken answer.',{overall:80},'Next question','goals','Reference',false,false,undefined,metrics);
+ assert.deepEqual(useInterviewStore.getState().session.history[0].pauseMetrics,metrics);
+});
+
+test('cancellation invalidates closing, late answers and final reports',()=>{
+ seedSession();
+ const snapshot=useInterviewStore.getState().session;
+ useInterviewStore.getState().clearSession();
+ assert.equal(useInterviewStore.getState().submitAnswer('Late synthetic answer',{overall:80},undefined,undefined,undefined,false,false,{sessionId:snapshot.sessionId,historyLength:0}),false);
+ useInterviewStore.getState().completeClosing();
+ useInterviewStore.getState().setFinalReport({overallPerformance:80});
+ assert.equal(useInterviewStore.getState().session,null);
+ assert.equal(useInterviewStore.getState().status,'setup');
+});
+
+test('an evaluated local session cannot manufacture a completed report receipt',()=>{
+ seedSession();
+ for(let n=1;n<=9;n++)useInterviewStore.getState().submitAnswer('Synthetic answer',{overall:73},n===9?'Closing':`Q${n+1}`,n===9?'closing':'behavioral');
+ useInterviewStore.getState().completeClosing();
+ for(const receipt of [{overallPerformance:73},{overallPerformance:73,persisted:true,completedAt:123}]){
+  useInterviewStore.getState().setFinalReport(receipt);
+  assert.equal(useInterviewStore.getState().status,'evaluating');
+  assert.equal(useInterviewStore.getState().session.finalReport,undefined);
+ }
 });

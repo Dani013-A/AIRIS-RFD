@@ -155,7 +155,7 @@ function ReportsPageContent() {
         { label: "Registered", value: funnel.registeredCount },
         { label: "Resume Analyzed", value: funnel.resumeAnalyzedCount },
         { label: "Interview Done", value: funnel.interviewCompletedCount },
-        { label: "Fully Prepared", value: funnel.fullyPreparedCount },
+        { label: "Evaluation Complete", value: funnel.fullyPreparedCount },
       ],
     },
     {
@@ -164,7 +164,7 @@ function ReportsPageContent() {
       title: "Career Center Completion Pipeline",
       question: "How far have students progressed through the 6-stage preparation funnel and where is the drop-off?",
       description:
-        "Stage-by-stage progression from initial registration to fully prepared status, tracking drop-offs and stage conversion rates.",
+        "Stage-by-stage progression from initial registration to evaluation complete status, tracking drop-offs and stage conversion rates.",
       icon: TrendingUp,
       preview: [
         { label: "Participants", value: funnel.registeredCount },

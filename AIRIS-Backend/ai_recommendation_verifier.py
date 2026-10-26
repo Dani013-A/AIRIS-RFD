@@ -5,6 +5,7 @@ external network reachability, gap-first conditioning, and quota bounds.
 """
 
 import os
+import hashlib
 import re
 import json
 import time
@@ -49,6 +50,8 @@ TRUSTED_DOMAINS = {
     "stanford.edu",
     "harvard.edu",
     "berkeley.edu",
+    "purdue.edu", "openstax.org", "who.int", "autodesk.com", "mathworks.com",
+    "lean.org", "opm.gov", "react.dev", "python.org", "pydata.org", "postgresql.org", "owasp.org", "unity.com", "hubspot.com", "figma.com", "cypress.io", "ansible.com", "use-the-index-luke.com",
 }
 
 DISALLOWED_DOMAINS = {
@@ -178,14 +181,14 @@ def verify_external_resource_url(url: str, timeout: float = 5.0, max_redirects: 
     if not (url_clean.startswith("https://") or url_clean.startswith("http://")):
         return {"status": "invalid_protocol", "verified": False, "reason": "Requires HTTP/HTTPS"}
 
-    for dis in DISALLOWED_DOMAINS:
-        if dis in url_clean.lower():
-            return {"status": "disallowed_domain", "verified": False, "reason": f"Disallowed search/shortener pattern: {dis}"}
-
     parsed = urllib.parse.urlparse(url_clean)
-    host = parsed.hostname or ""
-    if not host:
-        return {"status": "invalid_host", "verified": False, "reason": "Missing hostname"}
+    host = (parsed.hostname or "").lower().removeprefix("www.")
+    if not host or parsed.username or parsed.password:
+        return {"status": "invalid_host", "verified": False, "reason": "Missing hostname or URL credentials"}
+    for blocked in DISALLOWED_DOMAINS:
+        domain, _, prefix = blocked.partition("/")
+        if (host == domain or host.endswith("." + domain)) and (not prefix or parsed.path.startswith("/" + prefix)):
+            return {"status": "disallowed_domain", "verified": False, "reason": "Search or shortener destination"}
 
     if not is_domain_trusted(host):
         return {"status": "domain_mismatch", "verified": False, "reason": f"Host '{host}' not in trusted educational registry"}
@@ -206,7 +209,7 @@ def verify_external_resource_url(url: str, timeout: float = 5.0, max_redirects: 
     redirect_count = 0
     session = requests.Session()
     headers = {
-        "User-Agent": "AIRIS-Educational-Verification-Bot/2.0 (+https://airis.edu.ph/bot)",
+        "User-Agent": "AIRIS-Learning-Link-Audit/1.0",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
     }
 
@@ -265,10 +268,11 @@ def verify_external_resource_url(url: str, timeout: float = 5.0, max_redirects: 
 _BOUNDED_RECOMMENDATION_CACHE: Dict[str, List[Dict[str, Any]]] = {}
 _MAX_CACHE_ENTRIES = 200
 
-def _get_cache_key(target_position: str, priority_gaps: List[str]) -> str:
+def _get_cache_key(target_position: str, priority_gaps: List[str], degree_program: str = "", raw_text: str = "", curated_catalog=None) -> str:
     norm_pos = target_position.strip().lower()
     norm_gaps = ",".join(sorted(g.strip().lower() for g in priority_gaps if g.strip()))
-    return f"{norm_pos}::{norm_gaps}"
+    context = json.dumps([norm_pos, norm_gaps, degree_program, raw_text, curated_catalog], sort_keys=True)
+    return hashlib.sha256(context.encode()).hexdigest()
 
 def generate_and_verify_ai_recommendations(
     target_position: str,
@@ -283,10 +287,10 @@ def generate_and_verify_ai_recommendations(
     Enforces gap-first prompting, quota rules (<=3 certs, <=3 courses, <=3 practice),
     authoritative SSRF and reachability checks, and failure tolerance.
     """
-    if not target_position or not priority_gaps:
+    if not verify_live_network or not target_position or not priority_gaps:
         return []
 
-    cache_key = _get_cache_key(target_position, priority_gaps)
+    cache_key = _get_cache_key(target_position, priority_gaps, degree_program, raw_text, curated_catalog)
     if cache_key in _BOUNDED_RECOMMENDATION_CACHE:
         return _BOUNDED_RECOMMENDATION_CACHE[cache_key]
 
@@ -352,6 +356,11 @@ JSON SCHEMA:
         if not isinstance(cand, dict):
             continue
 
+        from learning_catalog import resolve_resource_candidates
+        reviewed = resolve_resource_candidates([cand])
+        if not reviewed:
+            continue
+        cand = reviewed[0]
         raw_url = str(cand.get("url", "")).strip()
         title = str(cand.get("title", "")).strip()
         provider = str(cand.get("provider", "")).strip()
@@ -399,33 +408,7 @@ JSON SCHEMA:
             continue
         seen_urls.add(canonical_url)
 
-        item_id = f"ai_gen_{int(time.time())}_{len(seen_urls)}"
-        verified_item = {
-            "id": item_id,
-            "title": title,
-            "provider": provider,
-            "description": desc,
-            "type": rtype,
-            "category": "for_you",
-            "careerPaths": [target_position],
-            "skills": cand_skills or priority_gaps[:2],
-            "url": canonical_url,
-            "isVerified": True,
-            "isActive": True,
-            "source": "ai_generated",
-            "verificationStatus": "verified",
-            "priority": 88,
-            "level": "all-levels",
-            "estimatedTime": "Self-paced",
-            "tags": [provider.lower(), rtype],
-            "verification": {
-                "status": "verified",
-                "checkedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                "finalUrl": canonical_url,
-                "providerDomain": urllib.parse.urlparse(canonical_url).hostname or "",
-                "verificationMethod": "backend_ssrf_http_gate"
-            }
-        }
+        verified_item = {**cand, "source": "curated"}
 
         # Enforce quota: up to 3 per category
         if rtype == "certification" and len(verified_certs) < 3:

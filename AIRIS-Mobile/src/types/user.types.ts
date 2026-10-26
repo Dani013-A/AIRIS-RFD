@@ -31,4 +31,5 @@ export interface AppUser {
   isDeleted?: boolean;
   accountState?: "ACTIVE" | "DISABLED" | "DELETED";
   deletedAt?: FieldValue | Timestamp;
+  deletionOrigin?: "SELF" | "ADMIN" | null;
 }

@@ -4,27 +4,27 @@ import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
 import { Alert, TouchableOpacity, View } from "react-native";
 import { Text } from "../ui/AppText";
+import { isValidUrl } from "../../services/learning/catalogValidator";
 import { MatchedResourceItem, ResourceType } from "../../types/learning.types";
 
 interface ResourceCardProps {
   resource: MatchedResourceItem;
-  onPress?: (resource: MatchedResourceItem) => void;
+  onPress?: (resource: MatchedResourceItem) => void | Promise<void>;
 }
 
 export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onPress }) => {
-  const [imageError, setImageError] = useState(false);
+  const [failedThumbnail, setFailedThumbnail] = useState<string | null>(null);
+  const thumbnailKey = `${resource.id}:${resource.thumbnailUrl || ""}`;
+  const imageError = failedThumbnail === thumbnailKey;
 
   const handleOpenLink = async () => {
-    if (onPress) {
-      onPress(resource);
-      return;
-    }
-    if (!resource.url) {
+    if (!isValidUrl(resource.url)) {
       Alert.alert("Resource Unavailable", "No valid URL provided for this resource.");
       return;
     }
     try {
-      await WebBrowser.openBrowserAsync(resource.url);
+      if (onPress) await onPress(resource);
+      else await WebBrowser.openBrowserAsync(resource.url);
     } catch {
       Alert.alert("Link Error", "Could not launch external resource.");
     }
@@ -66,7 +66,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onPress })
           border: "border-amber-200",
           text: "text-amber-700",
           icon: "ribbon" as const,
-          label: "Official Credential",
+          label: "Credential Information",
         };
       case "seminar":
         return {
@@ -74,7 +74,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onPress })
           border: "border-rose-200",
           text: "text-rose-700",
           icon: "calendar" as const,
-          label: "Tech Event / Seminar",
+          label: "Event / Seminar",
         };
       case "guide":
       case "documentation":
@@ -119,7 +119,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onPress })
       }}
     >
       {/* THUMBNAIL / PREVIEW IMAGE CONTAINER */}
-      <View className="w-full h-40 bg-[#F6F8F5] relative items-center justify-center border-b border-[#EAF2F7] overflow-hidden">
+      <TouchableOpacity onPress={handleOpenLink} accessibilityRole="link" accessibilityLabel={`Open ${resource.title}`} className="w-full h-40 bg-[#F6F8F5] relative items-center justify-center border-b border-[#EAF2F7] overflow-hidden">
         {resource.thumbnailUrl && !imageError ? (
           <>
             <Image
@@ -128,7 +128,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onPress })
               contentFit="cover"
               transition={200}
               cachePolicy="memory-disk"
-              onError={() => setImageError(true)}
+              onError={() => setFailedThumbnail(thumbnailKey)}
             />
             <View pointerEvents="none" style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, backgroundColor: "rgba(13,148,136,0.09)" }} />
           </>
@@ -149,10 +149,10 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onPress })
         {/* VERIFIED INDICATOR */}
         {resource.isVerified && (
           <View className="absolute top-2.5 right-2.5 bg-[#D7F1ED]/95 px-2 py-0.5 rounded-full border border-[#79D5C8] flex-row items-center shadow-sm">
-            <Text className="text-[9px] font-extrabold uppercase tracking-widest text-[#1E5D53]">Verified</Text>
+            <Text className="text-[9px] font-extrabold uppercase tracking-widest text-[#1E5D53]">Source reviewed</Text>
           </View>
         )}
-      </View>
+      </TouchableOpacity>
 
       {/* CARD BODY CONTENT */}
       <View className="p-4">
@@ -191,7 +191,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onPress })
 
           {resource.relevanceTier === "TIER_1_DIRECT_GAP" || resource.isPersonalizedGap ? (
             <View className="px-2 py-0.5 rounded-full bg-[#FEF5F1] border border-[#F4A47A]">
-              <Text className="text-[9px] font-extrabold uppercase tracking-wider text-[#CA5D25]">Missing skill</Text>
+              <Text className="text-[9px] font-extrabold uppercase tracking-wider text-[#CA5D25]">Resume evidence gap</Text>
             </View>
           ) : resource.relevanceTier === "TIER_2_ROLE_COMPETENCY" ? (
             <View className="px-2 py-0.5 rounded-full bg-[#EAF2F7] border border-[#BFD6EA]">

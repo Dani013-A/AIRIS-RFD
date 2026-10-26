@@ -1,0 +1,2056 @@
+[
+  {
+    "id": "interview_berkeley_overview",
+    "title": "Interview Process Overview",
+    "provider": "UC Berkeley Career Engagement",
+    "url": "https://career.berkeley.edu/prepare-for-success/interviewing/",
+    "type": "guide",
+    "category": "interviews",
+    "skills": [
+      "interviewing",
+      "preparation",
+      "communication"
+    ],
+    "academicPrograms": [],
+    "careerPaths": [
+      "all career paths"
+    ],
+    "description": "University guidance on preparing for interviews, researching the role, and presenting relevant experience.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "interviewing",
+      "preparation",
+      "communication"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-22T16:11:29+00:00",
+      "sourceUrl": "https://career.berkeley.edu/prepare-for-success/interviewing/",
+      "finalUrl": "https://career.berkeley.edu/prepare-for-success/interviewing/",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Interview Process Overview",
+      "reviewedProvider": "UC Berkeley Career Engagement"
+    },
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+  },
+  {
+    "id": "resume_purdue_owl_handbook",
+    "title": "Résumés and CVs",
+    "provider": "Purdue OWL",
+    "url": "https://owl.purdue.edu/owl/job_search_writing/resumes_and_vitas/index.html",
+    "type": "guide",
+    "category": "resume",
+    "skills": [
+      "resume writing",
+      "resume structure"
+    ],
+    "academicPrograms": [],
+    "careerPaths": [
+      "all career paths"
+    ],
+    "description": "University guidance on resume sections, layout, and tailoring accurate experience to an application.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "resume writing",
+      "resume structure"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-22T16:11:29+00:00",
+      "sourceUrl": "https://owl.purdue.edu/owl/job_search_writing/resumes_and_vitas/index.html",
+      "finalUrl": "https://owl.purdue.edu/owl/job_search_writing/resumes_and_vitas/index.html",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Résumés and CVs",
+      "reviewedProvider": "Purdue OWL"
+    },
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+  },
+  {
+    "id": "comm_purdue_business_writing",
+    "title": "Writing the Basic Business Letter",
+    "provider": "Purdue OWL",
+    "url": "https://owl.purdue.edu/owl/subject_specific_writing/professional_technical_writing/basic_business_letters/index.html",
+    "type": "guide",
+    "category": "communication",
+    "skills": [
+      "business writing",
+      "professional communication",
+      "communication"
+    ],
+    "academicPrograms": [],
+    "careerPaths": [
+      "all career paths"
+    ],
+    "description": "Explains business-letter structure, addresses, salutations, body paragraphs, and closing.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "business writing",
+      "professional communication"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-22T16:11:29+00:00",
+      "sourceUrl": "https://owl.purdue.edu/owl/subject_specific_writing/professional_technical_writing/basic_business_letters/index.html",
+      "finalUrl": "https://owl.purdue.edu/owl/subject_specific_writing/professional_technical_writing/basic_business_letters/index.html",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Writing the Basic Business Letter",
+      "reviewedProvider": "Purdue OWL"
+    },
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+  },
+  {
+    "id": "doc_mdn_javascript_guide",
+    "title": "JavaScript Guide: Introduction",
+    "provider": "MDN Web Docs",
+    "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Introduction",
+    "type": "documentation",
+    "category": "for_you",
+    "skills": [
+      "javascript",
+      "web development"
+    ],
+    "academicPrograms": [
+      "BS Information Technology",
+      "BS Computer Science"
+    ],
+    "careerPaths": [
+      "frontend developer",
+      "full stack developer",
+      "web developer"
+    ],
+    "description": "Introduces JavaScript concepts and explains its relationship to Java and web programming.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "javascript",
+      "web development"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Introduction",
+      "finalUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Introduction",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "JavaScript Guide: Introduction",
+      "reviewedProvider": "MDN Web Docs"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "doc_react_quick_start",
+    "title": "Quick Start",
+    "provider": "React",
+    "url": "https://react.dev/learn",
+    "type": "documentation",
+    "category": "for_you",
+    "skills": [
+      "react",
+      "components",
+      "jsx",
+      "state"
+    ],
+    "academicPrograms": [
+      "BS Information Technology",
+      "BS Computer Science"
+    ],
+    "careerPaths": [
+      "frontend developer",
+      "full stack developer"
+    ],
+    "description": "Official introduction to components, JSX, data, events, and shared state.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "react",
+      "components",
+      "jsx",
+      "state"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://react.dev/learn",
+      "finalUrl": "https://react.dev/learn",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Quick Start",
+      "reviewedProvider": "React"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "doc_python_tutorial",
+    "title": "The Python Tutorial",
+    "provider": "Python Software Foundation",
+    "url": "https://docs.python.org/3/tutorial/",
+    "type": "documentation",
+    "category": "for_you",
+    "skills": [
+      "python",
+      "programming"
+    ],
+    "academicPrograms": [
+      "BS Information Technology",
+      "BS Computer Science",
+      "BS Data Science and Analytics"
+    ],
+    "careerPaths": [
+      "software engineer",
+      "data analyst",
+      "backend developer"
+    ],
+    "description": "Introduces Python language concepts for readers who already have basic programming knowledge.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "python",
+      "programming"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://docs.python.org/3/tutorial/",
+      "finalUrl": "https://docs.python.org/3/tutorial/",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "The Python Tutorial",
+      "reviewedProvider": "Python Software Foundation"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "doc_pandas_user_guide",
+    "title": "pandas User Guide",
+    "provider": "pandas",
+    "url": "https://pandas.pydata.org/docs/user_guide/index.html",
+    "type": "documentation",
+    "category": "for_you",
+    "skills": [
+      "pandas",
+      "python",
+      "data analysis",
+      "data cleaning"
+    ],
+    "academicPrograms": [
+      "BS Data Science and Analytics",
+      "BS Computer Science"
+    ],
+    "careerPaths": [
+      "data analyst",
+      "data scientist"
+    ],
+    "description": "Topic-based reference with examples for data structures, missing data, joins, reshaping, and analysis.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "pandas",
+      "python",
+      "data analysis",
+      "data cleaning"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://pandas.pydata.org/docs/user_guide/index.html",
+      "finalUrl": "https://pandas.pydata.org/docs/user_guide/index.html",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "pandas User Guide",
+      "reviewedProvider": "pandas"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "practice_owasp_top_10",
+    "title": "OWASP Top 10",
+    "provider": "OWASP Foundation",
+    "url": "https://owasp.org/projects/top-ten",
+    "type": "guide",
+    "category": "for_you",
+    "skills": [
+      "application security",
+      "web security"
+    ],
+    "academicPrograms": [
+      "BS Information Technology",
+      "BS Computer Science"
+    ],
+    "careerPaths": [
+      "cybersecurity analyst",
+      "software engineer",
+      "full stack developer"
+    ],
+    "description": "Awareness material describing major web application security risks. It is not a certification.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "application security",
+      "web security"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://owasp.org/projects/top-ten",
+      "finalUrl": "https://owasp.org/projects/top-ten",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "OWASP Top 10",
+      "reviewedProvider": "OWASP Foundation"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "doc_google_cloud_bigquery",
+    "title": "BigQuery documentation",
+    "provider": "Google Cloud",
+    "url": "https://docs.cloud.google.com/bigquery/docs",
+    "type": "documentation",
+    "category": "for_you",
+    "skills": [
+      "bigquery",
+      "sql",
+      "data warehouse"
+    ],
+    "academicPrograms": [
+      "BS Data Science and Analytics",
+      "BS Information Technology"
+    ],
+    "careerPaths": [
+      "data analyst",
+      "data engineer"
+    ],
+    "description": "Official documentation for BigQuery data warehousing and analytics workflows.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "bigquery",
+      "sql",
+      "data warehouse"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://docs.cloud.google.com/bigquery/docs",
+      "finalUrl": "https://docs.cloud.google.com/bigquery/docs",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "BigQuery documentation",
+      "reviewedProvider": "Google Cloud"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "doc_postgresql_tutorial",
+    "title": "PostgreSQL Tutorial",
+    "provider": "PostgreSQL Global Development Group",
+    "url": "https://www.postgresql.org/docs/current/tutorial.html",
+    "type": "documentation",
+    "category": "for_you",
+    "skills": [
+      "postgresql",
+      "sql",
+      "relational databases"
+    ],
+    "academicPrograms": [
+      "BS Information Technology",
+      "BS Computer Science"
+    ],
+    "careerPaths": [
+      "backend developer",
+      "database administrator",
+      "full stack developer"
+    ],
+    "description": "Introduces relational database concepts, SQL queries, and PostgreSQL features.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "postgresql",
+      "sql",
+      "relational databases"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://www.postgresql.org/docs/current/tutorial.html",
+      "finalUrl": "https://www.postgresql.org/docs/current/tutorial.html",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "PostgreSQL Tutorial",
+      "reviewedProvider": "PostgreSQL Global Development Group"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "cert_ms_az900_azure_fundamentals",
+    "title": "Microsoft Certified: Azure Fundamentals",
+    "provider": "Microsoft Learn",
+    "url": "https://learn.microsoft.com/en-us/credentials/certifications/azure-fundamentals/",
+    "type": "certification",
+    "category": "for_you",
+    "skills": [
+      "azure",
+      "cloud computing",
+      "cloud fundamentals"
+    ],
+    "academicPrograms": [
+      "BS Information Technology",
+      "BS Computer Science"
+    ],
+    "careerPaths": [
+      "cloud engineer",
+      "it support specialist",
+      "system administrator"
+    ],
+    "description": "Official credential information and preparation links. Check current exam pricing and requirements with Microsoft.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "azure",
+      "cloud computing",
+      "cloud fundamentals"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://learn.microsoft.com/en-us/credentials/certifications/azure-fundamentals/",
+      "finalUrl": "https://learn.microsoft.com/en-us/credentials/certifications/azure-fundamentals/",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Microsoft Certified: Azure Fundamentals",
+      "reviewedProvider": "Microsoft Learn"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "cert_aws_certified_cloud_practitioner",
+    "title": "AWS Certified Cloud Practitioner",
+    "provider": "AWS",
+    "url": "https://aws.amazon.com/certification/certified-cloud-practitioner/",
+    "type": "certification",
+    "category": "for_you",
+    "skills": [
+      "aws",
+      "cloud computing",
+      "cloud fundamentals"
+    ],
+    "academicPrograms": [
+      "BS Information Technology",
+      "BS Computer Science"
+    ],
+    "careerPaths": [
+      "cloud engineer",
+      "it support specialist",
+      "system administrator"
+    ],
+    "description": "Official foundational AWS credential information. The exam has provider-defined pricing and conditions; the credential is optional learning guidance.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "aws",
+      "cloud computing",
+      "cloud fundamentals"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://aws.amazon.com/certification/certified-cloud-practitioner/",
+      "finalUrl": "https://aws.amazon.com/certification/certified-cloud-practitioner/",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "AWS Certified Cloud Practitioner",
+      "reviewedProvider": "AWS"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback.",
+    "aliases": [
+      "aws certified cloud practitioner",
+      "aws cloud practitioner"
+    ]
+  },
+  {
+    "id": "guide_openstax_business_statistics_2026",
+    "title": "Introductory Business Statistics",
+    "provider": "OpenStax",
+    "url": "https://openstax.org/books/introductory-business-statistics/pages/preface",
+    "type": "guide",
+    "category": "for_you",
+    "skills": [
+      "statistics",
+      "statistical analysis",
+      "business statistics"
+    ],
+    "academicPrograms": [
+      "BS Business Administration",
+      "BS Business Administration major in Financial Management",
+      "BS Industrial Engineering",
+      "Bachelor of Arts in Psychology"
+    ],
+    "careerPaths": [
+      "financial analyst",
+      "business analyst",
+      "industrial engineer",
+      "psychometrician"
+    ],
+    "description": "Open textbook presenting statistical concepts with business examples and exercises.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "statistics",
+      "statistical analysis",
+      "business statistics"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://openstax.org/books/introductory-business-statistics/pages/preface",
+      "finalUrl": "https://openstax.org/books/introductory-business-statistics/pages/preface",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Introductory Business Statistics",
+      "reviewedProvider": "OpenStax"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "guide_openstax_accounting",
+    "title": "Explain the Importance of Accounting and Distinguish between Financial and Managerial Accounting",
+    "provider": "OpenStax",
+    "url": "https://openstax.org/books/principles-financial-accounting/pages/1-1-explain-the-importance-of-accounting-and-distinguish-between-financial-and-managerial-accounting",
+    "type": "guide",
+    "category": "for_you",
+    "skills": [
+      "accounting",
+      "financial accounting",
+      "financial reporting"
+    ],
+    "academicPrograms": [
+      "BS Accountancy",
+      "BS Business Administration major in Financial Management"
+    ],
+    "careerPaths": [
+      "accountant",
+      "bookkeeper",
+      "financial analyst"
+    ],
+    "description": "Introduces the purpose of accounting and distinguishes financial from managerial accounting.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "accounting",
+      "financial accounting",
+      "financial reporting"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://openstax.org/books/principles-financial-accounting/pages/1-1-explain-the-importance-of-accounting-and-distinguish-between-financial-and-managerial-accounting",
+      "finalUrl": "https://openstax.org/books/principles-financial-accounting/pages/1-1-explain-the-importance-of-accounting-and-distinguish-between-financial-and-managerial-accounting",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Explain the Importance of Accounting and Distinguish between Financial and Managerial Accounting",
+      "reviewedProvider": "OpenStax"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "guide_who_psychological_first_aid_2026",
+    "title": "Psychological first aid: Guide for field workers",
+    "provider": "World Health Organization",
+    "url": "https://www.who.int/publications/i/item/9789241548205",
+    "type": "guide",
+    "category": "for_you",
+    "skills": [
+      "psychological first aid",
+      "supportive communication",
+      "crisis support"
+    ],
+    "academicPrograms": [
+      "Bachelor of Arts in Psychology"
+    ],
+    "careerPaths": [
+      "community support worker",
+      "psychology assistant"
+    ],
+    "description": "Guidance on humane and practical support after distressing events; not a clinical qualification.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "psychological first aid",
+      "supportive communication",
+      "crisis support"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://www.who.int/publications/i/item/9789241548205",
+      "finalUrl": "https://www.who.int/publications/i/item/9789241548205",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Psychological first aid: Guide for field workers",
+      "reviewedProvider": "World Health Organization"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "tutorial_autodesk_revit_essential_skills_2026",
+    "title": "Revit Essential Skills",
+    "provider": "Autodesk",
+    "url": "https://www.autodesk.com/learn/ondemand/curated/revit-essential-skills",
+    "type": "course",
+    "category": "for_you",
+    "skills": [
+      "revit",
+      "bim",
+      "building information modeling"
+    ],
+    "academicPrograms": [
+      "BS Architecture",
+      "BS Civil Engineering"
+    ],
+    "careerPaths": [
+      "architect",
+      "cad/bim specialist",
+      "bim modeler",
+      "civil engineer"
+    ],
+    "description": "Provider tutorials introducing essential Revit workflows. Access to software may have separate conditions.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "revit",
+      "bim",
+      "building information modeling"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://www.autodesk.com/learn/ondemand/curated/revit-essential-skills",
+      "finalUrl": "https://www.autodesk.com/learn/ondemand/curated/revit-essential-skills",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Revit Essential Skills",
+      "reviewedProvider": "Autodesk"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "course_chemical_reaction_eng_01",
+    "title": "Chemical and Biological Reaction Engineering",
+    "provider": "MIT OpenCourseWare",
+    "url": "https://ocw.mit.edu/courses/10-37-chemical-and-biological-reaction-engineering-spring-2007/",
+    "type": "course",
+    "category": "for_you",
+    "skills": [
+      "chemical reaction engineering",
+      "reactor design",
+      "chemical kinetics"
+    ],
+    "academicPrograms": [
+      "BS Chemical Engineering"
+    ],
+    "careerPaths": [
+      "chemical engineer",
+      "process engineer"
+    ],
+    "description": "Undergraduate course materials on reaction kinetics and reactor analysis from the Spring 2007 course.",
+    "level": "intermediate",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "chemical reaction engineering",
+      "reactor design",
+      "chemical kinetics"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://ocw.mit.edu/courses/10-37-chemical-and-biological-reaction-engineering-spring-2007/",
+      "finalUrl": "https://ocw.mit.edu/courses/10-37-chemical-and-biological-reaction-engineering-spring-2007/",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Chemical and Biological Reaction Engineering",
+      "reviewedProvider": "MIT OpenCourseWare"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "practice_matlab_simulink_circuit_01",
+    "title": "Simulink Onramp",
+    "provider": "MathWorks",
+    "url": "https://matlabacademy.mathworks.com/details/simulink-onramp/simulink",
+    "type": "course",
+    "category": "for_you",
+    "skills": [
+      "simulink",
+      "simulation",
+      "modeling"
+    ],
+    "academicPrograms": [
+      "BS Electrical Engineering",
+      "BS Electronics Engineering",
+      "BS Mechanical Engineering",
+      "BS Computer Engineering"
+    ],
+    "careerPaths": [
+      "electrical engineer",
+      "electronics engineer",
+      "control systems engineer",
+      "mechanical engineer"
+    ],
+    "description": "Self-paced introduction to the Simulink graphical environment and simulations. Check account/software requirements.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "simulink",
+      "simulation",
+      "modeling"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://matlabacademy.mathworks.com/details/simulink-onramp/simulink",
+      "finalUrl": "https://matlabacademy.mathworks.com/details/simulink-onramp/simulink",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Simulink Onramp",
+      "reviewedProvider": "MathWorks"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "practice_lei_value_stream_mapping_01",
+    "title": "Value Stream Mapping",
+    "provider": "Lean Enterprise Institute",
+    "url": "https://www.lean.org/lexicon-terms/value-stream-mapping/",
+    "type": "guide",
+    "category": "for_you",
+    "skills": [
+      "value stream mapping",
+      "lean manufacturing",
+      "process improvement"
+    ],
+    "academicPrograms": [
+      "BS Industrial Engineering",
+      "BS Business Administration major in Logistics and Supply Chain Management"
+    ],
+    "careerPaths": [
+      "industrial engineer",
+      "process improvement engineer",
+      "supply chain analyst"
+    ],
+    "description": "Explains current and future state value-stream maps and material/information flow in continuous improvement.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "value stream mapping",
+      "lean manufacturing",
+      "process improvement"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://www.lean.org/lexicon-terms/value-stream-mapping/",
+      "finalUrl": "https://www.lean.org/lexicon-terms/value-stream-mapping/",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Value Stream Mapping",
+      "reviewedProvider": "Lean Enterprise Institute"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "practice_opm_job_analysis_guide_01",
+    "title": "Job Analysis",
+    "provider": "U.S. Office of Personnel Management",
+    "url": "https://www.opm.gov/policy-data-oversight/assessment-and-selection/job-analysis/",
+    "type": "guide",
+    "category": "for_you",
+    "skills": [
+      "job analysis",
+      "competency modeling",
+      "recruitment"
+    ],
+    "academicPrograms": [
+      "BS Business Administration major in Human Resource Management",
+      "Bachelor of Arts in Psychology"
+    ],
+    "careerPaths": [
+      "hr specialist",
+      "hr generalist",
+      "talent acquisition specialist"
+    ],
+    "description": "Explains analysis of job tasks and competencies for assessment and selection. U.S. guidance is not Philippine employment law.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "job analysis",
+      "competency modeling",
+      "recruitment"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://www.opm.gov/policy-data-oversight/assessment-and-selection/job-analysis/",
+      "finalUrl": "https://www.opm.gov/policy-data-oversight/assessment-and-selection/job-analysis/",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Job Analysis",
+      "reviewedProvider": "U.S. Office of Personnel Management"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "course_hubspot_inbound_marketing_01",
+    "title": "Inbound Marketing Certification Course",
+    "provider": "HubSpot Academy",
+    "url": "https://academy.hubspot.com/courses/inbound-marketing",
+    "type": "course",
+    "category": "for_you",
+    "skills": [
+      "inbound marketing",
+      "content marketing",
+      "lead nurturing"
+    ],
+    "academicPrograms": [
+      "BS Business Administration major in Marketing Management"
+    ],
+    "careerPaths": [
+      "marketing specialist",
+      "digital marketing officer",
+      "brand associate"
+    ],
+    "description": "Provider course on attracting customers through relevant content and lead nurturing; account registration is offered by the provider.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "inbound marketing",
+      "content marketing",
+      "lead nurturing"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://academy.hubspot.com/courses/inbound-marketing",
+      "finalUrl": "https://academy.hubspot.com/courses/inbound-marketing",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Inbound Marketing Certification Course",
+      "reviewedProvider": "HubSpot Academy"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "course_supply_chain_logistics_01",
+    "title": "Supply Chain Logistics",
+    "provider": "Rutgers University via Coursera",
+    "url": "https://www.coursera.org/learn/supply-chain-logistics",
+    "type": "course",
+    "category": "for_you",
+    "skills": [
+      "logistics",
+      "inventory management",
+      "warehouse operations",
+      "transportation"
+    ],
+    "academicPrograms": [
+      "BS Business Administration major in Logistics and Supply Chain Management",
+      "BS Industrial Engineering"
+    ],
+    "careerPaths": [
+      "logistics coordinator",
+      "supply chain analyst",
+      "inventory planner"
+    ],
+    "description": "Beginner course covering transportation, inventory, and warehousing. Enrollment and payment options vary.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "logistics",
+      "inventory management",
+      "warehouse operations",
+      "transportation"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://www.coursera.org/learn/supply-chain-logistics",
+      "finalUrl": "https://www.coursera.org/learn/supply-chain-logistics",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Supply Chain Logistics",
+      "reviewedProvider": "Rutgers University via Coursera"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "course_mit_solid_mechanics",
+    "title": "Solid Mechanics: Lecture Notes",
+    "provider": "MIT OpenCourseWare",
+    "url": "https://ocw.mit.edu/courses/1-050-solid-mechanics-fall-2004/pages/lecture-notes/",
+    "type": "documentation",
+    "category": "for_you",
+    "skills": [
+      "solid mechanics",
+      "statics",
+      "structural analysis"
+    ],
+    "academicPrograms": [
+      "BS Civil Engineering",
+      "BS Mechanical Engineering"
+    ],
+    "careerPaths": [
+      "civil engineer",
+      "structural engineer",
+      "mechanical engineer"
+    ],
+    "description": "Lecture notes and exercises from the Fall 2004 solid mechanics course.",
+    "level": "intermediate",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "solid mechanics",
+      "statics",
+      "structural analysis"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://ocw.mit.edu/courses/1-050-solid-mechanics-fall-2004/pages/lecture-notes/",
+      "finalUrl": "https://ocw.mit.edu/courses/1-050-solid-mechanics-fall-2004/pages/lecture-notes/",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Solid Mechanics: Lecture Notes",
+      "reviewedProvider": "MIT OpenCourseWare"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "course_mit_circuits",
+    "title": "Circuits and Electronics",
+    "provider": "MIT OpenCourseWare",
+    "url": "https://ocw.mit.edu/courses/6-002-circuits-and-electronics-spring-2007/",
+    "type": "course",
+    "category": "for_you",
+    "skills": [
+      "circuits",
+      "electronics",
+      "circuit analysis"
+    ],
+    "academicPrograms": [
+      "BS Electrical Engineering",
+      "BS Electronics Engineering",
+      "BS Computer Engineering"
+    ],
+    "careerPaths": [
+      "electrical engineer",
+      "electronics engineer",
+      "computer engineer"
+    ],
+    "description": "Undergraduate course material on circuits and electronics from Spring 2007.",
+    "level": "intermediate",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "circuits",
+      "electronics",
+      "circuit analysis"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://ocw.mit.edu/courses/6-002-circuits-and-electronics-spring-2007/",
+      "finalUrl": "https://ocw.mit.edu/courses/6-002-circuits-and-electronics-spring-2007/",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Circuits and Electronics",
+      "reviewedProvider": "MIT OpenCourseWare"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "course_mit_dynamics",
+    "title": "Engineering Dynamics",
+    "provider": "MIT OpenCourseWare",
+    "url": "https://ocw.mit.edu/courses/2-003sc-engineering-dynamics-fall-2011/pages/",
+    "type": "course",
+    "category": "for_you",
+    "skills": [
+      "dynamics",
+      "engineering mechanics",
+      "mechanical modeling"
+    ],
+    "academicPrograms": [
+      "BS Mechanical Engineering"
+    ],
+    "careerPaths": [
+      "mechanical engineer",
+      "mechanical design engineer"
+    ],
+    "description": "Course materials from Fall 2011 on engineering dynamics.",
+    "level": "intermediate",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "dynamics",
+      "engineering mechanics",
+      "mechanical modeling"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://ocw.mit.edu/courses/2-003sc-engineering-dynamics-fall-2011/pages/",
+      "finalUrl": "https://ocw.mit.edu/courses/2-003sc-engineering-dynamics-fall-2011/pages/",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Engineering Dynamics",
+      "reviewedProvider": "MIT OpenCourseWare"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "course_unity_essentials",
+    "title": "Unity Essentials",
+    "provider": "Unity Learn",
+    "url": "https://learn.unity.com/pathway/unity-essentials",
+    "type": "course",
+    "category": "for_you",
+    "skills": [
+      "unity",
+      "game development",
+      "unity editor"
+    ],
+    "academicPrograms": [
+      "BS Entertainment and Multimedia Computing"
+    ],
+    "careerPaths": [
+      "game developer",
+      "game designer",
+      "unity / unreal engine developer"
+    ],
+    "description": "Guided beginner pathway introducing skills for creating with the Unity Editor.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "unity",
+      "game development",
+      "unity editor"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://learn.unity.com/pathway/unity-essentials",
+      "finalUrl": "https://learn.unity.com/pathway/unity-essentials",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Unity Essentials",
+      "reviewedProvider": "Unity Learn"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "guide_openstax_psychology",
+    "title": "Psychology 2e: Introduction",
+    "provider": "OpenStax",
+    "url": "https://openstax.org/books/psychology-2e/pages/1-introduction",
+    "type": "guide",
+    "category": "for_you",
+    "skills": [
+      "psychology",
+      "behavioral science"
+    ],
+    "academicPrograms": [
+      "Bachelor of Arts in Psychology"
+    ],
+    "careerPaths": [
+      "psychology assistant",
+      "psychometrician",
+      "behavioral research assistant"
+    ],
+    "description": "Introduces psychology and links to its history, contemporary fields, and careers.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "psychology",
+      "behavioral science"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://openstax.org/books/psychology-2e/pages/1-introduction",
+      "finalUrl": "https://openstax.org/books/psychology-2e/pages/1-introduction",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Psychology 2e: Introduction",
+      "reviewedProvider": "OpenStax"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "guide_openstax_finance",
+    "title": "What Is Finance?",
+    "provider": "OpenStax",
+    "url": "https://openstax.org/books/principles-finance/pages/1-1-what-is-finance",
+    "type": "guide",
+    "category": "for_you",
+    "skills": [
+      "finance",
+      "financial analysis",
+      "investments"
+    ],
+    "academicPrograms": [
+      "BS Business Administration major in Financial Management",
+      "BS Accountancy"
+    ],
+    "careerPaths": [
+      "financial analyst",
+      "banking associate",
+      "investment analyst"
+    ],
+    "description": "Introduces business finance, investments, financial markets, and institutions.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "finance",
+      "financial analysis",
+      "investments"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:27:34.702211+00:00",
+      "sourceUrl": "https://openstax.org/books/principles-finance/pages/1-1-what-is-finance",
+      "finalUrl": "https://openstax.org/books/principles-finance/pages/1-1-what-is-finance",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "What Is Finance?",
+      "reviewedProvider": "OpenStax"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "doc_cypress_testing_docs",
+    "title": "Why Cypress?",
+    "provider": "Cypress",
+    "url": "https://docs.cypress.io/app/get-started/why-cypress",
+    "type": "documentation",
+    "category": "for_you",
+    "skills": [
+      "cypress",
+      "automated testing",
+      "end-to-end testing"
+    ],
+    "academicPrograms": [
+      "BS Information Technology",
+      "BS Computer Science"
+    ],
+    "careerPaths": [
+      "qa engineer",
+      "qa / software tester",
+      "software test engineer"
+    ],
+    "description": "Official overview of Cypress end-to-end, component, and accessibility testing.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "cypress",
+      "automated testing",
+      "end-to-end testing"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:50:47.597044+00:00",
+      "sourceUrl": "https://docs.cypress.io/app/get-started/why-cypress",
+      "finalUrl": "https://docs.cypress.io/app/get-started/why-cypress",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Why Cypress?",
+      "reviewedProvider": "Cypress"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "doc_figma_auto_layout",
+    "title": "Guide to auto layout in Figma",
+    "provider": "Figma",
+    "url": "https://help.figma.com/hc/en-us/articles/360040451373-Guide-to-auto-layout-in-Figma",
+    "type": "documentation",
+    "category": "for_you",
+    "skills": [
+      "figma",
+      "ui design",
+      "responsive design",
+      "auto layout"
+    ],
+    "academicPrograms": [
+      "BS Information Technology",
+      "BS Computer Science"
+    ],
+    "careerPaths": [
+      "ui/ux designer",
+      "ui designer",
+      "product designer"
+    ],
+    "description": "Explains responsive frames, components, layout flows, and spacing in Figma.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "figma",
+      "ui design",
+      "responsive design",
+      "auto layout"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:50:47.597044+00:00",
+      "sourceUrl": "https://help.figma.com/hc/en-us/articles/360040451373-Guide-to-auto-layout-in-Figma",
+      "finalUrl": "https://help.figma.com/hc/en-us/articles/360040451373-Guide-to-auto-layout-in-Figma",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Guide to auto layout in Figma",
+      "reviewedProvider": "Figma"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "doc_ansible_getting_started",
+    "title": "Getting started with Ansible",
+    "provider": "Ansible Community",
+    "url": "https://docs.ansible.com/projects/ansible/latest/getting_started/index.html",
+    "type": "documentation",
+    "category": "for_you",
+    "skills": [
+      "ansible",
+      "automation",
+      "linux",
+      "configuration management"
+    ],
+    "academicPrograms": [
+      "BS Information Technology",
+      "BS Computer Science"
+    ],
+    "careerPaths": [
+      "information technology specialist",
+      "system administrator",
+      "devops specialist",
+      "devops engineer"
+    ],
+    "description": "Introduces control nodes, inventory, managed nodes, and playbooks for system automation.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "ansible",
+      "automation",
+      "linux",
+      "configuration management"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:50:47.597044+00:00",
+      "sourceUrl": "https://docs.ansible.com/projects/ansible/latest/getting_started/index.html",
+      "finalUrl": "https://docs.ansible.com/projects/ansible/latest/getting_started/index.html",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Getting started with Ansible",
+      "reviewedProvider": "Ansible Community"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "doc_use_the_index_luke",
+    "title": "SQL Performance Explained: Annotated Contents",
+    "provider": "Markus Winand — Use The Index, Luke!",
+    "url": "https://use-the-index-luke.com/sql/table-of-contents",
+    "type": "guide",
+    "category": "for_you",
+    "skills": [
+      "sql",
+      "sql tuning",
+      "query optimization",
+      "indexing"
+    ],
+    "academicPrograms": [
+      "BS Information Technology",
+      "BS Computer Science"
+    ],
+    "careerPaths": [
+      "database administrator",
+      "data analyst",
+      "backend developer"
+    ],
+    "description": "Book contents link to explanations of SQL indexing, query predicates, joins, and execution performance.",
+    "level": "intermediate",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "sql",
+      "sql tuning",
+      "query optimization",
+      "indexing"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:50:47.597044+00:00",
+      "sourceUrl": "https://use-the-index-luke.com/sql/table-of-contents",
+      "finalUrl": "https://use-the-index-luke.com/sql/table-of-contents",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "SQL Performance Explained: Annotated Contents",
+      "reviewedProvider": "Markus Winand — Use The Index, Luke!"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "course_google_ml_crash_course",
+    "title": "Machine Learning Crash Course",
+    "provider": "Google for Developers",
+    "url": "https://developers.google.com/machine-learning/crash-course",
+    "type": "course",
+    "category": "for_you",
+    "skills": [
+      "machine learning",
+      "regression",
+      "classification",
+      "neural networks"
+    ],
+    "academicPrograms": [
+      "BS Information Technology",
+      "BS Computer Science"
+    ],
+    "careerPaths": [
+      "data scientist",
+      "ai / machine learning engineer",
+      "machine learning engineer"
+    ],
+    "description": "Google learning material introducing machine learning concepts and exercises. Review the provider prerequisites.",
+    "level": "intermediate",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "machine learning",
+      "regression",
+      "classification",
+      "neural networks"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:50:47.597044+00:00",
+      "sourceUrl": "https://developers.google.com/machine-learning/crash-course",
+      "finalUrl": "https://developers.google.com/machine-learning/crash-course",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Machine Learning Crash Course",
+      "reviewedProvider": "Google for Developers"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback."
+  },
+  {
+    "id": "cert_ms_pl300_powerbi",
+    "title": "Microsoft Certified: Power BI Data Analyst Associate",
+    "provider": "Microsoft Learn",
+    "url": "https://learn.microsoft.com/en-us/credentials/certifications/data-analyst-associate/",
+    "type": "certification",
+    "category": "for_you",
+    "skills": [
+      "power bi",
+      "data modeling",
+      "data visualization",
+      "data analysis"
+    ],
+    "academicPrograms": [
+      "BS Information Technology",
+      "BS Computer Science"
+    ],
+    "careerPaths": [
+      "data analyst",
+      "business intelligence analyst"
+    ],
+    "description": "Official credential information on modeling, visualizing, and analyzing data with Power BI. Check exam requirements and pricing.",
+    "level": "intermediate",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "power bi",
+      "data modeling",
+      "data visualization",
+      "data analysis"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-21T15:50:47.597044+00:00",
+      "sourceUrl": "https://learn.microsoft.com/en-us/credentials/certifications/data-analyst-associate/",
+      "finalUrl": "https://learn.microsoft.com/en-us/credentials/certifications/data-analyst-associate/",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Microsoft Certified: Power BI Data Analyst Associate",
+      "reviewedProvider": "Microsoft Learn"
+    },
+    "reviewNotes": "Primary-source page reviewed through web retrieval on 2026-10-21. Discipline/role relevance is editorial guidance, not TIP curriculum equivalence or an employer requirement. No remote thumbnail; local provider/title/icon fallback.",
+    "credentialCode": "PL-300"
+  },
+  {
+    "id": "interview_usc_preparation",
+    "title": "Interview Preparation",
+    "provider": "USC Career Center",
+    "url": "https://careers.usc.edu/channels/prepare-for-an-interview/",
+    "type": "guide",
+    "category": "interviews",
+    "skills": [
+      "interview preparation",
+      "video interviews",
+      "candidate questions"
+    ],
+    "academicPrograms": [],
+    "careerPaths": [
+      "all career paths"
+    ],
+    "description": "Prepare for interview formats, plan useful questions, and follow professional video-interview practices. The public guide is free; linked campus practice services may require USC access.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "interview preparation",
+      "video interviews",
+      "candidate questions"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-22T16:11:29+00:00",
+      "sourceUrl": "https://careers.usc.edu/channels/prepare-for-an-interview/",
+      "finalUrl": "https://careers.usc.edu/channels/prepare-for-an-interview/",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Interview Preparation",
+      "reviewedProvider": "USC Career Center"
+    },
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+  },
+  {
+    "id": "interview_umd_preparing",
+    "title": "Preparing for Interviews",
+    "provider": "University of Maryland Career Center",
+    "url": "https://careers.umd.edu/find-jobs-internships/interviewing/preparing-for-interviews",
+    "type": "guide",
+    "category": "interviews",
+    "skills": [
+      "employer research",
+      "behavioral interviews",
+      "star method"
+    ],
+    "academicPrograms": [],
+    "careerPaths": [
+      "all career paths"
+    ],
+    "description": "Research an employer, connect class projects and other experience to a role, and practice structured STAR responses.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "employer research",
+      "behavioral interviews",
+      "star method"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-22T16:11:29+00:00",
+      "sourceUrl": "https://careers.umd.edu/find-jobs-internships/interviewing/preparing-for-interviews",
+      "finalUrl": "https://careers.umd.edu/find-jobs-internships/interviewing/preparing-for-interviews",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Preparing for Interviews",
+      "reviewedProvider": "University of Maryland Career Center"
+    },
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+  },
+  {
+    "id": "interview_uf_preparing",
+    "title": "Preparing for Interviews",
+    "provider": "University of Florida Career Connections Center",
+    "url": "https://careerhub.ufl.edu/channels/preparing-for-interviews/",
+    "type": "guide",
+    "category": "interviews",
+    "skills": [
+      "interview preparation",
+      "transferable skills",
+      "candidate questions"
+    ],
+    "academicPrograms": [],
+    "careerPaths": [
+      "all career paths"
+    ],
+    "description": "Practice key points rather than memorized answers, explain transferable experience, and prepare thoughtful questions. Linked campus tools may require university access.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "interview preparation",
+      "transferable skills",
+      "candidate questions"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-22T16:11:29+00:00",
+      "sourceUrl": "https://careerhub.ufl.edu/channels/preparing-for-interviews/",
+      "finalUrl": "https://careerhub.ufl.edu/channels/preparing-for-interviews/",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Preparing for Interviews",
+      "reviewedProvider": "University of Florida Career Connections Center"
+    },
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+  },
+  {
+    "id": "resume_harvard_strong",
+    "title": "Harvard College Guide to Creating a Strong Resume",
+    "provider": "Harvard FAS Mignone Center for Career Success",
+    "url": "https://careerservices.fas.harvard.edu/resources/create-a-strong-resume/",
+    "type": "guide",
+    "category": "resume",
+    "skills": [
+      "resume writing",
+      "achievement statements",
+      "resume tailoring"
+    ],
+    "academicPrograms": [],
+    "careerPaths": [
+      "all career paths"
+    ],
+    "description": "Organize a readable resume, describe results using specific factual language, and tailor relevant experience to the position. Samples illustrate choices rather than guarantee hiring or ATS results.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "resume writing",
+      "achievement statements",
+      "resume tailoring"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-22T16:11:29+00:00",
+      "sourceUrl": "https://careerservices.fas.harvard.edu/resources/create-a-strong-resume/",
+      "finalUrl": "https://careerservices.fas.harvard.edu/resources/create-a-strong-resume/",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Harvard College Guide to Creating a Strong Resume",
+      "reviewedProvider": "Harvard FAS Mignone Center for Career Success"
+    },
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+  },
+  {
+    "id": "resume_purdue_tailoring",
+    "title": "Tailoring Documents",
+    "provider": "Purdue OWL",
+    "url": "https://owl.purdue.edu/owl/job_search_writing/preparing_an_application/tailoring_employment_documents_for_a_specific_audience/index.html",
+    "type": "guide",
+    "category": "resume",
+    "skills": [
+      "resume tailoring",
+      "evidence selection",
+      "resume writing"
+    ],
+    "academicPrograms": [],
+    "careerPaths": [
+      "all career paths"
+    ],
+    "description": "Adapt employment documents for busy readers by making relevant experience easy to scan and supporting claims with specific evidence.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "resume tailoring",
+      "evidence selection",
+      "resume writing"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-22T16:11:29+00:00",
+      "sourceUrl": "https://owl.purdue.edu/owl/job_search_writing/preparing_an_application/tailoring_employment_documents_for_a_specific_audience/index.html",
+      "finalUrl": "https://owl.purdue.edu/owl/job_search_writing/preparing_an_application/tailoring_employment_documents_for_a_specific_audience/index.html",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Tailoring Documents",
+      "reviewedProvider": "Purdue OWL"
+    },
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+  },
+  {
+    "id": "resume_purdue_action_verbs",
+    "title": "What is an Action Verb?",
+    "provider": "Purdue OWL",
+    "url": "https://owl.purdue.edu/owl/job_search_writing/preparing_an_application/action_verbs_to_describe_skills_jobs_and_accomplishments_in_employment_documents/index.html",
+    "type": "guide",
+    "category": "resume",
+    "skills": [
+      "achievement statements",
+      "action verbs",
+      "resume writing"
+    ],
+    "academicPrograms": [],
+    "careerPaths": [
+      "all career paths"
+    ],
+    "description": "Use precise action verbs to describe tasks and accomplishments concisely in resume bullets. Choose language that accurately reflects what you did.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "achievement statements",
+      "action verbs",
+      "resume writing"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-22T16:11:29+00:00",
+      "sourceUrl": "https://owl.purdue.edu/owl/job_search_writing/preparing_an_application/action_verbs_to_describe_skills_jobs_and_accomplishments_in_employment_documents/index.html",
+      "finalUrl": "https://owl.purdue.edu/owl/job_search_writing/preparing_an_application/action_verbs_to_describe_skills_jobs_and_accomplishments_in_employment_documents/index.html",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "What is an Action Verb?",
+      "reviewedProvider": "Purdue OWL"
+    },
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+  },
+  {
+    "id": "comm_purdue_email_etiquette",
+    "title": "Email Etiquette",
+    "provider": "Purdue OWL",
+    "url": "https://owl.purdue.edu/owl/general_writing/academic_writing/email_etiquette.html",
+    "type": "guide",
+    "category": "communication",
+    "skills": [
+      "professional email",
+      "concise writing",
+      "professional communication"
+    ],
+    "academicPrograms": [],
+    "careerPaths": [
+      "all career paths"
+    ],
+    "description": "Write clear subject lines, respectful greetings and concise messages, and handle replies and attachments considerately.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "professional email",
+      "concise writing",
+      "professional communication"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-22T16:11:29+00:00",
+      "sourceUrl": "https://owl.purdue.edu/owl/general_writing/academic_writing/email_etiquette.html",
+      "finalUrl": "https://owl.purdue.edu/owl/general_writing/academic_writing/email_etiquette.html",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Email Etiquette",
+      "reviewedProvider": "Purdue OWL"
+    },
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+  },
+  {
+    "id": "comm_purdue_general_guidelines",
+    "title": "General Guidelines for Business Writing",
+    "provider": "Purdue OWL",
+    "url": "https://owl.purdue.edu/owl/subject_specific_writing/professional_technical_writing/business_writing_for_administrative_and_clerical_staff/general_guidelines.html",
+    "type": "guide",
+    "category": "communication",
+    "skills": [
+      "concise writing",
+      "business writing",
+      "inclusive communication"
+    ],
+    "academicPrograms": [],
+    "careerPaths": [
+      "all career paths"
+    ],
+    "description": "Put important information first, revise repetition, and use clear, courteous and inclusive language for workplace readers.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "concise writing",
+      "business writing",
+      "inclusive communication"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-22T16:11:29+00:00",
+      "sourceUrl": "https://owl.purdue.edu/owl/subject_specific_writing/professional_technical_writing/business_writing_for_administrative_and_clerical_staff/general_guidelines.html",
+      "finalUrl": "https://owl.purdue.edu/owl/subject_specific_writing/professional_technical_writing/business_writing_for_administrative_and_clerical_staff/general_guidelines.html",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "General Guidelines for Business Writing",
+      "reviewedProvider": "Purdue OWL"
+    },
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+  },
+  {
+    "id": "comm_umn_communication_skills",
+    "title": "Communication Skills",
+    "provider": "University of Minnesota Effective U",
+    "url": "https://effectiveu.umn.edu/tips/communication-skills",
+    "type": "guide",
+    "category": "communication",
+    "skills": [
+      "respectful disagreement",
+      "active listening",
+      "interpersonal communication"
+    ],
+    "academicPrograms": [],
+    "careerPaths": [
+      "all career paths"
+    ],
+    "description": "Practice factual descriptions, respectful statements of needs, relevant questions and compromise. Adapt the student-focused examples to conversations with colleagues.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "respectful disagreement",
+      "active listening",
+      "interpersonal communication"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-22T16:11:29+00:00",
+      "sourceUrl": "https://effectiveu.umn.edu/tips/communication-skills",
+      "finalUrl": "https://effectiveu.umn.edu/tips/communication-skills",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Communication Skills",
+      "reviewedProvider": "University of Minnesota Effective U"
+    },
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+  }
+]

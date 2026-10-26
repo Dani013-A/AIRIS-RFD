@@ -1,8 +1,10 @@
-import React, { useRef, useCallback, useState, useEffect } from "react";
+import { rememberInterviewCompletion } from '../../services/firebase/pendingInterviewCompletion';
+import React, { useRef, useCallback, useState, useEffect, useLayoutEffect } from "react";
 import {
   View,
   StyleSheet,
   ActivityIndicator,
+  AppState,
   Text,
   NativeSyntheticEvent,
   StatusBar,
@@ -12,7 +14,6 @@ import {
 import UnityView from "@azesmway/react-native-unity";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "../../store/authStore";
-import { useResumeStore } from "../../store/resumeStore";
 import { useInterviewStore } from "../../store/interviewStore";
 import AirisOrientation from "../../utils/AirisOrientation";
 import {
@@ -23,6 +24,7 @@ import {
 
 // ── Daniel's existing scoring pipeline & transcription ─────────────────────
 import {
+  cancelInterviewSimulation,
   submitInterviewAnswer,
   transcribeAudio,
   PauseMetrics,
@@ -37,6 +39,9 @@ interface BridgeEnvelope {
 // ── State safety types ──────────────────────────────────────────────────────
 type VRInterviewState =
   | "INTERVIEWER_SPEAKING"
+  | "STARTING_RECORDING"
+  | "RECOVERY"
+  | "PAUSED"
   | "USER_LISTENING"
   | "WAITING_FOR_AUDIO"
   | "PROCESSING_ANSWER"
@@ -101,7 +106,6 @@ export default function ImmersiveInterviewScreen() {
   const speechRetryRef = useRef(0);
 
   const currentUser = useAuthStore((s) => s.currentUser);
-  const activeAnalysis = useResumeStore((s) => s.activeAnalysis);
   const { session, submitAnswer, clearSession } = useInterviewStore();
 
   // Derive Unity scene name from the session's interviewType
@@ -135,6 +139,13 @@ export default function ImmersiveInterviewScreen() {
   const watchdogTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sceneLoadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listeningSafetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const captureStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const questionDispatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRetryRef = useRef<(() => Promise<void>) | null>(null);
+  const restartCaptureRef = useRef<(() => void) | null>(null);
+  const pausedRef = useRef(false);
+  const resumeSpeechRef = useRef(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
 
   const [sceneLoadingState, setSceneLoadingState] = useState<SceneLoadingState>("idle");
   const [unityReady, setUnityReady] = useState(false);
@@ -190,6 +201,11 @@ export default function ImmersiveInterviewScreen() {
     isProcessingAnswerRef.current = false;
     audioHandoffRef.current.cancel();
     speechDeliveryRef.current.cancel();
+    pendingRetryRef.current = null;
+    pausedRef.current = false;
+    setAudioError(null);
+    if (captureStartTimerRef.current) clearTimeout(captureStartTimerRef.current);
+    if (questionDispatchTimerRef.current) clearTimeout(questionDispatchTimerRef.current);
     stateRef.current = "INTERVIEWER_SPEAKING";
     activeSessionIdRef.current = session?.sessionId || null;
     sceneLoadAttemptRef.current = 0;
@@ -213,10 +229,16 @@ export default function ImmersiveInterviewScreen() {
     setSceneLoadingState("idle");
   }, [session?.sessionId]);
 
-  // Clean up all timers on unmount
-  useEffect(() => {
+  // Release the retained native player before its view ref is detached.
+  useLayoutEffect(() => {
+    isExitingRef.current = false;
     return () => {
       isExitingRef.current = true;
+      pendingRetryRef.current = null;
+      if (captureStartTimerRef.current) clearTimeout(captureStartTimerRef.current);
+      if (questionDispatchTimerRef.current) clearTimeout(questionDispatchTimerRef.current);
+      postToUnity("STOP_RECORDING");
+      postToUnity("SESSION_EXIT");
       audioHandoffRef.current.cancel();
       activeAbortControllerRef.current?.abort();
       sceneLoadAttemptRef.current += 1;
@@ -246,7 +268,7 @@ export default function ImmersiveInterviewScreen() {
     if (type === "SHOW_QUESTION") {
       const request = payload as { sessionId: string; questionRevision: number; speechAttempt?: number };
       const current = useInterviewStore.getState().session;
-      if (isExitingRef.current || !current || current.sessionId !== request.sessionId || current.history.length !== request.questionRevision) return;
+      if (isExitingRef.current || pausedRef.current || !current || current.sessionId !== request.sessionId || current.history.length !== request.questionRevision) return;
       const delivery = speechDeliveryRef.current.claim(`${request.sessionId}:${request.questionRevision}:${request.speechAttempt || 0}`);
       if (!delivery) return;
       deliveryPayload = { ...payload, ...delivery, closing: current.currentQuestionType === "closing" };
@@ -276,6 +298,9 @@ export default function ImmersiveInterviewScreen() {
   const handleStopInterview = useCallback(() => {
     if (isExitingRef.current) return;
     isExitingRef.current = true;
+    pendingRetryRef.current = null;
+    if (captureStartTimerRef.current) clearTimeout(captureStartTimerRef.current);
+    if (questionDispatchTimerRef.current) clearTimeout(questionDispatchTimerRef.current);
     speechDeliveryRef.current.cancel();
     audioHandoffRef.current.cancel();
     setSceneLoadingState("exiting");
@@ -316,6 +341,8 @@ export default function ImmersiveInterviewScreen() {
       console.warn("[Immersive] Error sending stop messages to Unity:", e);
     }
 
+    const cancellingSession = useInterviewStore.getState().session;
+    if (cancellingSession) void cancelInterviewSimulation(cancellingSession.sessionId).catch(() => { console.warn("Server cancellation could not be confirmed; the unfinished session will expire."); });
     clearSession();
     AirisOrientation.lockPortrait();
     console.log("[VR][VOICE_COMMAND] STOP is an exit command — restoring portrait and returning to interview onboarding flow");
@@ -328,20 +355,6 @@ export default function ImmersiveInterviewScreen() {
     postToUnity("LOAD_SCENE", { sceneName });
   }, [hasMicPermission, postToUnity, sceneName]);
 
-  /** Build the parsedResume dict exactly as ActiveSimulationScreen does. */
-  const getParsedResumeDict = useCallback((): Record<string, string> => {
-    const dict: Record<string, string> = {};
-    if (!activeAnalysis) return dict;
-    if (Array.isArray(activeAnalysis.parsedSections)) {
-      for (const sec of activeAnalysis.parsedSections) {
-        dict[sec.name] = sec.content;
-      }
-    } else {
-      Object.assign(dict, activeAnalysis.parsedSections || {});
-    }
-    return dict;
-  }, [activeAnalysis]);
-
   // ─── Effect: send first question once scene is loaded & mic permission verified ────
   useEffect(() => {
     const currentSession = useInterviewStore.getState().session;
@@ -350,7 +363,7 @@ export default function ImmersiveInterviewScreen() {
       stateRef.current = "INTERVIEWER_SPEAKING";
       const initialSpeaker = getSpeakerForQuestion(sceneName, currentSession.questionsAsked || 1);
       currentSpeakerRef.current = initialSpeaker;
-      const timer = setTimeout(() => {
+      const timer = questionDispatchTimerRef.current = setTimeout(() => {
         postToUnity("SHOW_QUESTION", {
           questionText: currentSession.currentQuestion,
           sessionId: currentSession.sessionId, questionRevision: currentSession.history.length,
@@ -366,7 +379,6 @@ export default function ImmersiveInterviewScreen() {
   useEffect(() => {
     AirisOrientation.lockLandscape();
     return () => {
-      postToUnity("STOP_RECORDING");
       AirisOrientation.lockPortrait();
     };
   }, [postToUnity]);
@@ -423,17 +435,53 @@ export default function ImmersiveInterviewScreen() {
         return;
       }
 
-      const startListening = () => {
-        if (isExitingRef.current || useInterviewStore.getState().session?.currentQuestionType === "closing") return;
-        stateRef.current = "USER_LISTENING";
-        audioHandoffRef.current.start();
+      const recoverListening = (message: string, preserveAttempt = false) => {
+        if (isExitingRef.current) return;
+        stateRef.current = pausedRef.current ? "PAUSED" : "RECOVERY";
+        if (captureStartTimerRef.current) clearTimeout(captureStartTimerRef.current);
         if (listeningSafetyTimerRef.current) clearTimeout(listeningSafetyTimerRef.current);
-        // Unity owns the 60s recording maximum; this guard allows its stop/handoff to finish.
+        if (watchdogTimerRef.current) clearTimeout(watchdogTimerRef.current);
+        captureStartTimerRef.current = listeningSafetyTimerRef.current = watchdogTimerRef.current = null;
+        if (!preserveAttempt) {
+          audioHandoffRef.current.cancel();
+          pendingRetryRef.current = null;
+          isProcessingAnswerRef.current = false;
+        }
+        postToUnity("STOP_RECORDING");
+        setAudioError(message);
+      };
+      const waitForAudio = () => {
+        stateRef.current = "WAITING_FOR_AUDIO";
+        if (listeningSafetyTimerRef.current) clearTimeout(listeningSafetyTimerRef.current);
+        listeningSafetyTimerRef.current = null;
+        if (watchdogTimerRef.current) clearTimeout(watchdogTimerRef.current);
+        watchdogTimerRef.current = setTimeout(() => {
+          if (stateRef.current === "WAITING_FOR_AUDIO") recoverListening("The recording did not arrive. Please try the microphone again.");
+        }, 20000);
+      };
+      const startListening = () => {
+        const active = useInterviewStore.getState().session;
+        if (isExitingRef.current || pausedRef.current || !active || active.currentQuestionType === "closing"
+            || active.sessionId !== currentSession.sessionId || active.history.length !== currentSession.history.length) return;
+        stateRef.current = "STARTING_RECORDING";
+        setAudioError(null);
+        pendingRetryRef.current = null;
+        audioHandoffRef.current.start();
+        if (captureStartTimerRef.current) clearTimeout(captureStartTimerRef.current);
+        captureStartTimerRef.current = setTimeout(() => {
+          if (stateRef.current === "STARTING_RECORDING") recoverListening("The microphone did not start. Check microphone access and try again.");
+        }, 5000);
+        if (listeningSafetyTimerRef.current) clearTimeout(listeningSafetyTimerRef.current);
+        // Keep Unity's existing 60s capture maximum; bound a missing native completion too.
         listeningSafetyTimerRef.current = setTimeout(() => {
-          if (stateRef.current === "USER_LISTENING" && !isExitingRef.current) postToUnity("STOP_RECORDING");
+          if (stateRef.current === "USER_LISTENING" && !isExitingRef.current) {
+            waitForAudio();
+            postToUnity("STOP_RECORDING");
+          }
         }, 65000);
         postToUnity("START_RECORDING");
       };
+      restartCaptureRef.current = startListening;
 
       const raw = event.nativeEvent.message;
       // Payloads can contain sensitive transcripts; log event types only.
@@ -442,7 +490,7 @@ export default function ImmersiveInterviewScreen() {
       try {
         msg = JSON.parse(raw);
       } catch {
-        console.warn("[Immersive] Could not parse Unity message:", raw);
+        console.warn("[Immersive] Could not parse Unity message");
         return;
       }
 
@@ -516,8 +564,18 @@ export default function ImmersiveInterviewScreen() {
           setSceneLoaded(true);
 
           if (currentSession.currentQuestionType === "closing") {
+            isExitingRef.current = true;
             stateRef.current = "EXITING";
             audioHandoffRef.current.cancel();
+            try { await withTimeout(rememberInterviewCompletion(currentSession.userId, currentSession.sessionId), 5000, 'Recovery storage timed out'); }
+            catch {
+              isExitingRef.current = false;
+              stateRef.current = "RECOVERY";
+              resumeSpeechRef.current = true;
+              setAudioError("Could not prepare result recovery. Resume to retry the closing.");
+              return;
+            }
+            if (!unityRef.current || useInterviewStore.getState().session?.sessionId !== currentSession.sessionId) return;
             useInterviewStore.getState().completeClosing();
             AirisOrientation.lockPortrait();
             router.replace("/(student)/interview-session/summary" as any);
@@ -579,15 +637,24 @@ export default function ImmersiveInterviewScreen() {
         case "RECORDING_STARTED": {
           setUnityReady(true);
           setSceneLoaded(true);
-          if (stateRef.current !== "USER_LISTENING") return;
-          const startedPayload = typeof msg.payload === "string" ? JSON.parse(msg.payload) : msg.payload;
-          audioHandoffRef.current.confirmStarted(startedPayload?.captureId);
+          if (!["STARTING_RECORDING", "USER_LISTENING"].includes(stateRef.current)) return;
+          let startedPayload;
+          try { startedPayload = typeof msg.payload === "string" ? JSON.parse(msg.payload) : msg.payload; } catch { return; }
+          if (!audioHandoffRef.current.confirmStarted(startedPayload?.captureId)) return;
+          if (captureStartTimerRef.current) clearTimeout(captureStartTimerRef.current);
+          captureStartTimerRef.current = null;
+          stateRef.current = "USER_LISTENING";
           console.log(`[TIMING][VR] RECORDING_STARTED confirmed by Unity (state=${stateRef.current})`);
           break;
         }
 
         case "NO_SPEECH": {
-          const silencePayload = typeof msg.payload === "string" ? JSON.parse(msg.payload) : msg.payload;
+          if (!["USER_LISTENING", "WAITING_FOR_AUDIO"].includes(stateRef.current) || isProcessingAnswerRef.current) return;
+          let silencePayload;
+          try { silencePayload = typeof msg.payload === "string" ? JSON.parse(msg.payload) : msg.payload; } catch {
+            recoverListening("The recording callback was invalid. Please try again.");
+            return;
+          }
           if (!audioHandoffRef.current.matches(silencePayload?.captureId)) return;
           if (isExitingRef.current || currentSession.currentQuestionType === "closing" || !["USER_LISTENING", "WAITING_FOR_AUDIO"].includes(stateRef.current) || isProcessingAnswerRef.current) return;
           if (listeningSafetyTimerRef.current) {
@@ -598,33 +665,35 @@ export default function ImmersiveInterviewScreen() {
             clearTimeout(watchdogTimerRef.current);
             watchdogTimerRef.current = null;
           }
-          console.log("[VR] Initial silence: no answer submitted; restarting listening");
-          stateRef.current = "USER_LISTENING";
-          startListening();
+          recoverListening("No speech was detected. Please try again when you are ready.");
           break;
         }
 
         // ── Mic stopped (5s post-speech silence threshold reached) ──────────
         case "RECORDING_STOPPED": {
-          const stoppedPayload = typeof msg.payload === "string" ? JSON.parse(msg.payload) : msg.payload;
+          if (stateRef.current !== "USER_LISTENING" || isProcessingAnswerRef.current) return;
+          let stoppedPayload;
+          try { stoppedPayload = typeof msg.payload === "string" ? JSON.parse(msg.payload) : msg.payload; } catch {
+            recoverListening("The recording callback was invalid. Please try again.");
+            return;
+          }
           if (!audioHandoffRef.current.matches(stoppedPayload?.captureId)) return;
           if (isExitingRef.current || stateRef.current !== "USER_LISTENING" || isProcessingAnswerRef.current) return;
-          stateRef.current = "WAITING_FOR_AUDIO";
-          if (listeningSafetyTimerRef.current) {
-            clearTimeout(listeningSafetyTimerRef.current);
-            listeningSafetyTimerRef.current = null;
-          }
           recordingStoppedTimeRef.current = Date.now();
-          console.log(`[TIMING][VR] RECORDING_STOPPED at ${new Date().toISOString()} (state=${stateRef.current})`);
+          waitForAudio();
+          break;
+        }
 
-          // Watchdog: If TRANSCRIPT_READY is not received within 20s, recover cleanly
-          if (watchdogTimerRef.current) clearTimeout(watchdogTimerRef.current);
-          watchdogTimerRef.current = setTimeout(() => {
-            console.warn("[TIMING][VR] Watchdog timeout: No audio handoff received within 20s");
-            if (!isExitingRef.current && stateRef.current === "WAITING_FOR_AUDIO") {
-              startListening();
-            }
-          }, 20000);
+        case "RECORDING_ERROR":
+        case "AUDIO_ERROR":
+        case "ERROR": {
+          let errorPayload;
+          try { errorPayload = typeof msg.payload === "string" ? JSON.parse(msg.payload) : msg.payload; } catch { return; }
+          if (errorPayload?.captureId != null && !audioHandoffRef.current.matches(errorPayload.captureId)) return;
+          if (errorPayload?.captureId == null && stateRef.current !== "STARTING_RECORDING") return;
+          if (["STARTING_RECORDING", "USER_LISTENING", "WAITING_FOR_AUDIO"].includes(stateRef.current)) {
+            recoverListening("The microphone was interrupted. Please check access and try again.");
+          }
           break;
         }
 
@@ -644,6 +713,10 @@ export default function ImmersiveInterviewScreen() {
           }
           const currentSession = useInterviewStore.getState().session;
           if (!currentSession || !currentUser || currentSession.currentQuestionType === "closing") break;
+          if (!rawTranscript.trim() && audioHandoffRef.current.matches(captureId)) {
+            recoverListening("No speech was detected. Please try the microphone again.");
+            return;
+          }
           const recordingGeneration = audioHandoffRef.current.accept(rawTranscript, captureId);
           if (recordingGeneration === null) return;
           isProcessingAnswerRef.current = true;
@@ -654,17 +727,25 @@ export default function ImmersiveInterviewScreen() {
           watchdogTimerRef.current = null;
           setUnityReady(true);
           setSceneLoaded(true);
-          const isCurrentRecording = () => !isExitingRef.current && audioHandoffRef.current.isCurrent(recordingGeneration)
-            && useInterviewStore.getState().session?.sessionId === currentSession.sessionId;
+          const isCurrentRecording = () => !isExitingRef.current && !pausedRef.current && audioHandoffRef.current.isCurrent(recordingGeneration)
+            && useInterviewStore.getState().session?.sessionId === currentSession.sessionId
+            && useInterviewStore.getState().session?.history.length === currentSession.history.length;
 
           const handoffMs = recordingStoppedTimeRef.current
             ? Date.now() - recordingStoppedTimeRef.current
             : 0;
 
+          let finalTranscript = rawTranscript;
+          let pauseMetrics: PauseMetrics | undefined;
+          let transcriptionReady = false;
+          let busy = false;
+          const processRecording = async () => {
+            if (busy || !isCurrentRecording()) return;
+            busy = true;
+            isProcessingAnswerRef.current = true;
+            stateRef.current = "PROCESSING_ANSWER";
+            setAudioError(null);
           try {
-            let finalTranscript = rawTranscript;
-            let pauseMetrics: PauseMetrics | undefined = undefined;
-
             // Check if payload is an audio file path saved by Unity
             const isAudioPath =
               rawTranscript.toLowerCase().endsWith(".wav") ||
@@ -672,24 +753,25 @@ export default function ImmersiveInterviewScreen() {
               rawTranscript.startsWith("/") ||
               rawTranscript.startsWith("file://");
 
-            if (isAudioPath) {
+            if (isAudioPath && !transcriptionReady) {
               const audioUri = rawTranscript.startsWith("file://")
                 ? rawTranscript
                 : `file://${rawTranscript}`;
-              console.log(`[VR][RN_RECEIVED_AUDIO] path=${audioUri}`);
+              console.log("[VR][RN_RECEIVED_AUDIO]");
               console.log(`[VR][BACKEND_TRANSCRIPTION_START]`);
               console.log(
-                `[TIMING][VR] Audio file handed off in ${handoffMs}ms: ${audioUri}. Starting backend transcription...`
+                `[TIMING][VR] Audio handed off in ${handoffMs}ms. Starting backend transcription...`
               );
 
               const tStartTranscribe = Date.now();
 
-              const transcribeRes = await withTimeout(transcribeAudio(audioUri, "audio/wav"), 20000,
+              const transcribeRes = await withTimeout(transcribeAudio(audioUri, "audio/wav", { sessionId: currentSession.sessionId, turn: currentSession.history.length }), 20000,
                 "Transcription timed out. Please try your answer again.");
               console.log(`[VR][BACKEND_TRANSCRIPTION_COMPLETE] ms=${Date.now() - tStartTranscribe}`);
 
               finalTranscript = transcribeRes.transcription || "";
               pauseMetrics = transcribeRes.pauseMetrics;
+              transcriptionReady = true;
             } else {
               console.log("[VR] Direct transcript received");
             }
@@ -710,6 +792,7 @@ export default function ImmersiveInterviewScreen() {
             // 2. "REPEAT" VOICE COMMAND — REPEAT CURRENT QUESTION IMMEDIATELY
             // ═════════════════════════════════════════════════════════════════
             if (command === "REPEAT_QUESTION") {
+              pendingRetryRef.current = null;
               stateRef.current = "INTERVIEWER_SPEAKING";
               postToUnity("SHOW_QUESTION", {
                 speechAttempt: ++speechRetryRef.current,
@@ -743,8 +826,7 @@ export default function ImmersiveInterviewScreen() {
 
             if (isNonVerbal) {
               console.log("[VR] Empty/non-verbal transcript; retrying the same question");
-              stateRef.current = "USER_LISTENING";
-              startListening();
+              recoverListening("No speech was detected. Please try the microphone again.");
               return;
             }
 
@@ -761,16 +843,10 @@ export default function ImmersiveInterviewScreen() {
             try {
               response = await withTimeout(submitInterviewAnswer(
                 {
-                  targetRole: currentSession.targetRole,
-                  program: currentSession.program,
-                  parsedResume: getParsedResumeDict(),
-                  history: currentSession.history,
-                  currentQuestion: currentSession.currentQuestion,
+                  sessionId: currentSession.sessionId,
+                  questionId: `survey-${currentSession.questionsAsked}`,
+                  turn: currentSession.history.length,
                   currentAnswer: finalTranscript,
-                  currentQuestionType: currentSession.currentQuestionType || "general",
-                  currentBenchmarkAnswer: currentSession.currentBenchmarkAnswer || "",
-                  totalQuestions: currentSession.totalQuestions,
-                  pauseMetrics,
                 },
                 { signal: abortController.signal }
               ), 30000, "Evaluation timed out. Please retry the current answer.");
@@ -793,7 +869,9 @@ export default function ImmersiveInterviewScreen() {
               `[VR][AI_RESPONSE] score=${response.evaluation?.score} evalMs=${evalMs} totalMs=${totalTurnaroundMs}`
             );
 
-            // Update Zustand store — authoritative state update
+            if (response.cancelled) { handleStopInterview(); return; }
+
+            // Update the presentation only after the server accepted this attempt
             if (!response.isComplete && !response.nextQuestion?.question?.trim()) {
               throw new Error("The next question is unavailable. Please retry this answer.");
             }
@@ -801,15 +879,20 @@ export default function ImmersiveInterviewScreen() {
               throw new Error("Answer evaluation is unavailable. Please retry this answer.");
             }
             const isInteraction = response.isInteractionEvent;
-            submitAnswer(
+            const accepted = submitAnswer(
               finalTranscript,
               response.evaluation,
               response.nextQuestion?.question,
               response.nextQuestion?.questionType,
               response.nextQuestion?.benchmarkAnswer,
               response.isComplete,
-              isInteraction
+              isInteraction,
+              { sessionId: currentSession.sessionId, historyLength: currentSession.history.length },
+              pauseMetrics
             );
+
+            if (!accepted) throw new Error("The interview changed while processing. Please retry the current question.");
+            pendingRetryRef.current = null;
 
             if (response.isComplete) {
               stateRef.current = "EXITING";
@@ -836,7 +919,7 @@ export default function ImmersiveInterviewScreen() {
                   speakerName: speaker.name,
                 });
               };
-              setTimeout(sendFollowUp, 350);
+              questionDispatchTimerRef.current = setTimeout(sendFollowUp, 350);
 
             } else {
               const nextQuestionText = response.nextQuestion?.question;
@@ -861,7 +944,7 @@ export default function ImmersiveInterviewScreen() {
                     speakerName: nextSpeaker.name,
                   });
                 };
-                setTimeout(sendNextQ, 350);
+                questionDispatchTimerRef.current = setTimeout(sendNextQ, 350);
 
               } else {
                 console.warn("[VR] No next question text received in response");
@@ -870,28 +953,24 @@ export default function ImmersiveInterviewScreen() {
           } catch (error: any) {
             console.error("[TIMING][VR] Processing error:", error?.message || error);
             if (isCurrentRecording()) {
-              stateRef.current = "INTERVIEWER_SPEAKING";
-              // Retain current question prompt in the speech bubble; never replace with error text
-              const questionToSpeak = currentSession?.currentQuestion || "";
-              if (questionToSpeak) {
-                postToUnity("SHOW_QUESTION", {
-                  questionText: questionToSpeak,
-                  sessionId: currentSession.sessionId, questionRevision: currentSession.history.length, speechAttempt: ++speechRetryRef.current,
-                  speakerIndex: currentSpeakerRef.current.index,
-                  speakerName: currentSpeakerRef.current.name,
-                });
-              } else {
-                startListening();
-              }
+              recoverListening("Processing did not finish. Your recording is retained; retry processing or stop the interview.", true);
             }
           } finally {
-            isProcessingAnswerRef.current = false;
+            busy = false;
+            if (audioHandoffRef.current.isCurrent(recordingGeneration)
+                && useInterviewStore.getState().session?.sessionId === currentSession.sessionId) {
+              isProcessingAnswerRef.current = false;
+            }
           }
+          };
+          pendingRetryRef.current = processRecording;
+          await processRecording();
           break;
         }
 
         // ── Exit requested from Unity VR ────────────────────────────────────
         case "SESSION_EXIT": {
+          if (stateRef.current === "EXITING" || ["evaluating", "completed"].includes(useInterviewStore.getState().status)) return;
           console.log("[Immersive] SESSION_EXIT received from Unity VR");
           handleStopInterview();
           break;
@@ -905,7 +984,6 @@ export default function ImmersiveInterviewScreen() {
       currentUser,
       postToUnity,
       sceneName,
-      getParsedResumeDict,
       submitAnswer,
       router,
       confirmUnityRuntimeReady,
@@ -913,6 +991,51 @@ export default function ImmersiveInterviewScreen() {
       requestSceneIfReady,
     ]
   );
+
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", next => {
+      if (next === "active" || isExitingRef.current || pausedRef.current || !sceneLoadedRef.current) return;
+      pausedRef.current = true;
+      resumeSpeechRef.current = stateRef.current === "INTERVIEWER_SPEAKING";
+      stateRef.current = "PAUSED";
+      if (captureStartTimerRef.current) clearTimeout(captureStartTimerRef.current);
+      if (listeningSafetyTimerRef.current) clearTimeout(listeningSafetyTimerRef.current);
+      if (watchdogTimerRef.current) clearTimeout(watchdogTimerRef.current);
+      if (questionDispatchTimerRef.current) clearTimeout(questionDispatchTimerRef.current);
+      if (!pendingRetryRef.current) audioHandoffRef.current.cancel();
+      activeAbortControllerRef.current?.abort();
+      speechDeliveryRef.current.cancel();
+      postToUnity("STOP_RECORDING");
+      postToUnity("SESSION_EXIT");
+      setAudioError(pendingRetryRef.current
+        ? "Interview paused. Your recording is retained; resume processing when you are ready."
+        : resumeSpeechRef.current ? "Interview paused. Resume the interviewer audio when you are ready."
+          : "Recording interrupted. Resume to answer the same question.");
+    });
+    return () => subscription.remove();
+  }, [postToUnity]);
+
+  const retryAudio = async () => {
+    if (isExitingRef.current || isProcessingAnswerRef.current) return;
+    pausedRef.current = false;
+    if (pendingRetryRef.current) { await pendingRetryRef.current(); return; }
+    let allowed: boolean;
+    try { allowed = await checkMicrophonePermission(); }
+    catch { setAudioError("Microphone access is unavailable. Check settings and try again."); return; }
+    if (isExitingRef.current) return;
+    if (!allowed) { setHasMicPermission(false); return; }
+    setAudioError(null);
+    const current = useInterviewStore.getState().session;
+    if (!current) return;
+    if (resumeSpeechRef.current || current.currentQuestionType === "closing") {
+      resumeSpeechRef.current = false;
+      stateRef.current = "INTERVIEWER_SPEAKING";
+      postToUnity("SHOW_QUESTION", { questionText: current.currentQuestion, sessionId: current.sessionId,
+        questionRevision: current.history.length, speechAttempt: ++speechRetryRef.current,
+        speakerIndex: currentSpeakerRef.current.index, speakerName: currentSpeakerRef.current.name });
+    } else restartCaptureRef.current?.();
+  };
 
 
   if (!session) {
@@ -995,6 +1118,21 @@ export default function ImmersiveInterviewScreen() {
         onUnityMessage={onUnityMessage}
         androidKeepPlayerMounted
       />
+
+      {audioError && sceneLoadingState === "loaded" && (
+        <View style={styles.overlay}>
+          <Text style={styles.overlayTitle}>Interview paused</Text>
+          <Text style={styles.overlaySubtitle}>{audioError}</Text>
+          <View style={styles.permissionActionRow}>
+            <TouchableOpacity accessibilityLabel="Retry interview audio" style={[styles.permissionBtn, styles.permissionBtnPrimary]} onPress={retryAudio}>
+              <Text style={styles.permissionBtnPrimaryText}>{pendingRetryRef.current ? "Retry processing" : "Resume interview"}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.permissionBtn, styles.permissionBtnSecondary]} onPress={handleStopInterview}>
+              <Text style={styles.permissionBtnSecondaryText}>Stop interview</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Loading overlay — shown until Unity scene is ready */}
       {sceneLoadingState !== "loaded" && (

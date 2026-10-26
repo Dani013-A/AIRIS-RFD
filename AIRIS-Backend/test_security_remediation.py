@@ -27,6 +27,12 @@ def mock_verify_id_token(token, *args, **kwargs):
 
 
 class TestSecurityRemediation(unittest.TestCase):
+    def setUp(self):
+        # These endpoint tests isolate token/ownership validation; lifecycle has its own persisted-state suite.
+        lifecycle = patch("main.assert_active_student")
+        lifecycle.start()
+        self.addCleanup(lifecycle.stop)
+
 
     def test_interview_endpoints_reject_missing_auth(self):
         requests = [
@@ -37,6 +43,7 @@ class TestSecurityRemediation(unittest.TestCase):
                 "totalQuestions": 1,
             }}),
             ("/interview/report", {"json": {"history": [], "evaluations": []}}),
+            ("/interview/cancel", {"json": {"sessionId": "a" * 32}}),
             ("/interview/transcribe", {"files": {"audio": ("synthetic.m4a", io.BytesIO(b"synthetic"), "audio/m4a")}}),
         ]
         for path, kwargs in requests:
@@ -212,25 +219,45 @@ class TestSecurityRemediation(unittest.TestCase):
         self.assertIn("internal error", detail.lower())
 
     @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)
-    @patch("interview_engine.evaluate_answer_and_generate_next", side_effect=RuntimeError("Database connection: postgres://internal"))
+    @patch("interview_sessions.answer", side_effect=RuntimeError("Database connection: postgres://internal"))
     def test_interview_answer_error_does_not_leak_internal_details(self, mock_evaluate, mock_auth):
         response = client.post(
             "/interview/answer",
             headers={"Authorization": "Bearer token-studentA"},
-            json={
-                "targetRole": "Software Engineer",
-                "history": [],
-                "currentQuestion": "Tell me about yourself",
-                "currentAnswer": "I am a software engineer",
-                "currentQuestionType": "behavioral",
-                "totalQuestions": 5
-            }
+            json={"sessionId": "a" * 32, "questionId": "survey-1", "turn": 0,
+                  "currentAnswer": "I am a software engineer"}
         )
         self.assertEqual(response.status_code, 500)
         detail = response.json().get("detail", "")
         self.assertNotIn("postgres://internal", detail)
         self.assertNotIn("Database connection", detail)
         self.assertIn("internal error", detail.lower())
+
+    @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)
+    def test_report_rejects_legacy_client_scores_and_claimed_identity(self, mock_auth):
+        # The old success fixture demonstrated the vulnerability: a mocked report function
+        # accepted nine fabricated client answers. Actual session persistence/retry coverage
+        # now runs against Firestore transactions in test_interview_sessions_emulator.py.
+        payloads = [
+            {"history": [{"answer": "fabricated"}] * 9, "evaluations": [{"overall": 100}] * 9},
+            {"userId": "studentB"},
+            {"overallScore": 100},
+            {"history": [{"answer": "incomplete"}] * 5},
+        ]
+        for payload in payloads:
+            with self.subTest(payload_keys=list(payload)):
+                response = client.post("/interview/report", headers={"Authorization": "Bearer token-studentA"},
+                                       json={"sessionId": "a" * 32, **payload})
+                self.assertEqual(response.status_code, 422)
+
+    @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)
+    @patch("interview_sessions.report", side_effect=RuntimeError("Firestore connection: internal-secret"))
+    def test_interview_report_persistence_error_is_safe_failure(self, mock_report, mock_auth):
+        response = client.post("/interview/report", headers={"Authorization": "Bearer token-studentA"},
+                               json={"sessionId": "a" * 32})
+        self.assertEqual(response.status_code, 500)
+        self.assertNotIn("internal-secret", response.text)
+        self.assertIn("internal error", response.json()["detail"].lower())
 
 
 if __name__ == "__main__":

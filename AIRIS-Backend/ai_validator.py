@@ -4,7 +4,7 @@ import unicodedata
 from typing import Dict, List, Any, Optional
 from evidence_chunker import chunk_resume_evidence, EvidenceChunk
 from output_validator import validate_ai_response, AuditedFinding
-from deterministic_scorer import calculate_official_ats_score, calculate_canonical_resume_score
+from deterministic_scorer import calculate_official_ats_score, calculate_canonical_resume_score, SCORING_MODEL_VERSION
 from sbert_matcher import evaluate_semantic_alignment
 
 from ai_service import generate_text_with_fallback, _extract_json
@@ -189,7 +189,7 @@ CANONICAL_SECTIONS = [
     "ContactInformation", "ProfessionalSummary", "Education", "Skills",
     "WorkExperience", "Projects", "Internships", "RelevantCoursework",
     "Certifications", "OrganizationsLeadership", "Achievements",
-    "Languages", "Trainings"
+    "Languages", "Trainings", "Publications", "References"
 ]
 
 def validate_and_enhance_analysis(
@@ -203,7 +203,7 @@ def validate_and_enhance_analysis(
     Pipeline Orchestration & Synthesis:
     Extracts traceable evidence chunks, discovers SBERT vector semantic similarities,
     runs qualitative evaluation, validates facts via output_validator, and computes
-    the authoritative 40/30/20/10 ATS score via deterministic_scorer.
+    Role Alignment (40/30/20/10) and the two-tier Resume Score via deterministic_scorer.
     """
     req_skills = sbert_results.get("requiredSkills", [])
     rec_skills = sbert_results.get("recommendedSkills", [])
@@ -241,7 +241,7 @@ def validate_and_enhance_analysis(
         parsed_sections=parsed_sections
     )
 
-    # 5. Calculate Authoritative Canonical Resume Score (ATS 40% + Alignment 60%)
+    # Calculate role alignment and the manuscript two-tier Resume Score.
     edu_benchmarks = sbert_results.get("educationBenchmarks", [])
     cert_benchmarks = sbert_results.get("certificationBenchmarks", [])
 
@@ -302,78 +302,8 @@ def validate_and_enhance_analysis(
 
     ats_score_payload["roleRelevance"]["adjustments"] = adjustments
 
-    # 5. Build Canonical Detected & Missing Sections Payloads
-    detected_sections_list = []
-    missing_sections_list = []
-
-    for canon in CANONICAL_SECTIONS:
-        content = parsed_sections.get(canon, "").strip()
-        is_present = len(content) > 5
-        detected_sections_list.append({"name": canon, "isPresent": is_present})
-
-        if not is_present and canon in ("ContactInformation", "Education", "Skills", "WorkExperience"):
-            missing_sections_list.append({
-                "name": canon,
-                "requirement": "required",
-                "importance": "high",
-                "reason": f"Missing core section: {canon.replace('([A-Z])', ' $1').strip()}"
-            })
-
-    # 6. ATS Formatting & Machine-Readability Suggestions
-    ats_suggestions = []
-    for ms in missing_sections_list:
-        ats_suggestions.append({
-            "id": f"ats_sug_{len(ats_suggestions)+1}",
-            "section": ms["name"],
-            "type": "structure",
-            "priority": "high",
-            "title": f"Add Standard {ms['name']} Heading",
-            "why": "Applicant tracking systems look for standard section headings to parse resume sections reliably.",
-            "action": f"Use standard heading: {ms['name']}.",
-            "example": f"Add a '{ms['name']}' section heading above your {ms['name'].lower()} content.",
-            "reason": "Standard section headings enhance automated parseability."
-        })
-
-    skills_text = str(parsed_sections.get("Skills", "")).strip()
-    if skills_text and not re.search(r'[,•\|\*\-\n/]', skills_text) and len(skills_text.split()) > 20:
-        ats_suggestions.append({
-            "id": f"ats_sug_{len(ats_suggestions)+1}",
-            "section": "Skills",
-            "type": "formatting",
-            "priority": "medium",
-            "title": "Use Clear Delimiters in Skills Section",
-            "why": "Bullet points, commas, or pipes allow ATS parsers to tokenize individual skills cleanly.",
-            "action": "Separate individual skills using commas, bullet points, or pipes.",
-            "example": "Python, SQL, React, Docker",
-            "reason": "Improves automatic skill extraction accuracy."
-        })
-
-    exp_text = str(parsed_sections.get("WorkExperience", "") or parsed_sections.get("Projects", "")).strip()
-    if exp_text and not re.search(r'\b(19|20)\d{2}\b', exp_text):
-        ats_suggestions.append({
-            "id": f"ats_sug_{len(ats_suggestions)+1}",
-            "section": "Projects",
-            "type": "formatting",
-            "priority": "medium",
-            "title": "Include Standard Date Ranges",
-            "why": "Chronological dates help ATS software accurately calculate your project duration and experience timeline.",
-            "action": "Add date ranges (e.g. Month Year – Month Year or Year – Present) to each project or role.",
-            "example": "Jan 2024 – May 2024",
-            "reason": "Enhances chronological timeline parsing."
-        })
-
-    if not ats_suggestions:
-        ats_suggestions.append({
-            "id": "ats_sug_1",
-            "section": "General",
-            "type": "formatting",
-            "priority": "low",
-            "title": "Maintain Machine-Readable Structure",
-            "why": "Resume structure and headings follow ATS best practices.",
-            "action": "Ensure all text remains selectable and avoid embedding important text in graphical images.",
-            "example": "Use standard fonts and clean layout.",
-            "reason": "Maintains high machine-readability."
-        })
+    from resume_findings import structural_findings
+    detected_sections_list, missing_sections_list, ats_suggestions = structural_findings(parsed_sections, raw_text)
 
     from ai_service import generate_learning_snapshot
     learning_snapshot = generate_learning_snapshot(
@@ -391,18 +321,15 @@ def validate_and_enhance_analysis(
     if not priority_gaps and learning_snapshot and isinstance(learning_snapshot, dict):
         priority_gaps = [g.get("skill") for g in learning_snapshot.get("skillGaps", []) if isinstance(g, dict) and g.get("skill")]
 
-    from ai_recommendation_verifier import generate_and_verify_ai_recommendations
-    ai_recommended_resources = generate_and_verify_ai_recommendations(
-        target_position=target_position,
-        priority_gaps=priority_gaps,
-        degree_program=str(parsed_sections.get("Education", "")),
-        raw_text=raw_text
-    )
+    # The shared reviewed catalog is ranked by the existing mobile learning engine.
+    # Keep the optional legacy field without paying for duplicate, ungrounded resource generation.
+    ai_recommended_resources = []
     if learning_snapshot and isinstance(learning_snapshot, dict):
         learning_snapshot["aiRecommendedResources"] = ai_recommended_resources
 
     return {
-        "scoringModelVersion": "3.0.0-canonical",
+        "scoringModelVersion": SCORING_MODEL_VERSION,
+        "traceability": canonical_score_result["traceability"],
         "resumeScore": resume_score_payload,
         "atsScore": ats_score_payload,
         "alignmentScore": alignment_score_payload,
@@ -417,7 +344,7 @@ def validate_and_enhance_analysis(
         "learningSnapshot": learning_snapshot,
         "isAnalysisComplete": True,
         "analyzedAt": analyzed_at,
-        "analysisVersion": "3.0.0-canonical"
+        "analysisVersion": SCORING_MODEL_VERSION
     }
 
 HONORIFICS_AND_SUFFIXES = {

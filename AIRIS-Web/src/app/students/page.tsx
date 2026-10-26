@@ -418,6 +418,7 @@ function StudentsDirectoryContent() {
                             <h3 className="font-extrabold text-[#1E3E6B] text-base leading-snug break-words">
                               {student.fullName}
                             </h3>
+                            {(student.isDefenseDemo || student.isSyntheticUat) && <span className="text-xs font-semibold text-brand-slate">Test / demo account</span>}
                           </div>
                           <p className="text-xs text-brand-slate font-medium break-all">{student.email}</p>
                         </div>

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
-import { ScrollView, TouchableOpacity, View, ActivityIndicator } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
+import { Alert, ScrollView, TouchableOpacity, View, ActivityIndicator, RefreshControl } from "react-native";
 import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore } from "../../store/authStore";
@@ -9,37 +9,41 @@ import { useResumeStore } from "../../store/resumeStore";
 import { PrimaryButton, UserAvatar } from "../../components/ui";
 import { fetchUserActivities, UserActivity } from "../../services/firebase/activityService";
 
+import { pendingInterviewCompletion } from '../../services/firebase/pendingInterviewCompletion';
+import { withTimeout } from '../../utils/promiseTimeout';
+
 export default function StudentDashboardScreen() {
   const router = useRouter();
   const currentUser = useAuthStore((state) => state.currentUser);
   const activeResume = useResumeStore((state) => state.activeResume);
   const activeAnalysis = useResumeStore((state) => state.activeAnalysis);
 
-  const [activities, setActivities] = useState<UserActivity[]>([]);
+  const [activityResult, setActivityResult] = useState<{uid: string; rows: UserActivity[]} | null>(null);
+  const activities = activityResult && activityResult.uid === currentUser?.uid ? activityResult.rows : [];
+  const [pending, setPending] = useState<{uid: string; id: string} | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activityError, setActivityError] = useState<string | null>(null);
+  const [refresh, setRefresh] = useState(0);
 
-  useEffect(() => {
-    let isMounted = true;
-    async function loadData() {
-      if (!currentUser?.uid) return;
-      try {
-        const fetchedActivities = await fetchUserActivities(currentUser.uid);
-        if (isMounted) {
-          setActivities(fetchedActivities);
-        }
-      } catch (error) {
-        console.error("Failed to load activities:", error);
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-    loadData();
-    return () => {
-      isMounted = false;
-    };
-  }, [currentUser?.uid]);
+  useFocusEffect(useCallback(() => {
+    let current = true;
+    const uid = currentUser?.uid;
+    setIsLoading(true);
+    setActivityError(null);
+    if (!uid) { setIsLoading(false); return; }
+    void Promise.allSettled([
+      withTimeout(fetchUserActivities(uid), 15000, 'Activity read timed out'),
+      withTimeout(pendingInterviewCompletion(uid), 10000, 'Recovery read timed out'),
+    ]).then(([history, recovery]) => {
+      if (!current) return;
+      if (history.status === 'fulfilled') setActivityResult({uid, rows: history.value});
+      else setActivityError('Unable to refresh your saved activity. Please try again.');
+      if (recovery.status === 'rejected') setActivityError('Unable to check pending interview saves. Please try again.');
+      setPending(recovery.status === 'fulfilled' && recovery.value ? {uid,id:recovery.value} : null);
+      setIsLoading(false);
+    });
+    return () => { current = false; };
+  }, [currentUser?.uid, refresh]));
 
   const userName = currentUser?.fullName || "Student";
   const userProgram = currentUser?.degreeProgram || "Degree Program Not Selected";
@@ -48,8 +52,8 @@ export default function StudentDashboardScreen() {
   const resumeActivities = activities.filter(a => a.type === "Resume Analysis");
   const interviewActivities = activities.filter(a => a.type === "Mock Interview");
 
-  const hasResume = resumeActivities.length > 0;
-  const hasInterview = interviewActivities.length > 0;
+  const hasResume = resumeActivities.length > 0 && Number.isFinite(resumeActivities[0].score) && resumeActivities[0].score >= 0 && resumeActivities[0].score <= 100;
+  const hasInterview = interviewActivities.length > 0 && Number.isFinite(interviewActivities[0].score) && interviewActivities[0].score >= 0 && interviewActivities[0].score <= 100;
 
   const resumeScore = hasResume ? resumeActivities[0].score : 0;
   const interviewScore = hasInterview ? interviewActivities[0].score : 0;
@@ -70,7 +74,12 @@ export default function StudentDashboardScreen() {
 
   const handleViewActivity = (activity: UserActivity) => {
     if (activity.type === "Mock Interview") {
-      router.push("/(student)/(tabs)/interview" as any);
+      try {
+        if (!activity.id) throw new Error('Missing interview reference');
+        router.push({ pathname: '/(student)/interview-session/saved', params: { sessionId: activity.id } } as any);
+      } catch {
+        Alert.alert('Interview unavailable', 'Unable to open this saved interview. Please try again from the dashboard.');
+      }
     } else {
       router.push({
         pathname: "/(student)/resume-view",
@@ -111,7 +120,10 @@ export default function StudentDashboardScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => setRefresh(value => value + 1)} />} className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        {activityError ? <View className="px-6 pt-4"><Text className="text-[#B91C1C]">{activityError}</Text><PrimaryButton title="Refresh saved activity" onPress={() => setRefresh(value => value + 1)} /></View> : null}
+        {pending?.uid === currentUser?.uid && pending ? <View className="px-6 pt-4"><Text className="text-[#4F6B82] mb-3">An interview is waiting for save confirmation.</Text><PrimaryButton title="Resume saving interview" onPress={() => router.push({pathname:'/(student)/interview-session/summary',params:{sessionId:pending.id}} as any)} /></View> : null}
+
 
         {/* EMPLOYABILITY SCORE CARD */}
         <View className="rounded-3xl bg-white p-6 border border-[#BFD6EA] mt-2 items-center" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
@@ -124,7 +136,7 @@ export default function StudentDashboardScreen() {
               <ActivityIndicator size="large" color="#F4A47A" />
               <Text className="mt-3 text-sm font-bold text-[#4F6B82]">Calculating score...</Text>
             </View>
-          ) : !hasInterview ? (
+          ) : !hasResume || !hasInterview ? (
             <>
               <View className="items-center my-6">
                 <View className="h-24 w-24 items-center justify-center rounded-full bg-[#EAF2F7]">

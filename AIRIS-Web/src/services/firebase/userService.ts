@@ -3,11 +3,8 @@ import {
   doc,
   getDocs,
   getDoc,
-  updateDoc,
-  setDoc,
-  serverTimestamp,
 } from "firebase/firestore";
-import { db } from "../../config/firebase";
+import { auth, db } from "../../config/firebase";
 import {
   StudentListItem,
   StudentFullProfile,
@@ -29,19 +26,15 @@ const INTERVIEWS_SUBCOLLECTION = "interviews";
 const ACTIVITIES_SUBCOLLECTION = "activities";
 
 function parseTimestamp(ts: any): string {
-  if (!ts) return new Date().toISOString();
-  if (typeof ts === "string") return ts;
-  if (typeof ts.toDate === "function") return ts.toDate().toISOString();
-  if (ts.seconds) return new Date(ts.seconds * 1000).toISOString();
-  return new Date().toISOString();
+  return recordedTimestamp(ts) || "";
 }
 
 /**
  * Deterministically computes the canonical composite Employability Preparedness Score.
- * Formula: round(Resume ATS Score × 0.40 + Interview Score × 0.60)
+ * Formula: round(Resume Score × 0.40 + Interview Score × 0.60)
  *
  * Strict Rule:
- * Returns undefined ("Incomplete Data") if either score is missing/zero or interview is incomplete.
+ * Returns undefined ("Incomplete Data") if either score is invalid or interview is incomplete.
  * Never synthesizes fake scores or partial substitutes.
  */
 export function calculateEmployabilityScore(
@@ -50,10 +43,10 @@ export function calculateEmployabilityScore(
   interviewStatus?: string
 ): number | undefined {
   if (
-    resumeScore !== undefined &&
-    resumeScore > 0 &&
-    interviewScore !== undefined &&
-    interviewScore > 0 &&
+    typeof resumeScore === "number" && Number.isFinite(resumeScore) &&
+    resumeScore >= 0 && resumeScore <= 100 &&
+    typeof interviewScore === "number" && Number.isFinite(interviewScore) &&
+    interviewScore >= 0 && interviewScore <= 100 &&
     interviewStatus === "completed"
   ) {
     return Math.round(resumeScore * 0.40 + interviewScore * 0.60);
@@ -87,8 +80,7 @@ export async function fetchStudentsList(filters?: StudentFilterOptions): Promise
       ? filters.program
       : undefined;
 
-  // Unify all eligible participants: both institutional and UAT participants are included together under All Participants.
-  // Internal provenance markers (isDefenseDemo, isSyntheticUat) remain intact on records for auditability.
+  // Roster access can include all accounts; aggregates explicitly exclude marked synthetic accounts.
   const eligibleDocs = snapshot.docs.filter((docSnap) => {
     const userData = docSnap.data();
     if (userData.role === "admin" || userData.role === "career_center" || userData.role === "ojt_coordinator") {
@@ -97,6 +89,10 @@ export async function fetchStudentsList(filters?: StudentFilterOptions): Promise
     if (userData.isDeleted === true || userData.accountState === "DELETED") {
       return false;
     }
+
+    const synthetic = userData.isDefenseDemo === true || userData.isSyntheticUat === true;
+    if ((filters?.datasetScope === "genuine" || filters?.excludeDemo) && synthetic) return false;
+    if (filters?.datasetScope === "demo" && !synthetic) return false;
 
     // Role-based program filter enforcement
     if (effectiveProgramFilter && userData.degreeProgram !== effectiveProgramFilter) {
@@ -144,6 +140,10 @@ export async function fetchStudentsList(filters?: StudentFilterOptions): Promise
       getDocs(interviewsColRef),
     ]);
 
+    if ([resumesRes, analysesRes, interviewsRes].some(result => result.status === "rejected")) {
+      throw new Error("Student evaluation records are unavailable. Retry before generating aggregates.");
+    }
+
     if (resumesRes.status === "fulfilled") {
       resumesCount = resumesRes.value.size;
       if (resumesCount > 0) {
@@ -164,7 +164,7 @@ export async function fetchStudentsList(filters?: StudentFilterOptions): Promise
           aData.overallScore ??
           aData.atsScore?.overallScore;
         const aTime = new Date(parseTimestamp(aData.createdAt || aData.analyzedAt)).getTime();
-        if (aTime >= latestDate && score !== undefined && score !== null) {
+        if (aTime >= latestDate && typeof score === "number" && Number.isFinite(score) && score >= 0 && score <= 100) {
           latestDate = aTime;
           latestScore = Number(score);
         }
@@ -179,14 +179,15 @@ export async function fetchStudentsList(filters?: StudentFilterOptions): Promise
       let hasCompletedInterview = false;
       interviewsRes.value.forEach((iDoc) => {
         const iData = iDoc.data();
-        if (iData.completedAt) hasCompletedInterview = true;
+
         const score =
           iData.finalReport?.overallPerformance ??
           iData.overallPerformance ??
           iData.overallScore ??
           iData.score;
         const iTime = new Date(parseTimestamp(iData.completedAt || iData.createdAt)).getTime();
-        if (iData.completedAt && iTime >= latestIntDate && score !== undefined && score !== null) {
+        if (iData.completedAt && iTime >= latestIntDate && typeof score === "number" && Number.isFinite(score) && score >= 0 && score <= 100) {
+          hasCompletedInterview = true;
           latestIntDate = iTime;
           latestIntScore = Number(score);
         }
@@ -430,6 +431,8 @@ export async function fetchStudentDetails(studentId: string): Promise<StudentFul
     email: userData.email || "No email",
     fullName: userData.fullName || "Unnamed Student",
     role: "student",
+    isDefenseDemo: userData.isDefenseDemo === true,
+    isSyntheticUat: userData.isSyntheticUat === true,
     college: userData.college || "General",
     degreeProgram: userData.degreeProgram || "Unspecified Program",
     targetPosition: userData.targetPosition || "Not set",
@@ -471,8 +474,7 @@ export async function toggleStudentAccountState(
   isDisabled: boolean,
   actor: { name: string; uid: string; role: string }
 ): Promise<void> {
-  const userRef = doc(db, USERS_COLLECTION, studentId);
-  await updateDoc(userRef, { isDisabled });
+  await requestLifecycleAction(isDisabled ? 'admin_disable' : 'admin_enable', studentId);
 
   const action = isDisabled ? "UserBlocked" : "UserUnblocked";
   await logAuditEvent({
@@ -494,16 +496,7 @@ export async function deleteStudentAccount(
   studentId: string,
   actor: { name: string; uid: string; role: string }
 ): Promise<void> {
-  const userRef = doc(db, USERS_COLLECTION, studentId);
-  await setDoc(userRef, {
-    uid: studentId,
-    accountState: "DELETED",
-    isDeleted: true,
-    isDisabled: true,
-    deletedAt: serverTimestamp(),
-    deletedBy: actor.name,
-    updatedAt: serverTimestamp(),
-  });
+  await requestLifecycleAction('admin_remove', studentId);
 
   await logAuditEvent({
     action: "UserDeleted",
@@ -514,4 +507,14 @@ export async function deleteStudentAccount(
     target: studentId,
     result: "SUCCESS",
   });
+}
+
+async function requestLifecycleAction(action: string, targetUid: string): Promise<void> {
+  if (!auth.currentUser) throw new Error('Please sign in again.');
+  const response = await fetch('/api/accounts/lifecycle', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { Authorization: `Bearer ${await auth.currentUser.getIdToken(true)}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, targetUid }),
+  });
+  if (!response.ok) throw new Error('Account restriction could not be updated. Please check your session or contact the administrator.');
 }

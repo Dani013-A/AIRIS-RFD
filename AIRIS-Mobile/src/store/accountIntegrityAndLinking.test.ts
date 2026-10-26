@@ -112,7 +112,9 @@ describe("Account Integrity & Provider Linking Regression Tests", () => {
       accountState: "ACTIVE",
       isDeleted: false,
     };
-    mockFirestoreUsers = [existingGoogleUser];
+    (createUserWithEmailAndPassword as jest.Mock).mockRejectedValueOnce(
+      new Error("auth/email-already-in-use")
+    );
 
     await expect(
       registerStudent("student@tip.edu.ph", "Password123!", "Juan Dela Cruz")
@@ -120,8 +122,11 @@ describe("Account Integrity & Provider Linking Regression Tests", () => {
       "An account with this TIP email already exists. Try logging in instead, or use Google Sign-In if you registered with Google."
     );
 
-    // Auth create user must not be called when existing profile detected
-    expect(createUserWithEmailAndPassword).not.toHaveBeenCalled();
+    expect(createUserWithEmailAndPassword).toHaveBeenCalledWith(
+      expect.anything(),
+      "student@tip.edu.ph",
+      "Password123!"
+    );
   });
 
   // Test 2: Email/password signup followed by Google sign-in with the same email
@@ -228,23 +233,6 @@ describe("Account Integrity & Provider Linking Regression Tests", () => {
 
   // Test 5: Concurrent signup attempts
   it("Scenario 5: Concurrent signup race condition is safely intercepted and orphaned user deleted", async () => {
-    // Initially no user returned in check 1
-    (getDocs as jest.Mock)
-      .mockResolvedValueOnce({ docs: [] }) // first check: empty
-      .mockResolvedValueOnce({ // second check during transaction: competitor appeared
-        docs: [
-          {
-            id: "competitor_uid_777",
-            data: () => ({
-              uid: "competitor_uid_777",
-              email: "student@tip.edu.ph",
-              isDeleted: false,
-              accountState: "ACTIVE",
-            }),
-          },
-        ],
-      });
-
     const newAuthUser = {
       uid: "my_uid_888",
       email: "student@tip.edu.ph",
@@ -253,6 +241,10 @@ describe("Account Integrity & Provider Linking Regression Tests", () => {
     (createUserWithEmailAndPassword as jest.Mock).mockResolvedValueOnce({
       user: newAuthUser,
     });
+    const { createProfileTransaction } = require("../services/firebase/userService");
+    (createProfileTransaction as jest.Mock).mockRejectedValueOnce(
+      new Error("An account with this TIP email already exists.")
+    );
 
     await expect(
       registerStudent("student@tip.edu.ph", "Pass12345!", "Rival Student")

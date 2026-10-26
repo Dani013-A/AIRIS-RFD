@@ -22,7 +22,7 @@ from starlette.concurrency import run_in_threadpool
 from file_utils import extract_text
 from resume_format import MAX_UPLOAD_BYTES, assess_resume_format, blocked, inspect_document_layout, validate_file_type
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, StrictInt, ConfigDict
 from typing import Dict, Any, Optional, List
 from dotenv import load_dotenv
 
@@ -30,10 +30,12 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 from sbert_matcher import evaluate_semantic_alignment
 from ai_validator import validate_and_enhance_analysis
+from deterministic_scorer import SCORING_MODEL_VERSION
 from normalizer import normalize_career_input
 from fastapi import Header, Depends
 import firebase_admin
 from firebase_admin import auth
+from account_lifecycle import assert_active_student
 
 # Initialize Firebase Admin SDK safely
 def init_firebase_admin():
@@ -205,6 +207,7 @@ def get_authenticated_user(authorization: Optional[str] = Header(None)) -> str:
                 detail="Forbidden: Institutional email address has not been verified."
             )
 
+        assert_active_student(str(uid), email_lower)
         return str(uid)
     except HTTPException:
         raise
@@ -317,15 +320,21 @@ async def analyze_resume(request: Request, auth_uid: str = Depends(get_authentic
             except Exception:
                 analysis_payload = {}
 
+            if not isinstance(analysis_payload, dict):
+                raise HTTPException(status_code=400, detail="A resume analysis object is required.")
+
             # Authoritative identity check: reject cross-user requests
             client_user_id = analysis_payload.get("userId") or analysis_payload.get("uid") or analysis_payload.get("account_id")
             assert_user_authorization(auth_uid, client_user_id)
 
-            raw_text = str(analysis_payload.get("rawText") or analysis_payload.get("raw_text") or "")
-            parsed_sections = analysis_payload.get("parsedSections") or analysis_payload.get("parsed_sections") or {}
-            if not parsed_sections or not isinstance(parsed_sections, dict) or len(parsed_sections) < 2:
-                from resume_parser import parse_resume
-                parsed_sections = await run_in_threadpool(parse_resume, raw_text)
+            raw_text = analysis_payload.get("rawText") or analysis_payload.get("raw_text") or ""
+            if not isinstance(raw_text, str):
+                raise HTTPException(status_code=400, detail="Extracted resume text must be a string.")
+            # Raw extracted text owns resume facts; client section labels are presentation hints.
+            if not raw_text.strip():
+                raise HTTPException(status_code=400, detail="Extracted resume text is required.")
+            from resume_parser import parse_resume
+            parsed_sections = await run_in_threadpool(parse_resume, raw_text)
 
             target_pos = str(analysis_payload.get("targetPosition") or analysis_payload.get("target_position") or "").strip()
             if not target_pos:
@@ -363,7 +372,8 @@ async def analyze_resume(request: Request, auth_uid: str = Depends(get_authentic
                 "valid": True,
                 "message": "Resume processed successfully.",
                 "analysisId": analysis_id,
-                "scoringModelVersion": "3.0.0-canonical",
+                "scoringModelVersion": SCORING_MODEL_VERSION,
+                "traceability": enhanced_result.get("traceability"),
                 "resumeScore": enhanced_result["resumeScore"],
                 "atsScore": enhanced_result["atsScore"],
                 "alignmentScore": enhanced_result["alignmentScore"],
@@ -377,7 +387,7 @@ async def analyze_resume(request: Request, auth_uid: str = Depends(get_authentic
                 "learningSnapshot": enhanced_result.get("learningSnapshot"),
                 "isAnalysisComplete": True,
                 "analyzedAt": enhanced_result.get("analyzedAt", ""),
-                "analysisVersion": "3.0.0-canonical",
+                "analysisVersion": SCORING_MODEL_VERSION,
             }
 
             return response
@@ -385,7 +395,7 @@ async def analyze_resume(request: Request, auth_uid: str = Depends(get_authentic
         except HTTPException:
             raise
         except Exception as e:
-            print("Analysis error:", e)
+            print("Resume analysis failed; no result generated.")
             raise HTTPException(status_code=500, detail="An internal error occurred during analysis.")
 
 @app.post("/verify-resource-url")
@@ -525,7 +535,8 @@ async def upload_resume(
                 "formatAssessment": format_assessment,
                 "rawText": raw_text,
                 "parsedSections": parsed_sections,
-                "scoringModelVersion": "3.0.0-canonical",
+                "scoringModelVersion": SCORING_MODEL_VERSION,
+                "traceability": enhanced_result.get("traceability"),
                 "resumeScore": enhanced_result["resumeScore"],
                 "atsScore": enhanced_result["atsScore"],
                 "alignmentScore": enhanced_result["alignmentScore"],
@@ -538,7 +549,7 @@ async def upload_resume(
                 "learningSnapshot": enhanced_result.get("learningSnapshot"),
                 "isAnalysisComplete": True,
                 "analyzedAt": enhanced_result.get("analyzedAt", ""),
-                "analysisVersion": "3.0.0-canonical",
+                "analysisVersion": SCORING_MODEL_VERSION,
             }
         except HTTPException:
             raise
@@ -567,24 +578,21 @@ class InterviewStartRequest(BaseModel):
     targetRole: Optional[str] = None
     program: Optional[str] = None
     parsedResume: Optional[Dict[str, Any]] = None
+    resumeId: str = "none"
+    interviewType: str = "one-on-one"
 
 class InterviewAnswerRequest(BaseModel):
-    targetRole: Optional[str] = None
-    program: Optional[str] = None
-    parsedResume: Optional[Dict[str, Any]] = None
-    history: List[Dict[str, Any]]
-    currentQuestion: str
+    sessionId: str
+    questionId: str
+    turn: StrictInt
     currentAnswer: str
-    currentQuestionType: str
-    totalQuestions: int
-    pauseMetrics: Optional[Dict[str, Any]] = None
+
+    model_config = ConfigDict(extra="forbid")
 
 class InterviewReportRequest(BaseModel):
-    targetRole: Optional[str] = None
-    program: Optional[str] = None
-    parsedResume: Optional[Dict[str, Any]] = None
-    history: List[Dict[str, Any]]
-    evaluations: List[Dict[str, Any]]
+    sessionId: str
+
+    model_config = ConfigDict(extra="forbid")
 
 import datetime
 
@@ -600,14 +608,12 @@ def start_interview(req: InterviewStartRequest, auth_uid: str = Depends(get_auth
     program = (req.program or "").strip()
     parsed_resume = req.parsedResume if isinstance(req.parsedResume, dict) else {}
 
-    print(f"[{timestamp}] [INTERVIEW] Starting session for target role: {target_role}")
+    print(f"[{timestamp}] [INTERVIEW] Starting session.")
     try:
-        from interview_engine import generate_first_question
-        result = generate_first_question(target_role, program, parsed_resume)
-        result["speechDecisionId"] = uuid.uuid4().hex
-        print(f"[INTERVIEW][DECISION] id={result['speechDecisionId']} question={result.get('questionId', 'unknown')}")
-        print(f"[{timestamp}] [INTERVIEW] Successfully generated first question.")
-        return result
+        from interview_sessions import start
+        if req.interviewType not in ("one-on-one", "panel", "vr", "immersive-one-on-one", "immersive-panel"):
+            raise HTTPException(400, "Unsupported interview type.")
+        return start(auth_uid, target_role, program, parsed_resume, req.resumeId, req.interviewType)
     except HTTPException:
         raise
     except Exception as e:
@@ -620,26 +626,11 @@ def evaluate_interview_answer(req: InterviewAnswerRequest, auth_uid: str = Depen
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] [INTERVIEW] Evaluating answer.")
     try:
-        from interview_engine import evaluate_answer_and_generate_next
-        result = evaluate_answer_and_generate_next(
-            target_role=req.targetRole,
-            program=req.program,
-            parsed_resume=req.parsedResume,
-            history=req.history,
-            current_question=req.currentQuestion,
-            current_answer=req.currentAnswer,
-            current_question_type=req.currentQuestionType,
-            total_questions=req.totalQuestions,
-            pause_metrics=req.pauseMetrics
-        )
-        if isinstance(result, dict):
-            result["speechDecisionId"] = uuid.uuid4().hex
-            next_question = result.get("nextQuestion") or {}
-            print(f"[INTERVIEW][DECISION] id={result['speechDecisionId']} question={next_question.get('questionId', 'interaction')} interaction={result.get('isInteractionEvent', False)}")
-        eval_dict = result.get("evaluation") if isinstance(result, dict) and isinstance(result.get("evaluation"), dict) else {}
-        score_val = eval_dict.get("overall", "N/A")
-        print(f"[{timestamp}] [INTERVIEW] Evaluation complete. Score: {score_val}")
-        return result
+        from interview_sessions import answer
+        if isinstance(req.turn, bool) or not 0 <= req.turn < 48 or not req.currentAnswer.strip() or len(req.currentAnswer) > 8000:
+            raise HTTPException(400, "A valid answer and turn are required.")
+        with ExpensiveConcurrencyGuard(f"uid:{auth_uid}"):
+            return answer(auth_uid, req.sessionId, req.questionId, req.turn, req.currentAnswer.strip())
     except HTTPException:
         raise
     except Exception as e:
@@ -648,7 +639,9 @@ def evaluate_interview_answer(req: InterviewAnswerRequest, auth_uid: str = Depen
 @app.post("/interview/transcribe")
 async def transcribe_interview_audio(
     auth_uid: str = Depends(get_authenticated_user),
-    audio: UploadFile = File(...)
+    audio: UploadFile = File(...),
+    sessionId: Optional[str] = Form(None),
+    turn: Optional[int] = Form(None),
 ):
     check_rate_limit("uid", auth_uid, PER_USER_EXPENSIVE_REQUEST_LIMIT)
 
@@ -679,6 +672,9 @@ async def transcribe_interview_audio(
                 text = str(transcribe_res)
                 pause_metrics = {}
 
+            if sessionId is not None:
+                from interview_sessions import attach_audio
+                attach_audio(auth_uid, sessionId, turn, text, pause_metrics)
             print(f"[{timestamp}] [INTERVIEW] Transcription complete.")
             return {"transcription": text, "pauseMetrics": pause_metrics}
         except HTTPException:
@@ -689,21 +685,35 @@ async def transcribe_interview_audio(
 @app.post("/interview/report")
 def generate_interview_report(req: InterviewReportRequest, auth_uid: str = Depends(get_authenticated_user)):
     check_rate_limit("uid", auth_uid, PER_USER_GENERAL_REQUEST_LIMIT)
-
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{timestamp}] [INTERVIEW] Generating final report...")
     try:
-        from interview_engine import generate_final_report
-        result = generate_final_report(
-            target_role=req.targetRole,
-            program=req.program,
-            parsed_resume=req.parsedResume,
-            history=req.history,
-            evaluations=req.evaluations
-        )
-        print(f"[{timestamp}] [INTERVIEW] Final report generated successfully.")
-        return result
+        from interview_sessions import report
+        with ExpensiveConcurrencyGuard(f"uid:{auth_uid}"):
+            return report(auth_uid, req.sessionId)
     except HTTPException:
         raise
     except Exception as e:
         safe_error_response("/interview/report", e, auth_uid)
+
+
+@app.get("/interview/status/{session_id}")
+def interview_completion_status(session_id: str, auth_uid: str = Depends(get_authenticated_user)):
+    check_rate_limit("uid", auth_uid, PER_USER_GENERAL_REQUEST_LIMIT)
+    try:
+        from interview_sessions import completion_status
+        return completion_status(auth_uid, session_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        safe_error_response("/interview/status", e, auth_uid)
+
+
+@app.post("/interview/cancel")
+def cancel_interview(req: InterviewReportRequest, auth_uid: str = Depends(get_authenticated_user)):
+    check_rate_limit("uid", auth_uid, PER_USER_GENERAL_REQUEST_LIMIT)
+    try:
+        from interview_sessions import cancel
+        return cancel(auth_uid, req.sessionId)
+    except HTTPException:
+        raise
+    except Exception as e:
+        safe_error_response("/interview/cancel", e, auth_uid)

@@ -466,8 +466,10 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
     });
 
     it("should register valid TIP email and record ACTIVE lifecycle status", async () => {
-      (createUserWithEmailAndPassword as jest.Mock).mockResolvedValueOnce({
-        user: { uid: "email_reg_uid", email: "newstudent@tip.edu.ph" },
+      const registeredUser = { uid: "email_reg_uid", email: "newstudent@tip.edu.ph" };
+      (createUserWithEmailAndPassword as jest.Mock).mockImplementationOnce(async () => {
+        jest.requireMock("../config/firebase").auth.currentUser = registeredUser;
+        return { user: registeredUser };
       });
 
       const user = await registerStudent("newstudent@tip.edu.ph", "ValidPass123!", "New Student");
@@ -485,6 +487,22 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
         })
       );
       expect(signOut).toHaveBeenCalled();
+    });
+
+    it("does not sign out a different identity after delayed registration", async () => {
+      const config = jest.requireMock("../config/firebase");
+      const registeredUser = { uid: "pending_signup", email: "newstudent@tip.edu.ph" };
+      (createUserWithEmailAndPassword as jest.Mock).mockImplementationOnce(async () => {
+        config.auth.currentUser = registeredUser;
+        return { user: registeredUser };
+      });
+      mockCreateProfileTransaction.mockImplementationOnce(async (_uid: string, profile: AppUser) => {
+        config.auth.currentUser = { uid: "switched_identity" };
+        return profile;
+      });
+      await registerStudent("newstudent@tip.edu.ph", "ValidPass123!", "New Student");
+      expect(signOut).not.toHaveBeenCalled();
+      expect(config.auth.currentUser.uid).toBe("switched_identity");
     });
 
     it("should reject email login before verification", async () => {

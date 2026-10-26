@@ -1,54 +1,27 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
-  setDoc,
   query,
   orderBy,
   limit,
-  serverTimestamp,
 } from "firebase/firestore";
-import { db } from "../../config/firebase";
+import { auth, db } from "../../config/firebase";
 import { InterviewSession } from "../../store/interviewStore";
 
 const USERS_COLLECTION = "users";
 const INTERVIEWS_SUBCOLLECTION = "interviews";
 
-/**
- * Clean up any undefined values from the information before sending it to the database so Firestore doesn't complain.
- */
-function cleanUndefined(obj: any): any {
-  if (obj === null || typeof obj !== "object") {
-    return obj;
-  }
-  if (Array.isArray(obj)) {
-    return obj.map(cleanUndefined);
-  }
-  const clean: any = {};
-  for (const key of Object.keys(obj)) {
-    if (obj[key] !== undefined) {
-      clean[key] = cleanUndefined(obj[key]);
-    }
-  }
-  return clean;
-}
-
-/**
- * Save a completed interview session to Firestore.
- */
-export async function saveInterviewSession(userId: string, session: InterviewSession): Promise<void> {
-  const interviewsColRef = collection(db, USERS_COLLECTION, userId, INTERVIEWS_SUBCOLLECTION);
-
-  // Use the session ID from Zustand, or create a new document reference
-  const docRef = doc(interviewsColRef, session.sessionId);
-
-  // Exclude raw heavy objects if necessary, but keep history and evaluations
-  const sanitizedSession = cleanUndefined({
-    ...session,
-    createdAt: serverTimestamp(),
-  });
-
-  await setDoc(docRef, sanitizedSession, { merge: true });
+export async function fetchSavedInterviewSession(userId: string, sessionId: string): Promise<InterviewSession | null> {
+  if (!userId || auth.currentUser?.uid !== userId) throw new Error('Please sign in again to view your interview.');
+  if (!sessionId || sessionId.includes('/') || userId.includes('/')) throw new Error('The interview reference is invalid.');
+  const snapshot = await getDoc(doc(db, USERS_COLLECTION, userId, INTERVIEWS_SUBCOLLECTION, sessionId));
+  if (auth.currentUser?.uid !== userId) throw new Error('The signed-in account changed.');
+  if (!snapshot.exists()) return null;
+  const record = snapshot.data();
+  if (record.userId && record.userId !== userId) throw new Error('The interview is unavailable for this account.');
+  return { ...record, sessionId } as InterviewSession;
 }
 
 /**

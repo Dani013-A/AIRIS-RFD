@@ -148,6 +148,7 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
       try {
         set({ processingStatus: "extracting", error: null });
         const resume = await fetchActiveResumeFromDb(userId, activeResumeId);
+        if (useAuthStore.getState().currentUser?.uid !== userId || inFlightFetchKey !== fetchKey) return;
         if (!resume) {
           set({
             activeResume: null,
@@ -161,6 +162,7 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
         let analysisResult: ResumeAnalysisResult | null = null;
         if (resume.latestAnalysisId) {
           const analysisDoc = await fetchAnalysisByIdFromDb(userId, resume.latestAnalysisId);
+          if (useAuthStore.getState().currentUser?.uid !== userId || inFlightFetchKey !== fetchKey) return;
           if (analysisDoc) {
             analysisResult = analysisDoc.result;
             if (analysisResult) {
@@ -183,13 +185,16 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
           error: null,
         });
       } catch (err) {
+        if (useAuthStore.getState().currentUser?.uid !== userId || inFlightFetchKey !== fetchKey) return;
         set({
           processingStatus: "failed",
           error: err instanceof Error ? err.message : String(err),
         });
       } finally {
-        inFlightFetchPromise = null;
-        inFlightFetchKey = null;
+        if (inFlightFetchKey === fetchKey) {
+          inFlightFetchPromise = null;
+          inFlightFetchKey = null;
+        }
       }
     })();
 
@@ -364,7 +369,7 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
       set({ processingStatus: "finalizing" });
 
       // Save student self-ratings to persistent storage
-      await saveSelfAssessments(ratings);
+      await saveSelfAssessments(ratings, useAuthStore.getState().currentUser?.uid);
 
       const { type } = pendingAnalysisData;
 
@@ -563,7 +568,7 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
 
     try {
       // Persist new ratings to AsyncStorage
-      await saveSelfAssessments(newRatings);
+      await saveSelfAssessments(newRatings, useAuthStore.getState().currentUser?.uid);
 
       // REQUIREMENT 2: Zero SBERT calls, zero LLM calls, zero ATS score changes, zero DB duplicates!
       set({
@@ -609,6 +614,7 @@ export function syncResumeWithAuth() {
   const currentActiveResumeId = currentUser?.activeResumeId || null;
 
   if (currentUid !== lastUid || currentActiveResumeId !== lastActiveResumeId) {
+    if (currentUid !== lastUid) useResumeStore.getState().clearStore();
     lastUid = currentUid;
     lastActiveResumeId = currentActiveResumeId;
 

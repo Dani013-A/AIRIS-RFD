@@ -47,7 +47,7 @@ function buildScopeDescription(scope?: ReportFilterScope): string {
     "1y": "Past 1 Year",
   };
   const periodStr = (scope?.period && periodMap[scope.period]) || "All Recorded History";
-  return `${coordStr} · ${periodStr} · All Participants`;
+  return `${coordStr} · ${periodStr} · Excludes marked demo/test accounts`;
 }
 
 function buildMetadata(title: string, admin: AdminUser, scope?: ReportFilterScope): ReportMetadata {
@@ -78,7 +78,7 @@ export async function fetchReportPayload(
   switch (reportKey) {
     case "student_profiles": {
       const coordScope = scope?.coordinator || scope?.college;
-      const effectiveDatasetScope = "all";
+      const effectiveDatasetScope = "genuine";
       // 1. Fetch students respecting coordinator boundaries and dataset scope
       const allStudents = await fetchStudentsList({
         coordinator: coordScope,
@@ -309,7 +309,7 @@ export async function fetchReportPayload(
         {
           coordinator: coordScope,
           period: scope?.period as any,
-          datasetScope: "all",
+          datasetScope: "genuine",
         },
         admin.role
       );
@@ -363,7 +363,7 @@ export async function fetchReportPayload(
         {
           type: "funnel_pipeline",
           title: "Career Center Completion Pipeline",
-          subtitle: "Sequential stage conversion from registration through placement readiness",
+          subtitle: "Sequential stages from registration through evaluation completion",
           funnelStages: [
             {
               stageNumber: 1,
@@ -407,7 +407,7 @@ export async function fetchReportPayload(
             },
             {
               stageNumber: 6,
-              label: "Fully Prepared",
+              label: "Evaluation Complete",
               count: funnel.fullyPreparedCount,
               percentage: funnel.completionRate,
               dropOff: 0,
@@ -418,10 +418,10 @@ export async function fetchReportPayload(
         {
           type: "donut_breakdown",
           title: "Career Preparedness Pipeline Outcome",
-          subtitle: "Ratio of fully prepared candidates versus in-progress pipeline population",
+          subtitle: "Ratio of evaluation complete candidates versus in-progress pipeline population",
           donutData: [
             {
-              label: "Fully Prepared for Employment",
+              label: "Evaluation Complete",
               count: funnel.fullyPreparedCount,
               percentage: funnel.completionRate,
               colorHex: "#22C55E",
@@ -444,24 +444,24 @@ export async function fetchReportPayload(
         category: "CAREER CENTER MOM FUNNEL",
         question: "How far have students progressed through the 6-stage preparation funnel and where is the drop-off?",
         description:
-          "Stage-by-stage progression from initial registration to fully prepared status, tracking drop-offs and stage conversion rates.",
+          "Stage-by-stage progression from initial registration to evaluation complete status, tracking drop-offs and stage conversion rates.",
         metadata,
         summaryStats: [
           { label: "Eligible Participants", value: funnel.registeredCount },
           { label: "Resume Analyzed", value: funnel.resumeAnalyzedCount },
           { label: "Interview Completed", value: funnel.interviewCompletedCount },
-          { label: "Fully Prepared Rate", value: `${funnel.completionRate}%` },
+          { label: "Evaluation Completion Rate", value: `${funnel.completionRate}%` },
         ],
         executiveSummary: {
-          headline: `Group achieves ${funnel.completionRate}% full preparedness completion with primary pipeline drop-off at interview stage.`,
+          headline: `Group achieves ${funnel.completionRate}% evaluation completion.`,
           paragraphs: [
             `Out of ${funnel.registeredCount} registered students, ${funnel.resumeUploadedCount} have uploaded resumes and ${funnel.resumeAnalyzedCount} completed full ATS alignment.`,
-            `The progression slows between resume analysis and mock interview initiation (drop-off of ${dropOffStarted} candidates), indicating that targeted coordinator follow-ups can yield the greatest readiness gains here.`,
+            `${dropOffStarted} students have resume analysis records without an interview start. Coordinators can review these records before planning follow-ups.`,
           ],
           keyObservations: [
             `${funnel.resumeAnalyzedCount} candidates (${funnel.registeredCount > 0 ? Math.round((funnel.resumeAnalyzedCount / funnel.registeredCount) * 100) : 0}%) completed resume ATS evaluation.`,
             `${funnel.interviewCompletedCount} candidates finished voice interview simulations.`,
-            `Overall career readiness completion stands at ${funnel.completionRate}%.`,
+            `Recorded evaluation completion stands at ${funnel.completionRate}%.`,
           ],
         },
         visualizations,
@@ -477,8 +477,8 @@ export async function fetchReportPayload(
         },
         definitions: [
           "Completion Progression: Represents the sequential student journey through AIRIS career readiness.",
-          "Drop-Off: Students at intermediate stages without reaching full evaluation readiness.",
-          "Fully Prepared: Students who have completed both ATS resume analysis and mock interview simulation.",
+          "Drop-Off: Recorded students who have not completed the next evaluation stage.",
+          "Evaluation Complete: Students who have completed both ATS resume analysis and mock interview simulation.",
         ],
         rawCsvData,
       };
@@ -490,7 +490,7 @@ export async function fetchReportPayload(
         {
           coordinator: coordScope,
           period: scope?.period as any,
-          datasetScope: "all",
+          datasetScope: "genuine",
         },
         admin.role
       );
@@ -499,15 +499,15 @@ export async function fetchReportPayload(
 
       const headers = ["Interview Metric", "Recorded Value", "Operational Context"];
       const rows = [
-        ["Total Completed Interview Sessions", metrics.totalInterviewsConducted, "Verified Firestore interview sessions"],
+        ["Total Stored Interview Sessions", metrics.totalInterviewsConducted, "Stored sessions, including incomplete attempts"],
         ["Students Attempting Interviews", metrics.funnel.interviewStartedCount, "Candidates with at least 1 interview session"],
         ["Students Finalizing Interviews", metrics.funnel.interviewCompletedCount, "Candidates receiving final interview reports"],
         [
           "Average Interview Score",
           metrics.performanceSummary.avgInterviewScore !== null ? `${metrics.performanceSummary.avgInterviewScore}/100` : "No Completed Sessions",
-          "Mean score across all completed interview sessions",
+          "Mean latest valid completed interview score per student",
         ],
-        ["Total Resume Analyses Recorded", metrics.totalAiFeedbackGenerated, "Verified resume evaluations in scope"],
+        ["Students with Resume Analysis", metrics.totalAiFeedbackGenerated, "Students with a valid scored resume analysis in scope"],
       ];
 
       const rawCsvData = [headers.join(","), ...rows.map((r) => r.map((c) => `"${c}"`).join(","))].join("\n");
@@ -565,15 +565,15 @@ export async function fetchReportPayload(
           { label: "Resume Analyses", value: metrics.totalAiFeedbackGenerated },
         ],
         executiveSummary: {
-          headline: `Recorded ${metrics.totalInterviewsConducted} completed interview simulations with average score of ${
+          headline: `Recorded ${metrics.totalInterviewsConducted} stored interview sessions (all statuses); latest completed score mean is ${
             metrics.performanceSummary.avgInterviewScore !== null ? `${metrics.performanceSummary.avgInterviewScore}/100` : "N/A"
           }.`,
           paragraphs: [
-            `A total of ${metrics.funnel.interviewStartedCount} candidate students initiated the AIRIS technical interview simulation, with ${metrics.funnel.interviewCompletedCount} successfully completing the full questionnaire.`,
-            `The average score among completing candidates reflects strong technical grounding, with semantic correctness and delivery metrics recorded permanently in Firestore.`,
+            `A total of ${metrics.funnel.interviewStartedCount} students initiated an AIRIS employability interview simulation, with ${metrics.funnel.interviewCompletedCount} successfully completing the full questionnaire.`,
+            `The mean uses each student’s latest valid completed interview score. It is a simulation result, not proof of technical proficiency or hiring readiness.`,
           ],
           keyObservations: [
-            `${metrics.totalInterviewsConducted} mock interview sessions completed.`,
+            `${metrics.totalInterviewsConducted} interview session records (all statuses).`,
             `${metrics.funnel.interviewCompletedCount} students finalized evaluations.`,
             metrics.performanceSummary.avgInterviewScore !== null
               ? `Mean interview evaluation: ${metrics.performanceSummary.avgInterviewScore}/100.`
@@ -591,7 +591,7 @@ export async function fetchReportPayload(
           },
         },
         definitions: [
-          "Interview Session: Simulated voice / VR technical interview conducted by student candidate.",
+          "Interview Session: Stored voice / VR employability simulation session, including unfinished attempts.",
           "Interview Score: Composite multi-factor evaluation across semantic correctness, clarity, and delivery.",
           "Completion Rate: Ratio of students completing interviews relative to registered eligible participants.",
         ],
@@ -609,11 +609,11 @@ export async function fetchReportPayload(
       const headers = ["Subsystem / Indicator", "Current Operational Status", "Technical Telemetry Context"];
       const rows = [
         ["Cloud Firestore Database", health.firebaseStatus.toUpperCase(), "Cloud database connectivity and collection sync"],
-        ["AIRIS SBERT AI Evaluator API", health.aiServiceStatus.toUpperCase(), "FastAPI semantic alignment and LLM pipeline readiness"],
+        ["AIRIS SBERT AI Evaluator API", health.aiServiceStatus.toUpperCase(), "Public health endpoint availability; model/provider readiness not established"],
         ["Server Health", health.serverStatus.toUpperCase(), "Live server connection state"],
         ["Active Student Accounts", metrics.activeStudentsCount, "Current registered active student profiles in database"],
-        ["Total Stored Resumes", metrics.resumeSubmissionsCount, "Verified resume documents across accounts"],
-        ["Total Stored Evaluations", metrics.totalAiFeedbackGenerated, "Verified resume analyses recorded in Firestore"],
+        ["Total Stored Resumes", metrics.resumeSubmissionsCount, "Stored resume records in the selected population"],
+        ["Total Stored Evaluations", metrics.totalAiFeedbackGenerated, "Students with valid scored resume analysis records"],
       ];
 
       const rawCsvData = [headers.join(","), ...rows.map((r) => r.map((c) => `"${c}"`).join(","))].join("\n");
@@ -626,19 +626,19 @@ export async function fetchReportPayload(
             {
               name: "Cloud Firestore Database",
               status: isOnline(health.firebaseStatus) ? "operational" : "error",
-              detail: "Authoritative collections sync, security rules, and real-time listeners active",
+              detail: "Scoped Firestore reads completed during this request; rules and listeners were not tested by this check",
             },
             {
               name: "AIRIS SBERT AI Evaluator API",
               status: aiOperational ? "operational" : health.aiServiceStatus === "degraded" ? "degraded" : "error",
               detail: aiOperational
-                ? "FastAPI semantic role alignment and deterministic scoring active"
-                : "Microservice endpoint unreachable on port 8000; pending service activation",
+                ? "Public health endpoint returned a successful response; an analysis request was not performed"
+                : "Public health endpoint failed or was unreachable; cause not established",
             },
             {
               name: "Live Web & Server Connection",
               status: isOnline(health.serverStatus) ? "operational" : "error",
-              detail: "Frontend application runtime and secure administrative session verified",
+              detail: "Status derived from the public health endpoint response",
             },
           ],
         },
@@ -654,15 +654,15 @@ export async function fetchReportPayload(
         metadata,
         summaryStats: [
           { label: "Database", value: isOnline(health.firebaseStatus) ? "OPERATIONAL" : "DEGRADED" },
-          { label: "AI Pipeline", value: aiOperational ? "OPERATIONAL" : health.aiServiceStatus.toUpperCase() },
+          { label: "Health Endpoint", value: aiOperational ? "OPERATIONAL" : health.aiServiceStatus.toUpperCase() },
           { label: "Server Connection", value: isOnline(health.serverStatus) ? "OPERATIONAL" : "DEGRADED" },
           { label: "Active Profiles", value: metrics.activeStudentsCount },
         ],
         executiveSummary: {
-          headline: `Core cloud database and administrative services are operational with ${metrics.activeStudentsCount} active student accounts.`,
+          headline: `Scoped Firestore reads returned ${metrics.activeStudentsCount} active student accounts.`,
           paragraphs: [
-            `Cloud Firestore connectivity is verified with real-time snapshot listeners active across candidate roster and evaluation subcollections.`,
-            `AI microservice readiness telemetry indicates current evaluation API endpoint availability.`,
+            `The current request read the scoped roster and evaluation subcollections. It did not verify real-time listeners or all security rules.`,
+            `The public health endpoint probe indicates reachability only; external AI providers and complete analysis were not exercised.`,
           ],
           keyObservations: [
             `Database status: ${isOnline(health.firebaseStatus) ? "OPERATIONAL" : "DEGRADED"}.`,
@@ -681,7 +681,7 @@ export async function fetchReportPayload(
           },
         },
         definitions: [
-          "Operational Health: Real-time telemetry check across backend microservices and database.",
+          "Operational Health: Point-in-time Firestore reads and public health endpoint probe.",
           "Tamper-Evident Security: Append-only event registry for access control and accountability.",
         ],
         rawCsvData,
@@ -691,6 +691,7 @@ export async function fetchReportPayload(
     case "security_audit": {
       const logs = await fetchAuditLogs(200);
       const metadata = buildMetadata("Administrative Security Audit Trail", admin);
+      metadata.scopeDescription = "Recorded administrative audit events";
 
       const actionCounts: Record<string, number> = {};
       logs.forEach((l) => {

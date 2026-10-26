@@ -100,13 +100,10 @@ describe("Scratch Inspection: Full Stack Developer Resources", () => {
     }
   });
 
-  test("focused inspect course_full_stack_open", () => {
-    const catalog = getInstantCatalog();
-    const res = catalog.resources.find(r => r.id === "course_full_stack_open");
-    const gap = normalizeGap("RESTful API design and GraphQL implementation");
-    console.log("FSO SKILLS:", res?.skills);
-    console.log("GAP ATOMIC COMPS:", JSON.stringify(gap.atomicComponents, null, 2));
-    const evalResult = evaluateGapMatch(gap, res!, null);
-    console.log("FSO EVAL RESULT:", JSON.stringify(evalResult, null, 2));
+  test("reviewed React resource cannot claim REST and GraphQL coverage", () => {
+    const res = getInstantCatalog().resources.find(r => r.id === "doc_react_quick_start");
+    expect(res).toBeDefined();
+    const result = evaluateGapMatch(normalizeGap("RESTful API design and GraphQL implementation"), res!, null);
+    expect(result.isDirectGap).toBe(false);
   });
 });

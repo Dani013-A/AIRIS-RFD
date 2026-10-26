@@ -14,7 +14,7 @@ export interface ProfilePhotoResult {
  * Bundled AIRIS static application fallback asset.
  * Used when no local profile photo exists or file cannot be read.
  */
-export const DEFAULT_PROFILE_FALLBACK = require("../../../assets/images/airis-logo-final.png");
+export const DEFAULT_PROFILE_FALLBACK = require("../../../assets/images/airis-logo-real-final.png");
 
 /**
  * Centralized Profile Photo Resolver Strategy.

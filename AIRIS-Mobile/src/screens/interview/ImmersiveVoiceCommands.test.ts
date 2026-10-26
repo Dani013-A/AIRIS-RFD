@@ -1,3 +1,4 @@
+jest.mock('../../services/firebase/pendingInterviewCompletion',()=>({rememberInterviewCompletion:jest.fn(async()=>{})}));
 import { parseVRVoiceCommand } from "./voiceCommands";
 
 describe("VR Voice Command Parsing (parseVRVoiceCommand)", () => {

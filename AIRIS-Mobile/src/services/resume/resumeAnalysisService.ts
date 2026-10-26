@@ -1,5 +1,5 @@
 import { getApiBaseUrl, getAuthenticatedIdToken, getAuthInstance } from "../api/apiClient";
-import { analyzeResume, parseResumeSections, detectResumeSections, type ResumeAnalysisResult } from "./resumeAnalysisEngine";
+import { parseResumeSections, detectResumeSections, type ResumeAnalysisResult } from "./resumeAnalysisEngine";
 import { isResumeValidDocument } from "./resumeNormalizer";
 
 /**
@@ -306,7 +306,7 @@ export async function uploadResumeFileWithProgress(
 /**
  * Service to execute ATS analysis calculations.
  * Attempts to use the high-fidelity SBERT + Gemini FastAPI backend,
- * falling back to local deterministic calculations when offline.
+ * Returns only an authoritative backend result; failures remain retryable errors.
  */
 export async function calculateAtsCompatibility(
   rawText: string,
@@ -338,11 +338,12 @@ export async function calculateAtsCompatibility(
   // Try the SBERT backend endpoints sequentially
   for (const baseUrl of baseUrls) {
     const url = `${baseUrl}/analyze`;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
     try {
       const idToken = await getAuthenticatedIdToken();
       console.log(`Attempting SBERT analysis connection at: ${url}...`);
       const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-      const timeoutId = controller ? setTimeout(() => controller.abort(), 60000) : null;
+      timeoutId = controller ? setTimeout(() => controller.abort(), 60000) : null;
 
       const response = await fetch(url, {
         method: "POST",
@@ -370,6 +371,11 @@ export async function calculateAtsCompatibility(
           throw invalidErr;
         }
 
+        if (result?.valid !== true || !Number.isFinite(result?.atsScore?.overallScore)
+          || result.atsScore.overallScore < 0 || result.atsScore.overallScore > 100
+          || !Number.isFinite(result?.resumeScore?.overallScore) || result.resumeScore.overallScore < 0 || result.resumeScore.overallScore > 100) {
+          throw new Error("The analysis response is incomplete. Please retry.");
+        }
         // Ensure array properties exist and derive detectedSections if empty
         result.parsedSections = result.parsedSections || {};
         if (!result.detectedSections || result.detectedSections.length === 0) {
@@ -385,22 +391,11 @@ export async function calculateAtsCompatibility(
       if (e instanceof Error && ((e as any).code === "INVALID_RESUME" || (e as any).code === "EXCEEDED_PAGE_LIMIT" || e.message.includes("resume") || e.message.includes("page limit"))) {
         throw e;
       }
-      console.log(`Backend endpoint connection failed at ${url}:`, e);
+      console.log("Resume analysis unavailable; no result was saved.");
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
     }
   }
 
-  // Fallback to local deterministic parser if backend is offline/unreachable
-  console.log("BACKEND UNREACHABLE! Falling back to local deterministic on-device parser. YOU ARE TESTING THE LOCAL FALLBACK, NOT THE BACKEND.");
-  try {
-    const localResult = analyzeResume(rawText, targetPosition);
-    (localResult as any).isLocalFallback = true;
-    if (localResult.atsScore) {
-      (localResult.atsScore as any).overallScore = 0; // Fallback score is 0
-    }
-    return localResult;
-  } catch (error) {
-    throw new Error(
-      `Analysis calculation failed: ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
+  throw new Error("Resume analysis is unavailable. Please check your connection and retry. No score was generated.");
 }

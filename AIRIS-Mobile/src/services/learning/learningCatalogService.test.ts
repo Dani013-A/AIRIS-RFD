@@ -1,3 +1,4 @@
+import { matchingTestCatalog, withReviewedFixtureMetadata } from "./reviewedTestFixtures";
 jest.mock("react-native", () => ({
   Platform: { OS: "ios" },
   Alert: { alert: jest.fn() },
@@ -62,7 +63,7 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
       expect(isValidUrl("https://aws.amazon.com/certification/")).toBe(true);
       expect(isValidUrl("https://react.dev/learn")).toBe(true);
       expect(isValidUrl("https://www.youtube.com/watch?v=0nTRi3fZzG0")).toBe(true);
-      expect(isValidUrl("http://insecure.com")).toBe(true);
+      expect(isValidUrl("http://insecure.com")).toBe(false);
       expect(isValidUrl("not-a-url")).toBe(false);
       expect(isValidUrl("")).toBe(false);
     });
@@ -139,7 +140,7 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
         expect(item.category).toBe("communication");
         expect(item.url).toMatch(/^https:\/\//);
       }
-      expect(items.some((i) => i.skills.includes("public speaking") || i.provider.includes("Stanford"))).toBe(true);
+      expect(items.some((i) => i.skills.includes("communication") || i.skills.includes("business writing"))).toBe(true);
     });
   });
 
@@ -312,7 +313,8 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
       // Must include genuine direct gap matches
       expect(recIds).not.toContain("book_fpp_forecasting");
       expect(recIds).toContain("doc_use_the_index_luke");
-      expect(recIds.includes("guide_gdpr_data_governance") || recIds.includes("doc_google_dataplex_governance")).toBe(true);
+      expect(recIds).not.toContain("guide_gdpr_data_governance");
+      expect(recIds).not.toContain("doc_google_dataplex_governance");
 
       // Active direct matches still require grounded gap evidence.
       const sqlTuningRec = dataAnalystRecs.find((r) => r.id === "doc_use_the_index_luke");
@@ -384,7 +386,7 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
 
       // Must include software engineering matches
       expect(
-        recIds.includes("video_fcc_git_github") ||
+        recIds.includes("doc_python_tutorial") ||
         recIds.includes("course_meta_backend_dev") ||
         recIds.includes("course_meta_frontend_dev") ||
         recIds.includes("doc_mdn_javascript_guide")
@@ -406,10 +408,10 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
       expect(certs.every((c) => c.type === "certification")).toBe(true);
     });
 
-    it("Filters exclusively for courses", () => {
+    it("Filters exclusively for reviewed courses", () => {
       const courses = matchLearningRecommendations({
         resourceType: "course",
-        targetPosition: "Data Analyst",
+        targetPosition: "Data Scientist",
       });
       expect(courses.length).toBeGreaterThan(0);
       expect(courses.every((c) => c.type === "course")).toBe(true);
@@ -420,7 +422,7 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
         resourceType: "seminar",
         targetPosition: "Software Engineer",
       });
-      expect(seminars.length).toBeGreaterThan(0);
+      expect(seminars).toEqual([]); // No reviewed current events: never invent filler.
       expect(seminars.every((s) => s.type === "seminar")).toBe(true);
     });
   });
@@ -475,7 +477,7 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
       });
 
       expect(finalForYouList.length).toBeGreaterThan(0);
-      expect(finalForYouList.length).toBeLessThanOrEqual(35);
+      expect(finalForYouList.length).toBeLessThanOrEqual(10);
 
       // Verify no irrelevant items leaked in
       const recIds = finalForYouList.map((r) => r.id);
@@ -498,7 +500,7 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
       });
       const cyberIds = cyberRecs.map((r) => r.id);
       expect(cyberIds).not.toContain("cert_comptia_security_plus");
-      expect(cyberIds).toContain("cert_comptia_cysa_plus"); // Next-level cert remains available
+      expect(cyberIds).not.toContain("cert_comptia_cysa_plus"); // Unreviewed credentials stay excluded.
 
       // 2. Resume with AWS Cloud Practitioner code CLF-C02
       const cloudRecs = matchLearningRecommendations({
@@ -507,8 +509,9 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
         categoryId: "for_you",
       });
       const cloudIds = cloudRecs.map((r) => r.id);
-      expect(cloudIds).not.toContain("cert_aws_cloud_practitioner");
-      expect(cloudIds).toContain("cert_aws_solutions_architect_associate"); // Next-level cert remains available
+      expect(cloudIds).not.toContain("cert_aws_certified_cloud_practitioner");
+      expect(cloudIds).not.toContain("cert_aws_solutions_architect_associate");
+      expect(cloudIds).toContain("cert_ms_az900_azure_fundamentals");
 
       // 3. Resume with Power BI PL-300
       const daRecs = matchLearningRecommendations({
@@ -601,7 +604,8 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
         targetPosition: "Cybersecurity Analyst",
       });
       const cyberCertTitles = cyberPaths.certifications.map((c: any) => c.title);
-      expect(cyberCertTitles.some((t: string) => t.includes("Security") || t.includes("Cybersecurity") || t.includes("CySA+"))).toBe(true);
+      expect(cyberCertTitles).toEqual([]);
+      expect(cyberPaths.practicalLearning.some((r: any) => r.id === "practice_owasp_top_10")).toBe(true);
       expect(cyberCertTitles).not.toContain("Microsoft Certified: Power BI Data Analyst Associate (PL-300)");
     });
   });
@@ -656,13 +660,14 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
   });
 
   describe("9. Physical QA Case & Category Tab Pipeline Regression Tests", () => {
-    it("Physical QA Case: IT Specialist networking gap surfaces active resources across For You, Certifications, Courses, and Practice tabs", () => {
+    it("Controlled regression derived from prior QA: IT Specialist networking gap surfaces active resources across For You, Certifications, Courses, and Practice tabs", () => {
       const { matchLearningRecommendations } = require("./learningCatalogService");
 
       const gapText = "Detail your specific role and outcomes when applying Cisco IOS routing and switching configuration (CCNA-level)";
 
       // For You tab
       const forYouRecs = matchLearningRecommendations({
+        customCatalog: matchingTestCatalog(),
         targetPosition: "Information Technology Specialist",
         degreeProgram: "BS Information Technology",
         skillGaps: [{ skill: gapText }],
@@ -670,11 +675,12 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
       });
 
       expect(forYouRecs.length).toBeGreaterThan(0);
-      expect(forYouRecs.some((r: any) => r.skills.includes("routing and switching") || r.skills.includes("cisco ios"))).toBe(true);
+      expect(forYouRecs.some((r: any) => r.skills.includes("network administration"))).toBe(true);
       expect(forYouRecs.map((r: any) => r.id)).not.toContain("cert_cisco_ccna");
 
       // Certifications tab
       const certRecs = matchLearningRecommendations({
+        customCatalog: matchingTestCatalog(),
         targetPosition: "Information Technology Specialist",
         degreeProgram: "BS Information Technology",
         skillGaps: [{ skill: gapText }],
@@ -687,6 +693,7 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
 
       // Courses tab
       const courseRecs = matchLearningRecommendations({
+        customCatalog: matchingTestCatalog(),
         targetPosition: "Information Technology Specialist",
         degreeProgram: "BS Information Technology",
         skillGaps: [{ skill: gapText }],
@@ -697,6 +704,7 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
 
       // Practice tab
       const practiceRecs = matchLearningRecommendations({
+        customCatalog: matchingTestCatalog(),
         targetPosition: "Information Technology Specialist",
         degreeProgram: "BS Information Technology",
         skillGaps: [{ skill: gapText }],
@@ -743,7 +751,7 @@ describe("Learning Catalog & Universal Matching Engine Tests", () => {
       });
 
       expect(recs.length).toBeGreaterThan(0);
-      expect(recs.some((r: any) => r.title.toLowerCase().includes("staad") || r.title.toLowerCase().includes("civil") || r.title.toLowerCase().includes("autocad"))).toBe(true);
+      expect(recs.some((r: any) => r.skills.includes("structural analysis") || r.skills.includes("revit"))).toBe(true);
       expect(recs.map((r: any) => r.id)).not.toContain("cert_cisco_ccna_200_301");
     });
   });

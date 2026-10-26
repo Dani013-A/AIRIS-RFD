@@ -73,12 +73,12 @@ def test_clarification_is_bounded_and_does_not_replace_required_question(monkeyp
     second=answer(history,text='My favorite food is still pizza.')
     assert not second['isInteractionEvent']
     assert second['nextQuestion']['questionId']=='survey-2'
-    assert "We'll move to the next topic" in second['nextQuestion']['question']
+    assert second['nextQuestion']['question'] == CORE_SURVEY_QUESTIONS[1]['text']
     assert second['evaluation']['overall'] == 73
 
-def test_relevant_acknowledgment_is_extractive_and_cannot_change_next_question():
+def test_short_answer_is_not_quoted_and_cannot_change_next_question():
     result=answer(text='I enjoy building applications and solving problems.')
-    assert 'building applications' in result['nextQuestion']['question']
+    assert result['nextQuestion']['question'] == CORE_SURVEY_QUESTIONS[1]['text']
     assert result['nextQuestion']['question'].endswith(CORE_SURVEY_QUESTIONS[1]['text'])
     assert 'Excellent' not in result['nextQuestion']['question']
 
@@ -97,12 +97,11 @@ def test_q9_closing_uses_actual_response_without_inventing_company_policy(text,e
     assert expected in result['nextQuestion']['question']
     assert 'concludes our session' in result['nextQuestion']['question']
 
-def test_provider_failure_keeps_next_topic_authoritative(monkeypatch):
+def test_provider_failure_does_not_score_or_advance(monkeypatch):
     def fail(_): raise RuntimeError('provider unavailable')
     monkeypatch.setattr(engine,'generate_text_with_fallback',fail)
-    result=answer()
-    assert result['nextQuestion']['questionId']=='survey-2'
-    assert result['nextQuestion']['question'].endswith(CORE_SURVEY_QUESTIONS[1]['text'])
+    with pytest.raises(ValueError, match='evaluation is unavailable'):
+        answer()
 
 def test_no_provider_or_score_for_closing_or_attempted_eleventh_turn(monkeypatch):
     def forbidden(*_): raise AssertionError('provider must not run')
@@ -253,7 +252,7 @@ def test_report_excludes_interactions_closing_and_an_eleventh_turn(monkeypatch):
 
 
 def test_generated_navigation_cannot_skip_or_end_a_required_question(monkeypatch):
-    monkeypatch.setattr(engine,'generate_text_with_fallback',lambda _: json.dumps({'intent':'STOP_REQUEST','suggestedResponse':'Ask an unrelated question.'}))
+    monkeypatch.setattr(engine,'generate_text_with_fallback',lambda _: json.dumps({'intent':'STOP_REQUEST','evaluation':{'overall':73},'suggestedResponse':'Ask an unrelated question.'}))
     result=answer(text='My favorite food is pizza.')
     assert not result['isComplete']
     assert result['nextQuestion']['questionId']=='survey-2'
@@ -271,7 +270,7 @@ def test_incomplete_interview_cannot_generate_report(monkeypatch):
     with pytest.raises(ValueError, match="Nine evaluated"):
         engine.generate_final_report('Role','Program',{},[{'answer':'Synthetic answer'}]*8,[{'overall':73}]*8)
 
-@pytest.mark.parametrize('relevance,phrase', [('Relevant','You mentioned'),('Partially Relevant',"covered part"),('Unrelated',"haven't yet understood"),('Unclear','No worries')])
+@pytest.mark.parametrize('relevance,phrase', [('Relevant',CORE_SURVEY_QUESTIONS[1]['text']),('Partially Relevant',"A specific example would help"),('Unrelated','Please focus on this topic'),('Unclear','Please add a little more detail')])
 def test_supportive_feedback_preserves_evaluation_and_bounded_progression(monkeypatch,relevance,phrase):
     monkeypatch.setattr(engine,'classify_answer_relevance',lambda *args: relevance)
     result=answer(text='I checked the task and tried a small example to understand it.')
@@ -311,4 +310,4 @@ def test_substantive_partial_answer_is_evaluated_without_unnecessary_repetition(
     assert result['evaluation']['overall']==73
     assert not result['isInteractionEvent']
     assert result['nextQuestion']['questionId']=='survey-2'
-    assert "We'll move to the next topic" in result['nextQuestion']['question']
+    assert result['nextQuestion']['question'] == CORE_SURVEY_QUESTIONS[1]['text']

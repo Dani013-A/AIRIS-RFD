@@ -192,7 +192,7 @@ function DashboardContent() {
     },
     {
       step: 6,
-      label: "Fully Prepared",
+      label: "Evaluation Complete",
       count: funnel.fullyPreparedCount,
       sub: "Ready for Employment",
       dropOff: 0,
@@ -423,10 +423,10 @@ function DashboardContent() {
               </span>
             </div>
 
-            {/* Milestone 3: Fully Prepared */}
+            {/* Milestone 3: Evaluation Complete */}
             <div className="p-3.5 bg-[#E7EFF5]/30 rounded-lg border border-[#DCE6EE] space-y-1">
               <span className="text-[11px] font-bold text-[#0D9488] block uppercase">
-                Fully Prepared
+                Evaluation Complete
               </span>
               <div className="text-2xl font-black text-[#0D9488]">
                 {fullyPrepared}

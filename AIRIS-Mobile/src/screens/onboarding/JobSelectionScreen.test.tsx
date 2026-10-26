@@ -1,0 +1,31 @@
+import React from 'react';
+const {act,create}=require('react-test-renderer');
+let mockDegree='Unverified historical program';
+jest.mock('@expo/vector-icons',()=>({Ionicons:'Icon'}));
+jest.mock('expo-router',()=>({useRouter:()=>({canGoBack:()=>false,replace:jest.fn()})}));
+jest.mock('react-native',()=>({ActivityIndicator:'ActivityIndicator',Alert:{alert:jest.fn()},BackHandler:{addEventListener:()=>({remove:()=>{}})},ScrollView:'ScrollView',TouchableOpacity:'TouchableOpacity',View:'View',Platform:{OS:'android'}}));
+jest.mock('../../components/ui/AppText',()=>({Text:'Text',TextInput:'TextInput'}));
+jest.mock('react-native-safe-area-context',()=>({SafeAreaView:'SafeAreaView',useSafeAreaInsets:()=>({bottom:0})}));
+jest.mock('../../components/ui',()=>({PrimaryButton:'PrimaryButton'}));
+jest.mock('../../components/ui/CareerCompatibilityModal',()=>({CareerCompatibilityModal:'CareerCompatibilityModal'}));
+jest.mock('../../store/authStore',()=>({useAuthStore:(selector: any)=>selector({completeInitialSetup:jest.fn(),loading:false})}));
+jest.mock('../../store/onboardingStore',()=>({useOnboardingStore:()=>({college:'Synthetic test college',degreeProgram:mockDegree,targetPosition:'',setTargetPosition:jest.fn()})}));
+import JobSelectionScreen from './JobSelectionScreen';
+import {tipManilaCollegePrograms} from '../../data/tipManilaPrograms';
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
+let renderer: any;
+afterEach(async()=>{if(renderer)await act(async()=>renderer.unmount());});
+it('unknown programs do not silently receive the first IT roles',async()=>{
+ mockDegree='Unverified historical program';await act(async()=>{renderer=create(<JobSelectionScreen/>)});
+ const labels=renderer.root.findAllByType('Text').map((node: any)=>node.props.children);
+ expect(labels).toContain('No verified role suggestions for this program');
+ const it=tipManilaCollegePrograms[0].programs.flatMap(p=>p.suggestedPositions);
+ expect(labels.filter((label: any)=>it.includes(label))).toEqual([]);
+});
+it('a verified non-IT program keeps its actual role choices',async()=>{
+ mockDegree='BS Accountancy';await act(async()=>{renderer=create(<JobSelectionScreen/>)});
+ const labels=renderer.root.findAllByType('Text').map((node: any)=>node.props.children);
+ const program=tipManilaCollegePrograms.flatMap(c=>c.programs).find(p=>p.name===mockDegree)!;
+ expect(program.suggestedPositions.length).toBeGreaterThan(0);
+ for(const role of program.suggestedPositions)expect(labels).toContain(role);
+});

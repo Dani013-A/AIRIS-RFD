@@ -137,6 +137,8 @@ export type {
  */
 export function isCanonicalRecord(analysis: any): boolean {
   if (!analysis) return false;
+  if (analysis.scoringModelVersion === "3.1.0-manuscript") return true;
+  if (analysis.analysisVersion === "3.1.0-manuscript") return true;
   if (analysis.scoringModelVersion === "3.0.0-canonical") return true;
   if (analysis.analysisVersion === "3.0.0-canonical") return true;
   if (analysis.atsScore?.traceability?.scoringModelVersion === "3.0.0-canonical") return true;

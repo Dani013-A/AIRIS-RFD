@@ -1,5 +1,6 @@
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
   sendEmailVerification,
   signInWithEmailAndPassword,
   signOut,
@@ -7,10 +8,9 @@ import {
   updatePassword,
   reauthenticateWithCredential,
   EmailAuthProvider,
-  deleteUser,
   linkWithCredential,
 } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp } from "firebase/firestore";
 
 import { auth, db } from "../../config/firebase";
 import type { AppUser } from "../../types/user.types";
@@ -67,56 +67,22 @@ export const registerStudent = async (
     throw new Error("Only TIP email addresses are allowed.");
   }
 
-  // 1. Check if an active account already exists in Firestore for this normalized email
+  // Firebase owns credential uniqueness; the lifecycle server owns email restrictions and profile creation.
+  let userCredential;
   try {
-    const existingUsersQuery = query(
-      collection(db, USERS_COLLECTION),
-      where("email", "==", normalizedEmail)
-    );
-    const existingSnap = await getDocs(existingUsersQuery);
-    const existingActiveDoc = existingSnap.docs.find((d) => {
-      const data = d.data();
-      return !data?.isDeleted && data?.accountState !== "DELETED";
-    });
-
-    if (existingActiveDoc) {
+    userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+  } catch (err: any) {
+    if (
+      err?.code === "auth/email-already-in-use" ||
+      (typeof err?.message === "string" && err.message.includes("email-already-in-use"))
+    ) {
       throw new Error(
         "An account with this TIP email already exists. Try logging in instead, or use Google Sign-In if you registered with Google."
       );
     }
-  } catch (err: any) {
-    if (err?.message?.includes("already exists")) {
-      throw err;
-    }
-    // If unauthenticated Firestore read is restricted by security rules,
-    // proceed to createUserWithEmailAndPassword which natively enforces email uniqueness in Auth.
+    throw err;
   }
-
-  // 2. Create the user in Firebase Auth
-  const userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
   const user = userCredential.user;
-
-  // 3. Concurrency check: Ensure no other user profile was created concurrently during signup
-  const doubleCheckQuery = query(
-    collection(db, USERS_COLLECTION),
-    where("email", "==", normalizedEmail)
-  );
-  const doubleCheckSnap = await getDocs(doubleCheckQuery);
-  const conflict = doubleCheckSnap.docs.find(
-    (d) => d.id !== user.uid && !d.data()?.isDeleted && d.data()?.accountState !== "DELETED"
-  );
-
-  if (conflict) {
-    try {
-      await deleteUser(user);
-    } catch (delErr) {
-      console.warn("Failed to delete duplicate Auth user:", delErr);
-    }
-    await signOut(auth);
-    throw new Error(
-      "An account with this TIP email already exists. Try logging in instead, or use Google Sign-In if you registered with Google."
-    );
-  }
 
   if (typeof user.getIdToken === "function") {
     await user.getIdToken(true);
@@ -137,13 +103,23 @@ export const registerStudent = async (
     hasCompletedInitialSetup: false,
   };
 
-  await createProfileTransaction(user.uid, newUser);
-
-  await sendEmailVerification(user);
-
-  await signOut(auth);
-
-  return newUser;
+  try {
+    const profile = await createProfileTransaction(user.uid, newUser);
+    await sendEmailVerification(user);
+    return profile;
+  } catch (err) {
+    try {
+      if (typeof user?.delete === "function") {
+        await user.delete();
+      } else {
+        await deleteUser(user);
+      }
+    } catch (_) {}
+    throw err;
+  } finally {
+    // Keep the credential on uncertain server failures; sign-in can safely recover without deleting a committed profile.
+    if (auth.currentUser?.uid === user.uid) await signOut(auth);
+  }
 };
 
 /**

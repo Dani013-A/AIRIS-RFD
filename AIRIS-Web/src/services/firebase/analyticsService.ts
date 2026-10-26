@@ -7,19 +7,18 @@ import {
 } from "../../types/analytics.types";
 import { AdminRole } from "../../types/auth.types";
 import { fetchStudentsList } from "./userService";
+import { recordedTimestamp } from "./recordedTimestamp.mjs";
 import { getAdminApiBaseUrl } from "../../config/api";
 
 function parseTimestamp(ts: unknown): Date {
-  if (!ts) return new Date();
-  if (typeof (ts as any).toDate === "function") return (ts as any).toDate();
-  if ((ts as any).seconds) return new Date((ts as any).seconds * 1000);
-  return new Date(ts as any);
+  return new Date(recordedTimestamp(ts) || NaN);
 }
 
 function isWithinPeriod(date: Date, period?: string): boolean {
   if (!period || period === "all") return true;
   const now = Date.now();
   const diffMs = now - date.getTime();
+  if (!Number.isFinite(diffMs) || diffMs < 0) return false;
   switch (period) {
     case "7d":
       return diffMs <= 7 * 24 * 60 * 60 * 1000;
@@ -47,13 +46,13 @@ export async function fetchDashboardAnalytics(
   health: SystemHealth;
   insights: PerformanceInsight;
 }> {
-  // Fetch scoped student list across unified All Participants population
+  // Exclude explicitly marked synthetic accounts from usage aggregates.
   const allStudents = await fetchStudentsList({
     program: filters?.program,
     coordinator: filters?.coordinator,
     userRole,
     assignedProgram,
-    datasetScope: "all",
+    datasetScope: "genuine",
   });
 
   // Filter students by selected date period
@@ -177,18 +176,19 @@ export async function fetchDashboardAnalytics(
   // Last 6 Months Registration Growth Calculation from actual student dates
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const currentMonthIndex = new Date().getMonth();
-  const last6Months: { month: string; index: number; count: number }[] = [];
+  const last6Months: { month: string; index: number; year: number; count: number }[] = [];
 
   for (let i = 5; i >= 0; i--) {
-    const mIndex = (currentMonthIndex - i + 12) % 12;
-    last6Months.push({ month: months[mIndex], index: mIndex, count: 0 });
+    const monthDate = new Date(new Date().getFullYear(), currentMonthIndex - i, 1);
+    const mIndex = monthDate.getMonth();
+    last6Months.push({ month: months[mIndex], index: mIndex, year: monthDate.getFullYear(), count: 0 });
   }
 
   scopedStudents.forEach((student) => {
     if (student.createdAt) {
       const date = parseTimestamp(student.createdAt);
       const studentMonth = date.getMonth();
-      const match = last6Months.find((m) => m.index === studentMonth);
+      const match = last6Months.find((m) => m.index === studentMonth && m.year === date.getFullYear());
       if (match) {
         match.count++;
       }
@@ -204,13 +204,13 @@ export async function fetchDashboardAnalytics(
   const activeToday = scopedStudents.filter((s) => {
     if (!s.updatedAt) return false;
     const d = parseTimestamp(s.updatedAt);
-    return Date.now() - d.getTime() < 24 * 60 * 60 * 1000;
+    return d.getTime() <= Date.now() && Date.now() - d.getTime() < 24 * 60 * 60 * 1000;
   }).length;
 
   const activeThisWeek = scopedStudents.filter((s) => {
     if (!s.updatedAt) return false;
     const d = parseTimestamp(s.updatedAt);
-    return Date.now() - d.getTime() < 7 * 24 * 60 * 60 * 1000;
+    return d.getTime() <= Date.now() && Date.now() - d.getTime() < 7 * 24 * 60 * 60 * 1000;
   }).length;
 
   const weeklyEngagementRate =
@@ -253,9 +253,9 @@ export async function fetchDashboardAnalytics(
   const health: SystemHealth = {
     aiServiceStatus: aiStatus,
     firebaseStatus: "healthy",
-    serverStatus: "operational",
+    serverStatus: aiStatus === "healthy" ? "operational" : "unavailable",
     lastSyncTime: new Date().toLocaleTimeString(),
-    isRealtime: true,
+    isRealtime: false,
   };
 
   const insights: PerformanceInsight = {

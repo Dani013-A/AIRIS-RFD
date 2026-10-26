@@ -58,10 +58,10 @@ const ATS_TEMPLATES: ResumeTemplate[] = [
   },
   {
     id: "harvard",
-    name: "Harvard Standard",
+    name: "Business Resume Example",
     badge: "Corporate & Business",
     standard: "Standard ATS Formatting",
-    description: "The gold standard for general business, finance, management, and corporate applications.",
+    description: "An illustrative business resume layout. Replace every example with your own verifiable information.",
     rationale:
       "Clean, single-column, reverse-chronological template utilizing standard font hierarchy, prominent headers, and metric-based bullets.",
     content: `# JUAN DELA CRUZ
@@ -155,20 +155,21 @@ export default function LearningScreen({ initialCategory = "interviews" }: Learn
 
   // State for search query
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selfRatings, setSelfRatings] = useState<Record<string, string>>({});
+  const [storedRatings, setStoredRatings] = useState<{uid?: string; ratings: Record<string, string>}>({ ratings: {} });
+  const selfRatings = storedRatings.uid === currentUser?.uid ? storedRatings.ratings : {};
 
   // Sync stored self-assessments for personalization
   useEffect(() => {
     let isMounted = true;
-    getStoredSelfAssessments().then((ratings) => {
+    getStoredSelfAssessments(currentUser?.uid).then((ratings) => {
       if (isMounted && ratings) {
-        setSelfRatings(ratings);
+        setStoredRatings({ uid: currentUser?.uid, ratings });
       }
     });
     return () => {
       isMounted = false;
     };
-  }, [activeAnalysis]);
+  }, [activeAnalysis, currentUser?.uid]);
 
   // Resume analysis sync
   useEffect(() => {
@@ -479,20 +480,26 @@ ${program} | Expected Graduation: 2026
               </Text>
             </View>
 
+            {learningSnap && (
+              <Text className="text-xs font-medium leading-5 text-[#4F6B82] mb-3">
+                Analysis guidance (unverified). Check these suggestions against your original resume before treating them as facts.
+              </Text>
+            )}
+
             {learningSnap?.careerSummary ? (
               <Text className="text-xs font-medium leading-5 text-[#1F3A5F] mb-3">
                 {learningSnap.careerSummary}
               </Text>
             ) : (
               <Text className="text-xs font-medium leading-5 text-[#4F6B82] mb-3">
-                Lessons chosen for the job you want and the skills missing from your resume.
+                Resources support your selected goal and competencies not clearly demonstrated in the extracted resume.
               </Text>
             )}
 
             {learningSnap?.skillGaps && learningSnap.skillGaps.length > 0 && (
               <View className="pt-2.5 border-t border-[#EAF2F7]">
                 <Text className="text-[9px] font-bold text-[#CA5D25] uppercase tracking-wider mb-1.5">
-                  Skills to improve
+                  Resume evidence to review
                 </Text>
                 <View className="flex-row flex-wrap gap-1.5">
                   {learningSnap.skillGaps.map((gap, gIdx) => (
@@ -505,12 +512,12 @@ ${program} | Expected Graduation: 2026
             {learningSnap?.strengths && learningSnap.strengths.length > 0 && (
               <View className="mt-2 pt-2 border-t border-[#EAF2F7]">
   <Text className="text-[9px] font-bold text-[#4F6B82] uppercase tracking-wider mb-1.5">
-    Your strong points
+    Inferred strengths (unverified)
   </Text>
 
   <View className="flex-row flex-wrap gap-1.5">
     {learningSnap.strengths.map((str, sIdx) => (
-      <Tag key={sIdx} label={formatSkillDisplayName(str)} variant="success" />
+      <Tag key={sIdx} label={formatSkillDisplayName(str)} variant="neutral" />
     ))}
   </View>
 </View>

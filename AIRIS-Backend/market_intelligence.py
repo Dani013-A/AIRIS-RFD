@@ -39,10 +39,20 @@ def normalize_and_deduplicate(jobs_data: dict) -> Dict[str, Any]:
         raise ValueError("No jobs found in the source data.")
 
     tag_counts = {}
+    seen_jobs = set()
     for job in jobs:
+        if not isinstance(job, dict):
+            continue
+        identity = str(job.get("id") or job.get("url") or "").strip()
+        if not identity:
+            continue
+        if identity in seen_jobs:
+            continue
+        seen_jobs.add(identity)
         tags = job.get("tags", [])
-        for tag in tags:
-            normalized_tag = tag.strip().lower()
+        if not isinstance(tags, list):
+            continue
+        for normalized_tag in {tag.strip().lower() for tag in tags if isinstance(tag, str)}:
             if not normalized_tag:
                 continue
             tag_counts[normalized_tag] = tag_counts.get(normalized_tag, 0) + 1
@@ -51,7 +61,7 @@ def normalize_and_deduplicate(jobs_data: dict) -> Dict[str, Any]:
         raise ValueError("No tags/skills extracted from the job data.")
 
     # Calculate frequencies
-    total_jobs_analyzed = len(jobs)
+    total_jobs_analyzed = len(seen_jobs)
     max_count = max(tag_counts.values()) if tag_counts else 1
 
     skills_dict = {}

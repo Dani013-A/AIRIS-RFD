@@ -1,0 +1,569 @@
+[
+  {
+    "name": "College of Computer Studies",
+    "programs": [
+      {
+        "name": "BS Information Technology",
+        "suggestedPositions": [
+          "Information Technology Specialist",
+          "Frontend Developer",
+          "Backend Developer",
+          "Full Stack Developer",
+          "Mobile Application Developer",
+          "UI/UX Designer",
+          "QA / Software Tester",
+          "System Administrator",
+          "Cloud Engineer",
+          "DevOps Specialist",
+          "Network Engineer",
+          "IT Support Specialist"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-computer-studies/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        }
+      },
+      {
+        "name": "BS Computer Science",
+        "suggestedPositions": [
+          "Software Engineer",
+          "AI / Machine Learning Engineer",
+          "Data Scientist",
+          "Systems Software Developer",
+          "Database Administrator",
+          "Cybersecurity Analyst",
+          "Algorithms Engineer",
+          "Research Scientist"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-computer-studies/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        }
+      },
+      {
+        "name": "BS Data Science and Analytics",
+        "suggestedPositions": [
+          "Data Analyst",
+          "Data Scientist",
+          "Business Intelligence Analyst",
+          "Machine Learning Engineer",
+          "Data Engineer",
+          "Statistical Analyst",
+          "Analytics Consultant"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-computer-studies/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        }
+      },
+      {
+        "name": "BS Entertainment and Multimedia Computing",
+        "suggestedPositions": [
+          "Game Developer",
+          "3D Animator",
+          "Multimedia Artist",
+          "Game Designer",
+          "VFX Artist",
+          "AR/VR Developer",
+          "Motion Graphics Artist",
+          "Unity / Unreal Engine Developer"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-computer-studies/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        }
+      }
+    ]
+  },
+  {
+    "name": "College of Engineering and Architecture",
+    "programs": [
+      {
+        "name": "BS Architecture",
+        "suggestedPositions": [
+          "Architect",
+          "Design Architect",
+          "Project Architect",
+          "CAD/BIM Specialist",
+          "Interior Designer",
+          "Urban Planner",
+          "Landscape Architect"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-engineering-and-architecture/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        }
+      },
+      {
+        "name": "BS Chemical Engineering",
+        "suggestedPositions": [
+          "Chemical Engineer",
+          "Process Engineer",
+          "Plant Engineer",
+          "Quality Control Engineer",
+          "Production Engineer",
+          "Environmental Compliance Engineer",
+          "Materials Engineer"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-engineering-and-architecture/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        }
+      },
+      {
+        "name": "BS Civil Engineering",
+        "suggestedPositions": [
+          "Civil Engineer",
+          "Structural Engineer",
+          "Site Engineer",
+          "Project Engineer",
+          "Geotechnical Engineer",
+          "Construction Manager",
+          "Cost Estimator"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-engineering-and-architecture/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        }
+      },
+      {
+        "name": "BS Computer Engineering",
+        "suggestedPositions": [
+          "Computer Engineer",
+          "Embedded Software Engineer",
+          "Hardware Engineer",
+          "Firmware Engineer",
+          "Network Architect",
+          "IoT Solutions Architect",
+          "Systems Engineer"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-engineering-and-architecture/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        }
+      },
+      {
+        "name": "BS Electrical Engineering",
+        "suggestedPositions": [
+          "Electrical Engineer",
+          "Electrical Design Engineer",
+          "Power Systems Engineer",
+          "Control Systems Engineer",
+          "Project Electrical Engineer",
+          "Substation Engineer"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-engineering-and-architecture/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        }
+      },
+      {
+        "name": "BS Electronics Engineering",
+        "suggestedPositions": [
+          "Electronics Engineer",
+          "Telecommunications Engineer",
+          "Network Engineer",
+          "Embedded Systems Engineer",
+          "Microelectronics Engineer",
+          "Signal Processing Engineer"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-engineering-and-architecture/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        }
+      },
+      {
+        "name": "BS Industrial Engineering",
+        "suggestedPositions": [
+          "Industrial Engineer",
+          "Process Improvement Engineer",
+          "Production Planner",
+          "Quality Assurance Engineer",
+          "Supply Chain Analyst",
+          "Operations Manager",
+          "Manufacturing Engineer"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-engineering-and-architecture/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "partial_2023_source",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        },
+        "courses": [
+          {
+            "code": "MATH 141",
+            "title": "Calculus 1",
+            "curriculumYear": 2023,
+            "sourceUrl": "https://dru.tip.edu.ph/assets/generic-pages/downloadables/2023-Curriculum_IE_Manila.pdf",
+            "campus": "Manila",
+            "checkedAt": "2026-10-21"
+          },
+          {
+            "code": "CHM 001",
+            "title": "Chemistry for Engineers",
+            "curriculumYear": 2023,
+            "sourceUrl": "https://dru.tip.edu.ph/assets/generic-pages/downloadables/2023-Curriculum_IE_Manila.pdf",
+            "campus": "Manila",
+            "checkedAt": "2026-10-21"
+          },
+          {
+            "code": "IE 100",
+            "title": "Introduction to Industrial Engineering",
+            "curriculumYear": 2023,
+            "sourceUrl": "https://dru.tip.edu.ph/assets/generic-pages/downloadables/2023-Curriculum_IE_Manila.pdf",
+            "campus": "Manila",
+            "checkedAt": "2026-10-21"
+          },
+          {
+            "code": "IE 021",
+            "title": "Statistical Concepts, Theories and Analysis for Industrial Engineering 1",
+            "curriculumYear": 2023,
+            "sourceUrl": "https://dru.tip.edu.ph/assets/generic-pages/downloadables/2023-Curriculum_IE_Manila.pdf",
+            "campus": "Manila",
+            "checkedAt": "2026-10-21"
+          },
+          {
+            "code": "GEA 001",
+            "title": "Principles of Economics",
+            "curriculumYear": 2023,
+            "sourceUrl": "https://dru.tip.edu.ph/assets/generic-pages/downloadables/2023-Curriculum_IE_Manila.pdf",
+            "campus": "Manila",
+            "checkedAt": "2026-10-21"
+          },
+          {
+            "code": "IE 205",
+            "title": "Work Study and Measurement/Productivity Analysis",
+            "curriculumYear": 2023,
+            "sourceUrl": "https://dru.tip.edu.ph/assets/generic-pages/downloadables/2023-Curriculum_IE_Manila.pdf",
+            "campus": "Manila",
+            "checkedAt": "2026-10-21"
+          },
+          {
+            "code": "AC 101",
+            "title": "Financial Accounting",
+            "curriculumYear": 2023,
+            "sourceUrl": "https://dru.tip.edu.ph/assets/generic-pages/downloadables/2023-Curriculum_IE_Manila.pdf",
+            "campus": "Manila",
+            "checkedAt": "2026-10-21"
+          },
+          {
+            "code": "IE 204",
+            "title": "Industrial and Organizational Psychology",
+            "curriculumYear": 2023,
+            "sourceUrl": "https://dru.tip.edu.ph/assets/generic-pages/downloadables/2023-Curriculum_IE_Manila.pdf",
+            "campus": "Manila",
+            "checkedAt": "2026-10-21"
+          }
+        ]
+      },
+      {
+        "name": "BS Mechanical Engineering",
+        "suggestedPositions": [
+          "Mechanical Engineer",
+          "Mechanical Design Engineer",
+          "HVAC Engineer",
+          "Automotive Engineer",
+          "Manufacturing Engineer",
+          "Power Plant Engineer",
+          "Maintenance Engineer"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-engineering-and-architecture/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        }
+      }
+    ]
+  },
+  {
+    "name": "College of Business Education",
+    "programs": [
+      {
+        "name": "BS Accountancy",
+        "suggestedPositions": [
+          "Accountant",
+          "Certified Public Accountant",
+          "Auditor",
+          "Financial Analyst",
+          "Tax Consultant",
+          "Bookkeeper",
+          "Financial Controller"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-business-education/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        }
+      },
+      {
+        "name": "BS Accounting Information System",
+        "suggestedPositions": [
+          "Accounting Systems Analyst",
+          "Financial Systems Consultant",
+          "Internal Auditor",
+          "ERP Implementation Specialist",
+          "Accounting Specialist"
+        ],
+        "verification": {
+          "status": "review_required",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-business-education/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Listed in older institution-wide brochure; current Manila-specific listing not established. Retained for historical profiles."
+        }
+      },
+      {
+        "name": "BS Business Administration major in Financial Management",
+        "suggestedPositions": [
+          "Financial Analyst",
+          "Investment Analyst",
+          "Credit Analyst",
+          "Banking Associate",
+          "Treasury Analyst",
+          "Risk Analyst"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-business-education/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        }
+      },
+      {
+        "name": "BS Business Administration major in Human Resource Management",
+        "suggestedPositions": [
+          "HR Specialist",
+          "HR Generalist",
+          "Talent Acquisition Specialist",
+          "Compensation and Benefits Analyst",
+          "Training and Development Officer",
+          "HR Business Partner"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-business-education/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        }
+      },
+      {
+        "name": "BS Business Administration major in Logistics and Supply Chain Management",
+        "suggestedPositions": [
+          "Supply Chain Analyst",
+          "Logistics Coordinator",
+          "Procurement Officer",
+          "Inventory Planner",
+          "Warehouse Operations Manager"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-business-education/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        }
+      },
+      {
+        "name": "BS Business Administration major in Marketing Management",
+        "suggestedPositions": [
+          "Marketing Specialist",
+          "Brand Associate",
+          "Digital Marketing Officer",
+          "Market Research Analyst",
+          "Sales and Marketing Coordinator",
+          "Social Media Strategist"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-business-education/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        }
+      },
+      {
+        "name": "BS Business Administration",
+        "suggestedPositions": [
+          "Business Analyst",
+          "Business Operations Specialist",
+          "Administrative Manager",
+          "Project Coordinator",
+          "Account Manager"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-business-education/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        }
+      }
+    ]
+  },
+  {
+    "name": "College of Arts",
+    "programs": [
+      {
+        "name": "Bachelor of Arts in Psychology",
+        "suggestedPositions": [
+          "Psychometrician",
+          "HR / Recruitment Associate",
+          "Guidance Associate",
+          "Behavioral Research Assistant",
+          "Community Relations Officer",
+          "Organizational Development Specialist",
+          "Counseling Assistant"
+        ],
+        "verification": {
+          "status": "verified",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/tip-manila/college-of-arts/outcomes-based-education/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "Program appears in campus-specific official navigation; suggested careers are AIRIS guidance, not institutional promises."
+        }
+      }
+    ]
+  },
+  {
+    "name": "Senior High School",
+    "programs": [
+      {
+        "name": "STEM Strand (Science, Technology, Engineering, and Mathematics)",
+        "suggestedPositions": [
+          "Engineering Student Assistant",
+          "Junior Software Developer",
+          "Data Analyst Intern",
+          "CAD Trainee"
+        ],
+        "verification": {
+          "status": "review_required",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/tip-shs-academic-tracks/stem/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "SHS is no longer offered in Manila; retained only for historical profiles."
+        }
+      },
+      {
+        "name": "ABM Strand (Accountancy, Business, and Management)",
+        "suggestedPositions": [
+          "Junior Bookkeeper",
+          "Marketing Assistant",
+          "Administrative Assistant",
+          "HR Assistant"
+        ],
+        "verification": {
+          "status": "review_required",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/tip-shs-academic-tracks/stem/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "SHS is no longer offered in Manila; retained only for historical profiles."
+        }
+      },
+      {
+        "name": "HUMSS Strand (Humanities and Social Sciences)",
+        "suggestedPositions": [
+          "Content Writer",
+          "Public Relations Assistant",
+          "Communications Assistant"
+        ],
+        "verification": {
+          "status": "review_required",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/tip-shs-academic-tracks/stem/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "SHS is no longer offered in Manila; retained only for historical profiles."
+        }
+      },
+      {
+        "name": "GAS Strand (General Academic Strand)",
+        "suggestedPositions": [
+          "Administrative Associate",
+          "Customer Service Representative"
+        ],
+        "verification": {
+          "status": "review_required",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/tip-shs-academic-tracks/stem/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "SHS is no longer offered in Manila; retained only for historical profiles."
+        }
+      },
+      {
+        "name": "TVL Strand (Technical-Vocational-Livelihood)",
+        "suggestedPositions": [
+          "IT Support Technician",
+          "Multimedia Assistant"
+        ],
+        "verification": {
+          "status": "review_required",
+          "campus": "Manila",
+          "sourceUrl": "https://dru.tip.edu.ph/what-we-offer/tip-shs-academic-tracks/stem/",
+          "checkedAt": "2026-10-21",
+          "curriculumStatus": "not_established",
+          "note": "SHS is no longer offered in Manila; retained only for historical profiles."
+        }
+      }
+    ]
+  }
+]

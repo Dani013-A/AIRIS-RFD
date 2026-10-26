@@ -76,21 +76,20 @@ export default function ImmersiveBriefingScreen() {
       const interviewType: "one-on-one" | "panel" =
         pendingType === "immersive-panel" ? "panel" : "one-on-one";
 
-      console.log(
-        `[VR][QUESTION_CONTEXT] uid=${user.uid} targetRole="${user.targetPosition || "Unknown Role"}" program="${user.degreeProgram || "Unknown Program"}" sectionsCount=${Object.keys(parsedResumeDict).length} keys=${Object.keys(parsedResumeDict).join(",")}`
-      );
-
       // ── Daniel's existing API call (unchanged) ───────────────────────────────
       const response = await startInterviewSimulation({
         targetRole: user.targetPosition || "Unknown Role",
         program: user.degreeProgram || "Unknown Program",
         parsedResume: parsedResumeDict,
+        resumeId: user.activeResumeId || "none",
+        interviewType: interviewType,
       });
 
-      console.log(`[VR][QUESTION_READY] question="${response.question}" type=${response.questionType}`);
+      console.log("[VR][QUESTION_READY]");
 
       // Seed Zustand store — same initializeSession() the Standard flow uses
       initializeSession({
+        sessionId: response.sessionId,
         userId: user.uid,
         targetRole: user.targetPosition,
         program: user.degreeProgram,

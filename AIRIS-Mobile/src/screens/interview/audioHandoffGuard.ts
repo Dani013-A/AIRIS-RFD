@@ -12,11 +12,12 @@ export class AudioHandoffGuard {
     this.captureId = null;
   }
 
-  confirmStarted(captureId: unknown): void {
-    if (!Number.isSafeInteger(captureId) || (captureId as number) <= this.latestCaptureId) return;
+  confirmStarted(captureId: unknown): boolean {
+    if (!Number.isSafeInteger(captureId) || (captureId as number) <= this.latestCaptureId) return false;
     this.captureId = captureId as number;
     this.latestCaptureId = this.captureId;
     this.accepting = true;
+    return true;
   }
 
   matches(captureId: unknown): boolean {

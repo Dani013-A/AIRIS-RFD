@@ -1,6 +1,7 @@
 /**
- * Single Source of Truth for T.I.P. Manila Academic & Coordinator Structure.
- * Covers all 4 Undergraduate Colleges and 20 Degree Programs.
+ * Historical academic labels for administrator grouping and coordinator scope.
+ * Retains 20 legacy degree labels so existing records remain readable.
+ * Current verified offerings and provenance live in Backend/data/tip_programs.json.
  * (Senior High School / SHS removed per administrative scope requirement).
  */
 

@@ -9,7 +9,7 @@ const end=source.indexOf('\n  }, []);',begin);
 const body=compile('exports.send = '+source.slice(begin,end)+'\n};');
 function harness(){
  const events=[],session={sessionId:'test-session',history:[],questionsAsked:1};
- const context={exports:{},JSON,console:{log(){},warn(){}},isExitingRef:{current:false},speechDeliveryRef:{current:new SpeechDelivery()},useInterviewStore:{getState:()=>({session})},unityRef:{current:{postMessage(_target,_method,json){events.push(JSON.parse(json));}}}};
+ const context={exports:{},JSON,console:{log(){},warn(){}},isExitingRef:{current:false},pausedRef:{current:false},speechDeliveryRef:{current:new SpeechDelivery()},useInterviewStore:{getState:()=>({session})},unityRef:{current:{postMessage(_target,_method,json){events.push(JSON.parse(json));}}}};
  vm.runInNewContext(body,context);
  return {events,session,context,send:(text='Question',attempt=0,revision=session.history.length)=>context.exports.send('SHOW_QUESTION',{questionText:text,sessionId:session.sessionId,questionRevision:revision,speechAttempt:attempt})};
 }
@@ -34,15 +34,20 @@ test('reattachment cannot replay a delivered utterance; explicit new retry can s
  h.context.isExitingRef.current=false;h.session.sessionId='new-mode-session';h.send();h.send();assert.equal(h.events.length,3);
 });
 
-test('standard closing effect and repeated completion callbacks speak and finish once',()=>{
+test('standard closing effect and repeated completion callbacks speak and finish once',async()=>{
  const screen=fs.readFileSync(path.join(__dirname,'ActiveSimulationScreen.tsx'),'utf8');
  const begin=screen.indexOf('() => {',screen.indexOf('const speakCurrentQuestion'));
  const end=screen.indexOf('\n  }, [session, router]);',begin);
  const events=[],calls=[],session={sessionId:'standard-test',history:[],questionsAsked:10,currentQuestion:'Closing statement',currentQuestionType:'closing'};
- const context={exports:{},console:{log(){}},session,mounted:{current:true},speechAttempt:{current:0},speechDelivery:{current:new SpeechDelivery()},setIsSpeaking(){},setRecordingError(){},useInterviewStore:{getState:()=>({session,completeClosing(){events.push('complete');}})},router:{replace(){events.push('summary');}},Speech:{stop(){},speak(text,callbacks){calls.push({text,callbacks});}}};
+ const context={exports:{},console:{log(){}},session,mounted:{current:true},speechAttempt:{current:0},speechDelivery:{current:new SpeechDelivery()},setIsSpeaking(){},setRecordingError(){},rememberInterviewCompletion:async()=>{},withTimeout:promise=>promise,useInterviewStore:{getState:()=>({session,completeClosing(){events.push('complete');}})},router:{replace(){events.push('summary');}},Speech:{stop(){},speak(text,callbacks){calls.push({text,callbacks});}}};
  vm.runInNewContext(compile('exports.speak = '+screen.slice(begin,end)+'\n};'),context);
  context.exports.speak();context.exports.speak();assert.equal(calls.length,1);
- calls[0].callbacks.onDone();calls[0].callbacks.onDone();assert.deepEqual(events,['complete','summary']);
+ calls[0].callbacks.onDone();calls[0].callbacks.onDone();await new Promise(setImmediate);assert.deepEqual(events,['complete','summary']);
  context.speechAttempt.current++;context.exports.speak();assert.equal(calls.length,2);
  session.history.push({});calls[1].callbacks.onDone();assert.deepEqual(events,['complete','summary']);
+});
+
+test('background pause cannot dispatch or replay a question',()=>{
+ const h=harness();h.context.pausedRef.current=true;h.send();assert.equal(h.events.length,0);
+ h.context.pausedRef.current=false;h.send();assert.equal(h.events.length,1);
 });

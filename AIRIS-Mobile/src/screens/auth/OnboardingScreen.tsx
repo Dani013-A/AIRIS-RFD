@@ -50,7 +50,7 @@ export default function OnboardingScreen() {
       >
         <View className="items-center px-6 pt-10 pb-8 bg-[#CFE0EC] rounded-b-[40px] border-b border-[#BFD6EA] mb-6">
           <Image
-            source={require("../../../assets/images/airis-logo-final.png")}
+            source={require("../../../assets/images/airis-logo-real-final.png")}
             className="mb-4 h-24 w-24 rounded-3xl"
             resizeMode="contain"
             style={{

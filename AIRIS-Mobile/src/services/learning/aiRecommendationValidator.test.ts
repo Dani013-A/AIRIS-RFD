@@ -25,6 +25,7 @@ import {
   validateAiRecommendationCandidate,
   filterAndVerifyAiCandidates,
 } from "./aiRecommendationValidator";
+import { VERIFIED_LEARNING_CATALOG } from "../../data/verifiedLearningCatalog";
 import { LearningResource } from "../../types/learning.types";
 
 describe("13-Stage AI Recommendation Validation Pipeline", () => {
@@ -201,59 +202,23 @@ describe("13-Stage AI Recommendation Validation Pipeline", () => {
     expect(res.stageResults.find((s) => s.stageNumber === 12)?.passed).toBe(false);
   });
 
-  it("Stage 13: Successfully verifies legitimate candidate, enforces source='ai_generated' and verificationStatus='verified'", () => {
-    const validCandidate = {
-      title: "Hands-on Linux System Administration Bootcamp",
-      provider: "edX",
-      type: "course" as const,
-      url: "https://www.edx.org/learn/linux/hands-on-sysadmin-bootcamp?utm_source=test&ref=ai",
-      description: "Practical course mastering user accounts, systemd services, shell scripting, and storage configuration on Linux.",
-      skills: ["linux administration", "system administration"],
-    };
-
-    const res = validateAiRecommendationCandidate(validCandidate, baseContext);
-    expect(res.isValid).toBe(true);
-    expect(res.resource).toBeDefined();
-    // Provenance and verification must be strictly separated
-    expect(res.resource?.source).toBe("ai_generated");
-    expect(res.resource?.verificationStatus).toBe("verified");
-    expect(res.resource?.isVerified).toBe(true);
-    // Canonicalization stripped tracking params
-    expect(res.resource?.url).toBe("https://www.edx.org/learn/linux/hands-on-sysadmin-bootcamp");
+  it("Stage 13 rejects unreviewed URLs despite plausible provider and HTTP metadata", () => {
+    const result = validateAiRecommendationCandidate({ title: "Hands-on Linux System Administration Bootcamp", provider: "edX", type: "course", url: "https://www.edx.org/learn/linux/hands-on-sysadmin-bootcamp", description: "Practical course mastering user accounts, systemd services, shell scripting and storage configuration.", skills: ["linux administration"], isVerified: true }, baseContext);
+    expect(result.isValid).toBe(false);
   });
 
-  it("Batch filtering: filterAndVerifyAiCandidates drops invalid candidates and retains only verified ones", () => {
-    const candidates = [
-      {
-        title: "Bad URL",
-        provider: "edX",
-        url: "invalid",
-        description: "Bad",
-        skills: ["linux administration"],
-      },
-      {
-        title: "Hands-on Linux System Administration Bootcamp",
-        provider: "edX",
-        type: "course" as const,
-        url: "https://www.edx.org/learn/linux/hands-on-sysadmin-bootcamp",
-        description: "Practical course mastering user accounts, systemd services, shell scripting, and storage configuration on Linux.",
-        skills: ["linux administration"],
-      },
-      {
-        title: "Generic Google Search Result",
-        provider: "Google",
-        type: "course" as const,
-        url: "https://www.google.com/search?q=linux",
-        description: "Search results page for linux administration tutorials and guides.",
-        skills: ["linux administration"],
-      },
-    ];
-
-    const verified = filterAndVerifyAiCandidates(candidates, baseContext);
-    expect(verified.length).toBe(1);
-    expect(verified[0].source).toBe("ai_generated");
-    expect(verified[0].verificationStatus).toBe("verified");
-    expect(verified[0].title).toBe("Hands-on Linux System Administration Bootcamp");
+  it("Batch validation resolves selected URLs to reviewed facts and rejects invented metadata", () => {
+    const resource = VERIFIED_LEARNING_CATALOG.find(r => r.id === "doc_figma_auto_layout")!;
+    expect(resource).toBeDefined();
+    const verified = filterAndVerifyAiCandidates([
+      { ...resource, title: "Invented title", provider: "Invented provider", skills: ["invented competency"] },
+      { title: "Bad resource", url: "invalid" },
+    ], { ...baseContext, targetPosition: "UI/UX Designer", targetGaps: ["auto layout"], existingCatalog: [] });
+    expect(verified).toHaveLength(1);
+    expect(verified[0].title).toBe(resource.title);
+    expect(verified[0].skills).toEqual(resource.skills);
+    expect(verified[0].source).toBe("curated");
+    expect(verified[0].verification?.contentReviewed).toBe(true);
   });
 
   it("Growth Path Quota: enforces up to 3 curated + up to 3 AI-verified items per category", () => {

@@ -19,13 +19,13 @@ export const DEFAULT_LEARNING_CATEGORIES: LearningCategory[] = [
   {
     id: "resume",
     name: "Resume Writing",
-    description: "Authoritative resume writing guides, Harvard career resources, bullet point crafting, and ATS templates.",
+    description: "Source-reviewed resume guidance, clear writing, and illustrative resume layouts.",
     icon: "document-text-outline",
     colorToken: "#CA5D25",
     order: 2,
     isActive: true,
     supportedResourceTypes: ["guide", "video", "example", "documentation"],
-    tags: ["resume", "cv", "formatting", "bullets", "ats-templates", "harvard"],
+    tags: ["resume", "cv", "formatting", "bullets", "ats-templates"],
   },
   {
     id: "communication",

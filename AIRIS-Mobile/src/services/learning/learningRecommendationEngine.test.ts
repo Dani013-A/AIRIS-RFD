@@ -1,3 +1,4 @@
+import { withReviewedFixtureMetadata, matchingTestCatalog } from "./reviewedTestFixtures";
 jest.mock("react-native", () => ({
   Platform: { OS: "ios" },
   Alert: { alert: jest.fn() },
@@ -106,7 +107,7 @@ describe("Learning Recommendation Engine - Production Readiness Invariants", () 
       skillGaps: [{ skill: "Automation with Python and Ansible", importance: "high" }],
       detectedSkills: ["Python", "Java", "SQL"],
       rawResumeText: "Experienced in Python programming, web development, SQL.",
-      customCatalog,
+      customCatalog: withReviewedFixtureMetadata(customCatalog),
     });
 
     expect(recs.length).toBeGreaterThan(0);
@@ -149,7 +150,7 @@ describe("Learning Recommendation Engine - Production Readiness Invariants", () 
       skillGaps: [{ skill: "IT Infrastructure Automation", importance: "high" }],
       detectedSkills: ["Python", "JavaScript"],
       rawResumeText: "Proficient in Python, React, JavaScript.",
-      customCatalog: [mlCourse],
+      customCatalog: withReviewedFixtureMetadata([mlCourse]),
     });
 
     // Since ML Specialization careerPaths are ML Engineer/Data Scientist and primary role is IT Specialist,
@@ -164,6 +165,7 @@ describe("Learning Recommendation Engine - Production Readiness Invariants", () 
   // Test C: Direct gap wins over generic skill
   test("Test C: Direct gap resource wins over generic technology skill", () => {
     const recs = matchLearningRecommendations({
+      customCatalog: matchingTestCatalog(),
       targetPosition: "Information Technology Specialist",
       skillGaps: [{ skill: "Network Administration", importance: "high" }],
       detectedSkills: ["Python", "JavaScript", "HTML"],
@@ -179,6 +181,7 @@ describe("Learning Recommendation Engine - Production Readiness Invariants", () 
   // Test D: Gap diversity
   test("Test D: Gap diversity ensures top recommendations distribute across distinct gaps", () => {
     const recs = matchLearningRecommendations({
+      customCatalog: matchingTestCatalog(),
       targetPosition: "Information Technology Specialist",
       skillGaps: [
         { skill: "Network Administration", importance: "high" },
@@ -199,6 +202,7 @@ describe("Learning Recommendation Engine - Production Readiness Invariants", () 
   // Test E: Type diversity
   test("Test E: GrowthPath recommendations distribute across certs, courses, and practical learning without empty filler", () => {
     const growth = getGrowthPathRecommendations({
+      customCatalog: matchingTestCatalog(),
       targetPosition: "Information Technology Specialist",
       degreeProgram: "BS Information Technology",
       collegeDomain: "Engineering and Information Technology",
@@ -289,7 +293,8 @@ describe("Learning Recommendation Engine - Production Readiness Invariants", () 
   describe("Cross-Career Generalization", () => {
     test("Data Science: prioritizes data and ML gaps over IT support", () => {
       const recs = matchLearningRecommendations({
-        targetPosition: "Data Scientist",
+        customCatalog: matchingTestCatalog(),
+      targetPosition: "Data Scientist",
         degreeProgram: "BS Computer Science",
         skillGaps: [
           { skill: "Machine Learning", importance: "high" },
@@ -311,7 +316,8 @@ describe("Learning Recommendation Engine - Production Readiness Invariants", () 
 
     test("Cybersecurity: prioritizes security and network analysis over web development", () => {
       const recs = matchLearningRecommendations({
-        targetPosition: "Information Security Analyst",
+        customCatalog: matchingTestCatalog(),
+      targetPosition: "Information Security Analyst",
         degreeProgram: "BS Information Technology",
         skillGaps: [
           { skill: "Network Security", importance: "high" },

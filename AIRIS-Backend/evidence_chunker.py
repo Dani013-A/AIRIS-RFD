@@ -111,8 +111,11 @@ def chunk_resume_evidence(parsed_sections: Dict[str, str]) -> List[EvidenceChunk
 
     chunks: List[EvidenceChunk] = []
     source_order = 1
+    seen = set()
 
     for section_name, content in parsed_sections.items():
+        if section_name in {"raw_text", "rawText"}:
+            continue
         clean_content = (content or "").strip()
         if not clean_content:
             continue
@@ -125,8 +128,10 @@ def chunk_resume_evidence(parsed_sections: Dict[str, str]) -> List[EvidenceChunk
             clean_line_text = _strip_bullet_prefix(item_text)
             words = clean_line_text.split()
             word_count = len(words)
-            if word_count == 0:
+            key = (section_name, " ".join(clean_line_text.casefold().split()))
+            if word_count == 0 or key in seen:
                 continue
+            seen.add(key)
 
             chunk_id = f"chunk_{section_alias}_{source_order:03d}"
             chunks.append(EvidenceChunk(

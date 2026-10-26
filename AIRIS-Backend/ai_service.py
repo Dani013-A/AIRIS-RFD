@@ -304,93 +304,6 @@ def evaluate_intrinsic_resume_strength(parsed_text: str) -> dict:
 
 import datetime
 
-VERIFIED_CERTIFICATION_CATALOG = [
-    {
-        "keywords": ["aws", "cloud practitioner"],
-        "title": "AWS Certified Cloud Practitioner",
-        "issuer": "Amazon Web Services (AWS)",
-        "url": "https://aws.amazon.com/certification/certified-cloud-practitioner/",
-        "type": "certification"
-    },
-    {
-        "keywords": ["aws developer", "aws certified developer"],
-        "title": "AWS Certified Developer - Associate",
-        "issuer": "Amazon Web Services (AWS)",
-        "url": "https://aws.amazon.com/certification/certified-developer-associate/",
-        "type": "certification"
-    },
-    {
-        "keywords": ["azure data", "azure data fundamentals"],
-        "title": "Microsoft Certified: Azure Data Fundamentals",
-        "issuer": "Microsoft",
-        "url": "https://learn.microsoft.com/credentials/certifications/azure-data-fundamentals/",
-        "type": "certification"
-    },
-    {
-        "keywords": ["power bi", "pl-300", "data analyst associate"],
-        "title": "Microsoft Certified: Power BI Data Analyst Associate (PL-300)",
-        "issuer": "Microsoft",
-        "url": "https://learn.microsoft.com/credentials/certifications/data-analyst-associate/",
-        "type": "certification"
-    },
-    {
-        "keywords": ["google data analytics", "data analytics cert"],
-        "title": "Google Data Analytics Professional Certificate",
-        "issuer": "Google",
-        "url": "https://www.coursera.org/professional-certificates/google-data-analytics",
-        "type": "certification"
-    },
-    {
-        "keywords": ["comptia security+", "security+"],
-        "title": "CompTIA Security+",
-        "issuer": "CompTIA",
-        "url": "https://www.comptia.org/certifications/security",
-        "type": "certification"
-    },
-    {
-        "keywords": ["google ux", "ux design cert"],
-        "title": "Google UX Design Professional Certificate",
-        "issuer": "Google",
-        "url": "https://www.coursera.org/professional-certificates/google-ux-design",
-        "type": "certification"
-    },
-    {
-        "keywords": ["meta front-end", "react cert"],
-        "title": "Meta Front-End Developer Professional Certificate",
-        "issuer": "Meta",
-        "url": "https://www.coursera.org/professional-certificates/meta-front-end-developer",
-        "type": "certification"
-    },
-    {
-        "keywords": ["ceh", "certified ethical hacker"],
-        "title": "Certified Ethical Hacker (CEH)",
-        "issuer": "EC-Council",
-        "url": "https://www.eccouncil.org/train-certify/certified-ethical-hacker-ceh/",
-        "type": "certification"
-    },
-    {
-        "keywords": ["pmp", "project management professional"],
-        "title": "Project Management Professional (PMP)",
-        "issuer": "Project Management Institute (PMI)",
-        "url": "https://www.pmi.org/certifications/project-management-pmp",
-        "type": "certification"
-    },
-    {
-        "keywords": ["cpa", "certified public accountant"],
-        "title": "Certified Public Accountant (CPA)",
-        "issuer": "Professional Regulation Commission (PRC)",
-        "url": "https://www.prc.gov.ph/",
-        "type": "certification"
-    },
-    {
-        "keywords": ["revit", "autodesk revit"],
-        "title": "Autodesk Certified Professional in Revit for Architectural Design",
-        "issuer": "Autodesk",
-        "url": "https://www.autodesk.com/certification/all-certifications/revit-architecture-professional",
-        "type": "certification"
-    }
-]
-
 CANONICAL_SKILL_MAP: Dict[str, str] = {
     "react.js": "React",
     "reactjs": "React",
@@ -546,6 +459,16 @@ def is_skill_grounded_in_text(skill_name: str, raw_text: str) -> bool:
             if alias not in search_terms:
                 search_terms.append(alias)
 
+    def has_affirmative_match(pattern):
+        for match in re.finditer(pattern, raw_norm, re.IGNORECASE):
+            prefix = raw_norm[:match.start()]
+            clause = re.split(r"\n|;|[.!?]\s+|\bbut\b|\bhowever\b", prefix)[-1]
+            clause = re.sub(r"\bnot only\b", "", clause)
+            if re.search(r"\b(no|not|never|without|lack|lacks|lacking|unfamiliar)\b", clause):
+                continue
+            return True
+        return False
+
     for term in search_terms:
         clean_t = term.strip()
         if not clean_t:
@@ -553,26 +476,26 @@ def is_skill_grounded_in_text(skill_name: str, raw_text: str) -> bool:
 
         if clean_t == "c":
             pat = r'(?:\b|(?<=[\s,;:(•|\n\r]))c(?![+#])(?:\b|(?=[\s,;:.)•|\n\r]))'
-            if re.search(pat, raw_norm, re.IGNORECASE):
+            if has_affirmative_match(pat):
                 return True
         elif clean_t in ("react", "react.js", "reactjs"):
             pat = r'\breact(?:\.js|js)?(?!\s*-?\s*native\b)\b'
-            if re.search(pat, raw_norm, re.IGNORECASE):
+            if has_affirmative_match(pat):
                 return True
         elif clean_t in (".net", "net"):
             pat = r'(?<!asp)(?<!asp\.)(?<!vb)(?<!vb\.)(?:\.net|\bnet)\b'
-            if re.search(pat, raw_norm, re.IGNORECASE):
+            if has_affirmative_match(pat):
                 return True
         elif clean_t in ("dotnet", "dot net"):
             pat = r'\bdot\s*net\b'
-            if re.search(pat, raw_norm, re.IGNORECASE):
+            if has_affirmative_match(pat):
                 return True
         elif re.match(r'^[a-zA-Z0-9\s]+$', clean_t):
             # Purely alphanumeric: enforce word boundaries so e.g. "java" does not match "javascript"
             words = clean_t.split()
             escaped_words = [re.escape(w) for w in words]
             pat = r'\b' + r'\s+'.join(escaped_words) + r'\b'
-            if re.search(pat, raw_norm, re.IGNORECASE):
+            if has_affirmative_match(pat):
                 return True
         else:
             # Term contains symbols like C++, C#, .NET, Node.js, STAAD.Pro
@@ -582,7 +505,7 @@ def is_skill_grounded_in_text(skill_name: str, raw_text: str) -> bool:
             left_b = r'(?:\b|(?<=[^a-zA-Z0-9]))' if re.match(r'^\w', clean_t) else r'(?:^|(?<=[\s,;:(•|\n\r]))'
             right_b = r'(?:\b|(?=[^a-zA-Z0-9]))' if re.match(r'.*\w$', clean_t) else r'(?:$|(?=[\s,;:.)•|\n\r]))'
             pat = left_b + escaped + right_b
-            if re.search(pat, raw_norm, re.IGNORECASE):
+            if has_affirmative_match(pat):
                 return True
 
     return False
@@ -796,142 +719,23 @@ def extract_authoritative_resume_skills(
 
     return accepted_skills
 
-def sanitize_and_validate_learning_snapshot(
-    snapshot: Dict[str, Any],
-    target_position: str,
-    raw_text: str = ""
-) -> Dict[str, Any]:
-    """
-    Strictly validates resource types, rejects non-certifications from certifications list,
-    ensures zero null URLs, enforces coach-like supportive language, and guarantees
-    that careerContext and candidate strengths are strictly grounded in resume evidence.
-    """
+def sanitize_and_validate_learning_snapshot(snapshot: Dict[str, Any], target_position: str, raw_text: str = "") -> Dict[str, Any]:
+    from learning_catalog import resolve_resource_candidates
     if not isinstance(snapshot, dict):
         snapshot = {}
-
-    cleaned_certs = []
-    misplaced_courses = []
-
-    raw_certs = snapshot.get("certifications", [])
-    if not isinstance(raw_certs, list):
-        raw_certs = []
-
-    for cert in raw_certs:
-        if not isinstance(cert, dict):
-            continue
-        title = str(cert.get("title", "")).strip()
-        desc = str(cert.get("description", "")).strip()
-        issuer = str(cert.get("issuer", "")).strip()
-        item_type = str(cert.get("type", "")).lower()
-
-        if not title:
-            continue
-
-        title_lower = title.lower()
-
-        # Check if item is actually documentation / course / tutorial
-        is_not_cert = (
-            item_type in ["documentation", "course", "tutorial", "video", "article"] or
-            "documentation" in title_lower or
-            "tutorial" in title_lower or
-            "pandas" in title_lower or
-            "dataframe" in title_lower or
-            "guide" in title_lower and "certification" not in title_lower
-        )
-
-        if is_not_cert:
-            misplaced_courses.append({
-                "title": title,
-                "provider": issuer or "Online Guide",
-                "url": cert.get("url") if (cert.get("url") and "google.com/search" not in cert.get("url")) else "",
-                "type": "course" if item_type != "documentation" else "documentation",
-                "description": desc or f"Learning resource for {title}"
-            })
-            continue
-
-        # Match against verified catalog for clean URL and issuer
-        matched = None
-        for cat_item in VERIFIED_CERTIFICATION_CATALOG:
-            for kw in cat_item["keywords"]:
-                if kw in title_lower:
-                    matched = cat_item
-                    break
-            if matched:
-                break
-
-        if matched:
-            cleaned_certs.append({
-                "title": matched["title"],
-                "issuer": matched["issuer"],
-                "importance": cert.get("importance", "recommended"),
-                "description": desc or matched["title"],
-                "url": matched["url"],
-                "type": "certification"
-            })
-        else:
-            # Keep if valid title & issuer
-            cleaned_certs.append({
-                "title": title,
-                "issuer": issuer or "Recognized Certification Body",
-                "importance": cert.get("importance", "recommended"),
-                "description": desc or f"Industry certification for {target_position}",
-                "url": cert.get("url") if (cert.get("url") and "google.com/search" not in cert.get("url")) else "",
-                "type": "certification"
-            })
-
-    snapshot["certifications"] = cleaned_certs
-
-    # Clean courses
-    raw_courses = snapshot.get("recommendedCourses", [])
-    if not isinstance(raw_courses, list):
-        raw_courses = []
-    raw_courses.extend(misplaced_courses)
-
-    cleaned_courses = []
-    seen_urls = set()
-    for course in raw_courses:
-        if not isinstance(course, dict):
-            continue
-        ctitle = str(course.get("title", "")).strip()
-        curl = str(course.get("url", "")).strip()
-        if "google.com/search" in curl:
-            curl = ""
-        if not ctitle:
-            continue
-        if curl and curl in seen_urls:
-            continue
-        if curl:
-            seen_urls.add(curl)
-        cleaned_courses.append({
-            "title": ctitle,
-            "provider": str(course.get("provider", "Educational Platform")).strip(),
-            "url": curl,
-            "type": str(course.get("type", "course")),
-            "description": str(course.get("description", "")).strip() or f"Recommended learning resource for {target_position}"
-        })
-
-    snapshot["recommendedCourses"] = cleaned_courses
-    snapshot["seminars"] = snapshot.get("seminars", []) if isinstance(snapshot.get("seminars"), list) else []
-
-    # Enforce grounding on careerContext and strengths if raw_text is provided
-    if raw_text:
-        if isinstance(snapshot.get("careerContext"), dict):
-            det = snapshot["careerContext"].get("detectedSkills", [])
-            if isinstance(det, list):
-                snapshot["careerContext"]["detectedSkills"] = [
-                    s for s in det if is_skill_grounded_in_text(s, raw_text)
-                ]
-
-        raw_strengths = snapshot.get("strengths", [])
-        if isinstance(raw_strengths, list):
-            valid_strengths = []
-            for s in raw_strengths:
-                s_str = str(s).strip()
-                # Accept if grounded skill or valid high-level narrative summary
-                if is_skill_grounded_in_text(s_str, raw_text) or len(s_str.split()) > 3:
-                    valid_strengths.append(s_str)
-            snapshot["strengths"] = valid_strengths or ["Foundational academic preparation"]
-
+    candidates = []
+    for key in ("certifications", "recommendedCourses", "seminars"):
+        if isinstance(snapshot.get(key), list):
+            candidates.extend(snapshot[key])
+    resources = resolve_resource_candidates(candidates)
+    snapshot["certifications"] = [dict(item, issuer=item["provider"], importance="optional") for item in resources if item["type"] == "certification"]
+    snapshot["recommendedCourses"] = [item for item in resources if item["type"] != "certification"]
+    snapshot["seminars"] = []
+    context = snapshot.get("careerContext")
+    if isinstance(context, dict):
+        context["detectedSkills"] = [skill for skill in context.get("detectedSkills", []) if isinstance(skill, str) and is_skill_grounded_in_text(skill, raw_text)]
+    strengths = snapshot.get("strengths", [])
+    snapshot["strengths"] = [item for item in strengths if isinstance(item, str) and is_skill_grounded_in_text(item, raw_text)] if isinstance(strengths, list) else []
     return snapshot
 
 def generate_learning_snapshot(
@@ -946,6 +750,7 @@ def generate_learning_snapshot(
     target position, and identified skill gaps.
     Guarantees that careerContext['detectedSkills'] contains only authoritative candidate skills.
     """
+    raw_text = raw_text or str(parsed_sections.get("raw_text") or parsed_sections.get("Content") or "\n\n".join(str(value) for value in parsed_sections.values() if value))
     evidence = sbert_results.get("evidence", []) if sbert_results else []
 
     # Extract authoritative candidate skills from the complete source text
@@ -963,7 +768,7 @@ def generate_learning_snapshot(
             gaps.append({
                 "skill": c,
                 "importance": "high",
-                "reason": f"Core requirement missing from resume for target role: {target_position}."
+                "reason": f"This target-role competency is not clearly demonstrated in the extracted resume for: {target_position}."
             })
         for c in partial_concepts:
             gaps.append({
@@ -971,20 +776,13 @@ def generate_learning_snapshot(
                 "importance": "medium",
                 "reason": f"Partial evidence found; needs practical project demonstration for {target_position}."
             })
-        if not gaps:
-            gaps.append({
-                "skill": f"Advanced {target_position} Projects",
-                "importance": "medium",
-                "reason": f"Strengthen portfolio with production-level {target_position} implementations."
-            })
-
         improvement_areas = []
         for idx, gap in enumerate(gaps[:3], 1):
             improvement_areas.append({
                 "priority": idx,
                 "area": gap["skill"],
                 "title": f"Strengthen {gap['skill']} evidence",
-                "reason": f"Your resume currently lacks strong evidence of {gap['skill']} experience.",
+                "reason": f"The extracted resume does not yet provide strong evidence of {gap['skill']}. Check extraction before treating this as a learning need.",
                 "action": f"Build a practical project or portfolio item demonstrating {gap['skill']} in a {target_position} workflow.",
                 "evidence": f"Limited or missing evidence for {gap['skill']}",
                 "relatedSkills": [gap["skill"]]
@@ -993,7 +791,7 @@ def generate_learning_snapshot(
         skills_to_learn = []
         for gap in gaps[:4]:
             skills_to_learn.append({
-                "title": f"Master {gap['skill']}",
+                "title": f"Practice {gap['skill']}",
                 "priority": gap["importance"],
                 "description": f"Focus on practical applications and hands-on exercises for {gap['skill']} aligned with {target_position} roles."
             })
@@ -1011,28 +809,16 @@ def generate_learning_snapshot(
             }
         ]
 
-        # Match certifications from catalog for fallback
-        matched_certs = []
-        target_lower = target_position.lower()
-        for cat_item in VERIFIED_CERTIFICATION_CATALOG:
-            for kw in cat_item["keywords"]:
-                if kw in target_lower:
-                    matched_certs.append({
-                        "title": cat_item["title"],
-                        "issuer": cat_item["issuer"],
-                        "importance": "recommended",
-                        "description": f"Recognized credential validating expertise as a {target_position}.",
-                        "url": cat_item["url"],
-                        "type": "certification"
-                    })
-                    break
+        from learning_catalog import reviewed_resources
+        matched_certs = [dict(item, issuer=item["provider"], importance="optional") for item in reviewed_resources()
+                         if item["type"] == "certification" and target_position.casefold() in [role.casefold() for role in item["careerPaths"]]]
 
         courses = []
         interview_prep = [
             {
-                "questionType": "Technical & Domain",
+                "questionType": "Role competencies",
                 "topic": f"{target_position} Fundamentals",
-                "keyFocus": f"Review key technical questions, scenario-based problem solving, and architecture for {target_position}."
+                "keyFocus": f"Practice workplace scenarios and explain relevant experience for {target_position}."
             },
             {
                 "questionType": "Behavioral",
@@ -1048,7 +834,7 @@ def generate_learning_snapshot(
             "degreeProgram": program,
             "resumeVersion": 1,
             "careerSummary": f"Tailored improvement strategy for aspiring {target_position} professionals.",
-            "strengths": [s for s in grounded_skills if any(sc.lower() in s.lower() or s.lower() in sc.lower() for sc in strong_concepts)][:4] or (grounded_skills[:4] if grounded_skills else ["Foundational academic preparation"]),
+            "strengths": [s for s in grounded_skills if any(sc.lower() in s.lower() or s.lower() in sc.lower() for sc in strong_concepts)][:4] or (grounded_skills[:4] if grounded_skills else []),
             "improvementAreas": improvement_areas,
             "careerContext": {
                 "targetPosition": target_position,
@@ -1066,117 +852,8 @@ def generate_learning_snapshot(
         }
         return sanitize_and_validate_learning_snapshot(fallback, target_position, raw_text=raw_text)
 
-    prompt = f"""
-    You are an expert AI Career Coach and Learning Curation Engine for AIRIS.
-    Analyze candidate data and generate a highly personalized, dynamic learning snapshot for the candidate's target role.
-
-    CANDIDATE CONTEXT:
-    - Target Position: "{target_position}"
-    - Field/Program of Study: "{program or 'Not Specified'}"
-    - Detected Skills: {grounded_skills}
-    - Strong Concept Matches: {', '.join(strong_concepts) if strong_concepts else 'None'}
-    - Partial Concept Matches: {', '.join(partial_concepts) if partial_concepts else 'None'}
-    - Missing Concept Gaps: {', '.join(missing_concepts) if missing_concepts else 'None'}
-
-    CRITICAL RULES:
-    1. Certifications MUST ONLY be actual credentials issued by recognized organizations (e.g. AWS, Microsoft, CompTIA, Google, Cisco, PMP, CPA, PMI, Autodesk, etc.).
-    2. Documentation, tutorials, courses, and YouTube guides ARE NOT CERTIFICATIONS. Place them in `recommendedCourses`.
-    3. `improvementAreas` must provide supportive, actionable, evidence-based guidance.
-    4. Tone must be professional and coach-like (e.g. "Your resume lacks strong evidence of X", "Focus on X next").
-
-    REQUIRED OUTPUT FORMAT (Return ONLY valid JSON):
-    {{
-      "snapshotVersion": "1.0.0",
-      "generatedAt": "{timestamp}",
-      "targetPosition": "{target_position}",
-      "degreeProgram": "{program}",
-      "careerSummary": "<1-2 sentence coaching summary>",
-      "strengths": ["<strength1>", "<strength2>"],
-      "improvementAreas": [
-        {{
-          "priority": 1,
-          "area": "<Skill/Domain Area>",
-          "title": "Strengthen <Skill> evidence",
-          "reason": "Your resume currently lacks strong evidence of <Skill>.",
-          "action": "Build a hands-on project demonstrating <Skill>.",
-          "evidence": "<short phrase describing gap>",
-          "relatedSkills": ["<Skill>"]
-        }}
-      ],
-      "careerContext": {{
-        "targetPosition": "{target_position}",
-        "program": "{program}",
-        "detectedSkills": ["skill1"],
-        "missingSkills": ["missing1"]
-      }},
-      "skillGaps": [
-        {{
-          "skill": "<skill name>",
-          "importance": "high|medium|low",
-          "reason": "<why this skill is essential for target role>"
-        }}
-      ],
-      "skillsToLearn": [
-        {{
-          "title": "<Skill Title>",
-          "priority": "high|medium|low",
-          "description": "<actionable advice>"
-        }}
-      ],
-      "topicsAndConcepts": [
-        {{
-          "topic": "<Topic Title>",
-          "category": "<Domain/Category>",
-          "summary": "<short description>"
-        }}
-      ],
-      "recommendedCourses": [
-        {{
-          "title": "<Course/Resource Title>",
-          "provider": "<Provider Name>",
-          "type": "course|tutorial|video|documentation",
-          "description": "<short description>"
-        }}
-      ],
-      "certifications": [
-        {{
-          "title": "<Actual Certification Name>",
-          "issuer": "<Issuing Body e.g. AWS, Microsoft, CompTIA>",
-          "importance": "essential|recommended|optional",
-          "description": "<why valuable for target role>",
-          "type": "certification"
-        }}
-      ],
-      "seminars": [],
-      "interviewPrep": [
-        {{
-          "questionType": "Technical|Behavioral|Domain",
-          "topic": "<Preparation Topic>",
-          "keyFocus": "<key focus area>"
-        }}
-      ]
-    }}
-    """
-    try:
-        raw_res = generate_text_with_fallback(prompt)
-        extracted = _extract_json(raw_res)
-        if isinstance(extracted, dict) and ("skillGaps" in extracted or "improvementAreas" in extracted):
-            extracted["snapshotVersion"] = "1.0.0"
-            extracted["generatedAt"] = timestamp
-            extracted["targetPosition"] = target_position
-            extracted["degreeProgram"] = program
-            if not isinstance(extracted.get("careerContext"), dict):
-                extracted["careerContext"] = {}
-            extracted["careerContext"]["targetPosition"] = target_position
-            extracted["careerContext"]["program"] = program
-            extracted["careerContext"]["detectedSkills"] = grounded_skills
-            extracted["careerContext"]["missingSkills"] = missing_concepts
-            return sanitize_and_validate_learning_snapshot(extracted, target_position, raw_text=raw_text)
-    except Exception as e:
-        print("AI Learning Snapshot generation failed, using dynamic deterministic fallback:", e)
-
+    # Evidence and resource facts already have deterministic owners; do not regenerate them.
     return _create_deterministic_fallback()
-
 
 def evaluate_career_compatibility(academic_program: str, target_career: str, resume_skills: list = None) -> dict:
     """
@@ -1294,17 +971,14 @@ def evaluate_career_compatibility(academic_program: str, target_career: str, res
         classification = "ALIGNED"
         score = 95
         reason = f"Strong academic background alignment between {academic_program} and {target_career}."
-        missing_prereqs = []
     elif is_adjacent_program or len(demonstrated_skills) >= 2:
         classification = "PIVOT"
         score = 70
         reason = f"{target_career} is a related career pivot from your {academic_program} background. Additional background competencies may be required."
-        missing_prereqs = matched_domain["prereqs"][:2]
     else:
         classification = "DISTANT"
         score = 25
-        reason = f"{target_career} has low direct academic alignment with {academic_program} and requires substantial domain-specific education and prerequisite training."
-        missing_prereqs = matched_domain["prereqs"]
+        reason = f"{target_career} has low direct academic alignment with {academic_program} in the current program-to-domain mapping. Review actual role requirements and resume evidence before drawing conclusions."
 
     return {
         "classification": classification,
@@ -1313,7 +987,7 @@ def evaluate_career_compatibility(academic_program: str, target_career: str, res
         "targetCareer": target_career,
         "targetDomain": matched_domain_id,
         "reason": reason,
-        "relevantCompetencies": demonstrated_skills if demonstrated_skills else matched_domain["prereqs"][:2],
-        "missingPrerequisites": missing_prereqs,
+        "relevantCompetencies": demonstrated_skills,
+        "missingPrerequisites": [],
         "requiresExplicitConfirmation": classification == "DISTANT"
     }

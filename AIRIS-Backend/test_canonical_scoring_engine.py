@@ -131,9 +131,8 @@ class TestCanonicalScoringEngine(unittest.TestCase):
 
     def test_invariant_3_resume_score_exact_formula(self):
         """
-        Invariant: Authoritative Manuscript Resume Score (Table 3.2) = 4-component matrix
-        round(0.40 * Skills + 0.30 * Experience + 0.20 * Education + 0.10 * Certifications).
-        ATS Machine-Readability is preserved as a separate diagnostic metric without polluting final score.
+        Finalized manuscript section 3.5.1: Resume Score combines ATS and alignment.
+        The four-component matrix remains inside Role Alignment.
         """
         profile = resolve_role_profile("Software Developer")
         result = calculate_canonical_resume_score(
@@ -150,10 +149,10 @@ class TestCanonicalScoringEngine(unittest.TestCase):
         align = result["alignmentScore"]["overallScore"]
         ats = result["atsScore"]["overallScore"]
 
-        self.assertEqual(result["resumeScore"]["overallScore"], align)
-        self.assertEqual(result["overallScore"], align)
+        self.assertEqual(result["resumeScore"]["overallScore"], round(.4 * ats + .6 * align))
+        self.assertEqual(result["overallScore"], round(.4 * ats + .6 * align))
         self.assertEqual(result["resumeScore"]["diagnosticAtsScore"], ats)
-        self.assertIn("Skills × 0.40", result["resumeScore"]["formula"])
+        self.assertIn("ATS Readability × 0.40", result["resumeScore"]["formula"])
 
     def test_invariant_4_alignment_manuscript_four_components(self):
         """

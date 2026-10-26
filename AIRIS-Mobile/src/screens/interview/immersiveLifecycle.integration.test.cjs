@@ -24,9 +24,12 @@ function harness(kind='introductory') {
  const ctx={ exports:{}, console:{log(){},warn(){},error(){}}, Date, JSON,
   currentUser:{uid:'synthetic-user'},sceneName:'SampleScene',
   stateRef:ref('INTERVIEWER_SPEAKING'),isExitingRef:ref(false),isProcessingAnswerRef:ref(false),
+  unityRef:ref({}),resumeSpeechRef:ref(false),rememberInterviewCompletion:async()=>{},
   speechDeliveryRef:ref(speech),speechRetryRef:ref(0),
   audioHandoffRef:ref(new AudioHandoffGuard()),activeSessionIdRef:ref(session.sessionId),
-  sceneLoadedRef:ref(true),listeningSafetyTimerRef:ref(null),watchdogTimerRef:ref(null),sceneLoadingTimerRef:ref(null),feedbackTimeoutRef:ref(null),recordingStoppedTimeRef:ref(null),activeAbortControllerRef:ref(null),pendingNextQuestionRef:ref(null),currentSpeakerRef:ref({index:1,name:'Interviewer'}),
+  sceneLoadedRef:ref(true),listeningSafetyTimerRef:ref(null),watchdogTimerRef:ref(null),sceneLoadingTimerRef:ref(null),feedbackTimeoutRef:ref(null),recordingStoppedTimeRef:ref(null),activeAbortControllerRef:ref(null),captureStartTimerRef:ref(null),questionDispatchTimerRef:ref(null),pendingRetryRef:ref(null),restartCaptureRef:ref(null),pausedRef:ref(false),
+  setAudioError(value){ctx.audioError=value;},
+  pendingNextQuestionRef:ref(null),currentSpeakerRef:ref({index:1,name:'Interviewer'}),
   confirmUnityRuntimeReady(){},setSceneLoadingState(){},setSceneLoaded(){},setUnityReady(){},
   setTimeout(fn,ms){const id=++nextTimer;timers.set(id,{fn,ms});return id;},clearTimeout(id){timers.delete(id);},
   postToUnity(type,payload){if(type==='SHOW_QUESTION')speech.claim('delivery-'+events.length);events.push({type,payload});},
@@ -36,7 +39,7 @@ function harness(kind='introductory') {
   transcribeAudio:async()=>({transcription:'Synthetic test answer about coursework and career goals.'}),
   withTimeout:promise=>promise,
   submitInterviewAnswer:async()=>{evaluations++;return {evaluation:{overall:73},nextQuestion:{question:'Why this role?',questionType:'motivation'},isComplete:false};},
-  submitAnswer(){advances++;session.questionsAsked++;session.history.push({answer:'synthetic'});session.currentQuestion='Why this role?';session.currentQuestionType='motivation';},
+  submitAnswer(){advances++;session.questionsAsked++;session.history.push({answer:'synthetic'});session.currentQuestion='Why this role?';session.currentQuestionType='motivation';return true;},
   getSpeakerForQuestion(){return {index:2,name:'Interviewer'};},AbortController,
  };
  vm.runInNewContext(code,ctx);
@@ -71,13 +74,14 @@ test('duplicate saved recording advances exactly once, including after next-ques
  await h.send('TRANSCRIPT_READY',{transcript:'file:///first.wav'});
  assert.deepEqual(h.counts(),{evaluations:1,advances:1});
 });
-test('transcription failure repeats same question without scoring or advancing',async()=>{
+test('transcription failure releases capture and retains a retry without scoring or advancing',async()=>{
  const h=harness();h.ctx.transcribeAudio=async()=>{throw new Error('timeout');};
  await h.send('QUESTION_SPOKEN');await h.send('TRANSCRIPT_READY',{transcript:'/failed.wav'});
  assert.deepEqual(h.counts(),{evaluations:0,advances:0});
- assert.equal(h.events.at(-1).type,'SHOW_QUESTION');
- assert.equal(h.events.at(-1).payload.questionText,'Tell me about yourself.');
- assert.equal(h.ctx.stateRef.current,'INTERVIEWER_SPEAKING');
+ assert.equal(h.events.at(-1).type,'STOP_RECORDING');
+ assert.equal(h.session.currentQuestion,'Tell me about yourself.');
+ assert.equal(h.ctx.stateRef.current,'RECOVERY');
+ assert.equal(typeof h.ctx.pendingRetryRef.current,'function');
 });
 test('stop during delayed transcription discards its result',async()=>{
  const h=harness();let resolve;
@@ -90,7 +94,8 @@ test('stop during delayed transcription discards its result',async()=>{
 test('missing next question is a retryable error and does not commit an answer',async()=>{
  const h=harness();h.ctx.submitInterviewAnswer=async()=>({evaluation:{overall:73},isComplete:false});
  await h.send('QUESTION_SPOKEN');await h.send('TRANSCRIPT_READY',{transcript:'/missing-next.wav'});
- assert.equal(h.counts().advances,0);assert.equal(h.events.at(-1).type,'SHOW_QUESTION');
+ assert.equal(h.counts().advances,0);assert.equal(h.events.at(-1).type,'STOP_RECORDING');
+ assert.equal(h.ctx.stateRef.current,'RECOVERY');
 });
 
 test('empty transcript retries without evaluation; old completion events cannot consume new capture',async()=>{
@@ -104,5 +109,31 @@ test('empty transcript retries without evaluation; old completion events cannot 
 test('missing evaluation cannot commit or advance a scored answer',async()=>{
  const h=harness();h.ctx.submitInterviewAnswer=async()=>({evaluation:null,nextQuestion:{question:'Next',questionType:'behavioral'},isComplete:false});
  await h.send('QUESTION_SPOKEN');await h.send('TRANSCRIPT_READY',{transcript:'/missing-evaluation.wav'});
- assert.equal(h.counts().advances,0);assert.equal(h.events.at(-1).type,'SHOW_QUESTION');
+ assert.equal(h.counts().advances,0);assert.equal(h.events.at(-1).type,'STOP_RECORDING');
+ assert.equal(h.ctx.stateRef.current,'RECOVERY');
+});
+
+test('missing RECORDING_STARTED reaches explicit recovery rather than Listening forever',async()=>{
+ const h=harness();
+ await h.ctx.exports.handler({nativeEvent:{message:JSON.stringify({type:'QUESTION_SPOKEN',payload:JSON.stringify({utteranceId:h.ctx.speechDeliveryRef.current.active.utteranceId})})}});
+ const timer=[...h.timers.values()].find(timer=>timer.ms===5000);assert.ok(timer,'record-start acknowledgement must have a deadline');
+ timer.fn();assert.equal(h.ctx.stateRef.current,'RECOVERY');assert.equal(h.events.at(-1).type,'STOP_RECORDING');
+});
+test('native maximum watchdog enters bounded handoff wait and then recovery if stop is lost',async()=>{
+ const h=harness();await h.send('QUESTION_SPOKEN');
+ const timer=[...h.timers.values()].find(timer=>timer.ms===65000);assert.ok(timer);timer.fn();
+ assert.equal(h.ctx.stateRef.current,'WAITING_FOR_AUDIO');
+ const handoff=[...h.timers.values()].find(timer=>timer.ms===20000);assert.ok(handoff);handoff.fn();
+ assert.equal(h.ctx.stateRef.current,'RECOVERY');assert.equal(h.counts().advances,0);
+});
+
+test('retry reuses the retained transcript after an evaluation failure without recapturing audio',async()=>{
+ const h=harness();let transcripts=0,requests=[];
+ h.ctx.transcribeAudio=async()=>{transcripts++;return {transcription:'Synthetic original coursework answer.'};};
+ h.ctx.submitInterviewAnswer=async payload=>{requests.push(payload);if(requests.length===1)throw new Error('lost response');return {evaluation:{overall:73},nextQuestion:{question:'Why this role?',questionType:'motivation'}};};
+ await h.send('QUESTION_SPOKEN');await h.send('TRANSCRIPT_READY',{transcript:'/retained.wav'});
+ assert.equal(h.ctx.stateRef.current,'RECOVERY');
+ await h.ctx.pendingRetryRef.current();
+ assert.equal(transcripts,1);assert.equal(requests.length,2);assert.deepEqual(requests[0],requests[1]);
+ assert.equal(h.counts().advances,1);assert.equal(h.ctx.pendingRetryRef.current,null);
 });

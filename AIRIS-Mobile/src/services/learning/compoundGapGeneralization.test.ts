@@ -1,3 +1,4 @@
+import { withReviewedFixtureMetadata } from "./reviewedTestFixtures";
 jest.mock("react-native", () => ({
   Platform: { OS: "ios" },
   Alert: { alert: jest.fn() },
@@ -46,7 +47,7 @@ function createMockResource(
     category: "for_you",
     careerPaths,
     skills,
-    url: "https://www.coursera.org/learn/test-course",
+    url: `https://www.coursera.org/learn/synthetic-${id}`,
     isVerified: true,
     isActive: true,
     priority: 90,
@@ -67,7 +68,7 @@ describe("AIRIS — Final Learning Gap Generalization Test Suite (All 10 Require
     expect(evalResult.isDirectGap).toBe(true);
     expect(evalResult.isPartialGap).toBe(false);
     expect(evalResult.matchedComponents).toContain("Data Visualization");
-    expect(evalResult.groundedRationale).toContain("Directly addresses your identified gap");
+    expect(evalResult.groundedRationale).toContain("Develops competencies not clearly demonstrated in your current resume:");
   });
 
   // Test 2: Two-component gap (1 component matched = partial, not full)
@@ -98,7 +99,7 @@ describe("AIRIS — Final Learning Gap Generalization Test Suite (All 10 Require
     expect(evalResult.isPartialGap).toBe(false);
     expect(evalResult.matchedComponents).toContain("REST API");
     expect(evalResult.matchedComponents).toContain("GraphQL");
-    expect(evalResult.groundedRationale).toContain("Directly addresses your identified gap");
+    expect(evalResult.groundedRationale).toContain("Develops competencies not clearly demonstrated in your current resume:");
   });
 
   // Test 4: Five-component gap (coverage calculated per component)
@@ -172,8 +173,14 @@ describe("AIRIS — Final Learning Gap Generalization Test Suite (All 10 Require
   });
 
   // Test 8: Mandatory Full Stack Developer Screenshot Scenario
-  test("8. Existing Full Stack Developer pathway screenshot scenario verification", () => {
-    const catalog = getInstantCatalog();
+  test("8. Controlled full-stack fixtures preserve partial coverage without borrowing claims", () => {
+    const customCatalog = withReviewedFixtureMetadata([
+      createMockResource("cert_meta_backend_dev", "Synthetic backend fixture", ["mysql", "rest api"]),
+      createMockResource("course_harvard_cs50x", "Synthetic SQL fixture", ["sql"]),
+      createMockResource("course_princeton_algorithms_part1", "Synthetic algorithms fixture", ["algorithms"]),
+      createMockResource("video_fcc_docker_containers", "Synthetic Docker fixture", ["docker"]),
+      createMockResource("video_fcc_git_github", "Synthetic Git fixture", ["git"]),
+    ]);
     const compoundGaps = [
       "Node.js with Express.js for server-side development",
       "RESTful API design and GraphQL implementation",
@@ -183,6 +190,7 @@ describe("AIRIS — Final Learning Gap Generalization Test Suite (All 10 Require
     ];
 
     const recs = matchLearningRecommendations({
+      customCatalog,
       targetPosition: "Full Stack Developer",
       degreeProgram: "Bachelor of Science in Computer Science",
       department: "Computer Science",
@@ -287,7 +295,7 @@ describe("AIRIS — Final Learning Gap Generalization Test Suite (All 10 Require
 
     const recs = matchLearningRecommendations({
       targetPosition: "Software Engineer",
-      customCatalog: sparseCatalog,
+      customCatalog: withReviewedFixtureMetadata(sparseCatalog),
       skillGaps: [{ skill: "Docker containerization and Kubernetes orchestration", importance: "high" }],
     });
 
@@ -297,6 +305,6 @@ describe("AIRIS — Final Learning Gap Generalization Test Suite (All 10 Require
     expect(item.isPersonalizedGap).toBeFalsy();
     expect(item.recommendationReason).toContain("Docker");
     expect(item.recommendationReason).not.toContain("Kubernetes");
-    expect(item.recommendationReason).not.toContain("Directly addresses your identified gap in \"Docker containerization and Kubernetes orchestration\"");
+    expect(item.recommendationReason).not.toContain("Develops competencies not clearly demonstrated in your current resume: in \"Docker containerization and Kubernetes orchestration\"");
   });
 });

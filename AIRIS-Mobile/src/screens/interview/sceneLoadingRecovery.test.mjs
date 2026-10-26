@@ -16,7 +16,7 @@ function harness(sceneName = 'SampleScene') {
     setTimeout(fn) { timers.push(fn); return timers.length; }, clearTimeout() {},
     console: { log() {}, warn(...args) { warnings.push(args); } },
   });
-  const request = source.slice(source.indexOf('const requestSceneIfReady'), source.indexOf('/** Build the parsedResume'));
+  const request = source.slice(source.indexOf('const requestSceneIfReady'), source.indexOf('// ─── Effect: send first question'));
   vm.runInContext(request, c);
   const start = source.slice(source.indexOf('// Initiate'), source.indexOf('const confirmUnityRuntimeReady'));
   vm.runInContext(source.slice(source.indexOf('const confirmUnityRuntimeReady'), source.indexOf('// ─── Unity message handler')), c);

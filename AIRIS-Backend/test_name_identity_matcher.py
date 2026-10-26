@@ -14,6 +14,16 @@ def mock_verify_id_token(token, *args, **kwargs):
     raise Exception("Invalid token")
 
 class TestGeneralizedNameIdentityMatcher(unittest.TestCase):
+    def setUp(self):
+        # Isolate name verification from account-state storage and external providers.
+        for target, kwargs in [
+            ("main.assert_active_student", {}),
+            ("main.validate_resume_validity_with_llm", {"return_value": {"is_resume": True}}),
+            ("ai_service.generate_learning_snapshot", {"return_value": {}}),
+        ]:
+            mocked = patch(target, **kwargs)
+            mocked.start()
+            self.addCleanup(mocked.stop)
 
     # -------------------------------------------------------------
     # 1. SPECIFIC REGRESSION TEST (PROVING GENERALIZED FIX)

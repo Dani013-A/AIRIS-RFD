@@ -1,5 +1,6 @@
-import { LearningResource, VerificationStatus } from "../../types/learning.types";
-import { isValidUrl } from "./catalogValidator";
+import { VERIFIED_LEARNING_CATALOG } from "../../data/verifiedLearningCatalog";
+import { LearningResource } from "../../types/learning.types";
+import { isValidUrl, validateLearningResource, canonicalResourceUrl } from "./catalogValidator";
 
 export interface ValidationStageResult {
   passed: boolean;
@@ -78,6 +79,9 @@ export function validateAiRecommendationCandidate(
     rawResumeText?: string;
   }
 ): CandidateValidationReport {
+  const reviewed = VERIFIED_LEARNING_CATALOG.find(record =>
+    canonicalResourceUrl(record.url) === canonicalResourceUrl(candidate.url || "") && validateLearningResource(record));
+  if (reviewed) candidate = { ...reviewed };
   const stageResults: ValidationStageResult[] = [];
 
   const recordStage = (num: number, name: string, passed: boolean, reason?: string) => {
@@ -100,14 +104,18 @@ export function validateAiRecommendationCandidate(
   }
 
   // Stage 2: Disallowed Domains & Search Queries
-  const isDisallowed = DISALLOWED_DOMAINS.some((d) => rawUrl.toLowerCase().includes(d));
+  const isDisallowed = DISALLOWED_DOMAINS.some(blocked => {
+    const [domain, ...path] = blocked.split("/");
+    const host = parsedUrl.hostname.toLowerCase().replace(/^www\./, "");
+    return (host === domain || host.endsWith(`.${domain}`)) && (!path.length || parsedUrl.pathname.startsWith(`/${path.join("/")}`));
+  });
   if (!recordStage(2, "Disallowed Domains Check", !isDisallowed, "URL belongs to disallowed domain or search query")) {
     return { isValid: false, stageResults, rejectionReason: "Disallowed domain or search query fallback" };
   }
 
   // Stage 3: Trusted Domain Whitelist
   const host = parsedUrl.hostname.toLowerCase().replace(/^www\./, "");
-  const isTrusted = TRUSTED_DOMAINS.some((td) => host === td || host.endsWith("." + td));
+  const isTrusted = !!reviewed || TRUSTED_DOMAINS.some((td) => host === td || host.endsWith("." + td));
   if (!recordStage(3, "Trusted Provider Whitelist", isTrusted, `Domain ${host} is not in trusted registry`)) {
     return { isValid: false, stageResults, rejectionReason: `Domain ${host} is not an authoritative provider` };
   }
@@ -130,7 +138,7 @@ export function validateAiRecommendationCandidate(
   // Stage 6: Title & Structural Completeness
   const title = (candidate.title || "").trim();
   const titleWords = title.split(/\s+/).filter(Boolean);
-  const hasValidTitle = titleWords.length >= 3 && title.length >= 10;
+  const hasValidTitle = !!reviewed || (titleWords.length >= 3 && title.length >= 10);
   if (!recordStage(6, "Title Completeness", hasValidTitle, "Title is too short or non-descriptive")) {
     return { isValid: false, stageResults, rejectionReason: "Candidate title lacks technical specificity" };
   }
@@ -208,36 +216,10 @@ export function validateAiRecommendationCandidate(
     return { isValid: false, stageResults, rejectionReason: "Candidate already demonstrates this credential on resume" };
   }
 
-  // Stage 13: Provenance & Verification Tagging
-  recordStage(13, "Provenance & Verification Tagging", true);
-
-  const verifiedResource: LearningResource = {
-    id: candidate.id || `ai_gen_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    title,
-    description,
-    provider,
-    type: candidate.type as any,
-    category: candidate.category || "for_you",
-    careerPaths: candidate.careerPaths || [context.targetPosition],
-    skills: candidateSkills,
-    url: canonicalUrl,
-    thumbnailUrl: candidate.thumbnailUrl,
-    isVerified: true,
-    isActive: true,
-    source: "ai_generated",
-    verificationStatus: "verified" as VerificationStatus,
-    priority: candidate.priority || 85,
-    level: candidate.level || "all-levels",
-    estimatedTime: candidate.estimatedTime || "Self-paced",
-    tags: Array.isArray(candidate.tags) ? candidate.tags : [provider.toLowerCase(), candidate.type || "learning"],
-    verification: {
-      status: "verified",
-      checkedAt: new Date().toISOString(),
-      finalUrl: canonicalUrl,
-      providerDomain: host,
-      verificationMethod: "http",
-    },
-  };
+  if (!recordStage(13, "Reviewed catalog provenance", !!reviewed)) {
+    return { isValid: false, stageResults, rejectionReason: "Resource requires catalog content review; HTTP reachability alone is insufficient." };
+  }
+  const verifiedResource: LearningResource = { ...reviewed! };
 
   return {
     isValid: true,

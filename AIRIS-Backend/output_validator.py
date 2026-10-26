@@ -48,7 +48,7 @@ def validate_ai_response(
 
         # 1. Reject forbidden numeric score injections
         if "score" in item or "atsScore" in item or "overallScore" in item:
-            print(f"[OUTPUT VALIDATOR WARNING] Rejected payload containing forbidden score injection: {item}")
+            print("[OUTPUT VALIDATOR WARNING] Rejected forbidden score injection.")
             continue
 
         chunk_id = str(item.get("chunkId", "")).strip()
@@ -56,12 +56,12 @@ def validate_ai_response(
 
         # 2. Chunk ID Existence Rule
         if chunk_id not in chunk_map:
-            print(f"[OUTPUT VALIDATOR REJECTION] Invalid chunkId '{chunk_id}' not found in candidate text chunks.")
+            print("[OUTPUT VALIDATOR REJECTION] Invalid chunk reference.")
             continue
 
         # 3. Competency Boundary Rule (STRICT REJECTION if valid_competencies provided)
         if valid_comp_set and competency.lower().strip() not in valid_comp_set:
-            print(f"[OUTPUT VALIDATOR REJECTION] Competency '{competency}' is not in authoritative target competency list.")
+            print("[OUTPUT VALIDATOR REJECTION] Competency outside target list.")
             continue
 
         # 4. Strict Boolean ACMO Validation
@@ -96,7 +96,7 @@ def validate_ai_response(
 
         quote_verbatim_match = bool(normalized_quote and normalized_quote in normalized_chunk)
         if not quote_verbatim_match:
-            print(f"[OUTPUT VALIDATOR WARNING] Quote '{raw_quote}' is not verbatim substring of chunk '{chunk_text}'.")
+            print("[OUTPUT VALIDATOR WARNING] Rejected non-verbatim evidence quote.")
             audit_status = "REJECTED_UNGROUNDED_QUOTE"
         else:
             audit_status = "VERIFIED"
