@@ -22,3 +22,7 @@ test('unverified TIP file is explicitly unavailable rather than impersonated',()
 test('onboarding routes to the same official resources instead of generating TIP content',()=>{
  assert.match(upload,/Browse official resume templates/);assert.match(upload,/\/\(student\)\/resume-templates/);assert.doesNotMatch(upload,/downloadAirisResumeTemplate|Download T\.I\.P\. Standard Resume Template/);
 });
+
+test('official resources route uses the existing screen chrome',()=>{
+ const layout=read('../../../app/(student)/_layout.tsx');assert.match(layout,/name="resume-templates" options=\{\{ headerShown: false \}\}/);
+});
