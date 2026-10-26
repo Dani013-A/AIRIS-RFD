@@ -121,14 +121,14 @@ def question_delivery(meta, target_role, history):
         pattern, followup = topics[number]
         if any(re.search(pattern, claim, re.I) for turn in history if not turn.get('isInteraction')
                for claim in answer_evidence(turn.get('answer', ''))
-               if not re.search(r'\b(?:not|never|would|could|might|if)\b', claim, re.I)):
+               if not re.search(r'\b(?:not|never|would|could|might|if|want|aim|hope|plan)\b', claim, re.I)):
             return followup
     return meta['text']
 
 
 def focused_followup(meta, answer):
     evidence = [claim for claim in answer_evidence(answer)
-                if not re.search(r'\b(?:not|never|would|could|might|if)\b', claim, re.I)]
+                if not re.search(r'\b(?:not|never|would|could|might|if|want|aim|hope|plan)\b', claim, re.I)]
     if not evidence:
         return ''
     number = int(meta['id'].split('-')[1])

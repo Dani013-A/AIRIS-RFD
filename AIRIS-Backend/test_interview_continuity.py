@@ -136,3 +136,9 @@ def test_no_actual_company_is_implied_in_role_or_employer_delivery():
     assert 'Quality analyst' in question_delivery(engine.CORE_SURVEY_QUESTIONS[1],'Quality analyst',[])
     third=question_delivery(engine.CORE_SURVEY_QUESTIONS[2],'Quality analyst',[])
     assert 'research' in third and 'our company' not in third
+
+
+def test_career_goal_is_not_treated_as_completed_teamwork():
+    answer='I want to help a team deliver reliable services and learn from experienced colleagues.'
+    meta=engine.CORE_SURVEY_QUESTIONS[6]
+    assert question_delivery(meta,'Role',[{'answer':answer}])==meta['text']
