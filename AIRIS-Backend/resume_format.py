@@ -84,7 +84,7 @@ def _result(
 ):
     unique_codes = list(dict.fromkeys(codes))
     remediation_text = (
-        "Download the T.I.P. Standard Resume Template, replace every example with your own information, "
+        "Choose an official resume template from AIRIS, replace every example with your own information, "
         "and export a selectable-text PDF before retrying."
     ) if outcome != "SUPPORTED" else "No format changes required."
 

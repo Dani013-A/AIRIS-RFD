@@ -1,11 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { documentDirectory, EncodingType, writeAsStringAsync } from "expo-file-system/legacy";
 import { useRouter } from "expo-router";
-import * as Sharing from "expo-sharing";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   ScrollView,
   TouchableOpacity,
   View,
@@ -33,101 +32,8 @@ import {
   LearningResource,
   PrimaryLearnCategory,
 } from "../../types/learning.types";
-import { generatePdfFromMarkdown } from "../../utils/pdfGenerator";
-import { downloadAirisResumeTemplate } from "../../utils/airisResumeTemplate";
-
-interface ResumeTemplate {
-  id: string;
-  name: string;
-  badge: string;
-  standard: string;
-  description: string;
-  rationale: string;
-  content: string;
-}
-
-const ATS_TEMPLATES: ResumeTemplate[] = [
-  {
-    id: "airis_standard",
-    name: "T.I.P. Standard Resume",
-    badge: "Recommended",
-    standard: "Single-column ATS-readable format",
-    description: "A clean, text-based guide with conventional sections for graduating students across programs.",
-    rationale: "Keeps contact, education, skills, and experience readable without relying on images or tables.",
-    content: "",
-  },
-  {
-    id: "harvard",
-    name: "Business Resume Example",
-    badge: "Corporate & Business",
-    standard: "Standard ATS Formatting",
-    description: "An illustrative business resume layout. Replace every example with your own verifiable information.",
-    rationale:
-      "Clean, single-column, reverse-chronological template utilizing standard font hierarchy, prominent headers, and metric-based bullets.",
-    content: `# JUAN DELA CRUZ
-+63 917 123 4567 | juan.dela.cruz@gmail.com | Manila, Philippines | linkedin.com/in/juandelacruz
-
-## EDUCATION
-Technological Institute of the Philippines – Manila, Philippines
-Bachelor of Science in Computer Science | Graduation: June 2026
-- Achievements: Dean's List (2022-2026), 1st Place College Programming Competition
-- Relevant Coursework: Data Structures, Algorithms, Systems Analysis, Web Development
-- Description: Focus on software engineering methodologies, database design, and cloud architecture.
-
-## EXPERIENCE
-Global Tech Solutions – Makati, Metro Manila
-Software Developer Intern | January 2025 – May 2025
-- Built responsive frontend elements using React Native and Tailwind CSS.
-- Decreased screen load latency by 15% and improved user test score by 10%.
-- Developed and tested back-end REST API pathways using Node.js and Express.
-- Integrated Firebase auth token checks, securing sessions for 500+ active users.
-
-## PROJECTS
-AIRIS Mobile Application – Lead Developer | Capstone Project | July 2025 – Present
-- Built cross-platform mobile client in Expo and React Native utilizing Zustand and Tailwind CSS.
-- Designed deterministic resume parsing parser matching sections against local scoring indexes.
-
-## SKILLS & CERTIFICATIONS
-- Technical Skills: JavaScript, TypeScript, Python, HTML/CSS, Git, MySQL, Firebase
-- Soft Skills: Agile Project Management, Team Collaboration, Technical Writing
-- Certifications: AWS Certified Cloud Practitioner (2025)
-`,
-  },
-  {
-    id: "tech_cohort",
-    name: "Tech Cohort Standard",
-    badge: "Engineering & IT",
-    standard: "Technical ATS Formatting",
-    description: "Optimized for software engineering, data science, cybersecurity, and cloud IT roles.",
-    rationale:
-      "Emphasizes technical stack context immediately below contact details, grouping projects, code contributions, and languages.",
-    content: `# JUAN DELA CRUZ
-juan.dela.cruz@gmail.com | +63 917 123 4567 | github.com/juandelacruz | linkedin.com/in/juandelacruz
-
-## TECHNICAL SKILLS
-- Languages: JavaScript, TypeScript, Python, SQL, C++
-- Frameworks & Tools: React Native, Node.js, Git, Docker, Firebase, Tailwind CSS
-- Databases & Cloud: PostgreSQL, MySQL, AWS (S3, EC2), Google Cloud Platform
-
-## TECHNICAL EXPERIENCE
-Innovate Technologies – Quezon City, Metro Manila
-Backend Software Intern | January 2025 – May 2025
-- Engineered serverless backend functions in Node.js and deployed to AWS Lambda.
-- Reduced database read latency by 20% and resolved 15+ backend API bottleneck bugs.
-- Maintained secure MongoDB schema designs and wrote clean integration test suites.
-- Achieved 92% unit test code path coverage across core authentication endpoints.
-
-## ENGINEERING PROJECTS
-AIRIS Automated Resume Parser | Capstone Project | July 2025 – Present
-- Developed native text normalization algorithms, parsing unstructured OCR layouts into JSON.
-- Linked Zustand stores with Firestore listeners, caching user resume records for offline loading.
-
-## EDUCATION
-Technological Institute of the Philippines – Manila, Philippines
-Bachelor of Science in Information Technology | Graduation: June 2026
-`,
-  },
-];
+import { OFFICIAL_RESUME_TEMPLATES, OfficialResumeTemplate } from "../../data/officialResumeTemplates";
+import { downloadOfficialResumeTemplate } from "../../utils/officialResumeTemplates";
 
 interface LearningScreenProps {
   initialCategory?: PrimaryLearnCategory;
@@ -288,60 +194,21 @@ export default function LearningScreen({ initialCategory = "interviews" }: Learn
     });
   }, [rawMatchedRecommendations, searchQuery]);
 
-  const handleDownloadTemplate = async (template: ResumeTemplate) => {
+  const [downloadingTemplate, setDownloadingTemplate] = useState<string | null>(null);
+  const handleDownloadTemplate = async (template: OfficialResumeTemplate) => {
+    if (downloadingTemplate) return;
+    if (template.unavailableReason) {
+      Alert.alert("Official template unavailable", template.unavailableReason);
+      return;
+    }
+    setDownloadingTemplate(template.id);
     try {
-      if (template.id === "airis_standard") {
-        await downloadAirisResumeTemplate();
-        return;
-      }
-      const name = currentUser?.fullName || "YOUR NAME";
-      const program = currentUser?.degreeProgram || "Degree Program";
-      const target = currentUser?.targetPosition || targetPosition || "Target Position";
-
-      const cleanTemplateContent = `# ${name.toUpperCase()}
-Phone: +63 9XX XXX XXXX | Email: student@tip.edu.ph | Location: Manila, Philippines
-
-## PROFESSIONAL SUMMARY
-Motivated ${program} graduate preparing for entry-level opportunities as a ${target}. Demonstrates foundational domain knowledge, analytical problem solving, and professional teamwork.
-
-## EDUCATION
-Technological Institute of the Philippines – Manila, Philippines
-${program} | Expected Graduation: 2026
-- Relevant Coursework: Core Academic & Professional Discipline Modules
-
-## CORE COMPETENCIES & SKILLS
-- Technical & Domain Skills: [List relevant discipline skills]
-- Tools & Software: [List software, tools, or frameworks]
-- Soft Skills: Problem Solving, Team Collaboration, Communication
-
-## PROJECTS & RELEVANT EXPERIENCE
-[Project Title or Internship Role] | Technological Institute of the Philippines
-- Applied core principles to solve practical challenges and achieve project goals.
-- Documented methodology, collaborated with project team members, and delivered final presentation.
-
-## CERTIFICATIONS & ACHIEVEMENTS
-- [List professional certifications, academic honors, or campus leadership roles]
-`;
-
-      const pdfContent = generatePdfFromMarkdown(template.name, cleanTemplateContent);
-      const fileName = `${template.id}_ats_template.pdf`;
-      const localUri = `${documentDirectory || ""}${fileName}`;
-
-      await writeAsStringAsync(localUri, pdfContent, {
-        encoding: EncodingType.UTF8,
-      });
-
-      const isSharingAvailable = await Sharing.isAvailableAsync();
-      if (isSharingAvailable) {
-        await Sharing.shareAsync(localUri, {
-          mimeType: "application/pdf",
-          dialogTitle: `Download ${template.name}`,
-        });
-      } else {
-        Alert.alert("Downloaded", `Template saved locally to device storage: ${fileName}`);
-      }
-    } catch {
-      Alert.alert("Download Error", "Failed to save or share template file.");
+      const result = await downloadOfficialResumeTemplate(template.id);
+      if (!result.shared) Alert.alert("Template saved", `Original file saved in app storage: ${template.fileName}`);
+    } catch (error) {
+      Alert.alert("Download Error", error instanceof Error ? error.message : "The original template could not be saved or shared. Please try again.");
+    } finally {
+      setDownloadingTemplate(null);
     }
   };
 
@@ -531,33 +398,39 @@ ${program} | Expected Graduation: 2026
             <View className="flex-row items-center justify-between mb-1">
               <Text className="text-sm font-bold text-[#1F3A5F]">Resume templates</Text>
               <View className="bg-[#EAF2F7] px-2 py-0.5 rounded-full border border-[#BFD6EA]">
-                <Text className="text-[9px] font-bold text-[#1F3A5F]">PDF Export</Text>
+                <Text className="text-[9px] font-bold text-[#1F3A5F]">Original files</Text>
               </View>
             </View>
             <Text className="text-xs font-medium text-[#4F6B82] leading-4 mb-3">
-              Simple one-column templates that hiring software can read easily.
+              Original university resources. Downloads preserve the publisher’s file; no candidate details are generated.
             </Text>
             <View className="gap-2">
-              {ATS_TEMPLATES.map((tpl) => (
+              {OFFICIAL_RESUME_TEMPLATES.map((tpl) => (
                 <TouchableOpacity
                   key={tpl.id}
                   onPress={() => handleDownloadTemplate(tpl)}
+                  disabled={!!downloadingTemplate}
+                  accessibilityRole="button"
+                  accessibilityLabel={tpl.unavailableReason ? `${tpl.name}: official file unavailable` : `Download ${tpl.name}`}
                   activeOpacity={0.8}
                   className="flex-row items-center justify-between bg-[#F4F8FB] border border-[#EAF2F7] p-3 rounded-xl"
                 >
                   <View className="flex-1 mr-3">
                     <Text className="text-xs font-bold text-[#1F3A5F]">{tpl.name}</Text>
                     <Text className="text-[11px] font-medium text-[#4F6B82] mt-0.5">{tpl.description}</Text>
+                    <Text className="text-[10px] text-[#4F6B82] mt-1">{tpl.publisher}</Text>
                     <Text className="text-[9px] font-bold text-[#79D5C8] mt-1 uppercase tracking-wider">
-                      {tpl.standard}
+                      {tpl.unavailableReason ? 'Official file unavailable' : 'Original PDF • Available offline'}
                     </Text>
                   </View>
                   <View className="h-9 w-9 bg-white rounded-full items-center justify-center shadow-sm border border-[#BFD6EA]">
-                    <Ionicons name="download-outline" size={16} color="#CA5D25" />
+                    <Ionicons name={tpl.unavailableReason ? "information-circle-outline" : "download-outline"} size={16} color="#CA5D25" />
                   </View>
                 </TouchableOpacity>
               ))}
             </View>
+            <Text className="text-[10px] text-[#4F6B82] mt-3">Original documents remain credited to their publishers. AIRIS is not affiliated with Harvard or Oxford.</Text>
+            {OFFICIAL_RESUME_TEMPLATES.map(template => <TouchableOpacity key={`source-${template.id}`} accessibilityRole="link" onPress={() => { void Linking.openURL(template.sourcePage).catch(() => Alert.alert("Source unavailable", "The publisher’s website could not be opened.")); }} className="mt-2 py-1"><Text className="text-xs text-[#1F3A5F] underline">{template.name}: publisher source</Text></TouchableOpacity>)}
           </View>
         )}
 

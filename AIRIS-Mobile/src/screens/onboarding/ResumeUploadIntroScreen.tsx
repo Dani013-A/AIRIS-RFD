@@ -16,7 +16,6 @@ import { uploadResumeFileWithProgress, type UploadProgressEvent, type ResumeForm
 import { classifyNameMatch } from "../../utils/nameMatcher";
 import { normalizeApiError } from "../../utils/errorMapper";
 import { validateResumeText } from "../../services/resume/resumeNormalizer";
-import { downloadAirisResumeTemplate } from "../../utils/airisResumeTemplate";
 
 function formatBytes(bytes: number): string {
   if (!bytes || bytes <= 0) return "0 KB";
@@ -94,13 +93,7 @@ export default function ResumeUploadIntroScreen() {
 
   const isSubmittingRef = React.useRef(false);
 
-  const openStandardTemplate = async () => {
-    try {
-      await downloadAirisResumeTemplate();
-    } catch {
-      Alert.alert("Template unavailable", "AIRIS could not save or share the resume template on this device.");
-    }
-  };
+  const openStandardTemplate = () => router.push("/(student)/resume-templates" as any);
 
   const explainFormat = (assessment: ResumeFormatAssessment) =>
     `${assessment.reasons.join("\n")}\n\n${assessment.outcome === "WARNING" ? "Some details may be missed, so your analysis or scores may be less accurate.\n\n" : ""}${assessment.remediation}`;
@@ -204,7 +197,7 @@ export default function ResumeUploadIntroScreen() {
         setUploadStage("idle");
         setUploadProgress(0);
         setIsInvalidDocument(true);
-        setValidationError("This document was not analyzed. Choose another file or use the T.I.P. standard template.");
+        setValidationError("This document was not analyzed. Choose another file or browse the official resume templates.");
         Alert.alert("Resume cannot be analyzed", explainFormat(assessment), [
           { text: "Choose another file", style: "cancel", onPress: () => { void pickDocumentResume(); } },
           { text: "Download template", onPress: openStandardTemplate },
@@ -262,7 +255,7 @@ export default function ResumeUploadIntroScreen() {
         useResumeStore.getState().setProcessingStatus("idle");
         setUploadStage("idle");
         setUploadProgress(0);
-        setValidationError("Resume format warning. Choose another file or use the T.I.P. standard template.");
+        setValidationError("Resume format warning. Choose another file or browse the official resume templates.");
         return;
       }
     }
@@ -787,10 +780,10 @@ export default function ResumeUploadIntroScreen() {
             className="mt-3 rounded-xl bg-[#EAF2F7] px-4 py-3"
             onPress={openStandardTemplate}
           >
-            <Text className="text-center font-bold text-[#1F3A5F]">Download T.I.P. Standard Resume Template</Text>
+            <Text className="text-center font-bold text-[#1F3A5F]">Browse official resume templates</Text>
           </TouchableOpacity>
           <Text className="mt-2 text-center text-xs text-[#4F6B82] px-4">
-            If you use the template below, replace every example with your own information.
+            Replace template placeholders and example details with your own information.
           </Text>
         </View>
 

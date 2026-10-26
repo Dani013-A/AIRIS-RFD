@@ -1,10 +1,9 @@
 import React from 'react';
 const {act,create}=require('react-test-renderer');
 jest.mock('@expo/vector-icons',()=>({Ionicons:'Icon'}));
-jest.mock('expo-file-system/legacy',()=>({documentDirectory:'file://synthetic/',EncodingType:{UTF8:'utf8'},writeAsStringAsync:jest.fn()}));
-jest.mock('expo-sharing',()=>({isAvailableAsync:async()=>false}));
+jest.mock('../../utils/officialResumeTemplates',()=>({downloadOfficialResumeTemplate:jest.fn(async()=>({uri:'file://official.pdf',shared:true}))}));
 jest.mock('expo-router',()=>({useRouter:()=>({back:jest.fn()})}));
-jest.mock('react-native',()=>({ActivityIndicator:'ActivityIndicator',Alert:{alert:jest.fn()},ScrollView:'ScrollView',TouchableOpacity:'TouchableOpacity',View:'View'}));
+jest.mock('react-native',()=>({ActivityIndicator:'ActivityIndicator',Alert:{alert:jest.fn()},Linking:{openURL:jest.fn()},ScrollView:'ScrollView',TouchableOpacity:'TouchableOpacity',View:'View'}));
 jest.mock('../../components/ui/AppText',()=>({Text:'Text',TextInput:'TextInput'}));
 jest.mock('react-native-safe-area-context',()=>({SafeAreaView:'SafeAreaView'}));
 jest.mock('../../components/ui',()=>({Tag:'Tag',SkeletonResourceCard:'SkeletonResourceCard'}));
@@ -22,5 +21,17 @@ it('historical narrative and inferred strengths are visibly unverified, not conf
  expect(labels).toContain('Inferred strengths (unverified)');expect(labels).toContain('Resume evidence to review');
  expect(labels).not.toContain('Your strong points');expect(labels).not.toContain('Skills to improve');
  const strength=renderer.root.findAllByType('Tag').find((node: any)=>node.props.label==='An inferred historical strength');expect(strength.props.variant).toBe('neutral');
+ await act(async()=>renderer.unmount());
+});
+
+it('offers only the three institution entries and downloads the selected original',async()=>{
+ let renderer: any;await act(async()=>{renderer=create(<LearningScreen initialCategory="resume"/>)});
+ const buttons=renderer.root.findAllByType('TouchableOpacity');
+ const download=buttons.find((node: any)=>node.props.accessibilityLabel==='Download Harvard Resume Template');
+ expect(download).toBeDefined();
+ expect(buttons.some((node: any)=>node.props.accessibilityLabel==='Download Oxford CV Example')).toBe(true);
+ expect(buttons.some((node: any)=>node.props.accessibilityLabel==='T.I.P. Resume Template: official file unavailable')).toBe(true);
+ await act(async()=>{await download.props.onPress()});
+ expect(require('../../utils/officialResumeTemplates').downloadOfficialResumeTemplate).toHaveBeenCalledWith('harvard');
  await act(async()=>renderer.unmount());
 });

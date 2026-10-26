@@ -1,24 +1,24 @@
-import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import test from "node:test";
-
-const learningScreen = readFileSync(new URL("./LearningScreen.tsx", import.meta.url), "utf8");
-const uploadScreen = readFileSync(new URL("../onboarding/ResumeUploadIntroScreen.tsx", import.meta.url), "utf8");
-const templateUtil = readFileSync(new URL("../../utils/airisResumeTemplate.ts", import.meta.url), "utf8");
-
-test("Knowledge Hub resume writing section displays T.I.P. Standard Resume", () => {
-  assert.match(learningScreen, /name:\s*"T\.I\.P\. Standard Resume"/);
-  assert.doesNotMatch(learningScreen, /name:\s*"AIRIS Standard Resume"/);
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import test from 'node:test';
+import ts from 'typescript';
+const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
+const learning=read('./LearningScreen.tsx');const upload=read('../onboarding/ResumeUploadIntroScreen.tsx');
+const source=read('../../data/officialResumeTemplates.ts');
+const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
+const exports={};new Function('exports',compiled)(exports);const templates=exports.OFFICIAL_RESUME_TEMPLATES;
+test('only TIP, Harvard and Oxford are offered, without cohort examples',()=>{
+ assert.deepEqual(templates.map(t=>t.id),['tip','harvard','oxford']);assert.doesNotMatch(learning,/Business Resume Example|Tech Cohort|JUAN DELA CRUZ|generatePdfFromMarkdown/);
 });
-
-test("Resume upload screen uses T.I.P. Standard Resume Template", () => {
-  assert.match(uploadScreen, /Download T\.I\.P\. Standard Resume Template/);
-  assert.match(uploadScreen, /use the T\.I\.P\. standard template/);
-  assert.doesNotMatch(uploadScreen, /Download AIRIS Standard Resume Template/);
-  assert.doesNotMatch(uploadScreen, /use the AIRIS standard template/);
+test('bundled originals match the verified publisher file hashes',()=>{
+ for(const template of templates.filter(t=>t.fileName)){
+  const bytes=readFileSync(new URL('../../../assets/resume-templates/'+template.fileName,import.meta.url));assert.ok(bytes.subarray(0,5).equals(Buffer.from('%PDF-')));assert.equal(createHash('sha256').update(bytes).digest('hex'),template.sha256);assert.equal(createHash('md5').update(bytes).digest('hex'),template.md5);assert.ok(template.documentUrl.startsWith('https://'));
+ }
 });
-
-test("Resume template download utility uses T.I.P. Standard Resume Template", () => {
-  assert.match(templateUtil, /"T\.I\.P\. Standard Resume Template"/);
-  assert.doesNotMatch(templateUtil, /"AIRIS Standard Resume Template"/);
+test('unverified TIP file is explicitly unavailable rather than impersonated',()=>{
+ const tip=templates[0];assert.ok(tip.unavailableReason);assert.equal(tip.fileName,undefined);assert.match(learning,/Official template unavailable/);
+});
+test('onboarding routes to the same official resources instead of generating TIP content',()=>{
+ assert.match(upload,/Browse official resume templates/);assert.match(upload,/\/\(student\)\/resume-templates/);assert.doesNotMatch(upload,/downloadAirisResumeTemplate|Download T\.I\.P\. Standard Resume Template/);
 });
