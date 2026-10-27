@@ -3,6 +3,10 @@ import pytest
 import learning_discovery as learning
 from institutional_email import is_manila_student_email
 
+@pytest.fixture(autouse=True)
+def mock_destination_transport(monkeypatch):
+    monkeypatch.setattr(learning, 'verify_external_resource_url', lambda url, **_: {'verified':True,'finalUrl':url})
+
 @pytest.mark.parametrize('email', ['m@tip.edu.ph','mdaespela@tip.edu.ph',' M.Student+alias@TIP.EDU.PH '])
 def test_manila_accepts(email):
     assert is_manila_student_email(email)
@@ -14,7 +18,7 @@ def test_manila_rejects(email):
 
 def records(origin):
     return [dict(id=f'{origin}-{kind}-{n}',title=f'Accounting {origin} {kind} {n}',provider='University',
-                 url=f'https://www.open.edu/{origin}/{kind}/{n}',type=kind,skills=['accounting'])
+                 url=f'https://www.open.edu/{origin}/{kind}/{n}',type=kind,skills=['accounting'],origin='ai_discovered' if origin=='dynamic' else 'hardcoded',validationMethod='official_catalog',sourceUrl='https://www.open.edu/openlearn/free-courses/full-catalogue',validatedAt=int(learning.time.time()))
             for kind in ['certification','course','module'] for n in range(12)]
 
 CONTEXT = dict(analysisId='one',targetPosition='Accountant',program='Accountancy',gaps=['accounting'])
@@ -128,13 +132,13 @@ def test_ai_outage_withholds_ambiguous_discovery_and_retries_after_short_expiry(
     learning._cache.clear(); calls=[]; clock=[1000]
     monkeypatch.setattr(learning.time,'time',lambda:clock[0])
     def discover():
-        calls.append(1);return dict(resources=records('dynamic'),unavailableSources=[])
-    result=learning.recommendations(CONTEXT,'outage',discover,lambda:records('hard'),lambda *_:None)
+        calls.append(1);return dict(resources=[dict(id='ambiguous',title='Microsoft Dynamics 365',provider='Microsoft',type='course',url='https://learn.microsoft.com/training/dynamics',skills=[])],unavailableSources=[])
+    result=learning.recommendations(dict(CONTEXT,gaps=['dynamics'],targetPosition='Mechanical Engineer'),'outage',discover,lambda:records('hard'),lambda *_:None)
     assert all(c['ai_discovered']==0 for c in result['counts'].values())
     assert result['expiresAt']==1600 and not result['complete']
-    assert learning.recommendations(CONTEXT,'outage',discover,lambda:[],lambda *_:None)['cached']
+    assert learning.recommendations(dict(CONTEXT,gaps=['dynamics'],targetPosition='Mechanical Engineer'),'outage',discover,lambda:[],lambda *_:None)['cached']
     clock[0]=1601
-    learning.recommendations(CONTEXT,'outage',discover,lambda:[],lambda *_:None)
+    learning.recommendations(dict(CONTEXT,gaps=['dynamics'],targetPosition='Mechanical Engineer'),'outage',discover,lambda:[],lambda *_:None)
     assert len(calls)==2
 
 
@@ -145,3 +149,104 @@ def test_retired_credentials_are_not_recommended():
 @pytest.mark.parametrize('body', ['{"modules":null}', '{"modules":[null,42,{"title":{},"url":"https://learn.microsoft.com/training/modules/x"}]}', '{"modules":"invalid"}'])
 def test_malformed_source_metadata_cannot_create_resources(body):
     assert learning.source_records('Microsoft Learn',learning.SOURCES[-1][1],'json',body)==[]
+
+
+def test_real_catalog_preserves_eleven_baseline_items_when_exact_gap_words_are_missing():
+    context=dict(analysisId='new',targetPosition='Quality Assurance Analyst',program='Information Technology',gaps=['Test Case Development','Manual Testing','Bug Tracking and Reporting','Regression Testing','Automated Testing','API Testing'])
+    result=learning.select(context,learning.reviewed_resources(),[])
+    assert result['counts']=={tab:{'hardcoded':count,'ai_discovered':0} for tab,count in learning.SPLIT.items()}
+    assert len({r['url'] for rows in result['placements'].values() for r in rows})==11
+
+
+def test_ai_timeout_does_not_delete_source_validated_relevant_candidates():
+    learning._cache.clear()
+    result=learning.recommendations(CONTEXT,'resilience',lambda:dict(resources=records('dynamic'),unavailableSources=[]),lambda:records('hard'),lambda *_:None)
+    assert result['complete']
+    assert sum(c['ai_discovered'] for c in result['counts'].values())==11
+
+@pytest.mark.parametrize('failure', [TimeoutError('provider timeout'), ValueError('malformed response')])
+def test_discovery_exception_still_returns_real_eleven_baseline(failure):
+    learning._cache.clear()
+    def failed():raise failure
+    result=learning.recommendations(dict(CONTEXT,analysisId=str(failure)),'baseline',failed,learning.reviewed_resources,lambda *_:None)
+    assert sum(c['hardcoded'] for c in result['counts'].values())==11
+    assert all(c['ai_discovered']==0 for c in result['counts'].values())
+    assert result['status']=='partial' and result['unavailableSources']==['discovery_unavailable']
+
+
+def test_static_catalog_fallback_is_not_remote_discovery():
+    learning._cache.clear()
+    rows=records('dynamic')
+    for row in rows:row.update(origin='hardcoded',source='curated')
+    result=learning.recommendations(CONTEXT,'origin',lambda:dict(resources=rows,unavailableSources=[]),lambda:records('hard'),lambda *_:None)
+    assert all(c['ai_discovered']==0 for c in result['counts'].values())
+
+
+def test_dead_destinations_are_replaced_with_valid_unique_candidates(monkeypatch):
+    learning._cache.clear()
+    monkeypatch.setattr(learning,'verify_external_resource_url',lambda url,**_:dict(verified=not url.endswith('/0'),finalUrl=url))
+    result=learning.recommendations(CONTEXT,'dead',lambda:dict(resources=records('dynamic'),unavailableSources=[]),lambda:records('hard'),lambda *_:None)
+    assert result['complete']
+    assert all(not row['url'].endswith('/0') for rows in result['placements'].values() for row in rows if row['origin']=='ai_discovered')
+    assert result['selectionDiagnostics']['unusableDestinations']>0
+
+
+def test_valid_http_alone_does_not_approve_unrelated_resource():
+    resource=records('dynamic')[0];resource.update(title='Gardening',description='Garden maintenance',skills=['gardening'])
+    assert learning.relevance(resource,CONTEXT)[0]==0
+
+
+def test_partial_source_failure_keeps_other_sources_last_good(monkeypatch):
+    learning._source_cache=None;learning._source_entries.clear();clock=[10000]
+    monkeypatch.setattr(learning.time,'time',lambda:clock[0])
+    monkeypatch.setattr(learning,'SOURCES',(('Microsoft Learn','https://learn.microsoft.com/api/catalog/','json'),))
+    body='{"modules":[{"uid":"u","title":"Accounting module","url":"https://learn.microsoft.com/training/modules/accounting/"}]}'
+    monkeypatch.setattr(learning,'safe_get',lambda url:(body,url))
+    first=learning.discover();assert len(first['resources'])==1
+    clock[0]+=learning.SOURCE_TTL+1
+    def timeout(_):raise TimeoutError('timeout')
+    def offline(_):raise learning.requests.Timeout('timeout')
+    monkeypatch.setattr(learning,'safe_get',offline)
+    second=learning.discover();assert second['resources']==first['resources']
+    assert second['providerStatus']['Microsoft Learn']=='cached_after_error'
+    learning._source_cache=None;learning._source_entries.clear()
+
+@pytest.mark.parametrize('role,program', [('Accountant','Accountancy'),('Mechanical Engineer','Mechanical Engineering'),('Communications Officer','Communication'),('Business Analyst','Business Administration'),('QA / Software Tester','Information Technology')])
+def test_actual_baseline_distribution_across_disciplines(role,program):
+    result=learning.select(dict(targetPosition=role,program=program,gaps=['specialized topic not in catalog']),learning.reviewed_resources(),[])
+    assert {tab:c['hardcoded'] for tab,c in result['counts'].items()}==learning.SPLIT
+    assert len({row['url'] for rows in result['placements'].values() for row in rows})==11
+    assert all(row['relevanceBasis'] in {'career_foundation','target_context'} for rows in result['placements'].values() for row in rows)
+
+
+def test_real_style_read_more_cards_use_the_source_heading_not_navigation_text():
+    body='<h3>Certified Tester Foundation Level (CTFL) v4.0</h3><p>Foundation</p><h4><a href="https://istqb.org/certifications/certified-tester-foundation-level-ctfl-v4-0/">Read more &gt;</a></h4>'
+    rows=learning.source_records('ISTQB','https://istqb.org/certifications/','certification',body)
+    assert len(rows)==1 and rows[0]['title']=='Certified Tester Foundation Level (CTFL) v4.0'
+    assert rows[0]['origin']=='ai_discovered'
+
+
+def test_redirected_aliases_are_deduplicated_by_the_actual_destination(monkeypatch):
+    learning._cache.clear()
+    def probe(url,**_):
+        return dict(verified=True,finalUrl='https://www.open.edu/shared/accounting' if url.endswith('/0') else url)
+    monkeypatch.setattr(learning,'verify_external_resource_url',probe)
+    result=learning.recommendations(CONTEXT,'redirect',lambda:dict(resources=records('dynamic'),unavailableSources=[]),lambda:records('hard'),lambda *_:None)
+    rows=[row for values in result['placements'].values() for row in values]
+    assert len(rows)==len({row['url'] for row in rows})
+
+
+def test_redirect_to_generic_homepage_is_not_useful_even_with_http_200(monkeypatch):
+    learning._cache.clear()
+    monkeypatch.setattr(learning,'verify_external_resource_url',lambda url,**_:dict(verified=True,finalUrl='https://www.open.edu/'))
+    result=learning.recommendations(CONTEXT,'homepage',lambda:dict(resources=records('dynamic'),unavailableSources=[]),lambda:records('hard'),lambda *_:None)
+    assert all(count['ai_discovered']==0 for count in result['counts'].values())
+    assert result['selectionDiagnostics']['unusableDestinations']>0
+
+
+def test_model_timeout_preserves_validated_candidates_and_exact_split():
+    learning._cache.clear()
+    def timeout(*_):raise TimeoutError('provider timeout')
+    result=learning.recommendations(CONTEXT,'model-timeout',lambda:dict(resources=records('dynamic'),unavailableSources=[]),lambda:records('hard'),timeout)
+    assert result['complete'] and result['aiStatus']=='timeout'
+    assert sum(c['ai_discovered'] for c in result['counts'].values())==11

@@ -39,7 +39,7 @@ TRUSTED_DOMAINS = {
     "w3schools.com",
     "developer.mozilla.org",
     "oracle.com",
-    "pmi.org",
+    "pmi.org", "asq.org", "open.edu", "selenium.dev", "istqb.org",
     "udacity.com",
     "pluralsight.com",
     "udemy.com",

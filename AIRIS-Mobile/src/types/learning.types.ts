@@ -54,6 +54,8 @@ export interface SeminarMetadata {
 }
 
 export interface LearningResource {
+  baselinePurpose?: string;
+  baselineDestination?: "certifications" | "courses" | "practice" | "for_you";
   id: string;
   title: string;
   description: string;
@@ -127,6 +129,7 @@ export interface MatchEvidence {
 }
 
 export interface MatchedResourceItem extends LearningResource {
+  providerId?: string;
   origin?: "hardcoded" | "ai_discovered";
   access?: string;
   expectedOutcome?: string;

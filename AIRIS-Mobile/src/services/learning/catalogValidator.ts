@@ -62,7 +62,7 @@ export function canonicalResourceUrl(value: string): string {
     const url = new URL(value);
     url.hash = "";
     for (const key of Array.from(url.searchParams.keys())) {
-      if (/^utm_/i.test(key) || key === "fbclid" || key === "gclid") url.searchParams.delete(key);
+      if (/^utm_/i.test(key) || key.toLowerCase() === "fbclid" || key.toLowerCase() === "gclid" || key.toLowerCase() === "wt.mc_id") url.searchParams.delete(key);
     }
     url.searchParams.sort();
     return url.toString().replace(/\/$/, "");

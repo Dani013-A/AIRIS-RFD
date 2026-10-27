@@ -274,11 +274,11 @@ describe("AIRIS — Comprehensive Audit-Quality Remediation Verification Suite",
   // 7. CATALOG INTEGRITY & QUALITY GATE INVARIANTS
   // ---------------------------------------------------------------------------
   describe("7. Catalog Integrity & Quality Gate Invariants", () => {
-    it("Validates 260 total catalog records and strict quality gate compliance", () => {
-      expect(VERIFIED_LEARNING_CATALOG.length).toBe(260);
+    it("Validates 261 total catalog records and strict quality gate compliance", () => {
+      expect(VERIFIED_LEARNING_CATALOG.length).toBe(261);
 
       const uniqueIds = new Set(VERIFIED_LEARNING_CATALOG.map((r) => r.id));
-      expect(uniqueIds.size).toBe(260);
+      expect(uniqueIds.size).toBe(261);
 
       for (const res of VERIFIED_LEARNING_CATALOG) {
         expect(res.id).toBeDefined();

@@ -17,24 +17,31 @@ from urllib.parse import urljoin, urlsplit
 
 import requests
 from learning_catalog import canonical_url, reviewed_resources
-from ai_recommendation_verifier import resolve_and_validate_hostname
+from ai_recommendation_verifier import resolve_and_validate_hostname, verify_external_resource_url
 
 SPLIT = {"certifications": 2, "courses": 2, "practice": 2, "for_you": 5}
 SOURCE_TTL = 6 * 3600
 RESULT_TTL = 24 * 3600
+SCHEMA_VERSION = 2
+_rank_pool = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="learning_rank")
+_rank_slots = threading.BoundedSemaphore(2)
 SOURCES = (
     ("MIT OpenCourseWare", "https://ocw.mit.edu/", "course"),
     ("Open University", "https://www.open.edu/openlearn/free-courses/full-catalogue", "course"),
     ("PMI", "https://www.pmi.org/certifications", "certification"),
     ("ASQ", "https://asq.org/cert", "certification"),
+    ("Selenium", "https://www.selenium.dev/documentation/", "documentation"),
+    ("ISTQB", "https://istqb.org/certifications/", "certification"),
+    ("Open University Professional Development", "https://business.open.ac.uk/professional-development/free-learning", "course"),
     ("Microsoft Learn", "https://learn.microsoft.com/api/catalog/?locale=en-us&type=certifications,learningPaths,modules", "json"),
 )
-HOSTS = {urlsplit(source[1]).hostname for source in SOURCES} | {"asq.org", "www.asq.org"}
+HOSTS = {urlsplit(source[1]).hostname for source in SOURCES} | {"asq.org", "www.asq.org", "istqb.org", "www.istqb.org", "open.edu", "www.open.edu"}
 _cache = OrderedDict()
 _inflight = {}
 _lock = threading.Lock()
 _source_lock = threading.Lock()
 _source_cache = None
+_source_entries = {}
 
 
 def words(value):
@@ -58,7 +65,9 @@ def identities(resource):
     path = re.sub(r"^/en-us/", "/", parsed.path.lower()).removesuffix("/content-section-overview")
     title = re.sub(r"[^a-z0-9]+", "", resource.get("title", "").lower())
     provider = re.sub(r"[^a-z0-9]+", "", resource.get("provider", "").lower())
+    provider = {"microsoftlearn": "microsoft", "amazonwebservices": "aws", "mitopencourseware": "mit", "massachusettsinstituteoftechnology": "mit"}.get(provider, provider)
     keys = {"url:" + host + path + ("?" + parsed.query if parsed.query else ""), "title:" + provider + ":" + title}
+    if resource.get("id"): keys.add("record:" + provider + ":" + str(resource["id"]))
     if resource.get("providerId"):
         keys.add("id:" + provider + ":" + str(resource["providerId"]))
     return keys
@@ -66,7 +75,6 @@ def identities(resource):
 
 def safe_get(url):
     """Fixed official hosts only, public DNS on every hop, bounded body and time."""
-    started = time.monotonic()
     with requests.Session() as session:
         session.trust_env = False
         for _ in range(4):
@@ -82,9 +90,10 @@ def safe_get(url):
                     continue
                 response.raise_for_status()
                 body = bytearray()
+                body_started = time.monotonic()
                 for chunk in response.iter_content(65536):
                     body.extend(chunk)
-                    if len(body) > 12 * 1024 * 1024 or time.monotonic() - started > 15:
+                    if len(body) > 12 * 1024 * 1024 or time.monotonic() - body_started > 10:
                         raise ValueError("Source budget exceeded")
                 return body.decode("utf-8", errors="replace"), url
     raise ValueError("Source redirect limit")
@@ -92,17 +101,21 @@ def safe_get(url):
 
 class Links(HTMLParser):
     def __init__(self):
-        super().__init__(); self.links = []; self.href = None; self.text = []
+        super().__init__(); self.links = []; self.href = None; self.text = []; self.heading = []; self.in_heading = False; self.latest_heading = ""; self.headings = {}
 
     def handle_starttag(self, tag, attrs):
+        if tag == "h3": self.in_heading = True; self.heading = []
         if tag == "a":
             self.href = dict(attrs).get("href"); self.text = []
 
     def handle_data(self, data):
         if self.href: self.text.append(data)
+        if self.in_heading: self.heading.append(data)
 
     def handle_endtag(self, tag):
+        if tag == "h3": self.latest_heading = clean(" ".join(self.heading)); self.in_heading = False
         if tag == "a" and self.href:
+            self.headings[self.href] = self.latest_heading
             self.links.append((self.href, clean(" ".join(self.text)))); self.href = None
 
 
@@ -120,18 +133,28 @@ def source_records(provider, url, kind, body):
                 records.append({"title": clean(item.get("title", "")), "url": item.get("url", ""),
                                 "providerId": item.get("uid"), "type": resource_type,
                                 "description": clean(item.get("summary", "")),
-                                "skills": tags})
+                                "skills": tags, "roles": [value for value in item.get("roles", []) if isinstance(value, str)] if isinstance(item.get("roles"), list) else [], "levels": [value for value in item.get("levels", []) if isinstance(value, str)] if isinstance(item.get("levels"), list) else [], "products": [value for value in item.get("products", []) if isinstance(value, str)] if isinstance(item.get("products"), list) else []})
     else:
         parser = Links(); parser.feed(body)
         for href, title in parser.links:
             destination = urljoin(url, href)
             path = urlsplit(destination).path
-            eligible = (provider == "MIT OpenCourseWare" and re.fullmatch(r"/courses/[^/]+/", path) is not None) or (provider == "Open University" and path.endswith("/content-section-overview")) or (
+            eligible = (provider == "MIT OpenCourseWare" and re.fullmatch(r"/courses/[^/]+/", path) is not None) or (provider.startswith("Open University") and path.endswith("/content-section-overview")) or (
                 provider == "PMI" and re.fullmatch(r"/certifications/[a-z0-9-]+", path) and
                 any(term in title.lower() for term in ("certified", "certification", "professional", "associate"))) or (
                 provider == "ASQ" and re.fullmatch(r"/cert/[a-z0-9-]+", path) and ("certified" in title.lower() or re.search(r"\([A-Z]{3,7}\)", title) is not None))
+            skills = []
+            if provider == "Selenium" and path.startswith("/documentation/webdriver/") and path.rstrip("/") != "/documentation/webdriver":
+                eligible = bool(title)
+                title = "Selenium: " + title
+                skills = ["selenium", "browser automation", "automated testing"]
+            if provider == "ISTQB" and title.lower().startswith("read more"):
+                title = parser.headings.get(href, "")
+            if provider == "ISTQB" and path.startswith("/certifications/") and ("foundation" in path or "ctfl" in path):
+                eligible = "tester" in title.lower() or "ctfl" in title.lower()
+                skills = ["software testing", "quality assurance", "test techniques", "test case design"]
             if eligible:
-                records.append({"title": title, "url": destination, "type": kind, "description": title, "skills": []})
+                records.append({"title": title, "url": destination, "type": kind, "description": title, "skills": skills})
     result = []
     for item in records:
         validated = canonical_url(item.get("url"))
@@ -149,35 +172,84 @@ def source_records(provider, url, kind, body):
 def discover():
     global _source_cache
     with _source_lock:
-        if _source_cache and time.time() - _source_cache[0] < SOURCE_TTL:
+        if _source_cache and time.time() - _source_cache[0] < (600 if _source_cache[1].get("unavailableSources") else SOURCE_TTL):
             return copy.deepcopy(_source_cache[1])
         records = []; failures = []
         def fetch_source(source):
             provider, url, kind = source
+            previous = _source_entries.get(url)
+            if previous and time.time() - previous[0] < SOURCE_TTL:
+                return provider, previous[1], "cached"
             try:
                 body, final_url = safe_get(url)
-                return provider, source_records(provider, final_url, kind, body)
+                rows = source_records(provider, final_url, kind, body)
+                if not rows: raise ValueError("Empty source catalog")
+                _source_entries[url] = (time.time(), rows)
+                return provider, rows, "fresh"
             except (requests.RequestException, ValueError, TypeError, KeyError):
-                return provider, None
+                previous = _source_entries.get(url)
+                if previous and time.time() - previous[0] < RESULT_TTL:
+                    return provider, previous[1], "cached_after_error"
+                return provider, [], "unavailable"
+        provider_status = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
-            for provider, found in pool.map(fetch_source, SOURCES):
-                if found is None: failures.append(provider)
-                else: records.extend(found)
+            for provider, found, status in pool.map(fetch_source, SOURCES):
+                provider_status[provider] = status
+                if status not in {"fresh", "cached"}: failures.append(provider)
+                records.extend(found)
         # Failed refresh retains only previously validated, bounded-age source facts.
         if not records and _source_cache and time.time() - _source_cache[0] < RESULT_TTL:
             return copy.deepcopy(_source_cache[1])
-        result = {"resources": records, "unavailableSources": failures}
+        result = {"resources": records, "unavailableSources": failures, "providerStatus": provider_status}
         _source_cache = (time.time(), result)
         return copy.deepcopy(result)
 
 
+_GENERIC = {"management", "standards", "methods", "methodologies", "development"}
+
+
+def topic_words(value):
+    tokens = words(value)
+    aliases = {"testing": "test", "tester": "test", "tests": "test", "testers": "test", "automated": "automation", "accountancy": "accounting", "communications": "communication"}
+    return {aliases.get(token, token) for token in tokens}
+
+
+def topic_match(need, text):
+    terms = topic_words(need)
+    overlap = terms & text
+    return bool(terms and overlap - _GENERIC and len(overlap) / len(terms) >= .66)
+
+
 def relevance(resource, context):
-    text = words(" ".join([resource.get("title", ""), resource.get("description", ""), " ".join(resource.get("skills", []))]))
-    matched = [gap for gap in context.get("gaps", []) if words(gap) and words(gap) <= text]
-    goal = words(context.get("targetPosition", "")) | words(context.get("program", ""))
-    # Partial words in a multi-word gap are insufficient evidence of relevance.
-    score = len(matched) * 5 + (len(goal & text) if matched or not context.get("gaps") else 0)
-    return score, matched
+    title = resource.get("title", "")
+    text = topic_words(" ".join([title, resource.get("description", ""), " ".join(resource.get("skills", []))]))
+    # Qualified product names are not the similarly named academic concept.
+    if "dynamics" in text and "365" in text and "365" not in topic_words(" ".join(context.get("gaps", [])) + " " + context.get("targetPosition", "")):
+        text.discard("dynamics")
+    matched = [gap for gap in context.get("gaps", []) if topic_match(gap, text)]
+    role_match = topic_match(context.get("targetPosition", ""), text)
+    program_match = topic_match(context.get("program", ""), text)
+    # Vendor credentials specify their audience. A developer credential does not become an accounting qualification because its product contains 'Finance'.
+    roles = resource.get("roles") or []
+    if resource.get("type") == "certification" and roles:
+        audience = topic_words(" ".join(roles))
+        subjects = topic_words(" ".join(resource.get("skills", []))) - audience
+        if not (topic_match(context.get("targetPosition", ""), audience) or any(topic_match(gap, subjects) for gap in context.get("gaps", []))):
+            return 0, []
+    return len(matched) * 5 + int(role_match) * 3 + int(program_match), matched
+
+
+def optional_rank(ranking, candidates, context):
+    if not candidates or not _rank_slots.acquire(blocking=False): return None, "unavailable"
+    future = _rank_pool.submit(ranking, candidates, context)
+    future.add_done_callback(lambda _: _rank_slots.release())
+    try:
+        value = future.result(timeout=6)
+        return (value, "available") if isinstance(value, dict) else (None, "malformed_or_unavailable")
+    except concurrent.futures.TimeoutError:
+        return None, "timeout"
+    except Exception:
+        return None, "error"
 
 
 def ai_order(candidates, context):
@@ -209,14 +281,19 @@ def select(context, hardcoded, dynamic, rank=None):
                            (tab == "practice" and resource_type in {"practice", "module", "documentation", "guide", "video", "article"}))
                 score, matched = relevance(resource, context)
                 keys = identities(resource)
-                if not allowed or score <= 0 or not canonical_url(resource.get("url")) or seen & keys:
+                is_baseline = origin == "hardcoded" and bool(resource.get("baselinePurpose"))
+                if is_baseline and resource.get("baselineDestination") != tab: continue
+                if not allowed or (score <= 0 and not is_baseline) or not canonical_url(resource.get("url")) or seen & keys:
                     continue
                 item = copy.deepcopy(resource)
                 focus = ", ".join(matched) or context.get("targetPosition", "your career goal")
+                foundation = is_baseline and not matched
+                reason = resource.get("baselinePurpose") if foundation else f"Study {focus} in relation to your {context.get('targetPosition', 'target role')} goal."
                 item.update(origin=origin, destination=tab, relevanceScore=score,
-                            gapRationale=f"Study {focus} in relation to your {context.get('targetPosition', 'target role')} goal.",
-                            recommendationReason=f"Matches learning needs: {focus}.",
-                            expectedOutcome=f"Develop understanding of {focus}; completion does not prove competency.",
+                            gapRationale=reason,
+                            recommendationReason=reason,
+                            relevanceBasis="career_foundation" if foundation else "identified_need" if matched else "target_context",
+                            expectedOutcome=resource.get("baselinePurpose") if foundation else f"Develop understanding of {focus}; completion does not prove competency.",
                             access=resource.get("access", "Cost/access not verified"))
                 placements[tab].append(item); seen.update(keys); picked += 1
                 if picked == count: break
@@ -225,8 +302,25 @@ def select(context, hardcoded, dynamic, rank=None):
     return {"placements": placements, "counts": counts, "shortfall": shortfall, "complete": all(v == 0 for tab in shortfall.values() for v in tab.values())}
 
 
+def candidate_record(record):
+    if not isinstance(record, dict): return False
+    if not all(isinstance(record.get(field), str) and record[field].strip() for field in ("id", "title", "provider", "url", "type")): return False
+    if record["type"] not in {"certification", "course", "module", "practice", "documentation", "guide", "article", "video"}: return False
+    if not canonical_url(record["url"]) or record.get("isActive") is False: return False
+    if "skills" in record and (not isinstance(record["skills"], list) or not all(isinstance(value, str) for value in record["skills"])): return False
+    return True
+
+
+def remote_evidence(record):
+    if record.get("origin") != "ai_discovered" or record.get("source") in {"curated", "hardcoded"}: return False
+    if record.get("validationMethod") != "official_catalog": return False
+    source = canonical_url(record.get("sourceUrl", ""))
+    checked = record.get("validatedAt")
+    return bool(source and urlsplit(source).hostname in HOSTS and isinstance(checked, (int, float)) and 0 <= time.time() - checked < RESULT_TTL)
+
+
 def recommendations(context, owner, discovery=discover, catalog=reviewed_resources, ranking=ai_order):
-    key = context_key({"owner": owner, "context": context})
+    key = context_key({"version": SCHEMA_VERSION, "owner": owner, "context": context})
     with _lock:
         now = time.time()
         for old_key in list(_cache):
@@ -242,19 +336,55 @@ def recommendations(context, owner, discovery=discover, catalog=reviewed_resourc
     if not owner_request:
         result = copy.deepcopy(pending.result(timeout=85)); result["cached"] = True; return result
     try:
-        found = discovery()
-        candidates = sorted(found["resources"], key=lambda r: -relevance(r, context)[0])
+        try:
+            found = discovery()
+            if not isinstance(found, dict) or not isinstance(found.get("resources"), list): raise ValueError("Invalid catalog response")
+        except Exception:
+            found = {"resources": [], "unavailableSources": ["discovery_unavailable"]}
+        well_formed = [record for record in found["resources"] if candidate_record(record)]
+        evidenced = [record for record in well_formed if remote_evidence(record)]
+        relevant = [record for record in evidenced if relevance(record, context)[0] > 0]
+        candidates = sorted(relevant, key=lambda r: -relevance(r, context)[0])
         hardcoded = catalog()
         reserved = select(context, hardcoded, [])["placements"]
         reserved_keys = set().union(*(identities(resource) for rows in reserved.values() for resource in rows))
-        candidates = [r for r in candidates if relevance(r, context)[0] > 0 and not identities(r) & reserved_keys]
+        candidates = [r for r in candidates if remote_evidence(r) and relevance(r, context)[0] > 0 and not identities(r) & reserved_keys]
         # Keep each resource type represented within the bounded model context.
-        candidates = [r for kind, limit in (("certification", 15), ("course", 20), ("module", 25))
+        candidates = [r for kind, limit in (("certification", 15), ("course", 20), ("module", 15), ("documentation", 10))
                       for r in [item for item in candidates if item.get("type") == kind][:limit]]
-        order = ranking(candidates, context) if candidates else None
-        candidates = [resource for resource in candidates if order is not None and resource["id"] in order]
-        result = select(context, hardcoded, candidates, order)
-        result["rankingMethod"] = "ai" if order is not None else "deterministic_fallback"
+        order, ai_status = optional_rank(ranking, candidates, context)
+        # Ranking is advisory: source-validated, deterministically relevant records remain eligible during provider outages or sparse model output.
+        rejected_urls = set()
+        probe_status = {}
+        destinations = {}
+        def resolved_rows():
+            return [dict(row, url=destinations.get(row["url"], row["url"]), catalogUrl=row["url"]) for row in candidates if row["url"] not in rejected_urls]
+        for _ in range(2):
+            result = select(context, hardcoded, resolved_rows(), order)
+            selected = [row for rows in result["placements"].values() for row in rows if row["origin"] == "ai_discovered" and row["catalogUrl"] not in probe_status]
+            if not selected: break
+            def probe(row):
+                try:
+                    proof = verify_external_resource_url(row["catalogUrl"], timeout=3, max_redirects=2)
+                    final = canonical_url(proof.get("finalUrl", row["catalogUrl"]))
+                    path = urlsplit(final).path.lower().rstrip("/")
+                    useful_path = path not in {"", "/en-us", "/training", "/credentials", "/certifications", "/courses"} and not re.search(r"/(login|signin|sign-in|auth)(/|$)", path)
+                    return row["catalogUrl"], final if proof.get("verified") and useful_path else ""
+                except Exception: return row["catalogUrl"], ""
+            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+                for url, final in pool.map(probe, selected):
+                    probe_status[url] = bool(final)
+                    if final: destinations[url] = final
+                    else: rejected_urls.add(url)
+        # Candidates not probed within the budget stay out of the result; they are not called usable.
+        result = select(context, hardcoded, [row for row in resolved_rows() if probe_status.get(row["catalogUrl"]) is True], order)
+        result["rankingMethod"] = "ai_assisted" if order is not None else "deterministic"
+        result["aiStatus"] = ai_status
+        result["schemaVersion"] = SCHEMA_VERSION
+        result["providerStatus"] = found.get("providerStatus", {})
+        result["selectionDiagnostics"] = {"received": len(found["resources"]), "rejectedMetadata": len(found["resources"])-len(well_formed), "rejectedEvidence": len(well_formed)-len(evidenced), "relevanceMatched": len(relevant), "eligibleDiscovered": len(candidates), "reviewedCatalog": len(hardcoded), "unusableDestinations": len(rejected_urls)}
+        result["status"] = "complete" if result["complete"] else "partial"
+        result["shortfallReasons"] = {tab: {origin: ("insufficient_reviewed_catalog" if origin == "hardcoded" else "unusable_destinations" if rejected_urls else "discovery_unavailable" if found.get("unavailableSources") else "insufficient_relevant_unique_candidates") for origin, count in origins.items() if count} for tab, origins in result["shortfall"].items()}
         result.update(contextId=key, cached=False, unavailableSources=found["unavailableSources"], generatedAt=int(now),
                       expiresAt=int(now) + (RESULT_TTL if order is not None else 600))
         with _lock:

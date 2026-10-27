@@ -41,7 +41,10 @@
       "reviewedTitle": "Interview Process Overview",
       "reviewedProvider": "UC Berkeley Career Engagement"
     },
-    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification.",
+    "baselinePurpose": "Prepare for employability interviews.",
+    "baselinePriority": 8,
+    "baselineDestination": "for_you"
   },
   {
     "id": "resume_purdue_owl_handbook",
@@ -126,7 +129,10 @@
       "reviewedTitle": "Writing the Basic Business Letter",
       "reviewedProvider": "Purdue OWL"
     },
-    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification.",
+    "baselinePurpose": "Practice clear professional business writing.",
+    "baselinePriority": 4,
+    "baselineDestination": "practice"
   },
   {
     "id": "doc_mdn_javascript_guide",
@@ -1743,7 +1749,10 @@
       "reviewedTitle": "Preparing for Interviews",
       "reviewedProvider": "University of Maryland Career Center"
     },
-    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification.",
+    "baselinePurpose": "Structure and prepare examples for interviews.",
+    "baselinePriority": 10,
+    "baselineDestination": "for_you"
   },
   {
     "id": "interview_uf_preparing",
@@ -1831,7 +1840,10 @@
       "reviewedTitle": "Harvard College Guide to Creating a Strong Resume",
       "reviewedProvider": "Harvard FAS Mignone Center for Career Success"
     },
-    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification.",
+    "baselinePurpose": "Improve how a resume communicates evidence of achievements.",
+    "baselinePriority": 6,
+    "baselineDestination": "for_you"
   },
   {
     "id": "resume_purdue_tailoring",
@@ -1875,7 +1887,10 @@
       "reviewedTitle": "Tailoring Documents",
       "reviewedProvider": "Purdue OWL"
     },
-    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification.",
+    "baselinePurpose": "Tailor application documents to relevant job requirements.",
+    "baselinePriority": 7,
+    "baselineDestination": "for_you"
   },
   {
     "id": "resume_purdue_action_verbs",
@@ -1963,7 +1978,10 @@
       "reviewedTitle": "Email Etiquette",
       "reviewedProvider": "Purdue OWL"
     },
-    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification.",
+    "baselinePurpose": "Practice clear professional email communication.",
+    "baselinePriority": 9,
+    "baselineDestination": "for_you"
   },
   {
     "id": "comm_purdue_general_guidelines",
@@ -2051,7 +2069,10 @@
       "reviewedTitle": "Communication Skills",
       "reviewedProvider": "University of Minnesota Effective U"
     },
-    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+    "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification.",
+    "baselinePurpose": "Develop active listening and interpersonal communication.",
+    "baselinePriority": 5,
+    "baselineDestination": "practice"
   },
   {
     "id": "cert_pmi_capm",
@@ -2097,7 +2118,10 @@
       "reviewedTitle": "Certified Associate in Project Management (CAPM)",
       "reviewedProvider": "PMI"
     },
-    "reviewNotes": "Content reviewed from the official destination on 2026-10-28. No claim of completion, accreditation, guaranteed access, or current price. Credential eligibility remains governed by the provider."
+    "reviewNotes": "Content reviewed from the official destination on 2026-10-28. No claim of completion, accreditation, guaranteed access, or current price. Credential eligibility remains governed by the provider.",
+    "baselinePurpose": "Explore optional project-management credential requirements; eligibility and examination terms are set by PMI.",
+    "baselinePriority": 0,
+    "baselineDestination": "certifications"
   },
   {
     "id": "cert_asq_cssyb",
@@ -2145,7 +2169,10 @@
       "reviewedTitle": "Six Sigma Yellow Belt (CSSYB) Certification",
       "reviewedProvider": "ASQ"
     },
-    "reviewNotes": "Content reviewed from the official destination on 2026-10-28. No claim of completion, accreditation, guaranteed access, or current price. Credential eligibility remains governed by the provider."
+    "reviewNotes": "Content reviewed from the official destination on 2026-10-28. No claim of completion, accreditation, guaranteed access, or current price. Credential eligibility remains governed by the provider.",
+    "baselinePurpose": "Explore optional foundational quality-improvement credential requirements; eligibility and examination terms are set by ASQ.",
+    "baselinePriority": 1,
+    "baselineDestination": "certifications"
   },
   {
     "id": "course_mit_financial_managerial",
@@ -2291,6 +2318,56 @@
       "reviewedTitle": "Management Communication for Undergraduates",
       "reviewedProvider": "MIT OpenCourseWare"
     },
-    "reviewNotes": "Content reviewed from the official destination on 2026-10-28. No claim of completion, accreditation, guaranteed access, or current price. Credential eligibility remains governed by the provider."
+    "reviewNotes": "Content reviewed from the official destination on 2026-10-28. No claim of completion, accreditation, guaranteed access, or current price. Credential eligibility remains governed by the provider.",
+    "baselinePurpose": "Develop professional communication, audience awareness, and teamwork.",
+    "baselinePriority": 2,
+    "baselineDestination": "courses"
+  },
+  {
+    "id": "course_openlearn_workplace_communication",
+    "title": "Effective communication in the workplace",
+    "provider": "Open University",
+    "url": "https://www.open.edu/openlearn/money-business/effective-communication-the-workplace/content-section-overview",
+    "type": "course",
+    "category": "for_you",
+    "skills": [
+      "communication",
+      "professional communication",
+      "written communication",
+      "teamwork"
+    ],
+    "description": "Course materials on workplace communication, written and verbal communication, and communication in challenging situations.",
+    "academicPrograms": [],
+    "careerPaths": [
+      "all career paths"
+    ],
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "communication",
+      "workplace"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-27T18:49:36.945064+00:00",
+      "sourceUrl": "https://www.open.edu/openlearn/money-business/effective-communication-the-workplace/content-section-overview",
+      "finalUrl": "https://www.open.edu/openlearn/money-business/effective-communication-the-workplace/content-section-overview",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Effective communication in the workplace",
+      "reviewedProvider": "Open University"
+    },
+    "reviewNotes": "Official course content and learning outcomes reviewed on 2026-10-28. Participation badges are not industry certifications. No price or accreditation claim is made by AIRIS.",
+    "baselinePurpose": "Practice written and verbal communication for workplace situations.",
+    "baselinePriority": 3,
+    "baselineDestination": "courses"
   }
 ]

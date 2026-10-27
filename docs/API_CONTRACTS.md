@@ -241,32 +241,53 @@ The Appendix O “Stop” instruction is superseded by the cancellation correcti
 
 ### Personalized learning resource sets
 
-`POST /learning/recommendations` requires the existing verified, active Manila
-student Firebase identity (administrator claim exemptions remain unchanged) and
-uses the existing expensive-request rate/concurrency limits. Request fields:
-`analysisId` (latest analysis timestamp/identifier), `targetPosition`, `program`,
-and `gaps` (at most 30 short labels). These are advisory learning needs from the
-mobile analysis snapshot, never authoritative score inputs. No raw resume,
-transcript, client UID, or scoring fields are accepted or sent to source sites.
+`POST /learning/recommendations` retains existing verified identity, lifecycle,
+rate, and concurrency protections. Request fields remain `analysisId`,
+`targetPosition`, `program`, `gaps` (at most 30 short labels). The client includes
+resume gap labels and catalog-topic labels extracted from an available owned,
+completed interview report; it sends no transcript, free-form interview feedback,
+raw resume, client UID, or score. Resume analysis snapshots remain persisted via
+the existing authorized Firestore flow; resource sets use backend memory and
+identity/context-scoped device caches. No new Firestore collection or write is
+introduced.
 
-The backend returns `placements`, `counts`, `shortfall`, `complete`, `contextId`,
-`generatedAt`, `expiresAt`, `cached`, `rankingMethod`, and `unavailableSources`. Destination
-keys are `certifications`, `courses`, `practice`, `for_you`. Their respective
-per-origin limits are 2, 2, 2, 5. Every resource retains `origin` (`hardcoded` or
-`ai_discovered`), `destination`, source-owned title/provider/URL/type, relevance,
-expected learning focus, and access information (unknown unless established).
-All hardcoded slots are reserved before discovered slots; canonical URL,
-provider ID, and provider/title aliases are globally deduplicated. Shortfalls
-are explicit; `complete` is true only for all 22 unique placements.
+Schema version 2 responses retain `placements`, `counts`, `shortfall`,
+`complete`, `contextId`, `generatedAt`, `expiresAt`, `cached`, and
+`unavailableSources`, adding `status`, `shortfallReasons`, `providerStatus`,
+`selectionDiagnostics`, and `aiStatus`. Destination keys are `certifications`,
+`courses`, `practice`, `for_you`; per-origin counts remain 2, 2, 2, 5. Origin is
+`hardcoded` for reviewed static records and `ai_discovered` only for freshly
+fetched or bounded-age cached official catalog records. AI is an optional ranker,
+not an availability gate. Malformed, sparse, timed-out, or failed model output
+cannot delete otherwise validated relevant records. Static catalog fallback is
+never relabelled as discovered.
 
-Official catalog metadata establishes discovery provenance, not accreditation,
-completion, admission eligibility, or permanent link availability. The model
-ranks supplied IDs only. When AI relevance validation fails, only reviewed hardcoded fallbacks are
-returned, with explicit discovered-slot shortfalls and a ten-minute retry expiry.
-Keyword overlap alone cannot approve discovered recommendations (for example,
-mechanical dynamics and a software product named Dynamics). Retired/legacy
-credentials are excluded. Source facts cache for six hours; successful owner and
-analysis/context-specific sets cache for 24 hours with bounded memory and
-in-flight coalescing. The mobile client shares one set between Dashboard and
-For You, scopes its cache to identity/context, and discards obsolete UI results.
-Changing analysis, role, program, or gap labels invalidates the selection key.
+Eleven reviewed career-foundation records have explicit baseline purpose and
+one destination each. Relevant reviewed records rank first; valid baseline
+records fill remaining hardcoded slots regardless of exact gap wording. Their
+purpose is described as career development, not a claim that an individual lacks
+a skill or requires a particular credential. Metadata-invalid/expired records
+are not forced into results. The mobile client uses the same baseline offline
+and reconciles sparse network/cache responses centrally before rendering.
+
+All hardcoded slots are reserved before remote slots. Canonical URLs, final
+redirect destinations, provider IDs, normalized owner/title aliases, and record
+IDs deduplicate globally. Discovered candidates need source-owned metadata,
+dated official-catalog provenance, and deterministic topic/context relevance;
+vendor credential audiences and qualified product names are respected. Selected
+remote destinations are probed through the existing SSRF/HTTPS/trusted-domain
+validator, with bounded backfill for failed links. A successful HTTP response
+alone does not establish relevance; generic/login redirects are rejected.
+
+Successful source facts cache for six hours; individual source failures retain
+previous valid facts up to 24 hours and retry after ten minutes. Successful
+identity/analysis/context sets cache for 24 hours; degraded/AI-outage sets expire
+after ten minutes. In-flight work is coalesced; optional AI ranking has a bounded
+six-second foreground budget and bounded workers. Mobile cache namespace v2
+invalidates the previous sparse-result cache, shares one result across the four
+destinations, and ignores obsolete UI results after context changes.
+
+`complete` means all 22 unique placements have the exact requested provenance
+split. Partial sets retain every selected valid resource and report the missing
+count and cause per destination/origin. Cost/access remain unknown unless
+established. Scoring formulas and interview completion/persistence are unchanged.
