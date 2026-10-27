@@ -1,3 +1,4 @@
+import { isManilaStudentEmail } from './institutionalEmail.mjs';
 import { createHash } from 'node:crypto';
 
 type RecordData = Record<string, unknown>;
@@ -33,6 +34,7 @@ function active(profile: RecordData | undefined) {
 
 export async function registerAccount(deps: LifecycleDependencies, uid: string, email: string, fullName: string) {
   email = institutionalEmail(email);
+  if (!isManilaStudentEmail(email)) throw new LifecycleError('MANILA_INSTITUTION_REQUIRED');
   const path = lifecyclePath(email);
   return deps.transaction(async tx => {
     const [entry, own, control] = await Promise.all([tx.get(path), tx.get(`users/${uid}`), tx.get('account_lifecycle_control/migration')]);

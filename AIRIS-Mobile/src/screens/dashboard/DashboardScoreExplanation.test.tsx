@@ -1,3 +1,4 @@
+jest.mock('../../hooks/usePersonalizedResources',()=>({usePersonalizedResources:()=>({placements:{certifications:[],courses:[],practice:[],for_you:[]},status:'Reviewed fallback resources.'})}));
 import React from 'react';
 import DashboardScreen from './DashboardScreen';
 const {act,create}=jest.requireActual('react-test-renderer');

@@ -1,3 +1,4 @@
+from institutional_email import is_manila_student_email, MANILA_EMAIL_MESSAGE
 import os
 import uuid
 import logging
@@ -194,10 +195,10 @@ def get_authenticated_user(authorization: Optional[str] = Header(None)) -> str:
             )
 
         email_lower = email.strip().lower()
-        if not email_lower.endswith("@tip.edu.ph"):
+        if not is_manila_student_email(email_lower):
             raise HTTPException(
                 status_code=403,
-                detail="Forbidden: Only verified TIP institutional accounts (@tip.edu.ph) are authorized to access AIRIS services."
+                detail=MANILA_EMAIL_MESSAGE
             )
 
         email_verified = decoded_token.get("email_verified")
@@ -717,3 +718,24 @@ def cancel_interview(req: InterviewReportRequest, auth_uid: str = Depends(get_au
         raise
     except Exception as e:
         safe_error_response("/interview/cancel", e, auth_uid)
+
+class LearningNeeds(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    analysisId: str
+    targetPosition: str
+    program: str = ""
+    gaps: List[str] = []
+
+
+@app.post("/learning/recommendations")
+async def learning_recommendations(needs: LearningNeeds, auth_uid: str = Depends(get_authenticated_user)):
+    """Advisory learning needs only; no scoring or identity fields are accepted."""
+    if not needs.analysisId.strip() or len(needs.analysisId) > 160 or not needs.targetPosition.strip() or len(needs.targetPosition) > 160 or len(needs.program) > 160 or len(needs.gaps) > 30 or any(len(gap) > 120 for gap in needs.gaps):
+        raise HTTPException(status_code=400, detail="Invalid learning context.")
+    check_rate_limit("uid", auth_uid, PER_USER_EXPENSIVE_REQUEST_LIMIT)
+    from learning_discovery import recommendations
+    with ExpensiveConcurrencyGuard(f"uid:{auth_uid}"):
+        try:
+            return await run_in_threadpool(recommendations, needs.model_dump(), auth_uid)
+        except Exception:
+            raise HTTPException(status_code=503, detail="Learning discovery is temporarily unavailable. Reviewed resources remain available in the app.")

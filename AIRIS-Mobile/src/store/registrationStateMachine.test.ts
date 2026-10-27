@@ -6,7 +6,7 @@ jest.mock("react-native", () => ({
 
 jest.mock("../services/api/otpService", () => ({
   getStoredStudentOtpSession: jest.fn().mockResolvedValue({ sessionToken: "mock_tok", expiresAt: Date.now() + 100000 }),
-  sendStudentOtp: jest.fn().mockResolvedValue({ success: true, maskedEmail: "a****e@tip.edu.ph" }),
+  sendStudentOtp: jest.fn().mockResolvedValue({ success: true, maskedEmail: "a****me@tip.edu.ph" }),
   verifyStudentOtp: jest.fn().mockResolvedValue({ success: true, sessionToken: "mock_tok" }),
   storeStudentOtpSession: jest.fn().mockResolvedValue(undefined),
   clearStudentOtpSession: jest.fn().mockResolvedValue(undefined),
@@ -86,7 +86,7 @@ jest.mock("../config/firebase", () => ({
   auth: {
     currentUser: {
       uid: "test_uid",
-      email: "student@tip.edu.ph",
+      email: "mstudent@tip.edu.ph",
       emailVerified: true,
       reload: jest.fn().mockResolvedValue(undefined),
       getIdToken: jest.fn().mockResolvedValue("tok"),
@@ -130,16 +130,16 @@ describe("Registration State Machine Comprehensive Verification", () => {
   // 1. Fresh email registration
   it("1. Fresh email registration creates Auth user, sets document, and completes", async () => {
     (createUserWithEmailAndPassword as jest.Mock).mockResolvedValueOnce({
-      user: { uid: "fresh_email_uid", email: "fresh@tip.edu.ph", getIdToken: jest.fn().mockResolvedValue("tok") },
+      user: { uid: "fresh_email_uid", email: "mfresh@tip.edu.ph", getIdToken: jest.fn().mockResolvedValue("tok") },
     });
 
-    await useAuthStore.getState().register("fresh@tip.edu.ph", "Pass1234!", "Fresh Student");
+    await useAuthStore.getState().register("mfresh@tip.edu.ph", "Pass1234!", "Fresh Student");
 
     expect(createProfileTransaction).toHaveBeenCalledWith(
       "fresh_email_uid",
       expect.objectContaining({
         uid: "fresh_email_uid",
-        email: "fresh@tip.edu.ph",
+        email: "mfresh@tip.edu.ph",
         accountState: "ACTIVE",
       })
     );
@@ -154,7 +154,7 @@ describe("Registration State Machine Comprehensive Verification", () => {
 
     const mockFirebaseUser = {
       uid: "fresh_google_uid",
-      email: "freshgoogle@tip.edu.ph",
+      email: "mfreshgoogle@tip.edu.ph",
       emailVerified: true,
       displayName: "Fresh Google Student",
       getIdToken: jest.fn().mockResolvedValue("tok"),
@@ -163,7 +163,7 @@ describe("Registration State Machine Comprehensive Verification", () => {
     (getDoc as jest.Mock).mockResolvedValueOnce({ exists: () => false, data: () => null });
     mockCreateProfileTransaction.mockResolvedValueOnce({
       uid: "fresh_google_uid",
-      email: "freshgoogle@tip.edu.ph",
+      email: "mfreshgoogle@tip.edu.ph",
       fullName: "Fresh Google Student",
       role: "student",
       accountState: "ACTIVE",
@@ -193,7 +193,7 @@ describe("Registration State Machine Comprehensive Verification", () => {
 
     const mockFirebaseUser = {
       uid: "interrupted_uid",
-      email: "interrupted@tip.edu.ph",
+      email: "minterrupted@tip.edu.ph",
       emailVerified: true,
       displayName: "Interrupted Student",
       getIdToken: jest.fn().mockResolvedValue("tok"),
@@ -202,7 +202,7 @@ describe("Registration State Machine Comprehensive Verification", () => {
     (getDoc as jest.Mock).mockResolvedValueOnce({ exists: () => false, data: () => null });
     mockCreateProfileTransaction.mockResolvedValueOnce({
       uid: "interrupted_uid",
-      email: "interrupted@tip.edu.ph",
+      email: "minterrupted@tip.edu.ph",
       fullName: "Interrupted Student",
       role: "student",
       accountState: "ACTIVE",
@@ -224,14 +224,14 @@ describe("Registration State Machine Comprehensive Verification", () => {
   // 4. Existing active account login
   it("4. Existing active account login proceeds smoothly", async () => {
     (signInWithEmailAndPassword as jest.Mock).mockResolvedValueOnce({
-      user: { uid: "active_uid", email: "active@tip.edu.ph", emailVerified: true, reload: jest.fn() },
+      user: { uid: "active_uid", email: "mactive@tip.edu.ph", emailVerified: true, reload: jest.fn() },
     });
     (getDoc as jest.Mock).mockResolvedValueOnce({
       exists: () => true,
-      data: () => ({ uid: "active_uid", email: "active@tip.edu.ph", role: "student", accountState: "ACTIVE" }),
+      data: () => ({ uid: "active_uid", email: "mactive@tip.edu.ph", role: "student", accountState: "ACTIVE" }),
     });
 
-    await useAuthStore.getState().login("active@tip.edu.ph", "Pass1234!");
+    await useAuthStore.getState().login("mactive@tip.edu.ph", "Pass1234!");
 
     expect(useAuthStore.getState().currentUser?.uid).toBe("active_uid");
     expect(useAuthStore.getState().error).toBeNull();
@@ -241,7 +241,7 @@ describe("Registration State Machine Comprehensive Verification", () => {
   it("5. Existing account with wrong password normalizes error", async () => {
     (signInWithEmailAndPassword as jest.Mock).mockRejectedValueOnce({ code: "auth/wrong-password" });
 
-    await useAuthStore.getState().login("active@tip.edu.ph", "WrongPass!");
+    await useAuthStore.getState().login("mactive@tip.edu.ph", "WrongPass!");
 
     expect(useAuthStore.getState().error).toBe(MSG_INVALID_CREDENTIAL);
     expect(useAuthStore.getState().authTransactionState).toBe("FAILED");
@@ -251,7 +251,7 @@ describe("Registration State Machine Comprehensive Verification", () => {
   it("6. Existing email already in use provides actionable guidance", async () => {
     (createUserWithEmailAndPassword as jest.Mock).mockRejectedValueOnce({ code: "auth/email-already-in-use" });
 
-    await useAuthStore.getState().register("existing@tip.edu.ph", "Pass1234!", "Existing Student");
+    await useAuthStore.getState().register("mexisting@tip.edu.ph", "Pass1234!", "Existing Student");
 
     expect(useAuthStore.getState().error).toBe(MSG_EMAIL_ALREADY_IN_USE);
     expect(useAuthStore.getState().authTransactionState).toBe("FAILED");
@@ -271,7 +271,7 @@ describe("Registration State Machine Comprehensive Verification", () => {
     (getAdditionalUserInfo as jest.Mock).mockReturnValueOnce({ isNewUser: true });
 
     await expect(useAuthStore.getState().loginWithGoogle()).rejects.toThrow(
-      "Please use your official @tip.edu.ph account."
+      "Only T.I.P. Manila institutional email addresses starting with m and ending in @tip.edu.ph are accepted."
     );
     expect(deleteUser).toHaveBeenCalledWith(mockFirebaseUser);
     expect(signOut).toHaveBeenCalled();
@@ -282,7 +282,7 @@ describe("Registration State Machine Comprehensive Verification", () => {
     await useAuthStore.getState().register("user@gmail.com", "Pass1234!", "Gmail User");
 
     expect(createUserWithEmailAndPassword).not.toHaveBeenCalled();
-    expect(useAuthStore.getState().error).toContain("Only TIP email addresses are allowed.");
+    expect(useAuthStore.getState().error).toContain("Only T.I.P. Manila institutional email addresses starting with m and ending in @tip.edu.ph are accepted.");
   });
 
   // 9. Disabled account on Google login
@@ -292,7 +292,7 @@ describe("Registration State Machine Comprehensive Verification", () => {
 
     const mockFirebaseUser = {
       uid: "disabled_uid",
-      email: "disabled@tip.edu.ph",
+      email: "mdisabled@tip.edu.ph",
       emailVerified: true,
       getIdToken: jest.fn().mockResolvedValue("tok"),
     };
@@ -314,7 +314,7 @@ describe("Registration State Machine Comprehensive Verification", () => {
 
     const mockFirebaseUser = {
       uid: "deleted_uid",
-      email: "deleted@tip.edu.ph",
+      email: "mdeleted@tip.edu.ph",
       emailVerified: true,
       getIdToken: jest.fn().mockResolvedValue("tok"),
     };
@@ -358,14 +358,14 @@ describe("Registration State Machine Comprehensive Verification", () => {
 
     const mockFirebaseUser = {
       uid: "existing_active_uid",
-      email: "existing@tip.edu.ph",
+      email: "mexisting@tip.edu.ph",
       emailVerified: true,
       getIdToken: jest.fn().mockResolvedValue("tok"),
     };
     (signInWithCredential as jest.Mock).mockResolvedValueOnce({ user: mockFirebaseUser });
     (getDoc as jest.Mock).mockResolvedValueOnce({
       exists: () => true,
-      data: () => ({ uid: "existing_active_uid", email: "existing@tip.edu.ph", accountState: "ACTIVE" }),
+      data: () => ({ uid: "existing_active_uid", email: "mexisting@tip.edu.ph", accountState: "ACTIVE" }),
     });
 
     await useAuthStore.getState().loginWithGoogle();

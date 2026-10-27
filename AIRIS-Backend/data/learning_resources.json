@@ -2052,5 +2052,245 @@
       "reviewedProvider": "University of Minnesota Effective U"
     },
     "reviewNotes": "Free public guide; no account required for the reviewed text. Content reviewed through actual destination web retrieval on 2026-10-23; no sign-in/paywall or unrelated redirect observed. Regional access outside this retrieval is not independently tested. No remote thumbnail; existing local book/title/provider fallback. Editorial skills describe what the guide teaches, not a learner deficiency or qualification."
+  },
+  {
+    "id": "cert_pmi_capm",
+    "title": "Certified Associate in Project Management (CAPM)",
+    "provider": "PMI",
+    "url": "https://www.pmi.org/certifications/certified-associate-capm",
+    "type": "certification",
+    "category": "for_you",
+    "skills": [
+      "project management",
+      "project planning",
+      "business",
+      "stakeholder communication"
+    ],
+    "academicPrograms": [],
+    "careerPaths": [
+      "all career paths"
+    ],
+    "description": "Professional project-management certification information. Review provider eligibility and examination requirements; this is not a course-completion certificate.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "project management",
+      "project planning",
+      "business",
+      "stakeholder communication"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-28T00:00:00+00:00",
+      "sourceUrl": "https://www.pmi.org/certifications/certified-associate-capm",
+      "finalUrl": "https://www.pmi.org/certifications/certified-associate-capm",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Certified Associate in Project Management (CAPM)",
+      "reviewedProvider": "PMI"
+    },
+    "reviewNotes": "Content reviewed from the official destination on 2026-10-28. No claim of completion, accreditation, guaranteed access, or current price. Credential eligibility remains governed by the provider."
+  },
+  {
+    "id": "cert_asq_cssyb",
+    "title": "Six Sigma Yellow Belt (CSSYB) Certification",
+    "provider": "ASQ",
+    "url": "https://www.asq.org/cert/six-sigma-yellow-belt",
+    "type": "certification",
+    "category": "for_you",
+    "skills": [
+      "six sigma",
+      "quality management",
+      "process improvement",
+      "data collection",
+      "engineering"
+    ],
+    "academicPrograms": [],
+    "careerPaths": [
+      "all career paths"
+    ],
+    "description": "Foundational Six Sigma certification information covering principles, tools, and process improvement. Check the provider for examination terms and current fees.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "six sigma",
+      "quality management",
+      "process improvement",
+      "data collection",
+      "engineering"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-28T00:00:00+00:00",
+      "sourceUrl": "https://www.asq.org/cert/six-sigma-yellow-belt",
+      "finalUrl": "https://www.asq.org/cert/six-sigma-yellow-belt",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Six Sigma Yellow Belt (CSSYB) Certification",
+      "reviewedProvider": "ASQ"
+    },
+    "reviewNotes": "Content reviewed from the official destination on 2026-10-28. No claim of completion, accreditation, guaranteed access, or current price. Credential eligibility remains governed by the provider."
+  },
+  {
+    "id": "course_mit_financial_managerial",
+    "title": "Introduction to Financial and Managerial Accounting",
+    "provider": "MIT OpenCourseWare",
+    "url": "https://ocw.mit.edu/courses/15-501-introduction-to-financial-and-managerial-accounting-spring-2004/",
+    "type": "course",
+    "category": "for_you",
+    "skills": [
+      "accounting",
+      "financial reporting",
+      "managerial accounting",
+      "finance",
+      "business"
+    ],
+    "academicPrograms": [],
+    "careerPaths": [
+      "all career paths"
+    ],
+    "description": "Undergraduate course materials on interpreting financial and managerial reports.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "accounting",
+      "financial reporting",
+      "managerial accounting",
+      "finance",
+      "business"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-28T00:00:00+00:00",
+      "sourceUrl": "https://ocw.mit.edu/courses/15-501-introduction-to-financial-and-managerial-accounting-spring-2004/",
+      "finalUrl": "https://ocw.mit.edu/courses/15-501-introduction-to-financial-and-managerial-accounting-spring-2004/",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Introduction to Financial and Managerial Accounting",
+      "reviewedProvider": "MIT OpenCourseWare"
+    },
+    "reviewNotes": "Content reviewed from the official destination on 2026-10-28. No claim of completion, accreditation, guaranteed access, or current price. Credential eligibility remains governed by the provider."
+  },
+  {
+    "id": "course_mit_financial_accounting",
+    "title": "Financial Accounting",
+    "provider": "MIT OpenCourseWare",
+    "url": "https://ocw.mit.edu/courses/15-515-financial-accounting-fall-2003/",
+    "type": "course",
+    "category": "for_you",
+    "skills": [
+      "accounting",
+      "financial accounting",
+      "financial reporting",
+      "finance",
+      "business"
+    ],
+    "academicPrograms": [],
+    "careerPaths": [
+      "all career paths"
+    ],
+    "description": "Graduate-level accounting materials on record keeping, reporting, computation, judgment, and use of accounting information.",
+    "level": "intermediate",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "accounting",
+      "financial accounting",
+      "financial reporting",
+      "finance",
+      "business"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-28T00:00:00+00:00",
+      "sourceUrl": "https://ocw.mit.edu/courses/15-515-financial-accounting-fall-2003/",
+      "finalUrl": "https://ocw.mit.edu/courses/15-515-financial-accounting-fall-2003/",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Financial Accounting",
+      "reviewedProvider": "MIT OpenCourseWare"
+    },
+    "reviewNotes": "Content reviewed from the official destination on 2026-10-28. No claim of completion, accreditation, guaranteed access, or current price. Credential eligibility remains governed by the provider."
+  },
+  {
+    "id": "course_mit_management_communication",
+    "title": "Management Communication for Undergraduates",
+    "provider": "MIT OpenCourseWare",
+    "url": "https://ocw.mit.edu/courses/15-279-management-communication-for-undergraduates-fall-2012/",
+    "type": "course",
+    "category": "for_you",
+    "skills": [
+      "communication",
+      "professional communication",
+      "writing",
+      "teamwork",
+      "management",
+      "business"
+    ],
+    "academicPrograms": [],
+    "careerPaths": [
+      "all career paths"
+    ],
+    "description": "Undergraduate materials on audience, purpose, context, writing, speaking, teamwork, and communication across cultures.",
+    "level": "beginner",
+    "careerStages": [
+      "student",
+      "fresh graduate"
+    ],
+    "tags": [
+      "communication",
+      "professional communication",
+      "writing",
+      "teamwork",
+      "management",
+      "business"
+    ],
+    "priority": 80,
+    "isActive": true,
+    "isVerified": true,
+    "source": "curated",
+    "verificationStatus": "verified",
+    "verification": {
+      "status": "verified",
+      "checkedAt": "2026-10-28T00:00:00+00:00",
+      "sourceUrl": "https://ocw.mit.edu/courses/15-279-management-communication-for-undergraduates-fall-2012/",
+      "finalUrl": "https://ocw.mit.edu/courses/15-279-management-communication-for-undergraduates-fall-2012/",
+      "contentReviewed": true,
+      "verificationMethod": "source_review",
+      "reviewedTitle": "Management Communication for Undergraduates",
+      "reviewedProvider": "MIT OpenCourseWare"
+    },
+    "reviewNotes": "Content reviewed from the official destination on 2026-10-28. No claim of completion, accreditation, guaranteed access, or current price. Credential eligibility remains governed by the provider."
   }
 ]

@@ -1,3 +1,4 @@
+import { isManilaStudentEmail, MANILA_EMAIL_MESSAGE } from "../../utils/institutionalEmail";
 import {
   createUserWithEmailAndPassword,
   deleteUser,
@@ -63,8 +64,8 @@ export const registerStudent = async (
 ): Promise<AppUser> => {
   const normalizedEmail = email.trim().toLowerCase();
 
-  if (!isTipEmail(normalizedEmail)) {
-    throw new Error("Only TIP email addresses are allowed.");
+  if (!isManilaStudentEmail(normalizedEmail)) {
+    throw new Error(MANILA_EMAIL_MESSAGE);
   }
 
   // Firebase owns credential uniqueness; the lifecycle server owns email restrictions and profile creation.
@@ -184,6 +185,10 @@ export const loginUser = async (email: string, password: string): Promise<AppUse
   const docExists = userDoc.exists();
   let userData = docExists ? (userDoc.data() as AppUser) : null;
   const lifecycle = determineAccountLifecycleState(docExists, userData);
+  if ((!userData || userData.role === "student") && !isManilaStudentEmail(user.email)) {
+    await signOut(auth);
+    throw new Error(MANILA_EMAIL_MESSAGE);
+  }
 
   if (lifecycle === "DELETED_REMOVED") {
     await signOut(auth);

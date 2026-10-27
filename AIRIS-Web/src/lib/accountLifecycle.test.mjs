@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { registerAccount, selfDeleteAccount, restrictAccount, lifecyclePath, institutionalEmail } from './accountLifecycle.ts';
 
-const email = 'synthetic@tip.edu.ph';
+const email = 'msynthetic@tip.edu.ph';
 function fixture() {
   const records = new Map([['account_lifecycle_control/migration', { legacyReviewComplete: true }]]);
   const histories = new Map();
@@ -63,7 +63,7 @@ test('orphaned Auth record cannot claim another retained application profile', a
   await assert.rejects(registerAccount(deps, 'new', email, 'Synthetic'), /DUPLICATE_ACCOUNT/);
 });
 test('institutional email normalization rejects foreign or deceptive domains', () => {
-  assert.equal(institutionalEmail(' Synthetic@TIP.edu.ph '), email);
+  assert.equal(institutionalEmail(' Synthetic@TIP.edu.ph '), 'synthetic@tip.edu.ph');
   for (const invalid of ['x@example.com', 'x@tip.edu.ph.evil.test', 'x@@tip.edu.ph', 'x y@tip.edu.ph']) assert.throws(() => institutionalEmail(invalid));
 });
 test('concurrent different UIDs cannot both own the same email', async () => {

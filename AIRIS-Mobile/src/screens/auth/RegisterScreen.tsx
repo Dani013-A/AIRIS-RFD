@@ -1,3 +1,4 @@
+import { isManilaStudentEmail, MANILA_EMAIL_MESSAGE } from "../../utils/institutionalEmail";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -122,8 +123,7 @@ export default function RegisterScreen() {
     if (!touched.email) return "";
     const trimmed = email.trim().toLowerCase();
     if (!trimmed) return "Email address is required.";
-    if (!trimmed.includes("@")) return "Please enter a valid email address.";
-    if (!trimmed.endsWith("@tip.edu.ph")) return "Only @tip.edu.ph emails are allowed.";
+    if (!isManilaStudentEmail(trimmed)) return MANILA_EMAIL_MESSAGE;
     return "";
   })();
 
@@ -147,7 +147,7 @@ export default function RegisterScreen() {
   const isFormValid =
     firstName.trim().length > 0 &&
     lastName.trim().length > 0 &&
-    email.trim().toLowerCase().endsWith("@tip.edu.ph") &&
+    isManilaStudentEmail(email) &&
     isPasswordSecure &&
     password === passwordConfirm;
 

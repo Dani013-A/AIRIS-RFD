@@ -149,11 +149,12 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onPress })
         {/* VERIFIED INDICATOR */}
         {resource.isVerified && (
           <View className="absolute top-2.5 right-2.5 bg-[#D7F1ED]/95 px-2 py-0.5 rounded-full border border-[#79D5C8] flex-row items-center shadow-sm">
-            <Text className="text-[9px] font-extrabold uppercase tracking-widest text-[#1E5D53]">Source reviewed</Text>
+            <Text className="text-[9px] font-extrabold uppercase tracking-widest text-[#1E5D53]">{resource.origin === "ai_discovered" ? "Official catalog" : "Source reviewed"}</Text>
           </View>
         )}
       </TouchableOpacity>
 
+      {resource.access && <Text className="px-4 pt-2 text-xs text-[#8B95A5]">{resource.access}</Text>}
       {/* CARD BODY CONTENT */}
       <View className="p-4">
         {/* METADATA LINE */}

@@ -1,3 +1,4 @@
+import { isManilaStudentEmail, MANILA_EMAIL_MESSAGE } from "../../../../../lib/institutionalEmail.mjs";
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, adminDb } from "../../../../../lib/firebaseAdmin";
 import { createOtpSessionToken, verifyOtpHash, assertOtpSecretConfigured, COOKIE_NAME } from "../../../../../lib/otpAuth";
@@ -55,6 +56,10 @@ export async function POST(req: NextRequest) {
     const role = userData?.role;
     if (!userDoc.exists || userData?.isDisabled === true || !["student", "admin", "career_center", "ojt_coordinator"].includes(role)) {
       return NextResponse.json({ error: "Access Denied: Account is not found or has been disabled." }, { status: 403, headers: corsHeaders });
+    }
+
+    if (role === "student" && !isManilaStudentEmail(decodedToken.email)) {
+      return NextResponse.json({ error: MANILA_EMAIL_MESSAGE }, { status: 403, headers: corsHeaders });
     }
 
     const challengeRef = adminDb.collection(role === "student" ? "student_otp_challenges" : "admin_otp_challenges").doc(uid);

@@ -26,7 +26,7 @@ Module._load = function(id, parent, isMain) {
 const { POST } = require('../app/api/accounts/lifecycle/route.ts');
 beforeEach(() => {
   records.clear(); writes = 0;
-  token = {uid:'synthetic', email:'synthetic@tip.edu.ph', auth_time: Date.now()/1000};
+  token = {uid:'synthetic', email:'msynthetic@tip.edu.ph', auth_time: Date.now()/1000};
   actor = {uid:token.uid, email:token.email, emailVerified:true}; otp = null;
   records.set('account_lifecycle_control/migration', {legacyReviewComplete:true});
 });
@@ -84,4 +84,9 @@ test('coordinator restriction respects server-owned assigned program', async () 
   otp = {uid:'synthetic',role:'ojt_coordinator',email:actor.email};
   assert.equal((await POST(request({action:'admin_disable',targetUid:'target'}))).status,403);
   assert.equal(writes,0);
+});
+test('QC campus signup is rejected before profile writes even when migration review is complete', async () => {
+ token.email = actor.email = 'qsynthetic@tip.edu.ph';
+ const result = await POST(request({action:'register',fullName:'Synthetic'}));
+ assert.equal(result.status,403); assert.equal(result.body.code,'MANILA_INSTITUTION_REQUIRED'); assert.equal(writes,0);
 });

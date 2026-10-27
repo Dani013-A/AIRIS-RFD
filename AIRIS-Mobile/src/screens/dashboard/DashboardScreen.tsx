@@ -1,3 +1,4 @@
+import { usePersonalizedResources } from "../../hooks/usePersonalizedResources";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -9,7 +10,6 @@ import { useAuthStore } from "../../store/authStore";
 import { useResumeStore } from "../../store/resumeStore";
 
 import { getAiRecommendationsForResume } from "../../data/learningRecommendations";
-import { getGrowthPathRecommendations } from "../../services/learning/learningCatalogService";
 import { SkeletonScoreCard, SkeletonResourceCard, Tag } from "../../components/ui";
 import { CompetencyGuidanceGroup } from "../../components/resume/CompetencyGuidanceGroup";
 import { fixConcatenatedSectionNames, formatSectionDisplayName, formatSkillDisplayName } from "../../utils/displayNames";
@@ -87,18 +87,12 @@ export default function DashboardScreen() {
 
   const pendingAnalysisData = useResumeStore((state) => state.pendingAnalysisData);
 
-  // Dynamically compute authoritative growth path recommendations (gap-driven, deduplicated, validated)
-  const growthPaths = React.useMemo(() => {
-    return getGrowthPathRecommendations({
-      targetPosition: currentUser?.targetPosition || "",
-      degreeProgram: currentUser?.degreeProgram || "",
-      collegeDomain: currentUser?.college || "",
-      department: currentUser?.department || "",
-      activeResume,
-      activeAnalysis,
-    });
-  }, [currentUser?.targetPosition, currentUser?.degreeProgram, currentUser?.college, currentUser?.department, activeResume, activeAnalysis]);
-
+  const personalizedResources = usePersonalizedResources();
+  const growthPaths = {
+    certifications: personalizedResources.placements.certifications,
+    courses: personalizedResources.placements.courses,
+    practicalLearning: personalizedResources.placements.practice,
+  };
 
   // Self-Assessment Guard: renders self-assessment directly in-place with safe area support
   if (processingStatus === "awaiting_self_assessment" || pendingAnalysisData !== null) {
@@ -1183,6 +1177,7 @@ export default function DashboardScreen() {
         </View>
 
         {/* GROWTH PATHS */}
+        <Text className="px-6 mt-4 text-xs text-[#8B95A5]">{personalizedResources.status}</Text>
         <View className="px-6 mt-10">
           <Text className="text-lg font-extrabold text-[#1F3A5F] mb-4">Recommended Growth Paths</Text>
 
@@ -1211,6 +1206,7 @@ export default function DashboardScreen() {
                 <Text className="text-lg font-bold text-[#1F3A5F] mb-2 leading-6">{item.title}</Text>
 
                 <Text className="text-sm leading-5 text-[#4F6B82] mb-4">{item.description}</Text>
+                  {item.access && <Text className="text-xs text-[#8B95A5] mt-2">{item.access}</Text>}
 
                 {item.gapRationale && (
                   <View className="mb-4 bg-[#F4F8FB] p-3 rounded-xl border border-[#EAF2F7]">

@@ -154,7 +154,7 @@ PROJECTS
             "resumeScore": 50, "atsScore": 50, "alignmentScore": 50,
             "overallScore": 50, "suggestions": [],
         }
-        with (patch("firebase_admin.auth.verify_id_token", return_value={"uid": "qa-user", "email": "qa-user@tip.edu.ph", "email_verified": True}),
+        with (patch("firebase_admin.auth.verify_id_token", return_value={"uid": "qa-user", "email": "mqa-user@tip.edu.ph", "email_verified": True}),
               patch("main.assert_active_student"),
               patch("main.inspect_document_layout", return_value=({}, None)),
               patch("main.extract_text", side_effect=[STANDARD, STANDARD.replace("SKILLS\nPython, data analysis, teamwork\n", ""),

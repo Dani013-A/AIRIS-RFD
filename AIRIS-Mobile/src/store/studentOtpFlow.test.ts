@@ -10,7 +10,7 @@ jest.mock("react-native", () => ({
 
 const mockAuthUser = {
   uid: "mock_student_123",
-  email: "student@tip.edu.ph",
+  email: "mstudent@tip.edu.ph",
   displayName: "Juan Dela Cruz",
   emailVerified: true,
   getIdToken: jest.fn().mockResolvedValue("mock_firebase_id_token"),
@@ -84,7 +84,7 @@ jest.mock("../services/api/otpService");
 describe("Student Email OTP Verification Unit & Regression Tests", () => {
   const mockStudentUser = {
     uid: "mock_student_123",
-    email: "student@tip.edu.ph",
+    email: "mstudent@tip.edu.ph",
     fullName: "Juan Dela Cruz",
     role: "student" as const,
     isProfileComplete: true,
@@ -105,7 +105,7 @@ describe("Student Email OTP Verification Unit & Regression Tests", () => {
 
   const mockStudentUser2 = {
     uid: "mock_student_456",
-    email: "student2@tip.edu.ph",
+    email: "mstudent2@tip.edu.ph",
     fullName: "Maria Clara",
     role: "student" as const,
     isProfileComplete: true,
@@ -159,19 +159,19 @@ describe("Student Email OTP Verification Unit & Regression Tests", () => {
     (otpService.getStoredStudentOtpSession as jest.Mock).mockResolvedValueOnce(null);
     (otpService.sendStudentOtp as jest.Mock).mockResolvedValueOnce({
       success: true,
-      maskedEmail: "s****t@tip.edu.ph",
+      maskedEmail: "s****mt@tip.edu.ph",
       cooldownSeconds: 60,
       expiresAt: Date.now() + 5 * 60 * 1000,
     });
 
-    await useAuthStore.getState().login("student@tip.edu.ph", "ValidPass123!");
+    await useAuthStore.getState().login("mstudent@tip.edu.ph", "ValidPass123!");
 
     const state = useAuthStore.getState();
     expect(state.currentUser).toBeNull();
     expect(state.pendingOtpUser?.uid).toBe("mock_student_123");
     expect(state.isOtpRequired).toBe(true);
     expect(state.isOtpVerified).toBe(false);
-    expect(state.otpMaskedEmail).toBe("s****t@tip.edu.ph");
+    expect(state.otpMaskedEmail).toBe("s****mt@tip.edu.ph");
     expect(state.authTransactionState).toBe("OTP_CHALLENGE");
     expect(otpService.sendStudentOtp).toHaveBeenCalledWith("mock_firebase_id_token");
   });
@@ -184,7 +184,7 @@ describe("Student Email OTP Verification Unit & Regression Tests", () => {
       expiresAt: Date.now() + 7 * 3600 * 1000,
     });
 
-    await useAuthStore.getState().login("student@tip.edu.ph", "ValidPass123!");
+    await useAuthStore.getState().login("mstudent@tip.edu.ph", "ValidPass123!");
 
     const state = useAuthStore.getState();
     expect(state.currentUser?.uid).toBe("mock_student_123");
@@ -201,18 +201,18 @@ describe("Student Email OTP Verification Unit & Regression Tests", () => {
     (otpService.getStoredStudentOtpSession as jest.Mock).mockResolvedValueOnce(null);
     (otpService.sendStudentOtp as jest.Mock).mockResolvedValueOnce({
       success: true,
-      maskedEmail: "s****t@tip.edu.ph",
+      maskedEmail: "s****mt@tip.edu.ph",
       cooldownSeconds: 60,
     });
 
-    await useAuthStore.getState().login("student@tip.edu.ph", "ValidPass123!");
+    await useAuthStore.getState().login("mstudent@tip.edu.ph", "ValidPass123!");
     expect(useAuthStore.getState().authTransactionState).toBe("OTP_CHALLENGE");
 
     // Stage 2: Verification
     (otpService.verifyStudentOtp as jest.Mock).mockResolvedValueOnce({
       success: true,
       sessionToken: "email_pw_signed_token",
-      user: { uid: "mock_student_123", email: "student@tip.edu.ph", role: "student" },
+      user: { uid: "mock_student_123", email: "mstudent@tip.edu.ph", role: "student" },
     });
     (otpService.storeStudentOtpSession as jest.Mock).mockResolvedValueOnce(undefined);
 
@@ -257,7 +257,7 @@ describe("Student Email OTP Verification Unit & Regression Tests", () => {
     (otpService.getStoredStudentOtpSession as jest.Mock).mockResolvedValueOnce(null);
     (otpService.sendStudentOtp as jest.Mock).mockResolvedValueOnce({
       success: true,
-      maskedEmail: "s****t@tip.edu.ph",
+      maskedEmail: "s****mt@tip.edu.ph",
       cooldownSeconds: 60,
     });
 
@@ -286,7 +286,7 @@ describe("Student Email OTP Verification Unit & Regression Tests", () => {
     (otpService.getStoredStudentOtpSession as jest.Mock).mockResolvedValueOnce(null);
     (otpService.sendStudentOtp as jest.Mock).mockResolvedValueOnce({
       success: true,
-      maskedEmail: "s****t@tip.edu.ph",
+      maskedEmail: "s****mt@tip.edu.ph",
       cooldownSeconds: 60,
     });
 
@@ -296,7 +296,7 @@ describe("Student Email OTP Verification Unit & Regression Tests", () => {
     (otpService.verifyStudentOtp as jest.Mock).mockResolvedValueOnce({
       success: true,
       sessionToken: "google_student_session_token",
-      user: { uid: "mock_student_123", email: "student@tip.edu.ph", role: "student" },
+      user: { uid: "mock_student_123", email: "mstudent@tip.edu.ph", role: "student" },
     });
     (otpService.storeStudentOtpSession as jest.Mock).mockResolvedValueOnce(undefined);
 
@@ -384,7 +384,7 @@ describe("Student Email OTP Verification Unit & Regression Tests", () => {
     const mockAuthUserB = {
       ...mockAuthUser,
       uid: "mock_student_456",
-      email: "student2@tip.edu.ph",
+      email: "mstudent2@tip.edu.ph",
     };
     useAuthStore.setState({ pendingOtpUser: mockStudentUser2, isOtpRequired: true, authTransactionState: "OTP_CHALLENGE" });
     (otpService.verifyStudentOtp as jest.Mock).mockResolvedValueOnce({

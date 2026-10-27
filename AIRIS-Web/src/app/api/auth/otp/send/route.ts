@@ -1,3 +1,4 @@
+import { isManilaStudentEmail, MANILA_EMAIL_MESSAGE } from "../../../../../lib/institutionalEmail.mjs";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { adminAuth, adminDb } from "../../../../../lib/firebaseAdmin";
@@ -68,7 +69,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const targetEmail = userData.email || email;
+    if (isStudent && !isManilaStudentEmail(email)) {
+      return NextResponse.json({ error: MANILA_EMAIL_MESSAGE }, { status: 403, headers: corsHeaders });
+    }
+
+    const targetEmail = isStudent ? email : userData.email || email;
     if (!targetEmail) {
       return NextResponse.json(
         { error: "No verified email associated with this account." },

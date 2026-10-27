@@ -238,3 +238,32 @@ See `docs/ACCOUNT_LIFECYCLE_MIGRATION.md`: an unreviewed legacy population block
 ### Manuscript completion clarification (owner approved, 2026-10-25)
 
 The Appendix O “Stop” instruction is superseded by the cancellation correction: Stop cancels the active session; it does not score, generate a final report, or persist a completed interview. Successful completion requires Q1–Q9 evaluated answers followed by Q10 closing delivery. The final report endpoint fails closed for incomplete history. See the corrected review manual and flow addendum under `audit/manuscript-finalization-2026-10-25/`.
+
+### Personalized learning resource sets
+
+`POST /learning/recommendations` requires the existing verified, active Manila
+student Firebase identity (administrator claim exemptions remain unchanged) and
+uses the existing expensive-request rate/concurrency limits. Request fields:
+`analysisId` (latest analysis timestamp/identifier), `targetPosition`, `program`,
+and `gaps` (at most 30 short labels). These are advisory learning needs from the
+mobile analysis snapshot, never authoritative score inputs. No raw resume,
+transcript, client UID, or scoring fields are accepted or sent to source sites.
+
+The backend returns `placements`, `counts`, `shortfall`, `complete`, `contextId`,
+`generatedAt`, `cached`, `rankingMethod`, and `unavailableSources`. Destination
+keys are `certifications`, `courses`, `practice`, `for_you`. Their respective
+per-origin limits are 2, 2, 2, 5. Every resource retains `origin` (`hardcoded` or
+`ai_discovered`), `destination`, source-owned title/provider/URL/type, relevance,
+expected learning focus, and access information (unknown unless established).
+All hardcoded slots are reserved before discovered slots; canonical URL,
+provider ID, and provider/title aliases are globally deduplicated. Shortfalls
+are explicit; `complete` is true only for all 22 unique placements.
+
+Official catalog metadata establishes discovery provenance, not accreditation,
+completion, admission eligibility, or permanent link availability. The model
+ranks supplied IDs only. Failure uses deterministic relevance and reviewed
+fallbacks without changing origin. Source facts cache for six hours; owner and
+analysis/context-specific sets cache for 24 hours with bounded memory and
+in-flight coalescing. The mobile client shares one set between Dashboard and
+For You, scopes its cache to identity/context, and discards obsolete UI results.
+Changing analysis, role, program, or gap labels invalidates the selection key.

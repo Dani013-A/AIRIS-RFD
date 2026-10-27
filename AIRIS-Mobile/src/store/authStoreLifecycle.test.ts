@@ -74,7 +74,7 @@ jest.mock("firebase/firestore", () => ({
 
 jest.mock("../services/api/otpService", () => ({
   getStoredStudentOtpSession: jest.fn().mockResolvedValue({ sessionToken: "mock_tok", expiresAt: Date.now() + 100000 }),
-  sendStudentOtp: jest.fn().mockResolvedValue({ success: true, maskedEmail: "s****t@tip.edu.ph" }),
+  sendStudentOtp: jest.fn().mockResolvedValue({ success: true, maskedEmail: "s****mt@tip.edu.ph" }),
   verifyStudentOtp: jest.fn().mockResolvedValue({ success: true, sessionToken: "mock_tok" }),
   storeStudentOtpSession: jest.fn().mockResolvedValue(undefined),
   clearStudentOtpSession: jest.fn().mockResolvedValue(undefined),
@@ -91,7 +91,7 @@ jest.mock("../config/firebase", () => ({
   auth: {
     currentUser: {
       uid: "test_uid",
-      email: "student@tip.edu.ph",
+      email: "mstudent@tip.edu.ph",
       emailVerified: true,
       reload: jest.fn().mockResolvedValue(undefined),
     },
@@ -166,7 +166,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
       (getAdditionalUserInfo as jest.Mock).mockReturnValueOnce({ isNewUser: true });
 
       await expect(useAuthStore.getState().loginWithGoogle()).rejects.toThrow(
-        "Please use your official @tip.edu.ph account."
+        "Only T.I.P. Manila institutional email addresses starting with m and ending in @tip.edu.ph are accepted."
       );
       expect(deleteUser).toHaveBeenCalledWith(mockFirebaseUser);
       expect(signOut).toHaveBeenCalled();
@@ -176,7 +176,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
     it("should allow first-time Google signup (isNewUser: true) to initialize profile", async () => {
       const mockFirebaseUser = {
         uid: "new_tip_uid",
-        email: "newstudent@tip.edu.ph",
+        email: "mnewstudent@tip.edu.ph",
         emailVerified: true,
         displayName: "TIP New Student",
         getIdToken: jest.fn().mockResolvedValue("mock_token"),
@@ -194,7 +194,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
         "new_tip_uid",
         expect.objectContaining({
           uid: "new_tip_uid",
-          email: "newstudent@tip.edu.ph",
+          email: "mnewstudent@tip.edu.ph",
           role: "student",
           accountState: "ACTIVE",
           isDeleted: false,
@@ -208,7 +208,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
     it("should recover legitimate interrupted registration when Firebase Auth user exists but profile was not created", async () => {
       const mockFirebaseUser = {
         uid: "interrupted_uid",
-        email: "interrupted@tip.edu.ph",
+        email: "minterrupted@tip.edu.ph",
         emailVerified: true,
         displayName: "Interrupted Student",
         getIdToken: jest.fn().mockResolvedValue("mock_token"),
@@ -228,7 +228,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
         "interrupted_uid",
         expect.objectContaining({
           uid: "interrupted_uid",
-          email: "interrupted@tip.edu.ph",
+          email: "minterrupted@tip.edu.ph",
           role: "student",
           accountState: "ACTIVE",
           isDeleted: false,
@@ -242,7 +242,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
     it("should log in existing ACTIVE Google user without recreating profile", async () => {
       const mockFirebaseUser = {
         uid: "active_user_uid",
-        email: "active@tip.edu.ph",
+        email: "mactive@tip.edu.ph",
         emailVerified: true,
         displayName: "Active Student",
         getIdToken: jest.fn().mockResolvedValue("mock_token"),
@@ -255,7 +255,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
         exists: () => true,
         data: () => ({
           uid: "active_user_uid",
-          email: "active@tip.edu.ph",
+          email: "mactive@tip.edu.ph",
           role: "student",
           accountState: "ACTIVE",
           isDeleted: false,
@@ -270,7 +270,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
       expect(useAuthStore.getState().currentUser).toEqual(
         expect.objectContaining({
           uid: "active_user_uid",
-          email: "active@tip.edu.ph",
+          email: "mactive@tip.edu.ph",
           accountState: "ACTIVE",
         })
       );
@@ -280,7 +280,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
     it("should allow existing Google user with incomplete profile to log in without re-registering", async () => {
       const mockFirebaseUser = {
         uid: "incomplete_uid",
-        email: "incomplete@tip.edu.ph",
+        email: "mincomplete@tip.edu.ph",
         emailVerified: true,
         displayName: "Incomplete Student",
         getIdToken: jest.fn().mockResolvedValue("mock_token"),
@@ -293,7 +293,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
         exists: () => true,
         data: () => ({
           uid: "incomplete_uid",
-          email: "incomplete@tip.edu.ph",
+          email: "mincomplete@tip.edu.ph",
           role: "student",
           accountState: "ACTIVE",
           isDeleted: false,
@@ -313,7 +313,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
     it("should normalize permission-denied error without leaking raw technical strings", async () => {
       const mockFirebaseUser = {
         uid: "perm_err_uid",
-        email: "perm@tip.edu.ph",
+        email: "mperm@tip.edu.ph",
         emailVerified: true,
         displayName: "Perm Student",
         getIdToken: jest.fn().mockResolvedValue("mock_token"),
@@ -338,7 +338,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
     it("should reject Google login on login screen when user is new and not registered", async () => {
       const mockFirebaseUser = {
         uid: "unregistered_uid",
-        email: "unregistered@tip.edu.ph",
+        email: "munregistered@tip.edu.ph",
         emailVerified: true,
         displayName: "Unregistered Student",
         getIdToken: jest.fn().mockResolvedValue("mock_token"),
@@ -357,13 +357,13 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
       expect(deleteUser).toHaveBeenCalledWith(mockFirebaseUser);
       expect(mockCreateProfileTransaction).not.toHaveBeenCalled();
       expect(signOut).toHaveBeenCalled();
-      expect(useAuthStore.getState().pendingGoogleEmail).toBe("unregistered@tip.edu.ph");
+      expect(useAuthStore.getState().pendingGoogleEmail).toBe("munregistered@tip.edu.ph");
     });
 
     it("should safely sign out and surface guidance even if deleteUser fails during cleanup", async () => {
       const mockFirebaseUser = {
         uid: "unregistered_fail_del_uid",
-        email: "unregistered_fail@tip.edu.ph",
+        email: "munregistered_fail@tip.edu.ph",
         emailVerified: true,
         displayName: "Unregistered Student",
         getIdToken: jest.fn().mockResolvedValue("mock_token"),
@@ -385,7 +385,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
       expect(useAuthStore.getState().error).toBe(
         "No AIRIS account found. Please sign up to continue."
       );
-      expect(useAuthStore.getState().pendingGoogleEmail).toBe("unregistered_fail@tip.edu.ph");
+      expect(useAuthStore.getState().pendingGoogleEmail).toBe("munregistered_fail@tip.edu.ph");
     });
 
     it("should handle Google sign-in cancellation silently without error banner", async () => {
@@ -413,7 +413,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
     it("should reject Google login for disabled/paused user with explicit admin paused message", async () => {
       const mockFirebaseUser = {
         uid: "disabled_uid",
-        email: "paused@tip.edu.ph",
+        email: "mpaused@tip.edu.ph",
         emailVerified: true,
         getIdToken: jest.fn().mockResolvedValue("mock_token"),
       };
@@ -434,7 +434,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
     it("should reject Google login for deleted user with explicit account removed message", async () => {
       const mockFirebaseUser = {
         uid: "deleted_uid",
-        email: "deleted@tip.edu.ph",
+        email: "mdeleted@tip.edu.ph",
         emailVerified: true,
         getIdToken: jest.fn().mockResolvedValue("mock_token"),
       };
@@ -460,19 +460,19 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
 
     it("should reject non-TIP email signup before reaching Firebase", async () => {
       await expect(registerStudent("attacker@gmail.com", "SecurePass123!", "Attacker")).rejects.toThrow(
-        "Only TIP email addresses are allowed."
+        "Only T.I.P. Manila institutional email addresses starting with m and ending in @tip.edu.ph are accepted."
       );
       expect(createUserWithEmailAndPassword).not.toHaveBeenCalled();
     });
 
     it("should register valid TIP email and record ACTIVE lifecycle status", async () => {
-      const registeredUser = { uid: "email_reg_uid", email: "newstudent@tip.edu.ph" };
+      const registeredUser = { uid: "email_reg_uid", email: "mnewstudent@tip.edu.ph" };
       (createUserWithEmailAndPassword as jest.Mock).mockImplementationOnce(async () => {
         jest.requireMock("../config/firebase").auth.currentUser = registeredUser;
         return { user: registeredUser };
       });
 
-      const user = await registerStudent("newstudent@tip.edu.ph", "ValidPass123!", "New Student");
+      const user = await registerStudent("mnewstudent@tip.edu.ph", "ValidPass123!", "New Student");
 
       expect(user.accountState).toBe("ACTIVE");
       expect(user.isDeleted).toBe(false);
@@ -491,7 +491,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
 
     it("does not sign out a different identity after delayed registration", async () => {
       const config = jest.requireMock("../config/firebase");
-      const registeredUser = { uid: "pending_signup", email: "newstudent@tip.edu.ph" };
+      const registeredUser = { uid: "pending_signup", email: "mnewstudent@tip.edu.ph" };
       (createUserWithEmailAndPassword as jest.Mock).mockImplementationOnce(async () => {
         config.auth.currentUser = registeredUser;
         return { user: registeredUser };
@@ -500,7 +500,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
         config.auth.currentUser = { uid: "switched_identity" };
         return profile;
       });
-      await registerStudent("newstudent@tip.edu.ph", "ValidPass123!", "New Student");
+      await registerStudent("mnewstudent@tip.edu.ph", "ValidPass123!", "New Student");
       expect(signOut).not.toHaveBeenCalled();
       expect(config.auth.currentUser.uid).toBe("switched_identity");
     });
@@ -508,19 +508,19 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
     it("should reject email login before verification", async () => {
       const mockUser = {
         uid: "unverified_uid",
-        email: "student@tip.edu.ph",
+        email: "mstudent@tip.edu.ph",
         emailVerified: false,
         reload: jest.fn().mockResolvedValue(undefined),
       };
       (signInWithEmailAndPassword as jest.Mock).mockResolvedValueOnce({ user: mockUser });
 
-      await expect(loginUser("student@tip.edu.ph", "Pass123!")).rejects.toThrow(EmailNotVerifiedError);
+      await expect(loginUser("mstudent@tip.edu.ph", "Pass123!")).rejects.toThrow(EmailNotVerifiedError);
     });
 
     it("should recover missing Firestore profile during email login for existing Auth user", async () => {
       const mockUser = {
         uid: "no_profile_uid",
-        email: "student@tip.edu.ph",
+        email: "mstudent@tip.edu.ph",
         emailVerified: true,
         reload: jest.fn().mockResolvedValue(undefined),
         getIdToken: jest.fn().mockResolvedValue("mock_token"),
@@ -529,7 +529,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
       (getDoc as jest.Mock).mockResolvedValueOnce({ exists: () => false, data: () => null });
       mockCreateProfileTransaction.mockResolvedValueOnce({
         uid: "no_profile_uid",
-        email: "student@tip.edu.ph",
+        email: "mstudent@tip.edu.ph",
         fullName: "TIP Student",
         role: "student",
         accountState: "ACTIVE",
@@ -537,12 +537,12 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
         isDisabled: false,
       });
 
-      const user = await loginUser("student@tip.edu.ph", "Pass123!");
+      const user = await loginUser("mstudent@tip.edu.ph", "Pass123!");
       expect(mockCreateProfileTransaction).toHaveBeenCalledWith(
         "no_profile_uid",
         expect.objectContaining({
           uid: "no_profile_uid",
-          email: "student@tip.edu.ph",
+          email: "mstudent@tip.edu.ph",
           accountState: "ACTIVE",
         })
       );
@@ -552,7 +552,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
     it("should reject email login when missing profile recovery fails", async () => {
       const mockUser = {
         uid: "fail_profile_uid",
-        email: "student@tip.edu.ph",
+        email: "mstudent@tip.edu.ph",
         emailVerified: true,
         reload: jest.fn().mockResolvedValue(undefined),
         getIdToken: jest.fn().mockResolvedValue("mock_token"),
@@ -561,31 +561,31 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
       (getDoc as jest.Mock).mockResolvedValueOnce({ exists: () => false, data: () => null });
       mockCreateProfileTransaction.mockRejectedValueOnce(new Error("Write failed"));
 
-      await expect(loginUser("student@tip.edu.ph", "Pass123!")).rejects.toThrow(ACCOUNT_MISSING_PROFILE_MSG);
+      await expect(loginUser("mstudent@tip.edu.ph", "Pass123!")).rejects.toThrow(ACCOUNT_MISSING_PROFILE_MSG);
       expect(signOut).toHaveBeenCalled();
     });
 
     it("should reject email login when account is paused by admin", async () => {
       const mockUser = {
         uid: "paused_uid",
-        email: "paused@tip.edu.ph",
+        email: "mpaused@tip.edu.ph",
         emailVerified: true,
         reload: jest.fn().mockResolvedValue(undefined),
       };
       (signInWithEmailAndPassword as jest.Mock).mockResolvedValueOnce({ user: mockUser });
       (getDoc as jest.Mock).mockResolvedValueOnce({
         exists: () => true,
-        data: () => ({ uid: "paused_uid", email: "paused@tip.edu.ph", isDisabled: true }),
+        data: () => ({ uid: "paused_uid", email: "mpaused@tip.edu.ph", isDisabled: true }),
       });
 
-      await expect(loginUser("paused@tip.edu.ph", "Pass123!")).rejects.toThrow(ACCOUNT_PAUSED_MSG);
+      await expect(loginUser("mpaused@tip.edu.ph", "Pass123!")).rejects.toThrow(ACCOUNT_PAUSED_MSG);
       expect(signOut).toHaveBeenCalled();
     });
 
     it("should reject email login when account is deleted", async () => {
       const mockUser = {
         uid: "deleted_email_uid",
-        email: "deleted@tip.edu.ph",
+        email: "mdeleted@tip.edu.ph",
         emailVerified: true,
         reload: jest.fn().mockResolvedValue(undefined),
       };
@@ -595,7 +595,7 @@ describe("Account Lifecycle State Architecture & Deterministic Precedence", () =
         data: () => ({ uid: "deleted_email_uid", isDeleted: true, accountState: "DELETED" }),
       });
 
-      await expect(loginUser("deleted@tip.edu.ph", "Pass123!")).rejects.toThrow(ACCOUNT_REMOVED_MSG);
+      await expect(loginUser("mdeleted@tip.edu.ph", "Pass123!")).rejects.toThrow(ACCOUNT_REMOVED_MSG);
       expect(signOut).toHaveBeenCalled();
     });
   });

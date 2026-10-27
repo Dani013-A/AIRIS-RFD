@@ -1,3 +1,4 @@
+import { usePersonalizedResources } from "../../hooks/usePersonalizedResources";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
@@ -19,7 +20,6 @@ import { DEFAULT_LEARNING_CATEGORIES } from "../../data/learningCategories";
 import {
   getInstantCatalog,
   loadCachedCatalog,
-  logForYouRecommendations,
   matchLearningRecommendations,
   refreshCatalog,
   subscribeToCatalog,
@@ -41,6 +41,7 @@ interface LearningScreenProps {
 
 export default function LearningScreen({ initialCategory = "interviews" }: LearningScreenProps) {
   const router = useRouter();
+  const personalizedResources = usePersonalizedResources();
 
   // Catalog state - initialized immediately with first-paint cache
   const initialData = getInstantCatalog();
@@ -137,6 +138,7 @@ export default function LearningScreen({ initialCategory = "interviews" }: Learn
 
   // Compute recommendations dynamically based on active category tab
   const rawMatchedRecommendations = useMemo(() => {
+    if (selectedCategoryId === "for_you") return personalizedResources.placements.for_you;
     const learningSnap = activeAnalysis?.learningSnapshot;
     const items = matchLearningRecommendations({
       targetPosition: targetPosition || currentUser?.targetPosition || "",
@@ -156,18 +158,10 @@ export default function LearningScreen({ initialCategory = "interviews" }: Learn
       selfAssessmentRatings: selfRatings,
     });
 
-    if (selectedCategoryId === "for_you" && items && items.length > 0) {
-      logForYouRecommendations(
-        currentUser?.uid || "Student",
-        targetPosition || "General Track",
-        learningSnap?.skillGaps,
-        items
-      );
-    }
-
     return items;
   }, [
     catalogResources,
+    personalizedResources.placements,
     selectedCategoryId,
     targetPosition,
     degreeProgram,
@@ -450,6 +444,7 @@ export default function LearningScreen({ initialCategory = "interviews" }: Learn
           </Text>
         </View>
 
+        {selectedCategoryId === "for_you" && <Text className="text-xs text-[#8B95A5] mb-3">{personalizedResources.status}</Text>}
         {/* RESOURCE CARDS FEED */}
         <View className="gap-1">
           {displayedResources.length > 0 ? (

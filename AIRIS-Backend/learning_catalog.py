@@ -9,7 +9,7 @@ def canonical_url(value):
     try:
         url=urllib.parse.urlsplit(value)
         if url.scheme!='https' or url.username or url.password:return ''
-        query=urllib.parse.urlencode(sorted((k,v) for k,v in urllib.parse.parse_qsl(url.query) if not k.startswith('utm_') and k not in {'fbclid','gclid'}))
+        query=urllib.parse.urlencode(sorted((k,v) for k,v in urllib.parse.parse_qsl(url.query) if not k.lower().startswith('utm_') and k.lower() not in {'fbclid','gclid','wt.mc_id'}))
         return urllib.parse.urlunsplit((url.scheme,url.netloc.lower(),url.path.rstrip('/'),query,''))
     except (ValueError,TypeError):return ''
 

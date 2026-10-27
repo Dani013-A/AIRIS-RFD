@@ -107,7 +107,7 @@ describe("Account Integrity & Provider Linking Regression Tests", () => {
   it("Scenario 1: Google signup exists -> regular signup with same email is blocked without duplicate profile", async () => {
     const existingGoogleUser = {
       uid: "google_uid_001",
-      email: "student@tip.edu.ph",
+      email: "mstudent@tip.edu.ph",
       role: "student",
       accountState: "ACTIVE",
       isDeleted: false,
@@ -117,14 +117,14 @@ describe("Account Integrity & Provider Linking Regression Tests", () => {
     );
 
     await expect(
-      registerStudent("student@tip.edu.ph", "Password123!", "Juan Dela Cruz")
+      registerStudent("mstudent@tip.edu.ph", "Password123!", "Juan Dela Cruz")
     ).rejects.toThrow(
       "An account with this TIP email already exists. Try logging in instead, or use Google Sign-In if you registered with Google."
     );
 
     expect(createUserWithEmailAndPassword).toHaveBeenCalledWith(
       expect.anything(),
-      "student@tip.edu.ph",
+      "mstudent@tip.edu.ph",
       "Password123!"
     );
   });
@@ -133,7 +133,7 @@ describe("Account Integrity & Provider Linking Regression Tests", () => {
   it("Scenario 2: Email/password signup exists -> Google sign-in with same email detects conflict and prevents duplicate profile", async () => {
     const existingPwUser = {
       uid: "pw_uid_002",
-      email: "student@tip.edu.ph",
+      email: "mstudent@tip.edu.ph",
       role: "student",
       accountState: "ACTIVE",
       isDeleted: false,
@@ -143,7 +143,7 @@ describe("Account Integrity & Provider Linking Regression Tests", () => {
     // Mock Google sign-in returning a new UID from Google
     const newGoogleAuthUser = {
       uid: "different_google_uid_999",
-      email: "student@tip.edu.ph",
+      email: "mstudent@tip.edu.ph",
       emailVerified: true,
       displayName: "Juan Dela Cruz",
       getIdToken: jest.fn().mockResolvedValue("token_123"),
@@ -193,7 +193,7 @@ describe("Account Integrity & Provider Linking Regression Tests", () => {
   it("Scenario 4: Links Google credential to existing account only after authenticating ownership of both credentials", async () => {
     const existingPwUser = {
       uid: "pw_uid_004",
-      email: "student@tip.edu.ph",
+      email: "mstudent@tip.edu.ph",
       role: "student",
       fullName: "Maria Clara",
     };
@@ -201,7 +201,7 @@ describe("Account Integrity & Provider Linking Regression Tests", () => {
 
     const mockAuthUser = {
       uid: "pw_uid_004",
-      email: "student@tip.edu.ph",
+      email: "mstudent@tip.edu.ph",
     };
 
     (signInWithEmailAndPassword as jest.Mock).mockResolvedValueOnce({
@@ -214,7 +214,7 @@ describe("Account Integrity & Provider Linking Regression Tests", () => {
     const mockGoogleCred = { providerId: "google.com", idToken: "google_token_xyz" };
 
     const result = await linkGoogleToExistingEmailAccount(
-      "student@tip.edu.ph",
+      "mstudent@tip.edu.ph",
       "CorrectPassword123!",
       mockGoogleCred
     );
@@ -222,7 +222,7 @@ describe("Account Integrity & Provider Linking Regression Tests", () => {
     // Verified ownership with password first
     expect(signInWithEmailAndPassword).toHaveBeenCalledWith(
       expect.anything(),
-      "student@tip.edu.ph",
+      "mstudent@tip.edu.ph",
       "CorrectPassword123!"
     );
     // Linked credentials
@@ -235,7 +235,7 @@ describe("Account Integrity & Provider Linking Regression Tests", () => {
   it("Scenario 5: Concurrent signup race condition is safely intercepted and orphaned user deleted", async () => {
     const newAuthUser = {
       uid: "my_uid_888",
-      email: "student@tip.edu.ph",
+      email: "mstudent@tip.edu.ph",
       getIdToken: jest.fn().mockResolvedValue("token"),
     };
     (createUserWithEmailAndPassword as jest.Mock).mockResolvedValueOnce({
@@ -247,7 +247,7 @@ describe("Account Integrity & Provider Linking Regression Tests", () => {
     );
 
     await expect(
-      registerStudent("student@tip.edu.ph", "Pass12345!", "Rival Student")
+      registerStudent("mstudent@tip.edu.ph", "Pass12345!", "Rival Student")
     ).rejects.toThrow("An account with this TIP email already exists.");
 
     // Orphaned competing auth user must be cleaned up
@@ -258,7 +258,7 @@ describe("Account Integrity & Provider Linking Regression Tests", () => {
   it("Scenario 6: Account linking preserves original Firebase UID, student data, and role assignments", async () => {
     const originalStudentProfile = {
       uid: "original_uid_canonical",
-      email: "student@tip.edu.ph",
+      email: "mstudent@tip.edu.ph",
       role: "student",
       fullName: "Jose Rizal",
       activeResumeId: "resume_doc_123",
@@ -273,7 +273,7 @@ describe("Account Integrity & Provider Linking Regression Tests", () => {
     (linkWithCredential as jest.Mock).mockResolvedValueOnce(undefined);
 
     const linkedProfile = await linkGoogleToExistingEmailAccount(
-      "student@tip.edu.ph",
+      "mstudent@tip.edu.ph",
       "Password123!",
       { idToken: "token" }
     );
@@ -288,7 +288,7 @@ describe("Account Integrity & Provider Linking Regression Tests", () => {
   it("Scenario 7: Failed linking due to wrong password leaves existing account intact without data loss", async () => {
     const existingAccount = {
       uid: "protected_student_uid",
-      email: "student@tip.edu.ph",
+      email: "mstudent@tip.edu.ph",
       role: "student",
       fullName: "Andres Bonifacio",
     };
@@ -300,7 +300,7 @@ describe("Account Integrity & Provider Linking Regression Tests", () => {
 
     await expect(
       linkGoogleToExistingEmailAccount(
-        "student@tip.edu.ph",
+        "mstudent@tip.edu.ph",
         "WrongPassword!",
         { idToken: "token" }
       )

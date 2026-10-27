@@ -127,6 +127,9 @@ export interface MatchEvidence {
 }
 
 export interface MatchedResourceItem extends LearningResource {
+  origin?: "hardcoded" | "ai_discovered";
+  access?: string;
+  expectedOutcome?: string;
   relevanceScore: number;
   recommendationReason?: string;
   gapRationale?: string;

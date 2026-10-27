@@ -1,3 +1,4 @@
+import { isManilaStudentEmail, MANILA_EMAIL_MESSAGE } from "../utils/institutionalEmail";
 import { create } from "zustand";
 import { Alert } from "react-native";
 
@@ -605,7 +606,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const emailLower = firebaseUser.email.trim().toLowerCase();
 
       // Validate school domain email.
-      if (!firebaseUser.emailVerified || !emailLower.endsWith("@tip.edu.ph")) {
+      if (!firebaseUser.emailVerified || !emailLower.endsWith("@tip.edu.ph") || (isSignUpContext && !isManilaStudentEmail(emailLower))) {
         if (isUnprovisionedNewUser) {
           try {
             await deleteUser(firebaseUser);
@@ -615,7 +616,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
         await clearAuthSessionSafely();
         const err = new Error(
-          "Please use your official @tip.edu.ph account."
+          MANILA_EMAIL_MESSAGE
         );
         set({ error: err.message, authTransactionState: "FAILED" });
         throw err;
@@ -629,6 +630,10 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       const handleSuccessfulGoogleProfile = async (targetProfile: AppUser) => {
         if (targetProfile.role === "student") {
+          if (!isManilaStudentEmail(firebaseUser.email)) {
+            await clearAuthSessionSafely();
+            throw new Error(MANILA_EMAIL_MESSAGE);
+          }
           // Check if this student already has a valid, non-expired OTP session on this device
           const existingOtp = await getStoredStudentOtpSession(firebaseUser.uid);
           if (existingOtp) {
@@ -956,7 +961,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
         if (lifecycle === "MISSING_PROFILE" || !appUser) {
           const email = firebaseUser.email?.trim().toLowerCase() || "";
-          if (email.endsWith("@tip.edu.ph")) {
+          if (isManilaStudentEmail(email)) {
             const recoveredProfile: AppUser = {
               uid: firebaseUser.uid,
               email: email,
@@ -1044,6 +1049,12 @@ export const useAuthStore = create<AuthState>((set) => ({
 
         // Check stored OTP session validity for active student user
         if (appUser?.role === "student") {
+          if (!isManilaStudentEmail(firebaseUser.email)) {
+            stopUserRealtimeListener();
+            await signOut(auth);
+            set({currentUser:null, loading:false, isInitialized:true, error:MANILA_EMAIL_MESSAGE});
+            return;
+          }
           const storedOtp = await getStoredStudentOtpSession(firebaseUser.uid);
           if (!storedOtp) {
             // No valid verified OTP session on this device for this student
@@ -1644,7 +1655,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
       if (lifecycle === "MISSING_PROFILE" || !appUser) {
         const email = firebaseUser.email?.trim().toLowerCase() || "";
-        if (email.endsWith("@tip.edu.ph")) {
+        if (isManilaStudentEmail(email)) {
           const recoveredProfile: AppUser = {
             uid: firebaseUser.uid,
             email: email,
@@ -1676,6 +1687,12 @@ export const useAuthStore = create<AuthState>((set) => ({
             return false;
           }
         }
+        return false;
+      }
+      if (appUser.role === "student" && !isManilaStudentEmail(firebaseUser.email)) {
+        await signOut(auth);
+        stopUserRealtimeListener();
+        set({currentUser:null, error:MANILA_EMAIL_MESSAGE});
         return false;
       }
       return true;

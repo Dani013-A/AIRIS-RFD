@@ -10,17 +10,17 @@ client = TestClient(app)
 
 def mock_verify_id_token(token, *args, **kwargs):
     if token == "token-studentA":
-        return {"uid": "studentA", "email": "studenta@tip.edu.ph", "email_verified": True}
+        return {"uid": "studentA", "email": "mstudenta@tip.edu.ph", "email_verified": True}
     elif token == "token-studentB":
-        return {"uid": "studentB", "email": "studentb@tip.edu.ph", "email_verified": True}
+        return {"uid": "studentB", "email": "mstudentb@tip.edu.ph", "email_verified": True}
     elif token == "token-admin":
         return {"uid": "admin_uid_123", "admin": True}
     elif token == "token-non-admin":
-        return {"uid": "regular_user_456", "email": "regular@tip.edu.ph", "email_verified": True}
+        return {"uid": "regular_user_456", "email": "mregular@tip.edu.ph", "email_verified": True}
     elif token == "token-non-tip":
         return {"uid": "external_user", "email": "attacker@gmail.com", "email_verified": True}
     elif token == "token-unverified-tip":
-        return {"uid": "unverified_student", "email": "student@tip.edu.ph", "email_verified": False}
+        return {"uid": "unverified_student", "email": "mstudent@tip.edu.ph", "email_verified": False}
     elif token == "token-no-email":
         return {"uid": "no_email_student"}
     raise Exception("Invalid token")
@@ -33,6 +33,24 @@ class TestSecurityRemediation(unittest.TestCase):
         lifecycle.start()
         self.addCleanup(lifecycle.stop)
 
+
+    def test_learning_rejects_unauthenticated_and_qc_students(self):
+        payload = {"analysisId": "synthetic", "targetPosition": "Accountant", "gaps": ["accounting"]}
+        self.assertEqual(client.post("/learning/recommendations", json=payload).status_code, 401)
+        with patch("firebase_admin.auth.verify_id_token", return_value={"uid": "qc", "email": "qstudent@tip.edu.ph", "email_verified": True}):
+            response = client.post("/learning/recommendations", json=payload, headers={"Authorization": "Bearer synthetic"})
+            self.assertEqual(response.status_code, 403)
+            self.assertIn("Manila", response.json()["detail"])
+
+    @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)
+    def test_learning_context_authentication_and_schema(self, mock_auth):
+        payload = {"analysisId": "synthetic", "targetPosition": "Accountant", "gaps": ["accounting"]}
+        with patch("learning_discovery.recommendations", return_value={"placements": {}}) as recommend:
+            response = client.post("/learning/recommendations", json=payload, headers={"Authorization": "Bearer token-studentA"})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(recommend.call_args.args[1], "studentA")
+        for invalid in [dict(payload,userId="studentB"),dict(payload,targetPosition=""),dict(payload,gaps=["x"*121])]:
+            self.assertIn(client.post("/learning/recommendations", json=invalid, headers={"Authorization": "Bearer token-studentA"}).status_code, (400,422))
 
     def test_interview_endpoints_reject_missing_auth(self):
         requests = [
@@ -159,7 +177,7 @@ class TestSecurityRemediation(unittest.TestCase):
             json={"rawText": "Dummy content", "targetPosition": "Software Engineer"}
         )
         self.assertEqual(response.status_code, 403)
-        self.assertIn("Only verified TIP institutional accounts (@tip.edu.ph) are authorized", response.json().get("detail", ""))
+        self.assertIn("Only T.I.P. Manila institutional email addresses", response.json().get("detail", ""))
 
     # Domain Gate Test: Unverified TIP email token attempting protected endpoint -> MUST return 403
     @patch("firebase_admin.auth.verify_id_token", side_effect=mock_verify_id_token)

@@ -1,3 +1,4 @@
+import { isManilaStudentEmail, MANILA_EMAIL_MESSAGE } from "../../../../../lib/institutionalEmail.mjs";
 import { NextRequest, NextResponse } from "next/server";
 import { verifyOtpSessionToken, COOKIE_NAME } from "../../../../../lib/otpAuth";
 
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
 
     const session = verifyOtpSessionToken(token);
 
-    if (!session) {
+    if (!session || (session.role === "student" && !isManilaStudentEmail(session.email))) {
       return NextResponse.json({ isVerified: false }, { headers: corsHeaders });
     }
 
