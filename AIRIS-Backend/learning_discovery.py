@@ -43,6 +43,7 @@ def words(value):
 
 
 def clean(value):
+    if not isinstance(value, str): return ""
     return html.unescape(re.sub(r"<[^>]*>", " ", str(value))).strip()[:1200]
 
 
@@ -109,12 +110,17 @@ def source_records(provider, url, kind, body):
     records = []
     if kind == "json":
         data = json.loads(body)
+        if not isinstance(data, dict): raise ValueError("Invalid source catalog")
         for group, resource_type in (("certifications", "certification"), ("learningPaths", "course"), ("modules", "module")):
-            for item in data.get(group, []):
+            items = data.get(group, [])
+            if not isinstance(items, list): continue
+            for item in items:
+                if not isinstance(item, dict): continue
+                tags = [tag for field in ("subjects", "roles") for tag in (item.get(field) if isinstance(item.get(field), list) else []) if isinstance(tag, str)]
                 records.append({"title": clean(item.get("title", "")), "url": item.get("url", ""),
                                 "providerId": item.get("uid"), "type": resource_type,
                                 "description": clean(item.get("summary", "")),
-                                "skills": item.get("subjects", []) + item.get("roles", [])})
+                                "skills": tags})
     else:
         parser = Links(); parser.feed(body)
         for href, title in parser.links:
@@ -123,13 +129,15 @@ def source_records(provider, url, kind, body):
             eligible = (provider == "MIT OpenCourseWare" and re.fullmatch(r"/courses/[^/]+/", path) is not None) or (provider == "Open University" and path.endswith("/content-section-overview")) or (
                 provider == "PMI" and re.fullmatch(r"/certifications/[a-z0-9-]+", path) and
                 any(term in title.lower() for term in ("certified", "certification", "professional", "associate"))) or (
-                provider == "ASQ" and re.fullmatch(r"/cert/[a-z0-9-]+", path) and "certified" in title.lower())
+                provider == "ASQ" and re.fullmatch(r"/cert/[a-z0-9-]+", path) and ("certified" in title.lower() or re.search(r"\([A-Z]{3,7}\)", title) is not None))
             if eligible:
                 records.append({"title": title, "url": destination, "type": kind, "description": title, "skills": []})
     result = []
     for item in records:
         validated = canonical_url(item.get("url"))
         if not validated or urlsplit(validated).hostname not in HOSTS or urlsplit(validated).port not in (None, 443) or len(item["title"]) < 8:
+            continue
+        if item.get("type") == "certification" and re.search(r"\b(legacy|retired|deprecated)\b", item["title"], re.I):
             continue
         item.update(url=validated, provider=provider, sourceUrl=url, access="Cost/access not verified",
                     origin="ai_discovered", isActive=True, isVerified=True, category="for_you",
@@ -222,7 +230,7 @@ def recommendations(context, owner, discovery=discover, catalog=reviewed_resourc
     with _lock:
         now = time.time()
         for old_key in list(_cache):
-            if now - _cache[old_key][0] > RESULT_TTL: del _cache[old_key]
+            if now >= _cache[old_key][1]["expiresAt"]: del _cache[old_key]
         if key in _cache:
             result = copy.deepcopy(_cache[key][1]); result["cached"] = True; return result
         pending = _inflight.get(key)
@@ -244,10 +252,11 @@ def recommendations(context, owner, discovery=discover, catalog=reviewed_resourc
         candidates = [r for kind, limit in (("certification", 15), ("course", 20), ("module", 25))
                       for r in [item for item in candidates if item.get("type") == kind][:limit]]
         order = ranking(candidates, context) if candidates else None
-        if order is not None: candidates = [resource for resource in candidates if resource["id"] in order]
+        candidates = [resource for resource in candidates if order is not None and resource["id"] in order]
         result = select(context, hardcoded, candidates, order)
         result["rankingMethod"] = "ai" if order is not None else "deterministic_fallback"
-        result.update(contextId=key, cached=False, unavailableSources=found["unavailableSources"], generatedAt=int(now))
+        result.update(contextId=key, cached=False, unavailableSources=found["unavailableSources"], generatedAt=int(now),
+                      expiresAt=int(now) + (RESULT_TTL if order is not None else 600))
         with _lock:
             _cache[key] = (now, result)
             while len(_cache) > 128: _cache.popitem(last=False)

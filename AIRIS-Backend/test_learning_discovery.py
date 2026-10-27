@@ -91,6 +91,8 @@ def test_source_parser_mit_courses_and_duplicate_anchors():
     body='<a href="/courses/1-accounting/">Accounting basics</a><a href="https://evil.org/courses/2/">Accounting trap</a>'
     records=learning.source_records('MIT OpenCourseWare','https://ocw.mit.edu/','course',body)
     assert len(records)==1 and records[0]['url']=='https://ocw.mit.edu/courses/1-accounting'
+    asq=learning.source_records('ASQ','https://www.asq.org/cert','certification','<a href="/cert/six-sigma-yellow-belt">Six Sigma Yellow Belt (CSSYB)</a><a href="/cert/faq">FAQs</a>')
+    assert len(asq)==1 and asq[0]['type']=='certification'
 
 
 def test_same_context_concurrent_requests_share_discovery():
@@ -120,3 +122,26 @@ def test_ai_cannot_invent_candidate_ids_or_urls(monkeypatch):
 def test_added_cross_discipline_fallbacks_have_current_source_evidence():
     ids={resource['id'] for resource in learning.reviewed_resources()}
     assert {'cert_pmi_capm','cert_asq_cssyb','course_mit_financial_managerial','course_mit_financial_accounting','course_mit_management_communication'} <= ids
+
+
+def test_ai_outage_withholds_ambiguous_discovery_and_retries_after_short_expiry(monkeypatch):
+    learning._cache.clear(); calls=[]; clock=[1000]
+    monkeypatch.setattr(learning.time,'time',lambda:clock[0])
+    def discover():
+        calls.append(1);return dict(resources=records('dynamic'),unavailableSources=[])
+    result=learning.recommendations(CONTEXT,'outage',discover,lambda:records('hard'),lambda *_:None)
+    assert all(c['ai_discovered']==0 for c in result['counts'].values())
+    assert result['expiresAt']==1600 and not result['complete']
+    assert learning.recommendations(CONTEXT,'outage',discover,lambda:[],lambda *_:None)['cached']
+    clock[0]=1601
+    learning.recommendations(CONTEXT,'outage',discover,lambda:[],lambda *_:None)
+    assert len(calls)==2
+
+
+def test_retired_credentials_are_not_recommended():
+    body='{"certifications":[{"uid":"old","title":"Dynamics Marketing (Legacy)","url":"https://learn.microsoft.com/credentials/certifications/old"}]}'
+    assert learning.source_records('Microsoft Learn',learning.SOURCES[-1][1],'json',body)==[]
+
+@pytest.mark.parametrize('body', ['{"modules":null}', '{"modules":[null,42,{"title":{},"url":"https://learn.microsoft.com/training/modules/x"}]}', '{"modules":"invalid"}'])
+def test_malformed_source_metadata_cannot_create_resources(body):
+    assert learning.source_records('Microsoft Learn',learning.SOURCES[-1][1],'json',body)==[]

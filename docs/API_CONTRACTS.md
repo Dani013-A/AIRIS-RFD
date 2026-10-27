@@ -250,7 +250,7 @@ mobile analysis snapshot, never authoritative score inputs. No raw resume,
 transcript, client UID, or scoring fields are accepted or sent to source sites.
 
 The backend returns `placements`, `counts`, `shortfall`, `complete`, `contextId`,
-`generatedAt`, `cached`, `rankingMethod`, and `unavailableSources`. Destination
+`generatedAt`, `expiresAt`, `cached`, `rankingMethod`, and `unavailableSources`. Destination
 keys are `certifications`, `courses`, `practice`, `for_you`. Their respective
 per-origin limits are 2, 2, 2, 5. Every resource retains `origin` (`hardcoded` or
 `ai_discovered`), `destination`, source-owned title/provider/URL/type, relevance,
@@ -261,8 +261,11 @@ are explicit; `complete` is true only for all 22 unique placements.
 
 Official catalog metadata establishes discovery provenance, not accreditation,
 completion, admission eligibility, or permanent link availability. The model
-ranks supplied IDs only. Failure uses deterministic relevance and reviewed
-fallbacks without changing origin. Source facts cache for six hours; owner and
+ranks supplied IDs only. When AI relevance validation fails, only reviewed hardcoded fallbacks are
+returned, with explicit discovered-slot shortfalls and a ten-minute retry expiry.
+Keyword overlap alone cannot approve discovered recommendations (for example,
+mechanical dynamics and a software product named Dynamics). Retired/legacy
+credentials are excluded. Source facts cache for six hours; successful owner and
 analysis/context-specific sets cache for 24 hours with bounded memory and
 in-flight coalescing. The mobile client shares one set between Dashboard and
 For You, scopes its cache to identity/context, and discards obsolete UI results.

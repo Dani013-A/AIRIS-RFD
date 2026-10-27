@@ -6,14 +6,14 @@ import { getApiBaseUrl, getAuthenticatedIdToken } from '../services/api/apiClien
 import { matchLearningRecommendations } from '../services/learning/learningCatalogService';
 import { fallbackPlacements, ResourcePlacements, RESOURCE_SPLIT, ResourceDestination } from '../services/learning/personalizedResources';
 
-interface ResourceSet { placements: ResourcePlacements; complete: boolean; cached?: boolean; generatedAt: number; }
+interface ResourceSet { placements: ResourcePlacements; complete: boolean; cached?: boolean; generatedAt: number; expiresAt?: number; }
 const requests = new Map<string, Promise<ResourceSet>>();
 const results = new Map<string, ResourceSet>();
 const TTL = 24 * 3600;
 
 async function loadSet(key: string, context: object): Promise<ResourceSet> {
   const cached = results.get(key);
-  if (cached && Date.now() / 1000 - cached.generatedAt < TTL) return { ...cached, cached: true };
+  if (cached && Date.now() / 1000 < (cached.expiresAt || cached.generatedAt + TTL)) return { ...cached, cached: true };
   const pending = requests.get(key);
   if (pending) return pending;
   const operation = (async () => {
@@ -21,7 +21,7 @@ async function loadSet(key: string, context: object): Promise<ResourceSet> {
     if (stored) {
       try {
         const value = JSON.parse(stored);
-        if (value.key === key && Date.now() / 1000 - value.result.generatedAt < TTL) {
+        if (value.key === key && Date.now() / 1000 < (value.result.expiresAt || value.result.generatedAt + TTL)) {
           results.set(key, value.result); return { ...value.result, cached: true };
         }
       } catch { /* A corrupt cache is replaced by a fresh authenticated response. */ }
