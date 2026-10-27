@@ -115,3 +115,8 @@ def test_ai_cannot_invent_candidate_ids_or_urls(monkeypatch):
     monkeypatch.setattr(ai_service,'generate_text_with_fallback',lambda _: '{"ids":["invented-url","real"]}')
     candidate=dict(id='real',title='Accounting',description='Accounting',type='course')
     assert learning.ai_order([candidate],CONTEXT)=={'real':1}
+
+
+def test_added_cross_discipline_fallbacks_have_current_source_evidence():
+    ids={resource['id'] for resource in learning.reviewed_resources()}
+    assert {'cert_pmi_capm','cert_asq_cssyb','course_mit_financial_managerial','course_mit_financial_accounting','course_mit_management_communication'} <= ids
