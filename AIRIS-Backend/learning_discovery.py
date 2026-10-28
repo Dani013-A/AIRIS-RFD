@@ -11,6 +11,7 @@ import json
 import re
 import threading
 import time
+import xml.etree.ElementTree as ET
 from collections import OrderedDict
 from html.parser import HTMLParser
 from urllib.parse import urljoin, urlsplit
@@ -129,7 +130,7 @@ def source_records(provider, url, kind, body):
             if not isinstance(items, list): continue
             for item in items:
                 if not isinstance(item, dict): continue
-                tags = [tag for field in ("subjects", "roles") for tag in (item.get(field) if isinstance(item.get(field), list) else []) if isinstance(tag, str)]
+                tags = [tag for tag in (item.get("subjects") if isinstance(item.get("subjects"), list) else []) if isinstance(tag, str)]
                 records.append({"title": clean(item.get("title", "")), "url": item.get("url", ""),
                                 "providerId": item.get("uid"), "type": resource_type,
                                 "description": clean(item.get("summary", "")),
@@ -220,6 +221,76 @@ def topic_match(need, text):
     return bool(terms and overlap - _GENERIC and len(overlap) / len(terms) >= .66)
 
 
+def topic_phrase(need, fields):
+    """Keep compound subjects together; incidental words do not prove a topic."""
+    def tokens(value):
+        return [next(iter(topic_words(word)), word) for word in re.findall(r"[a-z0-9+#]{2,}", value.lower())]
+    wanted = tokens(need)
+    return bool(wanted and any(
+        any(sequence[index:index + len(wanted)] == wanted for index in range(len(sequence) - len(wanted) + 1))
+        for sequence in (tokens(field) for field in fields)))
+
+
+def mit_course_records(url):
+    body, final = safe_get(url)
+    title = re.search(r"<title>(.*?)</title>", body, re.S | re.I)
+    if not title: return []
+    title = clean(title.group(1).split("|")[0])
+    parser = Links(); parser.feed(body)
+    descriptions = re.findall(r'<meta\s+name="description"\s+content="([^"]*)"', body, re.I)
+    description = clean(descriptions[0]) if descriptions else ""
+    if len(title) < 8 or not description: return []
+    base = dict(title=title, description=description, skills=[], provider="MIT OpenCourseWare", type="course",
+                url=final, sourceUrl=final, origin="ai_discovered", isActive=True, isVerified=True,
+                validatedAt=int(time.time()), validationMethod="official_catalog", access="Free course materials; no credential implied")
+    rows = [dict(base, id=context_key({"url": final})[:24])]
+    for href, label in parser.links:
+        destination = canonical_url(urljoin(final, href))
+        if label not in {"Assignments", "Exams", "Lecture Notes"} or not destination.startswith(final.rstrip("/") + "/pages/"): continue
+        rows.append(dict(base, title=title + ": " + label, url=destination, id=context_key({"url": destination})[:24],
+                         type="practice" if label != "Lecture Notes" else "documentation"))
+    return rows
+
+
+def discover_context(context):
+    found = discover()
+    index_url = "https://ocw.mit.edu/sitemap.xml"
+    try:
+        with _source_lock:
+            previous = _source_entries.get(index_url)
+            if previous and time.time() - previous[0] < SOURCE_TTL:
+                urls = previous[1]
+            else:
+                body, _ = safe_get(index_url)
+                urls = sorted({node.text.removesuffix("sitemap.xml") for node in ET.fromstring(body).iter()
+                               if node.tag.endswith("}loc") and node.text and re.fullmatch(r"https://ocw\.mit\.edu/courses/[^/]+/sitemap\.xml", node.text)})
+                if not urls: raise ValueError("Empty MIT course index")
+                _source_entries[index_url] = (time.time(), urls)
+        needs = context.get("gaps", []) + [context.get("targetPosition", ""), re.sub(r"^BS\s+", "", context.get("program", ""))]
+        def priority(url):
+            slug = urlsplit(url).path.replace("-", " ")
+            return sum(len(topic_words(need)) for need in needs if topic_phrase(need, [slug]))
+        urls = sorted((url for url in urls if priority(url)), key=lambda url: (-priority(url), url))[:8]
+        def fetch_course(url):
+            with _source_lock: previous = _source_entries.get(url)
+            if previous and time.time() - previous[0] < SOURCE_TTL: return previous[1]
+            try:
+                rows = mit_course_records(url)
+                if rows:
+                    with _source_lock: _source_entries[url] = (time.time(), rows)
+                return rows
+            except (requests.RequestException, ValueError, TypeError):
+                return previous[1] if previous and time.time() - previous[0] < RESULT_TTL else []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+            rows = [row for records in pool.map(fetch_course, urls) for row in records]
+        found["resources"].extend(rows)
+        found.setdefault("providerStatus", {})["MIT contextual catalog"] = "available" if rows else "no_matching_courses"
+    except (requests.RequestException, ValueError, TypeError, ET.ParseError):
+        found.setdefault("unavailableSources", []).append("MIT contextual catalog")
+        found.setdefault("providerStatus", {})["MIT contextual catalog"] = "unavailable"
+    return found
+
+
 def relevance(resource, context):
     title = resource.get("title", "")
     metadata = topic_words(title + " " + " ".join(resource.get("skills", [])))
@@ -233,14 +304,23 @@ def relevance(resource, context):
     # Qualified product names are not the similarly named academic concept.
     if "dynamics" in text and "365" in (text | product_words) and "365" not in needs and not product_requested:
         text.discard("dynamics"); metadata.discard("dynamics")
-    matched = [gap for gap in context.get("gaps", []) if topic_match(gap, text) and (len(topic_words(gap)) > 1 or topic_match(gap, metadata))]
+    fields = [title, resource.get("description", ""), *resource.get("skills", [])]
+    matched = [gap for gap in context.get("gaps", []) if topic_match(gap, text) and topic_phrase(gap, fields) and (len(topic_words(gap)) > 1 or topic_match(gap, metadata))]
+    if products and not product_requested:
+        # Broad vendor taxonomy tags alone do not establish the taught subject.
+        matched = [gap for gap in matched if topic_phrase(gap, [title, resource.get("description", "")])]
     # Product-specific training is not general employability instruction. Shared soft-skill wording requires an explicit need for that product.
     general_needs = {"project management", "communication", "professional communication", "business writing", "teamwork", "leadership", "time management", "problem solving", "quality management"}
     general_terms = {frozenset(topic_words(label)) for label in general_needs}
     if products and matched and all(frozenset(topic_words(gap)) in general_terms for gap in matched) and not product_requested:
         return 0, []
-    role_match = topic_match(context.get("targetPosition", ""), text)
-    program_match = topic_match(context.get("program", ""), text)
+    role = context.get("targetPosition", "")
+    program = re.sub(r"^(?:BS|BA|Bachelor of (?:Arts|Science)(?: in)?)\s+", "", context.get("program", ""), flags=re.I)
+    program_match = len(topic_words(program)) > 1 and topic_match(program, text) and topic_phrase(program, fields)
+    # Unqualified titles such as "Architect" span unrelated professions.
+    role_match = any(topic_match(label, text) and topic_phrase(label, fields) and
+                     (len(topic_words(label)) > 1 or not program or program_match)
+                     for label in re.split(r"\s*/\s*", role) if label)
     # Vendor credentials specify their audience. A developer credential does not become an accounting qualification because its product contains 'Finance'.
     roles = resource.get("roles") or []
     if resource.get("type") == "certification" and roles:
@@ -331,7 +411,7 @@ def remote_evidence(record):
     return bool(source and urlsplit(source).hostname in HOSTS and isinstance(checked, (int, float)) and 0 <= time.time() - checked < RESULT_TTL)
 
 
-def recommendations(context, owner, discovery=discover, catalog=reviewed_resources, ranking=ai_order):
+def recommendations(context, owner, discovery=None, catalog=reviewed_resources, ranking=ai_order):
     key = context_key({"version": SCHEMA_VERSION, "owner": owner, "context": context})
     with _lock:
         now = time.time()
@@ -349,7 +429,7 @@ def recommendations(context, owner, discovery=discover, catalog=reviewed_resourc
         result = copy.deepcopy(pending.result(timeout=85)); result["cached"] = True; return result
     try:
         try:
-            found = discovery()
+            found = discovery() if discovery is not None else discover_context(context)
             if not isinstance(found, dict) or not isinstance(found.get("resources"), list): raise ValueError("Invalid catalog response")
         except Exception:
             found = {"resources": [], "unavailableSources": ["discovery_unavailable"]}
@@ -362,7 +442,7 @@ def recommendations(context, owner, discovery=discover, catalog=reviewed_resourc
         reserved_keys = set().union(*(identities(resource) for rows in reserved.values() for resource in rows))
         candidates = [r for r in candidates if remote_evidence(r) and relevance(r, context)[0] > 0 and not identities(r) & reserved_keys]
         # Keep each resource type represented within the bounded model context.
-        candidates = [r for kind, limit in (("certification", 15), ("course", 20), ("module", 15), ("documentation", 10))
+        candidates = [r for kind, limit in (("certification", 15), ("course", 20), ("module", 15), ("practice", 10), ("documentation", 10))
                       for r in [item for item in candidates if item.get("type") == kind][:limit]]
         order, ai_status = optional_rank(ranking, candidates, context)
         # Ranking is advisory: source-validated, deterministically relevant records remain eligible during provider outages or sparse model output.

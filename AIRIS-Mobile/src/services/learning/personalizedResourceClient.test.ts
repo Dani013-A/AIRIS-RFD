@@ -45,3 +45,17 @@ test('the full backend split renders 22 globally unique placements with accurate
  expect(new Set(Object.values(result.placements).flat().map(row=>row.url)).size).toBe(22);
  expect(result.counts).toEqual({certifications:{hardcoded:2,ai_discovered:2},courses:{hardcoded:2,ai_discovered:2},practice:{hardcoded:2,ai_discovered:2},for_you:{hardcoded:5,ai_discovered:5}});
 });
+
+test('program, role and resume/interview labels isolate caches while identical contexts reuse them',async()=>{
+ fetchMock.mockResolvedValue({ok:true,json:async()=>({placements:emptyPlacements(),generatedAt:Date.now()/1000,expiresAt:Date.now()/1000+600})});
+ const original={analysisId:'profile-transition',targetPosition:'IT Specialist',program:'BS Information Technology',gaps:['network security']};
+ const contexts=[original,{...original,program:'BS Civil Engineering'},{...original,targetPosition:'Civil Engineer'},{...original,gaps:['structural analysis']},{...original,gaps:[...original.gaps,'communication']}];
+ for(const context of contexts){
+  const key=JSON.stringify(['synthetic-program-test',context]);
+  await loadPersonalizedResources(key,context);
+  await loadPersonalizedResources(key,context);
+ }
+ expect(fetchMock).toHaveBeenCalledTimes(contexts.length);
+ expect(fetchMock.mock.calls.map(call=>JSON.parse(call[1].body))).toEqual(contexts);
+ expect(fetchMock.mock.calls.every(call=>call[1].headers.Authorization==='Bearer synthetic-token')).toBe(true);
+});

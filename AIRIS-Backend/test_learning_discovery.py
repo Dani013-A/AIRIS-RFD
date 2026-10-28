@@ -1,4 +1,5 @@
 import copy
+import json
 import pytest
 import learning_discovery as learning
 from institutional_email import is_manila_student_email
@@ -269,3 +270,137 @@ def test_simulation_mentioned_only_in_security_description_is_not_engineering_ma
 def test_dynamics_product_namespace_disambiguates_even_without_365_in_title():
     row=dict(title='Prepare finance and operations apps',description='Configure Dynamics for business',type='module',skills=[],products=['dynamics-365'])
     assert learning.relevance(row,dict(targetPosition='Mechanical Engineer',program='',gaps=['dynamics']))[0]==0
+
+@pytest.mark.parametrize('context,row', [
+    (dict(program='BS Architecture', targetPosition='Architect', gaps=['architectural design']),
+     dict(title='Azure Solutions Architect', description='Design cloud architecture', skills=['architecture'], type='course')),
+    (dict(program='BS Electrical Engineering', targetPosition='Electrical Engineer', gaps=['power systems']),
+     dict(title='Microsoft Power Platform', description='Connect your business systems using the power of automation', skills=['business-applications'], products=['power-platform'], type='course')),
+    (dict(program='BS Information Technology', targetPosition='IT Specialist', gaps=['network security']),
+     dict(title='Get started with FinOps', description='Cloud financial operations for network and security teams', skills=['cloud-computing'], roles=['network-engineer','security-engineer'], type='course')),
+])
+def test_compound_needs_and_academic_context_reject_incidental_words(context, row):
+    assert learning.relevance(row, context)[0] == 0
+
+
+def test_subject_tags_do_not_include_provider_audience_roles():
+    payload=json.dumps({'modules':[dict(uid='finops',title='Get started with FinOps',url='https://learn.microsoft.com/training/modules/finops/',subjects=['cloud-computing'],roles=['network-engineer','security-engineer'])]})
+    row=learning.source_records('Microsoft Learn',learning.SOURCES[-1][1],'json',payload)[0]
+    assert row['roles']==['network-engineer','security-engineer']
+    assert row['skills']==['cloud-computing']
+
+
+def test_compound_topics_accept_grounded_phrases_and_explicit_vendor_roles():
+    row=dict(title='Configure network security groups',description='',skills=['networking'],type='module',products=['azure'])
+    assert learning.relevance(row,dict(program='BS Information Technology',targetPosition='IT Specialist',gaps=['network security']))[0]>0
+    row=dict(title='Azure Solutions Architect',description='',skills=['architecture'],type='course')
+    assert learning.relevance(row,dict(program='BS Information Technology',targetPosition='Azure Solutions Architect',gaps=[]))[0]>0
+
+
+def selectable_programs():
+    from pathlib import Path
+    colleges=json.loads((Path(__file__).parent/'data/tip_programs.json').read_text())
+    return [program for college in colleges if college['name']!='Senior High School' for program in college['programs'] if program['verification']['status']=='verified']
+
+
+@pytest.mark.parametrize('program',selectable_programs(),ids=lambda p:p['name'])
+def test_every_selectable_program_keeps_baseline_and_isolates_context(program):
+    context=dict(analysisId='program-matrix',program=program['name'],targetPosition=program['suggestedPositions'][0],gaps=[])
+    calls=[]
+    def offline():
+        calls.append(1)
+        return dict(resources=[],unavailableSources=['synthetic_outage'])
+    owner='synthetic-program-matrix'
+    first=learning.recommendations(context,owner,offline,ranking=lambda *_:None)
+    assert first['counts']=={tab:dict(hardcoded=count,ai_discovered=0) for tab,count in learning.SPLIT.items()}
+    assert learning.recommendations(context,owner,offline,ranking=lambda *_:None)['cached']
+    changed=learning.recommendations(dict(context,targetPosition='Different career goal'),owner,offline,ranking=lambda *_:None)
+    gaps=learning.recommendations(dict(context,gaps=['communication']),owner,offline,ranking=lambda *_:None)
+    assert len({first['contextId'],changed['contextId'],gaps['contextId']})==3
+    assert len(calls)==3
+
+
+def test_degree_prefix_alias_retains_program_evidence_without_conflating_fields():
+    course=dict(title='Civil Engineering Materials',skills=['construction materials'],type='course')
+    for label in ['BS Civil Engineering','Civil Engineering','Bachelor of Science in Civil Engineering']:
+        assert learning.relevance(course,dict(program=label,targetPosition='Graduate',gaps=[]))[0]>0
+    assert learning.relevance(course,dict(program='BS Mechanical Engineering',targetPosition='Graduate',gaps=[]))[0]==0
+
+
+def test_vendor_taxonomy_alone_does_not_establish_a_taught_subject():
+    row=dict(title='Purchase Azure savings plan for compute',description='Minimize cloud operational costs.',skills=['cloud-computing','finance-accounting'],products=['azure'],type='module')
+    assert learning.relevance(row,dict(program='BS Accountancy',targetPosition='Accountant',gaps=['accounting']))[0]==0
+
+
+def test_slash_separated_target_position_preserves_qualified_role_evidence():
+    row=dict(title='Certified Tester Foundation Level',skills=['software testing'],type='certification')
+    assert learning.relevance(row,dict(program='BS Information Technology',targetPosition='QA / Software Tester',gaps=[]))[0]>0
+    assert learning.relevance(dict(title='Azure Architect',skills=['cloud design'],type='course'),dict(program='BS Architecture',targetPosition='Architect / Designer',gaps=[]))[0]==0
+
+
+def test_contextual_mit_catalog_uses_official_metadata_and_real_material_links(monkeypatch):
+    learning._source_entries.clear()
+    calls=[]
+    url='https://ocw.mit.edu/courses/structural-analysis/'
+    sitemap='<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>'+url+'sitemap.xml</loc></sitemap><sitemap><loc>https://evil.example/courses/structural-analysis/sitemap.xml</loc></sitemap></sitemapindex>'
+    page='<title>Structural Analysis | MIT OpenCourseWare</title><meta name="description" content="Study structural analysis and engineering design."><a href="/courses/structural-analysis/pages/assignments/">Assignments</a><a href="https://evil.example/">Exams</a>'
+    def fetch(destination):
+        calls.append(destination)
+        return (sitemap if destination.endswith('sitemap.xml') else page),destination
+    monkeypatch.setattr(learning,'safe_get',fetch)
+    monkeypatch.setattr(learning,'discover',lambda:dict(resources=[],unavailableSources=[]))
+    context=dict(program='BS Civil Engineering',targetPosition='Civil Engineer',gaps=['structural analysis'])
+    found=learning.discover_context(context)
+    assert len(found['resources'])==2
+    assert found['resources'][0]['title']=='Structural Analysis'
+    assert found['resources'][1]['title']=='Structural Analysis: Assignments'
+    assert found['resources'][1]['type']=='practice'
+    assert all(learning.remote_evidence(row) for row in found['resources'])
+    assert not any('evil.example' in destination for destination in calls)
+    learning.discover_context(context)
+    assert len(calls)==2
+    unrelated=learning.discover_context(dict(context,gaps=['psychology'],program='Bachelor of Arts in Psychology',targetPosition='Psychometrician'))
+    assert unrelated['resources']==[]
+
+
+def test_contextual_mit_unavailable_or_malformed_keeps_existing_sources(monkeypatch):
+    learning._source_entries.clear()
+    monkeypatch.setattr(learning,'discover',lambda:dict(resources=records('dynamic'),unavailableSources=[]))
+    monkeypatch.setattr(learning,'safe_get',lambda _:('<not-xml','https://ocw.mit.edu/sitemap.xml'))
+    found=learning.discover_context(CONTEXT)
+    assert len(found['resources'])==len(records('dynamic'))
+    assert found['providerStatus']['MIT contextual catalog']=='unavailable'
+
+
+def test_official_practice_discoveries_survive_candidate_serialization():
+    learning._cache.clear()
+    row=records('dynamic')[0]
+    row.update(id='official-practice',type='practice',title='Accounting practice problems')
+    found=dict(resources=[row],unavailableSources=[])
+    result=learning.recommendations(dict(CONTEXT,analysisId='practice-type'),'synthetic-practice',lambda:found,ranking=lambda *_:None)
+    assert result['counts']['practice']['ai_discovered']==1
+    assert result['placements']['practice'][-1]['id']=='official-practice'
+
+
+def test_contextual_source_timeout_keeps_baseline_with_default_pipeline(monkeypatch):
+    learning._cache.clear();learning._source_entries.clear()
+    monkeypatch.setattr(learning,'discover',lambda:dict(resources=[],unavailableSources=['all_primary_sources']))
+    def timeout(_): raise learning.requests.Timeout('synthetic provider timeout')
+    monkeypatch.setattr(learning,'safe_get',timeout)
+    result=learning.recommendations(dict(CONTEXT,analysisId='default-pipeline-outage'),'synthetic-default-outage',ranking=lambda *_:None)
+    assert result['counts']=={tab:dict(hardcoded=count,ai_discovered=0) for tab,count in learning.SPLIT.items()}
+    assert result['providerStatus']['MIT contextual catalog']=='unavailable'
+    assert result['status']=='partial'
+
+
+def test_contextual_course_fetches_are_bounded(monkeypatch):
+    learning._source_entries.clear();calls=[]
+    urls=[f'https://ocw.mit.edu/courses/structural-analysis-{n}/' for n in range(16)]
+    index='<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+''.join('<sitemap><loc>'+url+'sitemap.xml</loc></sitemap>' for url in urls)+'</sitemapindex>'
+    monkeypatch.setattr(learning,'discover',lambda:dict(resources=[],unavailableSources=[]))
+    def fetch(url):
+        calls.append(url)
+        return (index if url.endswith('sitemap.xml') else '<title>Structural Analysis</title><meta name="description" content="Structural analysis practice.">'),url
+    monkeypatch.setattr(learning,'safe_get',fetch)
+    result=learning.discover_context(dict(targetPosition='Civil Engineer',program='BS Civil Engineering',gaps=['structural analysis']))
+    assert len(calls)==9 and len(result['resources'])==8
