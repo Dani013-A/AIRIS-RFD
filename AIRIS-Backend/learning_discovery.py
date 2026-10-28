@@ -18,12 +18,13 @@ from urllib.parse import urljoin, urlsplit
 
 import requests
 from learning_catalog import canonical_url, reviewed_resources
+from learning_topics import learning_context
 from ai_recommendation_verifier import resolve_and_validate_hostname, verify_external_resource_url
 
 SPLIT = {"certifications": 2, "courses": 2, "practice": 2, "for_you": 5}
 SOURCE_TTL = 6 * 3600
 RESULT_TTL = 24 * 3600
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 _rank_pool = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="learning_rank")
 _rank_slots = threading.BoundedSemaphore(2)
 SOURCES = (
@@ -34,15 +35,32 @@ SOURCES = (
     ("Selenium", "https://www.selenium.dev/documentation/", "documentation"),
     ("ISTQB", "https://istqb.org/certifications/", "certification"),
     ("Open University Professional Development", "https://business.open.ac.uk/professional-development/free-learning", "course"),
+    ("OpenStax", "https://openstax.org/apps/cms/api/books/", "books"),
+    ("Unity Learn", "https://learn.unity.com/pathways", "course"),
+    ("Unity", "https://unity.com/products/unity-certifications", "certification"),
+    ("HRCI", "https://www.hrci.org/certifications/individual-certifications", "certification"),
+    ("CFA Institute", "https://www.cfainstitute.org/programs", "certification"),
     ("Microsoft Learn", "https://learn.microsoft.com/api/catalog/?locale=en-us&type=certifications,learningPaths,modules", "json"),
 )
 HOSTS = {urlsplit(source[1]).hostname for source in SOURCES} | {"asq.org", "www.asq.org", "istqb.org", "www.istqb.org", "open.edu", "www.open.edu"}
+SOURCE_TOPICS = {
+    "Selenium": ("selenium", "browser", "software", "browser automation", "webdriver"),
+    "ISTQB": ("software", "qa", "quality assurance"),
+    "Microsoft Learn": ("software", "programming", "data", "cloud", "network", "information technology", "finance", "accounting", "marketing", "supply chain", "human resource", "security", "computer"),
+    "PMI": ("project", "management", "engineering", "business"),
+    "ASQ": ("quality", "manufacturing", "industrial", "process", "statistics"),
+    "Unity": ("unity", "game", "graphics", "animation", "multimedia", "vr", "ar"),
+    "Unity Learn": ("unity", "game", "graphics", "animation", "multimedia", "vr", "ar"),
+    "HRCI": ("human resource", "recruitment", "employment", "hr", "labor", "employee"),
+    "CFA Institute": ("finance", "investment", "accounting", "valuation", "portfolio"),
+}
 _cache = OrderedDict()
 _inflight = {}
 _lock = threading.Lock()
 _source_lock = threading.Lock()
 _source_cache = None
 _source_entries = {}
+_source_failures = {}
 
 
 def words(value):
@@ -122,7 +140,14 @@ class Links(HTMLParser):
 
 def source_records(provider, url, kind, body):
     records = []
-    if kind == "json":
+    if kind == "books":
+        data = json.loads(body)
+        if not isinstance(data, dict) or not isinstance(data.get("books"), list): raise ValueError("Invalid book catalog")
+        for item in data["books"]:
+            if not isinstance(item, dict) or item.get("book_state") != "live": continue
+            records.append(dict(title=clean(item.get("title", "")), url=item.get("webview_rex_link") or item.get("webview_link", ""),
+                                type="guide", description=clean(item.get("promote_snippet", "")), skills=[], providerId=str(item.get("id", ""))))
+    elif kind == "json":
         data = json.loads(body)
         if not isinstance(data, dict): raise ValueError("Invalid source catalog")
         for group, resource_type in (("certifications", "certification"), ("learningPaths", "course"), ("modules", "module")):
@@ -130,10 +155,11 @@ def source_records(provider, url, kind, body):
             if not isinstance(items, list): continue
             for item in items:
                 if not isinstance(item, dict): continue
+                if resource_type == "certification" and re.search(r"\b(retired|retiring|deprecated)\b", clean(item.get("subtitle", "")), re.I): continue
                 tags = [tag for tag in (item.get("subjects") if isinstance(item.get("subjects"), list) else []) if isinstance(tag, str)]
                 records.append({"title": clean(item.get("title", "")), "url": item.get("url", ""),
                                 "providerId": item.get("uid"), "type": resource_type,
-                                "description": clean(item.get("summary", "")),
+                                "description": clean(item.get("summary") or item.get("subtitle", "")),
                                 "skills": tags, "roles": [value for value in item.get("roles", []) if isinstance(value, str)] if isinstance(item.get("roles"), list) else [], "levels": [value for value in item.get("levels", []) if isinstance(value, str)] if isinstance(item.get("levels"), list) else [], "products": [value for value in item.get("products", []) if isinstance(value, str)] if isinstance(item.get("products"), list) else []})
     else:
         parser = Links(); parser.feed(body)
@@ -145,6 +171,26 @@ def source_records(provider, url, kind, body):
                 any(term in title.lower() for term in ("certified", "certification", "professional", "associate"))) or (
                 provider == "ASQ" and re.fullmatch(r"/cert/[a-z0-9-]+", path) and ("certified" in title.lower() or re.search(r"\([A-Z]{3,7}\)", title) is not None))
             skills = []
+            description = title
+            regional_scope = ""
+            if provider == "Unity Learn":
+                eligible = urlsplit(destination).hostname == "learn.unity.com" and re.fullmatch(r"/pathway/[a-z0-9-]+", path) and "Pathway" in title
+                description = "Unity Learn pathway: " + title
+                skills = ["Unity"]
+            if provider == "Unity":
+                eligible = re.fullmatch(r"/products/unity-certifications/[a-z0-9-]+", path) and title.startswith("Certified")
+                description = "Unity certification: " + title
+                skills = ["Unity"]
+            if provider == "HRCI":
+                eligible = re.fullmatch(r"/certifications/individual-certifications/[a-z]+", path) and "Professional in Human Resources" in title
+                description = title
+                title = title.splitlines()[0].strip() if title else ""
+                if " - " in title and not title.endswith("International"):
+                    regional_scope = title.rsplit(" - ", 1)[1]
+                if title.startswith(("Senior", "Global")): eligible = False
+            if provider == "CFA Institute":
+                eligible = re.fullmatch(r"/programs/[a-z0-9-]+-certificate", path) and urlsplit(destination).hostname == "www.cfainstitute.org" and len(title) > 8 and not re.search(r"\b(learn more|explore|view|read)\b", title, re.I)
+                description = "CFA Institute certificate: " + title
             if provider == "Selenium" and path.startswith("/documentation/webdriver/") and path.rstrip("/") != "/documentation/webdriver":
                 eligible = bool(title)
                 title = "Selenium: " + title
@@ -155,13 +201,14 @@ def source_records(provider, url, kind, body):
                 eligible = "tester" in title.lower() or "ctfl" in title.lower()
                 skills = ["software testing", "quality assurance", "test techniques", "test case design"]
             if eligible:
-                records.append({"title": title, "url": destination, "type": kind, "description": title, "skills": skills})
+                if provider not in {"Unity Learn", "Unity", "HRCI", "CFA Institute"}: description = title
+                records.append({"title": title, "url": destination, "type": kind, "description": description, "skills": skills, "regionalScope": regional_scope})
     result = []
     for item in records:
         validated = canonical_url(item.get("url"))
         if not validated or urlsplit(validated).hostname not in HOSTS or urlsplit(validated).port not in (None, 443) or len(item["title"]) < 8:
             continue
-        if item.get("type") == "certification" and re.search(r"\b(legacy|retired|deprecated)\b", item["title"], re.I):
+        if item.get("type") == "certification" and re.search(r"\b(legacy|retired|retiring|deprecated)\b", item["title"], re.I):
             continue
         item.update(url=validated, provider=provider, sourceUrl=url, access="Cost/access not verified",
                     origin="ai_discovered", isActive=True, isVerified=True, category="for_you",
@@ -170,10 +217,10 @@ def source_records(provider, url, kind, body):
     return result
 
 
-def discover():
+def discover(context=None):
     global _source_cache
     with _source_lock:
-        if _source_cache and time.time() - _source_cache[0] < (600 if _source_cache[1].get("unavailableSources") else SOURCE_TTL):
+        if context is None and _source_cache and time.time() - _source_cache[0] < (600 if _source_cache[1].get("unavailableSources") else SOURCE_TTL):
             return copy.deepcopy(_source_cache[1])
         records = []; failures = []
         def fetch_source(source):
@@ -181,28 +228,32 @@ def discover():
             previous = _source_entries.get(url)
             if previous and time.time() - previous[0] < SOURCE_TTL:
                 return provider, previous[1], "cached"
+            if time.time() - _source_failures.get(url, 0) < 600:
+                return (provider, previous[1], "cached_after_error") if previous and time.time() - previous[0] < RESULT_TTL else (provider, [], "unavailable")
             try:
                 body, final_url = safe_get(url)
                 rows = source_records(provider, final_url, kind, body)
                 if not rows: raise ValueError("Empty source catalog")
                 _source_entries[url] = (time.time(), rows)
+                _source_failures.pop(url, None)
                 return provider, rows, "fresh"
             except (requests.RequestException, ValueError, TypeError, KeyError):
+                _source_failures[url] = time.time()
                 previous = _source_entries.get(url)
                 if previous and time.time() - previous[0] < RESULT_TTL:
                     return provider, previous[1], "cached_after_error"
                 return provider, [], "unavailable"
         provider_status = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
-            for provider, found, status in pool.map(fetch_source, SOURCES):
+            for provider, found, status in pool.map(fetch_source, selected_sources(context)):
                 provider_status[provider] = status
                 if status not in {"fresh", "cached"}: failures.append(provider)
                 records.extend(found)
         # Failed refresh retains only previously validated, bounded-age source facts.
-        if not records and _source_cache and time.time() - _source_cache[0] < RESULT_TTL:
+        if context is None and not records and _source_cache and time.time() - _source_cache[0] < RESULT_TTL:
             return copy.deepcopy(_source_cache[1])
         result = {"resources": records, "unavailableSources": failures, "providerStatus": provider_status}
-        _source_cache = (time.time(), result)
+        if context is None: _source_cache = (time.time(), result)
         return copy.deepcopy(result)
 
 
@@ -211,8 +262,14 @@ _GENERIC = {"management", "standards", "methods", "methodologies", "development"
 
 def topic_words(value):
     tokens = words(value)
-    aliases = {"testing": "test", "tester": "test", "tests": "test", "testers": "test", "automated": "automation", "accountancy": "accounting", "communications": "communication"}
+    aliases = {"testing": "test", "tester": "test", "tests": "test", "testers": "test", "automated": "automation", "accountancy": "accounting", "communications": "communication", "financial": "finance", "investing": "investment", "resources": "resource", "circuits": "circuit", "systems": "system"}
     return {aliases.get(token, token) for token in tokens}
+
+
+def selected_sources(context):
+    if context is None: return SOURCES
+    text = " ".join([context.get("program", ""), context.get("targetPosition", ""), *context.get("gaps", []), *context.get("careerTopics", []), *context.get("programTopics", [])])
+    return tuple(source for source in SOURCES if source[0] not in SOURCE_TOPICS or any(topic_phrase(topic, [text]) for topic in SOURCE_TOPICS[source[0]]))
 
 
 def topic_match(need, text):
@@ -253,7 +310,7 @@ def mit_course_records(url):
 
 
 def discover_context(context):
-    found = discover()
+    found = discover(context)
     index_url = "https://ocw.mit.edu/sitemap.xml"
     try:
         with _source_lock:
@@ -266,10 +323,12 @@ def discover_context(context):
                                if node.tag.endswith("}loc") and node.text and re.fullmatch(r"https://ocw\.mit\.edu/courses/[^/]+/sitemap\.xml", node.text)})
                 if not urls: raise ValueError("Empty MIT course index")
                 _source_entries[index_url] = (time.time(), urls)
-        needs = context.get("gaps", []) + [context.get("targetPosition", ""), re.sub(r"^BS\s+", "", context.get("program", ""))]
+        needs = context.get("gaps", []) + context.get("careerTopics", []) + context.get("programTopics", []) + [context.get("targetPosition", "")]
         def priority(url):
             slug = urlsplit(url).path.replace("-", " ")
-            return sum(len(topic_words(need)) for need in needs if topic_phrase(need, [slug]))
+            keywords = topic_words(slug)
+            generic = _GENERIC | {"engineering", "engineer", "business", "science", "information", "technology", "computer", "system", "design", "analysis"}
+            return sum(10 * len(topic_words(need)) if topic_phrase(need, [slug]) else len((topic_words(need) - generic) & keywords) for need in needs)
         urls = sorted((url for url in urls if priority(url)), key=lambda url: (-priority(url), url))[:8]
         def fetch_course(url):
             with _source_lock: previous = _source_entries.get(url)
@@ -292,23 +351,32 @@ def discover_context(context):
 
 
 def relevance(resource, context):
+    if resource.get("regionalScope") and not topic_phrase(resource["regionalScope"], [context.get("targetPosition", ""), *context.get("gaps", [])]):
+        return 0, []
     title = resource.get("title", "")
     metadata = topic_words(title + " " + " ".join(resource.get("skills", [])))
     text = topic_words(" ".join([title, resource.get("description", ""), " ".join(resource.get("skills", []))]))
     products = resource.get("products") or []
     product_words = topic_words(" ".join(products))
-    needs = topic_words(" ".join(context.get("gaps", [])) + " " + context.get("targetPosition", ""))
-    need_label = re.sub(r"[^a-z0-9]", "", (" ".join(context.get("gaps", [])) + " " + context.get("targetPosition", "")).lower())
+    labels = list(dict.fromkeys(context.get("gaps", []) + context.get("careerTopics", []) + context.get("programTopics", [])))
+    needs = topic_words(" ".join(labels) + " " + context.get("targetPosition", ""))
+    need_label = re.sub(r"[^a-z0-9]", "", (" ".join(labels) + " " + context.get("targetPosition", "")).lower())
     product_names = [re.sub(r"[^a-z0-9]", "", product.lower()) for product in products]
     product_requested = any(len(name) >= 3 and name in need_label for name in product_names)
     # Qualified product names are not the similarly named academic concept.
     if "dynamics" in text and "365" in (text | product_words) and "365" not in needs and not product_requested:
         text.discard("dynamics"); metadata.discard("dynamics")
+    if "unity" in text and "catalog" in text and any("databricks" in product for product in products) and "catalog" not in needs and not product_requested:
+        text.discard("unity"); metadata.discard("unity")
     fields = [title, resource.get("description", ""), *resource.get("skills", [])]
-    matched = [gap for gap in context.get("gaps", []) if topic_match(gap, text) and topic_phrase(gap, fields) and (len(topic_words(gap)) > 1 or topic_match(gap, metadata))]
+    matched = [gap for gap in labels if topic_match(gap, text) and topic_phrase(gap, fields) and (len(topic_words(gap)) > 1 or topic_match(gap, metadata))]
+    subjects = topic_words(" ".join(resource.get("skills", [])))
+    matched = [label for label in matched if label in context.get("gaps", []) or label not in context.get("namedTopics", []) or len(topic_words(label)) > 1 or topic_match(label, subjects) or topic_phrase(label, [resource.get("provider", "")])]
     if products and not product_requested:
         # Broad vendor taxonomy tags alone do not establish the taught subject.
         matched = [gap for gap in matched if topic_phrase(gap, [title, resource.get("description", "")])]
+        # Inferred career development alone cannot justify unrelated vendor administration.
+        matched = [gap for gap in matched if gap in context.get("gaps", [])]
     # Product-specific training is not general employability instruction. Shared soft-skill wording requires an explicit need for that product.
     general_needs = {"project management", "communication", "professional communication", "business writing", "teamwork", "leadership", "time management", "problem solving", "quality management"}
     general_terms = {frozenset(topic_words(label)) for label in general_needs}
@@ -328,7 +396,7 @@ def relevance(resource, context):
         subjects = topic_words(" ".join(resource.get("skills", []))) - audience
         if not (topic_match(context.get("targetPosition", ""), audience) or any(topic_match(gap, subjects) for gap in context.get("gaps", []))):
             return 0, []
-    return len(matched) * 5 + int(role_match) * 3 + int(program_match), matched
+    return sum(5 if label in context.get("gaps", []) else 2 for label in matched) + int(role_match) * 3 + int(program_match), matched
 
 
 def optional_rank(ranking, candidates, context):
@@ -363,7 +431,7 @@ def select(context, hardcoded, dynamic, rank=None):
     placements = {tab: [] for tab in SPLIT}; seen = set()
     rank = rank or {}
     for origin, resources in (("hardcoded", hardcoded), ("ai_discovered", dynamic)):
-        ordered = sorted(resources, key=lambda r: (-relevance(r, context)[0], rank.get(r.get("id"), 1000), canonical_url(r.get("url"))))
+        ordered = sorted(resources, key=lambda r: (not (origin == "hardcoded" and r.get("baselinePurpose")), -relevance(r, context)[0], rank.get(r.get("id"), 1000), canonical_url(r.get("url"))))
         for tab, count in SPLIT.items():
             picked = 0
             for resource in ordered:
@@ -379,12 +447,13 @@ def select(context, hardcoded, dynamic, rank=None):
                     continue
                 item = copy.deepcopy(resource)
                 focus = ", ".join(matched) or context.get("targetPosition", "your career goal")
-                foundation = is_baseline and not matched
-                reason = resource.get("baselinePurpose") if foundation else f"Study {focus} in relation to your {context.get('targetPosition', 'target role')} goal."
+                identified = any(label in context.get("gaps", []) for label in matched)
+                foundation = is_baseline and not identified
+                reason = resource.get("baselinePurpose") if foundation else f"Study {focus} {'in relation to' if identified else 'as career development for'} your {context.get('targetPosition', 'target role')} goal."
                 item.update(origin=origin, destination=tab, relevanceScore=score,
                             gapRationale=reason,
                             recommendationReason=reason,
-                            relevanceBasis="career_foundation" if foundation else "identified_need" if matched else "target_context",
+                            relevanceBasis="career_foundation" if foundation else "identified_need" if identified else "career_development" if matched else "target_context",
                             expectedOutcome=resource.get("baselinePurpose") if foundation else f"Develop understanding of {focus}; completion does not prove competency.",
                             access=resource.get("access", "Cost/access not verified"))
                 placements[tab].append(item); seen.update(keys); picked += 1
@@ -413,6 +482,7 @@ def remote_evidence(record):
 
 def recommendations(context, owner, discovery=None, catalog=reviewed_resources, ranking=ai_order):
     key = context_key({"version": SCHEMA_VERSION, "owner": owner, "context": context})
+    context = learning_context(context)
     with _lock:
         now = time.time()
         for old_key in list(_cache):
@@ -442,7 +512,7 @@ def recommendations(context, owner, discovery=None, catalog=reviewed_resources, 
         reserved_keys = set().union(*(identities(resource) for rows in reserved.values() for resource in rows))
         candidates = [r for r in candidates if remote_evidence(r) and relevance(r, context)[0] > 0 and not identities(r) & reserved_keys]
         # Keep each resource type represented within the bounded model context.
-        candidates = [r for kind, limit in (("certification", 15), ("course", 20), ("module", 15), ("practice", 10), ("documentation", 10))
+        candidates = [r for kind, limit in (("certification", 15), ("course", 20), ("module", 15), ("practice", 10), ("documentation", 10), ("guide", 10))
                       for r in [item for item in candidates if item.get("type") == kind][:limit]]
         order, ai_status = optional_rank(ranking, candidates, context)
         # Ranking is advisory: source-validated, deterministically relevant records remain eligible during provider outages or sparse model output.

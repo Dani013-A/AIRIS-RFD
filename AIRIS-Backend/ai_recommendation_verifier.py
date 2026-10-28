@@ -16,6 +16,7 @@ from typing import Dict, Any, List, Optional, Tuple
 import requests
 
 TRUSTED_DOMAINS = {
+    "hrci.org", "cfainstitute.org",
     "coursera.org",
     "edx.org",
     "cisco.com",

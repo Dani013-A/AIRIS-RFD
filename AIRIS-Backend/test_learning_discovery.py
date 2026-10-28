@@ -6,6 +6,7 @@ from institutional_email import is_manila_student_email
 
 @pytest.fixture(autouse=True)
 def mock_destination_transport(monkeypatch):
+    learning._source_failures.clear()
     monkeypatch.setattr(learning, 'verify_external_resource_url', lambda url, **_: {'verified':True,'finalUrl':url})
 
 @pytest.mark.parametrize('email', ['m@tip.edu.ph','mdaespela@tip.edu.ph',' M.Student+alias@TIP.EDU.PH '])
@@ -348,7 +349,7 @@ def test_contextual_mit_catalog_uses_official_metadata_and_real_material_links(m
         calls.append(destination)
         return (sitemap if destination.endswith('sitemap.xml') else page),destination
     monkeypatch.setattr(learning,'safe_get',fetch)
-    monkeypatch.setattr(learning,'discover',lambda:dict(resources=[],unavailableSources=[]))
+    monkeypatch.setattr(learning,'discover',lambda *_:dict(resources=[],unavailableSources=[]))
     context=dict(program='BS Civil Engineering',targetPosition='Civil Engineer',gaps=['structural analysis'])
     found=learning.discover_context(context)
     assert len(found['resources'])==2
@@ -365,7 +366,7 @@ def test_contextual_mit_catalog_uses_official_metadata_and_real_material_links(m
 
 def test_contextual_mit_unavailable_or_malformed_keeps_existing_sources(monkeypatch):
     learning._source_entries.clear()
-    monkeypatch.setattr(learning,'discover',lambda:dict(resources=records('dynamic'),unavailableSources=[]))
+    monkeypatch.setattr(learning,'discover',lambda *_:dict(resources=records('dynamic'),unavailableSources=[]))
     monkeypatch.setattr(learning,'safe_get',lambda _:('<not-xml','https://ocw.mit.edu/sitemap.xml'))
     found=learning.discover_context(CONTEXT)
     assert len(found['resources'])==len(records('dynamic'))
@@ -384,7 +385,7 @@ def test_official_practice_discoveries_survive_candidate_serialization():
 
 def test_contextual_source_timeout_keeps_baseline_with_default_pipeline(monkeypatch):
     learning._cache.clear();learning._source_entries.clear()
-    monkeypatch.setattr(learning,'discover',lambda:dict(resources=[],unavailableSources=['all_primary_sources']))
+    monkeypatch.setattr(learning,'discover',lambda *_:dict(resources=[],unavailableSources=['all_primary_sources']))
     def timeout(_): raise learning.requests.Timeout('synthetic provider timeout')
     monkeypatch.setattr(learning,'safe_get',timeout)
     result=learning.recommendations(dict(CONTEXT,analysisId='default-pipeline-outage'),'synthetic-default-outage',ranking=lambda *_:None)
@@ -397,10 +398,174 @@ def test_contextual_course_fetches_are_bounded(monkeypatch):
     learning._source_entries.clear();calls=[]
     urls=[f'https://ocw.mit.edu/courses/structural-analysis-{n}/' for n in range(16)]
     index='<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+''.join('<sitemap><loc>'+url+'sitemap.xml</loc></sitemap>' for url in urls)+'</sitemapindex>'
-    monkeypatch.setattr(learning,'discover',lambda:dict(resources=[],unavailableSources=[]))
+    monkeypatch.setattr(learning,'discover',lambda *_:dict(resources=[],unavailableSources=[]))
     def fetch(url):
         calls.append(url)
         return (index if url.endswith('sitemap.xml') else '<title>Structural Analysis</title><meta name="description" content="Structural analysis practice.">'),url
     monkeypatch.setattr(learning,'safe_get',fetch)
     result=learning.discover_context(dict(targetPosition='Civil Engineer',program='BS Civil Engineering',gaps=['structural analysis']))
     assert len(calls)==9 and len(result['resources'])==8
+
+
+@pytest.mark.parametrize('alias,expected',[('IT','BS Information Technology'),('B.S. Civil Engineering','BS Civil Engineering'),('ME','BS Mechanical Engineering'),('Bachelor of Science in Computer Engineering','BS Computer Engineering')])
+def test_learning_program_aliases_come_from_existing_catalog(alias,expected):
+    from learning_topics import learning_context
+    context=learning_context(dict(program=alias,targetPosition='Unknown Custom Role',gaps=['actual gap']))
+    assert context['program']==expected
+    assert context['gaps']==['actual gap']
+    assert context['careerTopics']==[]
+
+
+@pytest.mark.parametrize('program',selectable_programs(),ids=lambda p:p['name'])
+def test_all_selectable_programs_use_role_topics_for_shared_discovery(program):
+    from learning_topics import learning_context
+    context=dict(analysisId='shared-dynamic-topics',program=program['name'],targetPosition=program['suggestedPositions'][0],gaps=[])
+    enriched=learning_context(context)
+    assert enriched['careerTopics'],program['name']
+    assert context['gaps']==[]
+    topic=enriched['careerTopics'][0]
+    row=records('dynamic')[0]
+    row.update(id='synthetic-topic-course',title='Synthetic fixture: '+topic,type='course',skills=[topic])
+    result=learning.recommendations(context,'synthetic-universal-topics',lambda:dict(resources=[row],unavailableSources=[]),ranking=lambda *_:None)
+    selected=[row for rows in result['placements'].values() for row in rows if row['origin']=='ai_discovered']
+    assert selected and selected[0]['relevanceBasis']=='career_development'
+    assert all(count['hardcoded']==learning.SPLIT[tab] for tab,count in result['counts'].items())
+
+
+def test_source_selection_follows_subjects_not_program_branches():
+    from learning_topics import learning_context
+    names=lambda c:{s[0] for s in learning.selected_sources(learning_context(c))}
+    hr=names(dict(program='BS Business Administration major in Human Resource Management',targetPosition='HR Specialist',gaps=['recruitment']))
+    game=names(dict(program='BS Entertainment and Multimedia Computing',targetPosition='Game Developer',gaps=['game development']))
+    mechanical=names(dict(program='BS Mechanical Engineering',targetPosition='Mechanical Engineer',gaps=['solid mechanics']))
+    assert 'HRCI' in hr and 'Unity' not in hr
+    assert {'Unity','Unity Learn'}<=game and 'HRCI' not in game
+    assert 'Unity' not in mechanical and 'HRCI' not in mechanical
+    assert 'Microsoft Learn' not in mechanical
+
+
+def test_official_credential_and_learning_catalogs_preserve_category_and_metadata():
+    sources={provider:(url,kind) for provider,url,kind in learning.SOURCES}
+    examples={
+      'Unity':'<a href="/products/unity-certifications/associate-programmer">Certified Associate: Programmer</a><a href="/courses/game-design">Game Design Course</a>',
+      'Unity Learn':'<a href="https://learn.unity.com/pathway/junior-programmer">Junior Programmer Pathway</a>',
+      'HRCI':'<a href="/certifications/individual-certifications/aphri">Associate Professional in Human Resources - International\nBuild foundational HR knowledge.</a>',
+      'CFA Institute':'<a href="/programs/investment-foundations-certificate">Investment Foundations</a><a href="/programs/course">Course</a>',
+    }
+    for provider,body in examples.items():
+        url,kind=sources[provider]
+        rows=learning.source_records(provider,url,kind,body)
+        assert len(rows)==1 and learning.remote_evidence(rows[0])
+        assert rows[0]['type']==('course' if provider=='Unity Learn' else 'certification')
+        assert rows[0]['validationMethod']=='official_catalog'
+    url,kind=sources['OpenStax']
+    rows=learning.source_records('OpenStax',url,kind,json.dumps({'books':[dict(id=1,book_state='live',title='Principles of Finance',webview_rex_link='https://openstax.org/books/principles-finance/pages/1-introduction',promote_snippet='Learn finance.'),dict(id=2,book_state='draft',title='Unavailable Book')]}))
+    assert len(rows)==1 and rows[0]['type']=='guide'
+    assert rows[0]['title']=='Principles of Finance' and learning.remote_evidence(rows[0])
+
+
+def test_career_topics_do_not_restore_generic_product_false_matches():
+    from learning_topics import learning_context
+    context=learning_context(dict(program='BS Mechanical Engineering',targetPosition='Mechanical Engineer',gaps=['project management']))
+    row=dict(title='Dynamics 365 Project Operations',description='Learn project management',skills=[],products=['dynamics-365'],type='course')
+    assert learning.relevance(row,context)[0]==0
+    assert 'analysis' not in {label.lower() for label in context['careerTopics']}
+
+
+def test_empty_issuer_navigation_does_not_abort_discovery():
+    assert learning.source_records('HRCI','https://www.hrci.org/certifications/individual-certifications','certification','<a href="/certifications/individual-certifications/aphr"></a>')==[]
+
+
+def test_all_profiles_reserve_the_same_eleven_baseline_records():
+    from learning_topics import learning_context
+    catalog=learning.reviewed_resources()
+    expected={row['id'] for row in catalog if row.get('baselinePurpose')}
+    assert len(expected)==11
+    for program in selectable_programs():
+        context=learning_context(dict(program=program['name'],targetPosition=program['suggestedPositions'][0],gaps=['communication']))
+        result=learning.select(context,catalog,[])
+        assert {row['id'] for rows in result['placements'].values() for row in rows}==expected
+
+
+def test_retired_and_retiring_credentials_do_not_pass_catalog_validation():
+    url=learning.SOURCES[-1][1]
+    body=json.dumps({'certifications':[dict(title='MCSA: BI Reporting',url='https://learn.microsoft.com/credentials/certifications/bi/',subtitle='This certification has been retired.'),dict(title='Current Credential',url='https://learn.microsoft.com/credentials/certifications/current/',subtitle='A current credential.')]})
+    rows=learning.source_records('Microsoft Learn',url,'json',body)
+    assert [r['title'] for r in rows]==['Current Credential']
+
+
+def test_competency_fragment_expansion_does_not_create_generic_needs():
+    from learning_topics import learning_context
+    industrial=learning_context(dict(program='BS Industrial Engineering',targetPosition='Industrial Engineer',gaps=[]))
+    assert 'Time' not in industrial['careerTopics']
+    assert learning.relevance(dict(title='Just in time Azure access',description='Configure real-time workloads',skills=[],products=['azure'],type='course'),industrial)[0]==0
+    hr=learning_context(dict(program='BS Business Administration major in Human Resource Management',targetPosition='HR Specialist',gaps=[]))
+    assert 'Guidelines' not in hr['careerTopics']
+
+
+def test_unity_engine_and_databricks_unity_catalog_are_distinct_subjects():
+    row=dict(title='Govern Unity Catalog objects',description='Manage data with Unity Catalog',skills=[],products=['azure-databricks'],type='module')
+    assert learning.relevance(row,dict(program='BS Entertainment and Multimedia Computing',targetPosition='Game Developer',gaps=['Unity'],careerTopics=['Unity']))[0]==0
+    assert learning.relevance(row,dict(program='BS Data Science and Analytics',targetPosition='Data Engineer',gaps=['Unity Catalog']))[0]>0
+
+
+def test_contextual_sources_do_not_reuse_global_provider_selection(monkeypatch):
+    learning._source_cache=None;learning._source_entries.clear()
+    sources=tuple(s for s in learning.SOURCES if s[0] in {'Unity','HRCI'})
+    monkeypatch.setattr(learning,'SOURCES',sources)
+    monkeypatch.setattr(learning,'safe_get',lambda url:('<a href="/products/unity-certifications/user-programmer">Certified User: Programmer</a>' if 'unity.com' in url else '<a href="/certifications/individual-certifications/aphri">Associate Professional in Human Resources - International</a>',url))
+    assert len(learning.discover()['providerStatus'])==2
+    context=dict(program='BS Mechanical Engineering',targetPosition='Mechanical Engineer',gaps=['solid mechanics'])
+    assert learning.discover(context)['providerStatus']=={}
+    assert learning.discover(context)['resources']==[]
+    learning._source_cache=None;learning._source_entries.clear()
+
+
+def test_failed_source_is_not_retried_for_each_new_profile(monkeypatch):
+    learning._source_cache=None;learning._source_entries.clear();calls=[]
+    monkeypatch.setattr(learning,'SOURCES',tuple(s for s in learning.SOURCES if s[0]=='Unity'))
+    def fail(url): calls.append(url);raise learning.requests.Timeout('synthetic timeout')
+    monkeypatch.setattr(learning,'safe_get',fail)
+    for role in ['Game Developer','Game Designer']:
+        assert learning.discover(dict(program='',targetPosition=role,gaps=[]))['resources']==[]
+    assert len(calls)==1
+    learning._source_cache=None;learning._source_entries.clear()
+
+
+def test_psychological_testing_does_not_select_software_testing_providers():
+    from learning_topics import learning_context
+    selected={source[0] for source in learning.selected_sources(learning_context(dict(program='Bachelor of Arts in Psychology',targetPosition='Psychometrician',gaps=['psychological testing'])))}
+    assert 'Selenium' not in selected and 'ISTQB' not in selected
+
+
+def test_new_official_issuers_still_require_safe_dns(monkeypatch):
+    import ai_recommendation_verifier as verifier
+    for host in ['www.hrci.org','www.cfainstitute.org']:
+        assert verifier.is_domain_trusted(host)
+        assert not verifier.is_domain_trusted(host+'.attacker.example')
+    monkeypatch.setattr(verifier,'resolve_and_validate_hostname',lambda _: (False,'Synthetic private address'))
+    assert verifier.verify_external_resource_url('https://www.hrci.org/certifications/individual-certifications/aphr')['status']=='ssrf_blocked'
+
+
+def test_inferred_transferable_topic_does_not_justify_unrequested_vendor_administration():
+    from learning_topics import learning_context
+    context=learning_context(dict(program='BS Entertainment and Multimedia Computing',targetPosition='Game Developer',gaps=['game development']))
+    row=dict(title='Implement Databricks development lifecycle',description='Use Git Version Control with Databricks workflows',skills=[],products=['azure-databricks'],type='module')
+    assert learning.relevance(row,context)[0]==0
+
+
+def test_inferred_named_product_requires_corroborating_subject_or_provider():
+    from learning_topics import learning_context
+    context=learning_context(dict(program='BS Industrial Engineering',targetPosition='Industrial Engineer',gaps=[]))
+    assert 'Arena' in context['namedTopics']
+    row=dict(title='Doctoral Research Seminar: Knowledge in the Public Arena',description='A public forum for research',skills=[],type='course',provider='MIT OpenCourseWare')
+    assert learning.relevance(row,context)[0]==0
+    game=learning_context(dict(program='BS Entertainment and Multimedia Computing',targetPosition='Game Developer',gaps=[]))
+    assert learning.relevance(dict(title='Junior Programmer',description='Unity pathway',skills=['Unity'],provider='Unity Learn',type='course'),game)[0]>0
+
+
+def test_jurisdiction_specific_credentials_require_explicit_context():
+    row=dict(title='Professional in Human Resources - California',description='Human resource management',skills=['human resources'],type='certification',regionalScope='California')
+    context=dict(targetPosition='HR Specialist',program='BS Business Administration major in Human Resource Management',gaps=['human resource management'])
+    assert learning.relevance(row,context)[0]==0
+    assert learning.relevance(row,dict(context,targetPosition='California HR Specialist'))[0]>0
