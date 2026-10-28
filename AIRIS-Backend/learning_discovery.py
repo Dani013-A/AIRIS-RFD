@@ -222,11 +222,23 @@ def topic_match(need, text):
 
 def relevance(resource, context):
     title = resource.get("title", "")
+    metadata = topic_words(title + " " + " ".join(resource.get("skills", [])))
     text = topic_words(" ".join([title, resource.get("description", ""), " ".join(resource.get("skills", []))]))
+    products = resource.get("products") or []
+    product_words = topic_words(" ".join(products))
+    needs = topic_words(" ".join(context.get("gaps", [])) + " " + context.get("targetPosition", ""))
+    need_label = re.sub(r"[^a-z0-9]", "", (" ".join(context.get("gaps", [])) + " " + context.get("targetPosition", "")).lower())
+    product_names = [re.sub(r"[^a-z0-9]", "", product.lower()) for product in products]
+    product_requested = any(len(name) >= 3 and name in need_label for name in product_names)
     # Qualified product names are not the similarly named academic concept.
-    if "dynamics" in text and "365" in text and "365" not in topic_words(" ".join(context.get("gaps", [])) + " " + context.get("targetPosition", "")):
-        text.discard("dynamics")
-    matched = [gap for gap in context.get("gaps", []) if topic_match(gap, text)]
+    if "dynamics" in text and "365" in (text | product_words) and "365" not in needs and not product_requested:
+        text.discard("dynamics"); metadata.discard("dynamics")
+    matched = [gap for gap in context.get("gaps", []) if topic_match(gap, text) and (len(topic_words(gap)) > 1 or topic_match(gap, metadata))]
+    # Product-specific training is not general employability instruction. Shared soft-skill wording requires an explicit need for that product.
+    general_needs = {"project management", "communication", "professional communication", "business writing", "teamwork", "leadership", "time management", "problem solving", "quality management"}
+    general_terms = {frozenset(topic_words(label)) for label in general_needs}
+    if products and matched and all(frozenset(topic_words(gap)) in general_terms for gap in matched) and not product_requested:
+        return 0, []
     role_match = topic_match(context.get("targetPosition", ""), text)
     program_match = topic_match(context.get("program", ""), text)
     # Vendor credentials specify their audience. A developer credential does not become an accounting qualification because its product contains 'Finance'.
@@ -384,7 +396,7 @@ def recommendations(context, owner, discovery=discover, catalog=reviewed_resourc
         result["providerStatus"] = found.get("providerStatus", {})
         result["selectionDiagnostics"] = {"received": len(found["resources"]), "rejectedMetadata": len(found["resources"])-len(well_formed), "rejectedEvidence": len(well_formed)-len(evidenced), "relevanceMatched": len(relevant), "eligibleDiscovered": len(candidates), "reviewedCatalog": len(hardcoded), "unusableDestinations": len(rejected_urls)}
         result["status"] = "complete" if result["complete"] else "partial"
-        result["shortfallReasons"] = {tab: {origin: ("insufficient_reviewed_catalog" if origin == "hardcoded" else "unusable_destinations" if rejected_urls else "discovery_unavailable" if found.get("unavailableSources") else "insufficient_relevant_unique_candidates") for origin, count in origins.items() if count} for tab, origins in result["shortfall"].items()}
+        result["shortfallReasons"] = {tab: {origin: ("insufficient_reviewed_catalog" if origin == "hardcoded" else "unusable_destinations" if rejected_urls else "discovery_unavailable" if not found["resources"] else "insufficient_relevant_unique_candidates") for origin, count in origins.items() if count} for tab, origins in result["shortfall"].items()}
         result.update(contextId=key, cached=False, unavailableSources=found["unavailableSources"], generatedAt=int(now),
                       expiresAt=int(now) + (RESULT_TTL if order is not None else 600))
         with _lock:

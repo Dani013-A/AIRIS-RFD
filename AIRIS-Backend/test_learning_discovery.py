@@ -250,3 +250,22 @@ def test_model_timeout_preserves_validated_candidates_and_exact_split():
     result=learning.recommendations(CONTEXT,'model-timeout',lambda:dict(resources=records('dynamic'),unavailableSources=[]),lambda:records('hard'),timeout)
     assert result['complete'] and result['aiStatus']=='timeout'
     assert sum(c['ai_discovered'] for c in result['counts'].values())==11
+
+
+def test_product_setup_does_not_substitute_for_general_project_management():
+    row=dict(title='Deploy Dynamics 365 Project Operations',description='Learn project management capabilities',type='course',skills=['business-user'],products=['dynamics-365'])
+    context=dict(targetPosition='Mechanical Engineer',program='Mechanical Engineering',gaps=['project management'])
+    assert learning.relevance(row,context)[0]==0
+    assert learning.relevance(row,dict(context,targetPosition='Dynamics 365 Consultant'))[0]>0
+    assert learning.relevance(row,dict(context,gaps=['Project-Management']))[0]==0
+    assert learning.relevance(row,dict(context,targetPosition='Dynamics365 Consultant'))[0]>0
+
+
+def test_simulation_mentioned_only_in_security_description_is_not_engineering_material():
+    row=dict(title='Secure email with Microsoft Defender',description='Includes attack simulation',type='module',skills=['security'],products=['m365'])
+    assert learning.relevance(row,dict(targetPosition='Mechanical Engineer',program='',gaps=['simulation']))[0]==0
+
+
+def test_dynamics_product_namespace_disambiguates_even_without_365_in_title():
+    row=dict(title='Prepare finance and operations apps',description='Configure Dynamics for business',type='module',skills=[],products=['dynamics-365'])
+    assert learning.relevance(row,dict(targetPosition='Mechanical Engineer',program='',gaps=['dynamics']))[0]==0
