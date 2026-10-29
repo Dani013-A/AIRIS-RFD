@@ -21,10 +21,13 @@
  *   node scripts/seed_uat_participants.js [--dry-run] [--service-account <path>]
  */
 
-const { initializeApp, cert, getApps } = require("firebase-admin/app");
-const { getFirestore, FieldValue } = require("firebase-admin/firestore");
-const fs = require("fs");
-const path = require("path");
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const FORM_NAME = "AIRIS Mobile Application – User Acceptance Testing (UAT) Evaluation Form";
 const PRIVACY_NOTICE =
@@ -579,7 +582,7 @@ async function runSeeder() {
     process.exit(1);
   }
 
-  const serviceAccount = require(serviceAccountPath);
+  const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf8"));
   const projectId = serviceAccount.project_id || serviceAccount.projectId;
   console.log(`\n[TARGET RESOLUTION] Service Account Project ID: ${projectId}`);
   console.log(`Target Firestore Collections: users/{uid}/[resumes, resumeAnalyses, interviews, activities]`);
@@ -627,14 +630,14 @@ async function runSeeder() {
   console.log("\n=== COMPLETED SUCCESSFULLY ===");
 }
 
-if (require.main === module) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   runSeeder().catch((err) => {
     console.error("\n[FATAL SEEDER ERROR]", err.message);
     process.exit(1);
   });
 }
 
-module.exports = {
+export {
   seedParticipants,
   validateRoster,
   verifyTargetProject,

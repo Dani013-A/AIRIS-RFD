@@ -11,8 +11,8 @@ export interface AppUser {
   resumeVersionCounter?: number;
   hasUploadedResume?: boolean;
   isProfileComplete?: boolean;
-  createdAt: any;
-  updatedAt: any;
+  createdAt: string;
+  updatedAt: string;
   hasCompletedOnboarding?: boolean;
   hasCompletedInitialSetup?: boolean;
   isDisabled?: boolean;
@@ -36,6 +36,7 @@ export interface StudentListItem extends AppUser {
   resumesCount: number;
   interviewsCount: number;
   lastActivityDate?: string;
+  interviewDates?: string[];
 }
 
 export interface AlignmentComponentBreakdown {
@@ -46,12 +47,17 @@ export interface AlignmentComponentBreakdown {
 }
 
 export interface StoredResumeAnalysis {
+  id?: string;
   analysisId?: string;
+  createdAt?: unknown;
+  version?: number;
+  targetPosition?: string;
+  result?: StoredResumeAnalysis;
   atsScore?: {
     overallScore?: number;
     level?: string;
     levelLabel?: string;
-    breakdown?: Record<string, any>;
+    breakdown?: Record<string, unknown>;
   };
   alignmentScore?: {
     overallScore?: number;
@@ -78,8 +84,8 @@ export interface StoredResumeAnalysis {
     formula?: string;
   };
   overallScore?: number;
-  detectedSkills?: Array<string | Record<string, any>>;
-  suggestions?: Array<string | Record<string, any>>;
+  detectedSkills?: Array<string | { name?: string; skill?: string; [field: string]: unknown }>;
+  suggestions?: Array<string | { id?: string; section?: string; title?: string; action?: string; priority?: string; why?: string; reason?: string; example?: string; [field: string]: unknown }>;
   analyzedAt?: string;
   scoringModelVersion?: string;
 }
@@ -93,6 +99,7 @@ export interface StoredInterviewSession {
   completedAt?: number;
   totalQuestions: number;
   overallScore?: number;
+  score?: number;
   finalReport?: {
     overallPerformance?: number;
     categoryBreakdown?: {
@@ -105,8 +112,8 @@ export interface StoredInterviewSession {
       aiHolisticEvaluation?: number;
       communicationClarity?: number;
     };
-    strengths?: string[];
-    areasToImprove?: string[];
+    strengths?: Array<string | { strength?: string; title?: string; description?: string }>;
+    areasToImprove?: Array<string | { area?: string; title?: string; description?: string; weakness?: string }>;
     weakestAnswer?: {
       question?: string;
       whyItWasWeak?: string;
@@ -141,10 +148,10 @@ export interface StudentActivityEvent {
 export interface StudentFullProfile {
   student: StudentListItem;
   latestResumeAnalysis: StoredResumeAnalysis | null;
-  latestResume: any | null;
+  latestResume: Record<string, unknown> | null;
   latestInterview: StoredInterviewSession | null;
   scoreHistory: ScoreHistoryEvent[];
   activityLogs: StudentActivityEvent[];
-  resumesList: any[];
+  resumesList: Array<Record<string, unknown>>;
   interviewsList: StoredInterviewSession[];
 }

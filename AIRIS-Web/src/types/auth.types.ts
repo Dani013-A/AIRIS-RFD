@@ -6,8 +6,8 @@ export interface AdminUser {
   fullName: string;
   role: AdminRole;
   assignedProgram?: string;
-  createdAt: any;
-  updatedAt: any;
+  createdAt: unknown;
+  updatedAt: unknown;
 }
 
 export function formatAdminRoleLabel(role: AdminRole): string {

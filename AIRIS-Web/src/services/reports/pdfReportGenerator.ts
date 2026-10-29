@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import autoTable, { type RowInput, type Table } from "jspdf-autotable";
 import { ReportMetadata, ReportPayload, ReportVisualization } from "../../types/report.types";
 import { TIP_LOGO_BASE64 } from "./tipAssetsBase64";
 
@@ -29,7 +29,7 @@ export interface TableReportData {
 }
 
 export class PdfDocumentLayout {
-  doc: jsPDF;
+  doc: jsPDF & { lastAutoTable?: Table };
   metadata: ReportMetadata;
   pageWidth: number;
   pageHeight: number;
@@ -691,7 +691,7 @@ export class PdfDocumentLayout {
     }
 
     const points = viz.historicalPoints;
-    const maxVal = Math.max(...points.map((p) => p.value), 1);
+    const maxVal = Math.max(...points.map((p) => p.value ?? p.count ?? 0), 1);
     const plotWidth = this.contentWidth - 16;
     const plotHeight = 20;
     const plotX = this.margin + 8;
@@ -702,9 +702,10 @@ export class PdfDocumentLayout {
     this.doc.rect(plotX, plotY, plotWidth, plotHeight, "S");
 
     const coords = points.map((pt, idx) => {
+      const val = pt.value ?? pt.count ?? 0;
       const cx = plotX + (idx / (points.length - 1)) * plotWidth;
-      const cy = plotY + plotHeight - (pt.value / maxVal) * (plotHeight - 4) - 2;
-      return { cx, cy, pt };
+      const cy = plotY + plotHeight - (val / maxVal) * (plotHeight - 4) - 2;
+      return { cx, cy, pt, val };
     });
 
     this.doc.setDrawColor(...TEAL);
@@ -713,13 +714,13 @@ export class PdfDocumentLayout {
       this.doc.line(coords[i].cx, coords[i].cy, coords[i + 1].cx, coords[i + 1].cy);
     }
 
-    coords.forEach(({ cx, cy, pt }) => {
+    coords.forEach(({ cx, cy, val }) => {
       this.doc.setFillColor(...TEAL);
       this.doc.circle(cx, cy, 0.9, "F");
       this.doc.setFont("helvetica", "bold");
       this.doc.setFontSize(5.5);
       this.doc.setTextColor(...NAVY);
-      this.doc.text(String(pt.value), cx, cy - 1.8, { align: "center" });
+      this.doc.text(String(val), cx, cy - 1.8, { align: "center" });
     });
 
     this.currentY = plotY + plotHeight + 5;
@@ -737,7 +738,7 @@ export class PdfDocumentLayout {
       this.currentY = 18;
     }
 
-    const effectiveRows =
+    const effectiveRows: RowInput[] =
       rows.length > 0
         ? rows
         : [
@@ -746,7 +747,7 @@ export class PdfDocumentLayout {
                 content: "No records found matching the specified report criteria.",
                 colSpan: headers.length,
                 styles: { halign: "center", textColor: [100, 116, 139], fontStyle: "italic", cellPadding: 4 },
-              } as any,
+              },
             ],
           ];
 
@@ -787,8 +788,8 @@ export class PdfDocumentLayout {
       },
     });
 
-    this.currentY = (this.doc as any).lastAutoTable?.finalY
-      ? (this.doc as any).lastAutoTable.finalY + 3.5
+    this.currentY = this.doc.lastAutoTable?.finalY
+      ? this.doc.lastAutoTable.finalY + 3.5
       : this.currentY + 3.5;
   }
 
@@ -816,7 +817,7 @@ export class PdfDocumentLayout {
   }
 
   finalize(fileName: string): void {
-    const pageCount = (this.doc.internal as any).getNumberOfPages();
+    const pageCount = (this.doc.internal as typeof this.doc.internal & { getNumberOfPages(): number }).getNumberOfPages();
 
     for (let i = 1; i <= pageCount; i++) {
       this.doc.setPage(i);
@@ -871,7 +872,7 @@ export function generateProfessionalPdf(
   reportDataOrFileName?: TableReportData | string,
   maybeFileName?: string
 ): void {
-  const isPayload = (arg: any): arg is ReportPayload => {
+  const isPayload = (arg: ReportMetadata | ReportPayload): arg is ReportPayload => {
     return arg && "key" in arg && "tableData" in arg && "metadata" in arg;
   };
 
@@ -943,7 +944,7 @@ export function generateProfessionalPdf(
 
     // 6. Student Roster: intentionally starts on a fresh page (page 2)
     // when all preceding content fit on page 1.
-    if ((layout.doc.internal as any).getNumberOfPages() === 1) {
+    if ((layout.doc.internal as typeof layout.doc.internal & { getNumberOfPages(): number }).getNumberOfPages() === 1) {
       layout.doc.addPage();
       layout.currentY = 18;
     }

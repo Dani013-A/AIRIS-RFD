@@ -19,8 +19,8 @@ export const useAuditStore = create<AuditState>((set) => ({
     try {
       const entries = await fetchAuditLogs(50);
       set({ logs: entries, loading: false });
-    } catch (err: any) {
-      set({ error: err.message || "Failed to load security logs.", loading: false });
+    } catch (err) {
+      set({ error: (err && typeof err === "object" && "message" in err ? String(err.message || "") : "") || "Failed to load security logs.", loading: false });
     }
   },
 }));

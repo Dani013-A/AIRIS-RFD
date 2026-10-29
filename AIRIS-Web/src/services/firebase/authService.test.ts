@@ -27,14 +27,16 @@ jest.mock("../../config/firebase", () => ({
 
 // Import after mocks
 import { signInAdmin } from "./authService";
+import { getDoc } from "firebase/firestore";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+const mockedGetDoc = jest.mocked(getDoc);
+const mockedSignIn = jest.mocked(signInWithEmailAndPassword);
 
 describe("isInstitutionalEmail", () => {
   // Valid institutional emails
   it("accepts @tip.edu.ph emails", async () => {
-    const { getDoc } = require("firebase/firestore");
-    const { signInWithEmailAndPassword } = require("firebase/auth");
 
-    getDoc.mockResolvedValue({
+    mockedGetDoc.mockResolvedValue({
       exists: () => true,
       data: () => ({
         role: "career_center",
@@ -44,7 +46,7 @@ describe("isInstitutionalEmail", () => {
       }),
     });
 
-    signInWithEmailAndPassword.mockResolvedValue({
+    mockedSignIn.mockResolvedValue({
       user: { uid: "test-uid", email: "user@tip.edu.ph" },
     });
 
@@ -53,10 +55,8 @@ describe("isInstitutionalEmail", () => {
   });
 
   it("accepts uppercase @TIP.EDU.PH emails", async () => {
-    const { getDoc } = require("firebase/firestore");
-    const { signInWithEmailAndPassword } = require("firebase/auth");
 
-    getDoc.mockResolvedValue({
+    mockedGetDoc.mockResolvedValue({
       exists: () => true,
       data: () => ({
         role: "career_center",
@@ -66,7 +66,7 @@ describe("isInstitutionalEmail", () => {
       }),
     });
 
-    signInWithEmailAndPassword.mockResolvedValue({
+    mockedSignIn.mockResolvedValue({
       user: { uid: "test-uid", email: "USER@TIP.EDU.PH" },
     });
 
@@ -75,10 +75,8 @@ describe("isInstitutionalEmail", () => {
   });
 
   it("accepts @airis.edu.ph emails", async () => {
-    const { getDoc } = require("firebase/firestore");
-    const { signInWithEmailAndPassword } = require("firebase/auth");
 
-    getDoc.mockResolvedValue({
+    mockedGetDoc.mockResolvedValue({
       exists: () => true,
       data: () => ({
         role: "career_center",
@@ -88,7 +86,7 @@ describe("isInstitutionalEmail", () => {
       }),
     });
 
-    signInWithEmailAndPassword.mockResolvedValue({
+    mockedSignIn.mockResolvedValue({
       user: { uid: "test-uid", email: "user@airis.edu.ph" },
     });
 
@@ -98,10 +96,8 @@ describe("isInstitutionalEmail", () => {
 
   // Invalid emails - should be rejected
   it("rejects admin@gmail.com", async () => {
-    const { getDoc } = require("firebase/firestore");
-    const { signInWithEmailAndPassword, signOut } = require("firebase/auth");
 
-    getDoc.mockResolvedValue({
+    mockedGetDoc.mockResolvedValue({
       exists: () => true,
       data: () => ({
         role: "career_center",
@@ -111,7 +107,7 @@ describe("isInstitutionalEmail", () => {
       }),
     });
 
-    signInWithEmailAndPassword.mockResolvedValue({
+    mockedSignIn.mockResolvedValue({
       user: { uid: "test-uid", email: "admin@gmail.com" },
     });
 
@@ -122,10 +118,8 @@ describe("isInstitutionalEmail", () => {
   });
 
   it("rejects test@gmail.com", async () => {
-    const { getDoc } = require("firebase/firestore");
-    const { signInWithEmailAndPassword, signOut } = require("firebase/auth");
 
-    getDoc.mockResolvedValue({
+    mockedGetDoc.mockResolvedValue({
       exists: () => true,
       data: () => ({
         role: "career_center",
@@ -135,7 +129,7 @@ describe("isInstitutionalEmail", () => {
       }),
     });
 
-    signInWithEmailAndPassword.mockResolvedValue({
+    mockedSignIn.mockResolvedValue({
       user: { uid: "test-uid", email: "test@gmail.com" },
     });
 
@@ -146,10 +140,8 @@ describe("isInstitutionalEmail", () => {
   });
 
   it("rejects somethingadmin@gmail.com", async () => {
-    const { getDoc } = require("firebase/firestore");
-    const { signInWithEmailAndPassword, signOut } = require("firebase/auth");
 
-    getDoc.mockResolvedValue({
+    mockedGetDoc.mockResolvedValue({
       exists: () => true,
       data: () => ({
         role: "career_center",
@@ -159,7 +151,7 @@ describe("isInstitutionalEmail", () => {
       }),
     });
 
-    signInWithEmailAndPassword.mockResolvedValue({
+    mockedSignIn.mockResolvedValue({
       user: { uid: "test-uid", email: "somethingadmin@gmail.com" },
     });
 
@@ -170,10 +162,8 @@ describe("isInstitutionalEmail", () => {
   });
 
   it("rejects admin.something@gmail.com", async () => {
-    const { getDoc } = require("firebase/firestore");
-    const { signInWithEmailAndPassword, signOut } = require("firebase/auth");
 
-    getDoc.mockResolvedValue({
+    mockedGetDoc.mockResolvedValue({
       exists: () => true,
       data: () => ({
         role: "career_center",
@@ -183,7 +173,7 @@ describe("isInstitutionalEmail", () => {
       }),
     });
 
-    signInWithEmailAndPassword.mockResolvedValue({
+    mockedSignIn.mockResolvedValue({
       user: { uid: "test-uid", email: "admin.something@gmail.com" },
     });
 
@@ -194,10 +184,8 @@ describe("isInstitutionalEmail", () => {
   });
 
   it("rejects user@tip.edu.ph.com (lookalike domain)", async () => {
-    const { getDoc } = require("firebase/firestore");
-    const { signInWithEmailAndPassword, signOut } = require("firebase/auth");
 
-    getDoc.mockResolvedValue({
+    mockedGetDoc.mockResolvedValue({
       exists: () => true,
       data: () => ({
         role: "career_center",
@@ -207,7 +195,7 @@ describe("isInstitutionalEmail", () => {
       }),
     });
 
-    signInWithEmailAndPassword.mockResolvedValue({
+    mockedSignIn.mockResolvedValue({
       user: { uid: "test-uid", email: "user@tip.edu.ph.com" },
     });
 
@@ -219,10 +207,8 @@ describe("isInstitutionalEmail", () => {
 
   // Admin role is not subject to email validation (by design)
   it("allows admin role with any email (admin role is not email-restricted)", async () => {
-    const { getDoc } = require("firebase/firestore");
-    const { signInWithEmailAndPassword } = require("firebase/auth");
 
-    getDoc.mockResolvedValue({
+    mockedGetDoc.mockResolvedValue({
       exists: () => true,
       data: () => ({
         role: "admin",
@@ -232,7 +218,7 @@ describe("isInstitutionalEmail", () => {
       }),
     });
 
-    signInWithEmailAndPassword.mockResolvedValue({
+    mockedSignIn.mockResolvedValue({
       user: { uid: "test-uid", email: "admin@gmail.com" },
     });
 

@@ -30,8 +30,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const admin = await signInAdmin(email, password);
       set({ currentAdmin: admin, loading: false });
       return admin;
-    } catch (err: any) {
-      set({ error: err.message || "Invalid credentials.", loading: false });
+    } catch (err) {
+      set({ error: (err && typeof err === "object" && "message" in err ? String(err.message || "") : "") || "Invalid credentials.", loading: false });
       throw err;
     }
   },
@@ -55,8 +55,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       set({ loading: false });
       return data;
-    } catch (err: any) {
-      set({ error: err.message || "Failed to send verification code.", loading: false });
+    } catch (err) {
+      set({ error: (err && typeof err === "object" && "message" in err ? String(err.message || "") : "") || "Failed to send verification code.", loading: false });
       throw err;
     }
   },
@@ -79,8 +79,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       set({ isOtpVerified: true, loading: false });
-    } catch (err: any) {
-      set({ error: err.message || "Invalid verification code.", loading: false });
+    } catch (err) {
+      set({ error: (err && typeof err === "object" && "message" in err ? String(err.message || "") : "") || "Invalid verification code.", loading: false });
       throw err;
     }
   },

@@ -1,7 +1,10 @@
-const { initializeApp, cert } = require("firebase-admin/app");
-const { getFirestore } = require("firebase-admin/firestore");
-const fs = require("fs");
-const path = require("path");
+import { initializeApp, cert } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const searchDirs = [
   path.join(__dirname, ".."),      // AIRIS-Web root
@@ -25,7 +28,7 @@ if (!serviceAccountPath) {
   process.exit(1);
 }
 
-const serviceAccount = require(serviceAccountPath);
+const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf8"));
 
 initializeApp({
   credential: cert(serviceAccount)

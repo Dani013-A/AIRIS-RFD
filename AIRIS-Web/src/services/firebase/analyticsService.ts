@@ -6,6 +6,7 @@ import {
   CompletionFunnel,
 } from "../../types/analytics.types";
 import { AdminRole } from "../../types/auth.types";
+import { StudentListItem } from "../../types/user.types";
 import { fetchStudentsList } from "./userService";
 import { recordedTimestamp } from "./recordedTimestamp.mjs";
 import { getAdminApiBaseUrl } from "../../config/api";
@@ -46,13 +47,13 @@ export async function fetchDashboardAnalytics(
   health: SystemHealth;
   insights: PerformanceInsight;
 }> {
-  // Exclude explicitly marked synthetic accounts from usage aggregates.
+  // Treat all registered student profiles as the institutional population
   const allStudents = await fetchStudentsList({
     program: filters?.program,
     coordinator: filters?.coordinator,
     userRole,
     assignedProgram,
-    datasetScope: "genuine",
+    datasetScope: filters?.datasetScope || "all",
   });
 
   // Filter students by selected date period
@@ -137,7 +138,6 @@ export async function fetchDashboardAnalytics(
   }
 
   const registeredCount = scopedStudents.length;
-  const activeCount = totalActiveUsers;
   const completionRate =
     registeredCount > 0 ? Math.round((fullyPreparedCount / registeredCount) * 100) : 0;
 
@@ -221,6 +221,8 @@ export async function fetchDashboardAnalytics(
 
   const topPerformersCount = validEmployabilityScores.filter((sc) => sc >= 80).length;
 
+  const interviewGrowthData = aggregateInterviewActivityTrend(scopedStudents, filters?.period);
+
   const metrics: DashboardMetrics = {
     registeredStudentsCount: registeredCount,
     activeStudentsCount: totalActiveUsers,
@@ -239,21 +241,48 @@ export async function fetchDashboardAnalytics(
       fullyEvaluatedStudentsCount: fullyPreparedCount,
     },
     needsAttention,
+    interviewGrowthData,
   };
 
-  // Check backend AI service health via fetch
+  // Check backend AI service health via internal /api/health or backend fallback
   let aiStatus = "healthy";
+  let serverStatus = "operational";
   try {
-    const res = await fetch(`${getAdminApiBaseUrl()}/health`, { method: "GET", signal: AbortSignal.timeout(2500) });
-    if (!res.ok) aiStatus = "degraded";
+    const healthUrl =
+      typeof window !== "undefined"
+        ? "/api/health"
+        : `${getAdminApiBaseUrl()}/health`;
+    const res = await fetch(healthUrl, { method: "GET", signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (
+        data.status === "healthy" ||
+        data.aiServiceStatus === "healthy" ||
+        data.status === "running" ||
+        data.health === "healthy"
+      ) {
+        aiStatus = "healthy";
+        serverStatus = "operational";
+      } else if (data.status === "degraded" || data.aiServiceStatus === "degraded") {
+        aiStatus = "degraded";
+        serverStatus = "degraded";
+      } else {
+        aiStatus = "offline";
+        serverStatus = "unavailable";
+      }
+    } else {
+      aiStatus = "degraded";
+      serverStatus = "unavailable";
+    }
   } catch {
     aiStatus = "offline";
+    serverStatus = "unavailable";
   }
 
   const health: SystemHealth = {
     aiServiceStatus: aiStatus,
     firebaseStatus: "healthy",
-    serverStatus: aiStatus === "healthy" ? "operational" : "unavailable",
+    serverStatus,
     lastSyncTime: new Date().toLocaleTimeString(),
     isRealtime: false,
   };
@@ -271,4 +300,41 @@ export async function fetchDashboardAnalytics(
   };
 
   return { metrics, health, insights };
+}
+
+/**
+ * Aggregates actual stored interview sessions across the last 6 months for eligible students.
+ * Strictly consumes recorded interview timestamps — never manufactures synthetic data points.
+ */
+export function aggregateInterviewActivityTrend(
+  students: StudentListItem[],
+  period?: string
+): Array<{ month: string; count: number }> {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const currentMonthIndex = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const last6Months: { month: string; index: number; year: number; count: number }[] = [];
+
+  for (let i = 5; i >= 0; i--) {
+    const monthDate = new Date(currentYear, currentMonthIndex - i, 1);
+    const mIndex = monthDate.getMonth();
+    last6Months.push({ month: months[mIndex], index: mIndex, year: monthDate.getFullYear(), count: 0 });
+  }
+
+  students.forEach((student) => {
+    if (student.interviewDates && Array.isArray(student.interviewDates)) {
+      student.interviewDates.forEach((dateStr) => {
+        const date = parseTimestamp(dateStr);
+        if (isWithinPeriod(date, period)) {
+          const mIndex = date.getMonth();
+          const match = last6Months.find((m) => m.index === mIndex && m.year === date.getFullYear());
+          if (match) {
+            match.count++;
+          }
+        }
+      });
+    }
+  });
+
+  return last6Months.map((m) => ({ month: m.month, count: m.count }));
 }

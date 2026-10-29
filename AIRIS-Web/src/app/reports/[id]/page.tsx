@@ -16,16 +16,10 @@ import {
   FileSpreadsheet,
   ArrowLeft,
   Filter,
-  CheckCircle2,
   AlertCircle,
   Search,
   ChevronLeft,
   ChevronRight,
-  TrendingUp,
-  Activity,
-  Users,
-  Server,
-  ShieldCheck,
   Info,
 } from "lucide-react";
 
@@ -65,29 +59,34 @@ function ReportDetailContent() {
     }
   }, [searchParams, reportKey, router]);
 
-  // Load authoritative payload
-  const loadPayload = async () => {
-    if (!currentAdmin) return;
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetchReportPayload(reportKey, currentAdmin, { ...scope, datasetScope: "all" });
-      setPayload(res);
-      setCurrentPage(1);
-    } catch (err: any) {
-      setError(err.message || "Failed to load authoritative report data.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadPayload();
+    let isCancelled = false;
+    if (!currentAdmin) return;
+
+    fetchReportPayload(reportKey, currentAdmin, { ...scope, datasetScope: "all" })
+      .then((res) => {
+        if (!isCancelled) {
+          setPayload(res);
+          setCurrentPage(1);
+          setError(null);
+          setLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!isCancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load authoritative report data.");
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
   }, [reportKey, currentAdmin, scope.coordinator, scope.period]);
 
   // Scope filter change handler
   const handleScopeChange = (updated: Partial<ReportFilterScope>) => {
+    setLoading(true);
     const newScope = { ...scope, ...updated, datasetScope: "all" as const };
     setScope(newScope);
 
@@ -106,8 +105,8 @@ function ReportDetailContent() {
     try {
       const fileName = `AIRIS_${reportKey}_${Date.now()}.pdf`;
       generateProfessionalPdf(payload, fileName);
-    } catch (err: any) {
-      alert(`Failed to generate PDF: ${err.message}`);
+    } catch (err: unknown) {
+      alert(`Failed to generate PDF: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setExportingPdf(false);
     }
@@ -120,8 +119,8 @@ function ReportDetailContent() {
     try {
       const fileName = `AIRIS_${reportKey}_${Date.now()}.csv`;
       triggerFileDownload(payload.rawCsvData || "", fileName);
-    } catch (err: any) {
-      alert(`Failed to export CSV: ${err.message}`);
+    } catch (err: unknown) {
+      alert(`Failed to export CSV: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setExportingCsv(false);
     }
@@ -318,7 +317,7 @@ function ReportDetailContent() {
               {payload.visualizations.map((viz, idx) => (
                 <div
                   key={idx}
-                  className="p-5 bg-white rounded-xl border border-gray-200 space-y-4 shadow-sm flex flex-col justify-between"
+                  className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between overflow-hidden min-w-0 space-y-4 @container"
                 >
                   <div className="space-y-1 border-b border-gray-150 pb-3">
                     <h3 className="text-sm font-black text-[#1E3E6B] uppercase tracking-wide">
@@ -331,8 +330,8 @@ function ReportDetailContent() {
 
                   {/* 1. Donut Breakdown (SVG Render) */}
                   {viz.type === "donut_breakdown" && viz.donutData && (
-                    <div className="flex flex-col sm:flex-row items-center justify-around gap-6 py-2">
-                      <div className="relative w-36 h-36 shrink-0">
+                    <div className="flex-1 flex flex-col sm:flex-row lg:flex-col xl:flex-row @[440px]:flex-row items-center justify-center gap-5 sm:gap-6 p-4 sm:p-5 bg-gradient-to-b from-[#F8FAFC] to-[#F1F5F9]/40 rounded-xl border border-[#DCE6EE] w-full min-w-0 overflow-hidden">
+                      <div className="relative w-32 h-32 sm:w-36 sm:h-36 xl:w-40 xl:h-40 shrink-0 mx-auto @[440px]:mx-0">
                         <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
                           {(() => {
                             const total = viz.donutData.reduce((acc, d) => acc + d.count, 0);
@@ -352,38 +351,48 @@ function ReportDetailContent() {
                                   r="35"
                                   fill="transparent"
                                   stroke={d.colorHex || "#1E3E6B"}
-                                  strokeWidth="18"
+                                  strokeWidth="16"
                                   strokeDasharray={strokeDasharray}
                                   strokeDashoffset={strokeDashoffset}
                                   pathLength="100"
-                                  className="transition-all duration-300 hover:opacity-80"
+                                  className="transition-all duration-300 hover:opacity-85"
                                 />
                               );
                             });
                           })()}
                         </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                          <span className="text-base font-black text-[#1E3E6B]">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center select-none pointer-events-none px-1">
+                          <span className="text-xl sm:text-2xl font-black text-[#1E3E6B] leading-none">
                             {viz.donutData.reduce((acc, d) => acc + d.count, 0)}
                           </span>
-                          <span className="text-[9px] font-bold text-gray-400 uppercase">Total</span>
+                          <span className="text-[9px] sm:text-[10px] font-extrabold text-[#5F7E97] uppercase tracking-wider mt-1">
+                            Total Records
+                          </span>
                         </div>
                       </div>
 
                       {/* Legend */}
-                      <div className="space-y-2 w-full sm:w-auto">
+                      <div className="space-y-2 w-full flex-1 min-w-0 max-w-sm @[440px]:max-w-none flex flex-col justify-center">
                         {viz.donutData.map((item, dIdx) => (
-                          <div key={dIdx} className="flex items-center justify-between gap-4 text-xs">
-                            <div className="flex items-center gap-2">
+                          <div
+                            key={dIdx}
+                            className="flex items-center justify-between gap-2.5 p-2 sm:p-2.5 rounded-lg bg-white border border-[#DCE6EE] text-xs shadow-xs min-w-0"
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
                               <span
-                                className="w-3 h-3 rounded shrink-0"
+                                className="w-3.5 h-3.5 rounded-md shrink-0 shadow-xs"
                                 style={{ backgroundColor: item.colorHex || "#1E3E6B" }}
                               />
-                              <span className="font-semibold text-gray-700">{item.label}</span>
+                              <span className="font-bold text-gray-800 break-words leading-snug">
+                                {item.label}
+                              </span>
                             </div>
-                            <span className="font-bold text-[#1E3E6B]">
-                              {item.count} ({item.percentage.toFixed(1)}%)
-                            </span>
+                            <div className="font-extrabold text-[#1E3E6B] shrink-0 text-right whitespace-nowrap pl-2">
+                              <span>{item.count}</span>{" "}
+                              <span className="text-[#5F7E97] font-semibold text-[11px]">
+                                ({item.percentage.toFixed(1)}%)
+                              </span>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -392,7 +401,7 @@ function ReportDetailContent() {
 
                   {/* 2. Funnel Pipeline */}
                   {viz.type === "funnel_pipeline" && viz.funnelStages && (
-                    <div className="space-y-3 py-1">
+                    <div className="flex-1 flex flex-col justify-center space-y-3.5 py-2 px-1">
                       {viz.funnelStages.map((st, sIdx) => (
                         <div key={sIdx} className="space-y-1">
                           <div className="flex items-center justify-between text-xs">
@@ -433,7 +442,7 @@ function ReportDetailContent() {
 
                   {/* 3. Score Distribution */}
                   {viz.type === "score_distribution" && viz.scoreDistribution && (
-                    <div className="space-y-3 py-1">
+                    <div className="flex-1 flex flex-col justify-center space-y-3.5 py-2 px-1">
                       {viz.scoreDistribution.tiers.map((tier, tIdx) => {
                         const maxTier = Math.max(
                           ...viz.scoreDistribution!.tiers.map((t) => t.count),
@@ -475,16 +484,16 @@ function ReportDetailContent() {
 
                   {/* 4. Horizontal Bars */}
                   {viz.type === "horizontal_bars" && viz.metrics && (
-                    <div className="space-y-3 py-1">
+                    <div className="flex-1 flex flex-col justify-center space-y-4 py-2 px-1">
                       {viz.metrics.map((m, mIdx) => (
-                        <div key={mIdx} className="space-y-1">
+                        <div key={mIdx} className="space-y-1.5">
                           <div className="flex items-center justify-between text-xs">
                             <span className="font-bold text-[#1E3E6B]">{m.label}</span>
                             <span className="font-black text-[#1E3E6B]">
                               {m.subtext ? `${m.value} (${m.subtext})` : m.value}
                             </span>
                           </div>
-                          <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden border border-gray-200">
+                          <div className="w-full bg-gray-100 rounded-full h-3.5 overflow-hidden border border-gray-200">
                             <div
                               className="h-full rounded-full transition-all duration-500"
                               style={{
@@ -503,7 +512,7 @@ function ReportDetailContent() {
 
                   {/* 5. Health Telemetry */}
                   {viz.type === "telemetry_health" && viz.healthTelemetry && (
-                    <div className="space-y-2.5 py-1">
+                    <div className="flex-1 flex flex-col justify-center space-y-2.5 py-1">
                       {viz.healthTelemetry.map((item, hIdx) => {
                         const isOp = item.status === "operational";
                         const isDeg = item.status === "degraded";
@@ -548,16 +557,117 @@ function ReportDetailContent() {
                     </div>
                   )}
 
-                  {/* 6. Trend Line / Intentional Low Data State (Amendment 4) */}
+                  {/* 6. Trend Line / Historical Points */}
                   {viz.type === "trend_line" && (
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-center space-y-1">
-                      <p className="text-xs font-semibold text-gray-600">
-                        {viz.insufficientDataNote ||
-                          "Trend unavailable for the selected period because insufficient historical observations are available."}
-                      </p>
-                      <span className="text-[10px] text-gray-400 block">
-                        Strict Data Integrity: No synthetic historical observations are manufactured.
-                      </span>
+                    <div className="flex-1 flex flex-col justify-center">
+                      {viz.historicalPoints &&
+                      viz.historicalPoints.length > 0 &&
+                      viz.historicalPoints.some((p) => (p.count ?? p.value ?? 0) > 0) ? (
+                        <div className="w-full relative bg-gradient-to-b from-[#F8FAFC] to-[#F1F5F9]/50 rounded-xl p-5 border border-[#DCE6EE]">
+                          {(() => {
+                            const cWidth = 600;
+                            const cHeight = 150;
+                            const pLeft = 40;
+                            const pRight = 30;
+                            const pTop = 25;
+                            const pBottom = 30;
+                            const uWidth = cWidth - pLeft - pRight;
+                            const uHeight = cHeight - pTop - pBottom;
+                            const pointsList = viz.historicalPoints;
+                            const maxVal = Math.max(...pointsList.map((p) => p.count ?? p.value ?? 0), 3);
+
+                            const pts = pointsList.map((p, idx) => {
+                              const cnt = p.count ?? p.value ?? 0;
+                              const x = pLeft + (idx / Math.max(pointsList.length - 1, 1)) * uWidth;
+                              const y = cHeight - pBottom - (cnt / maxVal) * uHeight;
+                              return { ...p, cnt, x, y };
+                            });
+
+                            let sPath = "";
+                            if (pts.length > 0) {
+                              sPath = `M ${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+                              for (let i = 0; i < pts.length - 1; i++) {
+                                const p0 = pts[Math.max(i - 1, 0)];
+                                const p1 = pts[i];
+                                const p2 = pts[i + 1];
+                                const p3 = pts[Math.min(i + 2, pts.length - 1)];
+
+                                const cp1x = p1.x + (p2.x - p0.x) / 6;
+                                const cp1y = p1.y + (p2.y - p0.y) / 6;
+                                const cp2x = p2.x - (p3.x - p1.x) / 6;
+                                const cp2y = p2.y - (p3.y - p1.y) / 6;
+
+                                sPath += ` C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+                              }
+                            }
+
+                            const baseY = cHeight - pBottom;
+                            const aPath =
+                              pts.length > 0
+                                ? `${sPath} L ${pts[pts.length - 1].x.toFixed(1)},${baseY.toFixed(1)} L ${pts[0].x.toFixed(1)},${baseY.toFixed(1)} Z`
+                                : "";
+
+                            return (
+                              <svg viewBox={`0 0 ${cWidth} ${cHeight}`} className="w-full h-auto overflow-visible select-none">
+                                <defs>
+                                  <linearGradient id="reportTrendArea" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#1E3E6B" stopOpacity="0.22" />
+                                    <stop offset="60%" stopColor="#0D9488" stopOpacity="0.08" />
+                                    <stop offset="100%" stopColor="#0D9488" stopOpacity="0.00" />
+                                  </linearGradient>
+                                  <linearGradient id="reportTrendLine" x1="0" y1="0" x2="1" y2="0">
+                                    <stop offset="0%" stopColor="#1E3E6B" />
+                                    <stop offset="50%" stopColor="#2563EB" />
+                                    <stop offset="100%" stopColor="#0D9488" />
+                                  </linearGradient>
+                                </defs>
+
+                                {/* Grid Lines */}
+                                <g className="text-[10px] font-semibold fill-[#64748B]">
+                                  <line x1={pLeft} y1={pTop} x2={cWidth - pRight} y2={pTop} stroke="#E2E8F0" strokeDasharray="4 4" />
+                                  <text x={pLeft - 8} y={pTop + 3} textAnchor="end">{maxVal}</text>
+
+                                  <line x1={pLeft} y1={pTop + uHeight / 2} x2={cWidth - pRight} y2={pTop + uHeight / 2} stroke="#E2E8F0" strokeDasharray="4 4" />
+                                  <text x={pLeft - 8} y={pTop + uHeight / 2 + 3} textAnchor="end">{Math.round(maxVal / 2)}</text>
+
+                                  <line x1={pLeft} y1={baseY} x2={cWidth - pRight} y2={baseY} stroke="#CBD5E1" strokeWidth="1.25" />
+                                  <text x={pLeft - 8} y={baseY + 3} textAnchor="end">0</text>
+                                </g>
+
+                                {aPath && <path d={aPath} fill="url(#reportTrendArea)" />}
+                                {sPath && <path d={sPath} fill="none" stroke="url(#reportTrendLine)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
+
+                                {pts.map((p, idx) => (
+                                  <g key={idx}>
+                                    {p.cnt > 0 && (
+                                      <circle cx={p.x} cy={p.y} r="6" fill="#2563EB" opacity="0.2" />
+                                    )}
+                                    <circle cx={p.x} cy={p.y} r="4" fill={p.cnt > 0 ? "#1E3E6B" : "#94A3B8"} stroke="#FFFFFF" strokeWidth="2" />
+                                    {p.cnt > 0 && (
+                                      <text x={p.x} y={p.y - 8} textAnchor="middle" stroke="#FFFFFF" strokeWidth="3" paintOrder="stroke fill" className="text-[11px] font-black fill-[#1E3E6B]">
+                                        {p.cnt}
+                                      </text>
+                                    )}
+                                    <text x={p.x} y={baseY + 16} textAnchor="middle" className="text-[11px] font-semibold fill-[#64748B]">
+                                      {p.month || p.date || p.label || ""}
+                                    </text>
+                                  </g>
+                                ))}
+                              </svg>
+                            );
+                          })()}
+                        </div>
+                      ) : (
+                        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-center space-y-1">
+                          <p className="text-xs font-semibold text-gray-600">
+                            {viz.insufficientDataNote ||
+                              "Trend unavailable for the selected period because insufficient historical observations are available."}
+                          </p>
+                          <span className="text-[10px] text-gray-400 block">
+                            Strict Data Integrity: No synthetic historical observations are manufactured.
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

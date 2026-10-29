@@ -34,8 +34,8 @@ export default function ForgotPasswordPage() {
       await sendAdminPasswordReset(trimmedEmail);
       setMessage("A password reset link has been dispatched to your email address.");
       setEmail("");
-    } catch (err: any) {
-      setError(err.message || "Failed to submit password reset request.");
+    } catch (err) {
+      setError((err && typeof err === "object" && "message" in err ? String(err.message || "") : "") || "Failed to submit password reset request.");
     } finally {
       setLoading(false);
     }

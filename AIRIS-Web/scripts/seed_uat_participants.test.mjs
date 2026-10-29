@@ -32,7 +32,6 @@ class MockFirestore {
       this.data.set(colName, new Map());
     }
     const colMap = this.data.get(colName);
-    const self = this;
 
     return {
       get: async () => {
@@ -68,10 +67,10 @@ class MockFirestore {
           },
           collection: (subName) => {
             const subKey = `${colName}/${id}/${subName}`;
-            if (!self.subcollections.has(subKey)) {
-              self.subcollections.set(subKey, new Map());
+            if (!this.subcollections.has(subKey)) {
+              this.subcollections.set(subKey, new Map());
             }
-            const subMap = self.subcollections.get(subKey);
+            const subMap = this.subcollections.get(subKey);
             return {
               doc: (subId) => {
                 const sId = subId || `sub_${Math.random().toString(36).substring(2, 9)}`;

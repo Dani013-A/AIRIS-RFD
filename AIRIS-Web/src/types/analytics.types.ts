@@ -39,6 +39,7 @@ export interface DashboardMetrics {
     fullyEvaluatedStudentsCount: number;
   };
   needsAttention: NeedsAttentionBreakdown;
+  interviewGrowthData?: { month: string; count: number }[];
   // Deprecated aliases for backwards compatibility
   totalActiveUsers?: number;
   totalResumesParsed?: number;

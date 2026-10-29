@@ -31,7 +31,7 @@ export async function logAuditEvent(
   performedBy?: string,
   target?: string
 ): Promise<void> {
-  let entry: Omit<AuditLogEntry, "id" | "timestamp"> & { timestamp: any };
+  let entry: Omit<AuditLogEntry, "id" | "timestamp"> & { timestamp: ReturnType<typeof serverTimestamp> };
 
   if (typeof actionOrParams === "object") {
     entry = {
@@ -65,7 +65,7 @@ export async function logAuditEvent(
   }
 }
 
-function parseAuditTimestamp(ts: any): string {
+function parseAuditTimestamp(ts: string | { toDate?: () => Date; seconds?: number } | null | undefined): string {
   if (!ts) return new Date().toISOString();
   if (typeof ts === "string") return ts;
   if (typeof ts.toDate === "function") return ts.toDate().toISOString();

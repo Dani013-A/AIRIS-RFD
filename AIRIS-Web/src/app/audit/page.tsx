@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { DashboardLayout } from "../../components/layouts/DashboardLayout";
 import { fetchAuditLogs } from "../../services/firebase/auditService";
 import { AuditLogEntry } from "../../types/audit.types";
-import { formatAdminRoleLabel } from "../../types/auth.types";
+import { formatAdminRoleLabel, type AdminRole } from "../../types/auth.types";
 import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import { Select } from "../../components/ui/Select";
 import {
@@ -236,7 +236,7 @@ export default function AuditLogsPage() {
                                   {log.actor || "System"}
                                 </span>
                                 <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
-                                  {formatAdminRoleLabel(log.role as any)}
+                                  {formatAdminRoleLabel(log.role as AdminRole)}
                                 </span>
                               </div>
                             </td>
@@ -351,7 +351,7 @@ export default function AuditLogsPage() {
                           <span className="text-[10px] text-gray-400 block uppercase">Actor</span>
                           <span className="text-[#1E3E6B] font-extrabold">{log.actor}</span>
                           <span className="text-[10px] text-gray-500 block">
-                            {formatAdminRoleLabel(log.role as any)}
+                            {formatAdminRoleLabel(log.role as AdminRole)}
                           </span>
                         </div>
                         <div>

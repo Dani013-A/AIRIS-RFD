@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "../../store/authStore";
@@ -25,27 +25,25 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
+function subscribeSidebarPreference(onChange: () => void) {
+  window.addEventListener("airis-sidebar-preference", onChange);
+  return () => window.removeEventListener("airis-sidebar-preference", onChange);
+}
+
+function readSidebarPreference() {
+  return localStorage.getItem("airis_sidebar_collapsed") === "true";
+}
+
 export function DashboardLayout({ children }: LayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { currentAdmin, loading, initialized, isOtpVerified, initializeSession, logout } = useAuthStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
-  // Load collapsed preference from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("airis_sidebar_collapsed");
-    if (saved !== null) {
-      setIsCollapsed(saved === "true");
-    }
-  }, []);
+  const isCollapsed = useSyncExternalStore(subscribeSidebarPreference, readSidebarPreference, () => false);
 
   const toggleCollapsed = () => {
-    setIsCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem("airis_sidebar_collapsed", String(next));
-      return next;
-    });
+    localStorage.setItem("airis_sidebar_collapsed", String(!isCollapsed));
+    window.dispatchEvent(new Event("airis-sidebar-preference"));
   };
 
   useEffect(() => {

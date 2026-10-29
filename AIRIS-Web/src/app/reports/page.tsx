@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { DashboardLayout } from "../../components/layouts/DashboardLayout";
@@ -10,22 +10,17 @@ import { Select } from "../../components/ui/Select";
 import { exportReport } from "../../services/firebase/reportService";
 import { ReportFilterScope, ReportType } from "../../types/report.types";
 import { TIP_MANILA_COORDINATORS, getCoordinatorById } from "../../config/tipManilaAcademic";
+import type { LucideIcon } from "lucide-react";
 import {
   FileText,
   FileSpreadsheet,
-  Download,
   Filter,
   Users,
   TrendingUp,
   Activity,
-  HeartPulse,
-  ShieldCheck,
   ShieldAlert,
   Server,
-  Calendar,
-  Layers,
   ArrowRight,
-  ExternalLink,
   CheckCircle2,
 } from "lucide-react";
 
@@ -33,7 +28,7 @@ function ReportsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { currentAdmin } = useAuthStore();
-  const { metrics, loadDashboardData } = useDashboardStore();
+  const { metrics, health, loading, error, loadDashboardData } = useDashboardStore();
   const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -52,7 +47,7 @@ function ReportsPageContent() {
   const [scope, setScope] = useState<ReportFilterScope>({
     coordinator: urlCoordinator,
     period: urlPeriod,
-    datasetScope: "all",
+    datasetScope: "genuine",
   });
 
   // Keep dashboard metrics synced for the report preview cards
@@ -60,20 +55,22 @@ function ReportsPageContent() {
     loadDashboardData(
       {
         coordinator: scope.coordinator,
-        period: scope.period as any,
-        datasetScope: "all",
+        period: scope.period,
+        datasetScope: "genuine",
       },
-      currentAdmin?.role
+      currentAdmin?.role,
+      currentAdmin?.assignedProgram
     );
   }, [
     scope.coordinator,
     scope.period,
     currentAdmin?.role,
+    currentAdmin?.assignedProgram,
     loadDashboardData,
   ]);
 
   const handleScopeChange = (updated: Partial<ReportFilterScope>) => {
-    const newScope: ReportFilterScope = { ...scope, ...updated, datasetScope: "all" };
+    const newScope: ReportFilterScope = { ...scope, ...updated, datasetScope: "genuine" };
     setScope(newScope);
 
     const q = new URLSearchParams();
@@ -95,8 +92,8 @@ function ReportsPageContent() {
     try {
       await exportReport(key, currentAdmin, format, scope);
       setSuccessMessage(`Successfully generated "${reportTitle}" (${format.toUpperCase()}).`);
-    } catch (err: any) {
-      alert(`Failed to export report: ${err.message || "Unknown error"}`);
+    } catch (err) {
+      alert(`Failed to export report: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setDownloadingKey(null);
     }
@@ -123,7 +120,7 @@ function ReportsPageContent() {
         ? `Past ${scope.period.toUpperCase()}`
         : "All Recorded History";
 
-    return `${coordStr} · ${periodStr} · All Participants`;
+    return `${coordStr} · ${periodStr} · Excludes marked demo/test accounts`;
   };
 
   const buildReportViewHref = (key: string) => {
@@ -140,7 +137,7 @@ function ReportsPageContent() {
     title: string;
     question: string;
     description: string;
-    icon: any;
+    icon: LucideIcon;
     preview: Array<{ label: string; value: string | number }>;
   }> = [
     {
@@ -203,9 +200,9 @@ function ReportsPageContent() {
         "Infrastructure telemetry, database availability status, AI scoring core responsiveness, and active user tallies.",
       icon: Server,
       preview: [
-        { label: "Firestore", value: "Online" },
-        { label: "AI Scoring", value: "Active" },
-        { label: "Audit Log", value: "Active" },
+        { label: "Firestore snapshot", value: health?.firebaseStatus || "Not checked" },
+        { label: "API reachability", value: health?.aiServiceStatus || "Not checked" },
+        { label: "Audit Log", value: "View report" },
       ],
     },
     {
@@ -217,9 +214,9 @@ function ReportsPageContent() {
         "Immutable administrative event log capturing timestamps, authenticated actors, target student records, and action results.",
       icon: ShieldAlert,
       preview: [
-        { label: "Actor Attribution", value: "Active" },
-        { label: "Protected Logging", value: "Active" },
-        { label: "Retention", value: "Permanent" },
+        { label: "Actor Attribution", value: "Review records" },
+        { label: "Protected Logging", value: "Not checked" },
+        { label: "Retention", value: "Not verified" },
       ],
     },
   ];
@@ -237,6 +234,7 @@ function ReportsPageContent() {
           </p>
         </div>
 
+        {error && <p role="alert" className="text-sm text-red-700">Report previews unavailable: {error}</p>}
         {successMessage && (
           <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
             <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
@@ -332,7 +330,7 @@ function ReportsPageContent() {
                         <div key={pIdx} className="space-y-0.5">
                           <span className="text-[10px] text-gray-500 block truncate">{p.label}</span>
                           <span className="font-extrabold text-[#1E3E6B] text-xs block truncate">
-                            {p.value}
+                            {error ? "Unavailable" : loading ? "Loading…" : metrics ? p.value : "Not loaded"}
                           </span>
                         </div>
                       ))}

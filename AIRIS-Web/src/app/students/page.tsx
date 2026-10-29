@@ -89,11 +89,13 @@ function StudentsDirectoryContent() {
       coordinator: urlCoordinator,
       status: urlAccountStatus !== "all" ? urlAccountStatus : undefined,
       userRole: currentAdmin?.role,
+      assignedProgram: currentAdmin?.assignedProgram,
     });
   }, [
     urlCoordinator,
     urlAccountStatus,
     currentAdmin?.role,
+    currentAdmin?.assignedProgram,
     currentAdmin?.uid,
     loadStudents,
   ]);
@@ -369,6 +371,7 @@ function StudentsDirectoryContent() {
                   coordinator: urlCoordinator,
                   status: urlAccountStatus !== "all" ? urlAccountStatus : undefined,
                   userRole: currentAdmin?.role,
+                  assignedProgram: currentAdmin?.assignedProgram,
                 })
               }
               className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition cursor-pointer"

@@ -1,9 +1,10 @@
-const {test, beforeEach} = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const Module = require('node:module');
-const ts = require('typescript');
-require.extensions['.ts'] = (module, path) => module._compile(ts.transpileModule(fs.readFileSync(path,'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true } }).outputText, path);
+import { test, beforeEach } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import Module, { createRequire } from 'node:module';
+import ts from 'typescript';
+const loadModule = createRequire(import.meta.url);
+loadModule.extensions['.ts'] = (module, path) => module._compile(ts.transpileModule(fs.readFileSync(path,'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true } }).outputText, path);
 let token, actor, otp, writes;
 const records = new Map();
 const auth = {
@@ -23,7 +24,7 @@ Module._load = function(id, parent, isMain) {
   if (id === 'next/server') return { NextResponse: { json: (body, options = {}) => ({body, status: options.status || 200}) } };
   return original(id, parent, isMain);
 };
-const { POST } = require('../app/api/accounts/lifecycle/route.ts');
+const { POST } = loadModule('../app/api/accounts/lifecycle/route.ts');
 beforeEach(() => {
   records.clear(); writes = 0;
   token = {uid:'synthetic', email:'msynthetic@tip.edu.ph', auth_time: Date.now()/1000};

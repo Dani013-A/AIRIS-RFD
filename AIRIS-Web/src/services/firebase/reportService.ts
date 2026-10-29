@@ -10,6 +10,7 @@ import {
   ReportPayload,
   ReportVisualization,
 } from "../../types/report.types";
+import { AnalyticsFilterParams } from "../../types/analytics.types";
 import { findCollegeByProgramName, getCoordinatorById, matchesCoordinator } from "../../config/tipManilaAcademic";
 
 /**
@@ -47,7 +48,13 @@ function buildScopeDescription(scope?: ReportFilterScope): string {
     "1y": "Past 1 Year",
   };
   const periodStr = (scope?.period && periodMap[scope.period]) || "All Recorded History";
-  return `${coordStr} · ${periodStr} · Excludes marked demo/test accounts`;
+  const datasetStr =
+    scope?.datasetScope === "genuine"
+      ? "Excludes marked demo/test"
+      : scope?.datasetScope === "demo"
+      ? "Demo/test participants only"
+      : "All Registered Students (including marked demo/test)";
+  return `${coordStr} · ${periodStr} · ${datasetStr}`;
 }
 
 function buildMetadata(title: string, admin: AdminUser, scope?: ReportFilterScope): ReportMetadata {
@@ -78,11 +85,12 @@ export async function fetchReportPayload(
   switch (reportKey) {
     case "student_profiles": {
       const coordScope = scope?.coordinator || scope?.college;
-      const effectiveDatasetScope = "genuine";
+      const effectiveDatasetScope = scope?.datasetScope || "all";
       // 1. Fetch students respecting coordinator boundaries and dataset scope
       const allStudents = await fetchStudentsList({
         coordinator: coordScope,
         userRole: admin.role,
+        assignedProgram: admin.assignedProgram,
         datasetScope: effectiveDatasetScope,
       });
 
@@ -308,10 +316,11 @@ export async function fetchReportPayload(
       const { metrics } = await fetchDashboardAnalytics(
         {
           coordinator: coordScope,
-          period: scope?.period as any,
-          datasetScope: "genuine",
+          period: scope?.period as AnalyticsFilterParams["period"],
+          datasetScope: scope?.datasetScope || "all",
         },
-        admin.role
+        admin.role,
+        admin.assignedProgram
       );
 
       const metadata = buildMetadata("Institutional Participation & Completion Funnel Report", admin, scope);
@@ -489,10 +498,11 @@ export async function fetchReportPayload(
       const { metrics } = await fetchDashboardAnalytics(
         {
           coordinator: coordScope,
-          period: scope?.period as any,
-          datasetScope: "genuine",
+          period: scope?.period as AnalyticsFilterParams["period"],
+          datasetScope: scope?.datasetScope || "all",
         },
-        admin.role
+        admin.role,
+        admin.assignedProgram
       );
 
       const metadata = buildMetadata("Mock Interview Usage & Performance Report", admin, scope);
@@ -544,9 +554,16 @@ export async function fetchReportPayload(
           type: "trend_line",
           title: "Interview Activity Historical Trend",
           subtitle: "Observed interview volume across recent calendar periods",
-          historicalPoints: [],
+          historicalPoints: (metrics.interviewGrowthData || []).map((p) => ({
+            date: p.month,
+            month: p.month,
+            count: p.count,
+            value: p.count,
+          })),
           insufficientDataNote:
-            "Trend unavailable for the selected period because insufficient historical observations are available.",
+            !metrics.interviewGrowthData || metrics.interviewGrowthData.every((p) => p.count === 0)
+              ? "Trend unavailable for the selected period because insufficient historical observations are available."
+              : undefined,
         },
       ];
 

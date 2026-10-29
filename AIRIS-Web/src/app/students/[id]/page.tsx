@@ -359,7 +359,7 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
                     Detected Candidate Skills ({analysis.detectedSkills.length})
                   </h3>
                   <div className="flex flex-wrap gap-1.5">
-                    {analysis.detectedSkills.map((skill: any, idx: number) => {
+                    {analysis.detectedSkills.map((skill, idx: number) => {
                       const label =
                         typeof skill === "string"
                           ? skill
@@ -384,7 +384,7 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
                     Evaluation Suggestions & Actionable Recommendations ({analysis.suggestions.length})
                   </h3>
                   <div className="space-y-3">
-                    {analysis.suggestions.map((sug: any, idx: number) => {
+                    {analysis.suggestions.map((sug, idx: number) => {
                       if (typeof sug === "string") {
                         return (
                           <div
@@ -530,7 +530,7 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
                       <CheckCircle2 size={14} /> Demonstrated Strengths
                     </span>
                     <ul className="space-y-1 text-xs font-semibold text-teal-900 list-disc list-inside">
-                      {interviewStrengths.map((st: any, idx: number) => (
+                      {interviewStrengths.map((st, idx: number) => (
                         <li key={idx}>
                           {typeof st === "string" ? st : st?.strength || st?.title || st?.description || JSON.stringify(st)}
                         </li>
@@ -545,7 +545,7 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
                       <AlertCircle size={14} /> Areas for Improvement
                     </span>
                     <ul className="space-y-1 text-xs font-semibold text-amber-900 list-disc list-inside">
-                      {interviewWeaknesses.map((wk: any, idx: number) => (
+                      {interviewWeaknesses.map((wk, idx: number) => (
                         <li key={idx}>
                           {typeof wk === "string" ? wk : wk?.area || wk?.title || wk?.description || wk?.weakness || JSON.stringify(wk)}
                         </li>

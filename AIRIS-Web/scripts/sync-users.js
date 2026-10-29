@@ -6,11 +6,14 @@
  * any orphaned Firestore user profiles that do not exist in Auth.
  */
 
-const { initializeApp, cert } = require("firebase-admin/app");
-const { getFirestore } = require("firebase-admin/firestore");
-const { getAuth } = require("firebase-admin/auth");
-const fs = require("fs");
-const path = require("path");
+import { initializeApp, cert } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Search parent directory and current directory for the service account json file
 const searchDirs = [
@@ -51,7 +54,7 @@ if (!serviceAccountPath) {
 }
 
 console.log(`Using Service Account key found at: ${serviceAccountPath}`);
-const serviceAccount = require(serviceAccountPath);
+const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf8"));
 
 initializeApp({
   credential: cert(serviceAccount)

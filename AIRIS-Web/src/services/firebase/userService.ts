@@ -25,8 +25,26 @@ const RESUME_ANALYSES_SUBCOLLECTION = "resumeAnalyses";
 const INTERVIEWS_SUBCOLLECTION = "interviews";
 const ACTIVITIES_SUBCOLLECTION = "activities";
 
-function parseTimestamp(ts: any): string {
+function parseTimestamp(ts: unknown): string {
   return recordedTimestamp(ts) || "";
+}
+
+export function isCompletedStoredInterview(session: Record<string, unknown> | null | undefined): boolean {
+  if (!session || typeof session !== "object") return false;
+  const completedAt = recordedTimestamp(session.completedAt);
+  if (!completedAt) return false;
+
+  const sessionStatus = typeof session.status === "string" ? session.status.toLowerCase() : undefined;
+  const disallowedStatuses = ["cancelled", "in_progress", "pending", "failed"];
+  if (sessionStatus && disallowedStatuses.includes(sessionStatus)) return false;
+
+  const finalReport = session.finalReport as Record<string, unknown> | undefined;
+  if (finalReport && typeof finalReport === "object") {
+    const reportStatus = typeof finalReport.status === "string" ? finalReport.status.toLowerCase() : undefined;
+    if (reportStatus && disallowedStatuses.includes(reportStatus)) return false;
+  }
+
+  return true;
 }
 
 /**
@@ -71,6 +89,10 @@ export interface StudentFilterOptions {
 export async function fetchStudentsList(filters?: StudentFilterOptions): Promise<StudentListItem[]> {
   const usersCol = collection(db, USERS_COLLECTION);
   const snapshot = await getDocs(usersCol);
+
+  if (filters?.userRole === "ojt_coordinator" && !filters.assignedProgram) {
+    throw new Error("OJT coordinator access requires an assignedProgram assignment boundary.");
+  }
 
   // OJT Coordinator program scoping boundary
   const effectiveProgramFilter =
@@ -172,6 +194,7 @@ export async function fetchStudentsList(filters?: StudentFilterOptions): Promise
       resumeScore = latestScore;
     }
 
+    const interviewDates: string[] = [];
     if (interviewsRes.status === "fulfilled" && !interviewsRes.value.empty) {
       interviewsCount = interviewsRes.value.size;
       let latestIntScore: number | undefined = undefined;
@@ -179,6 +202,10 @@ export async function fetchStudentsList(filters?: StudentFilterOptions): Promise
       let hasCompletedInterview = false;
       interviewsRes.value.forEach((iDoc) => {
         const iData = iDoc.data();
+        const sDate = parseTimestamp(iData.completedAt || iData.createdAt || iData.startedAt);
+        if (sDate) {
+          interviewDates.push(sDate);
+        }
 
         const score =
           iData.finalReport?.overallPerformance ??
@@ -186,7 +213,7 @@ export async function fetchStudentsList(filters?: StudentFilterOptions): Promise
           iData.overallScore ??
           iData.score;
         const iTime = new Date(parseTimestamp(iData.completedAt || iData.createdAt)).getTime();
-        if (iData.completedAt && iTime >= latestIntDate && typeof score === "number" && Number.isFinite(score) && score >= 0 && score <= 100) {
+        if (isCompletedStoredInterview(iData) && iTime >= latestIntDate && typeof score === "number" && Number.isFinite(score) && score >= 0 && score <= 100) {
           hasCompletedInterview = true;
           latestIntDate = iTime;
           latestIntScore = Number(score);
@@ -239,6 +266,7 @@ export async function fetchStudentsList(filters?: StudentFilterOptions): Promise
       resumesCount,
       interviewsCount,
       lastActivityDate,
+      interviewDates,
     };
   });
 
@@ -262,8 +290,8 @@ export async function fetchStudentDetails(studentId: string): Promise<StudentFul
   const userData = userSnap.data();
 
   // 1. Fetch Resumes & Resume Analyses
-  const resumesList: any[] = [];
-  const analysesList: any[] = [];
+  const resumesList: Record<string, unknown>[] = [];
+  const analysesList: StoredResumeAnalysis[] = [];
   try {
     const resumesColRef = collection(db, USERS_COLLECTION, studentId, RESUMES_SUBCOLLECTION);
     const resumesSnap = await getDocs(resumesColRef);
@@ -271,7 +299,7 @@ export async function fetchStudentDetails(studentId: string): Promise<StudentFul
 
     const analysesColRef = collection(db, USERS_COLLECTION, studentId, RESUME_ANALYSES_SUBCOLLECTION);
     const analysesSnap = await getDocs(analysesColRef);
-    analysesSnap.forEach((d) => analysesList.push({ id: d.id, ...d.data() }));
+    analysesSnap.forEach((d) => analysesList.push({ ...(d.data() as StoredResumeAnalysis), id: d.id }));
   } catch (e) {
     console.warn("Failed to fetch student resumes/analyses:", e);
   }
@@ -288,7 +316,7 @@ export async function fetchStudentDetails(studentId: string): Promise<StudentFul
   try {
     const interviewsColRef = collection(db, USERS_COLLECTION, studentId, INTERVIEWS_SUBCOLLECTION);
     const interviewsSnap = await getDocs(interviewsColRef);
-    interviewsSnap.forEach((d) => interviewsList.push({ sessionId: d.id, ...d.data() } as any));
+    interviewsSnap.forEach((d) => interviewsList.push({ ...(d.data() as StoredInterviewSession), sessionId: d.id }));
   } catch (e) {
     console.warn("Failed to fetch student interviews:", e);
   }
@@ -366,7 +394,7 @@ export async function fetchStudentDetails(studentId: string): Promise<StudentFul
     const score =
       i.finalReport?.overallPerformance ??
       i.overallScore ??
-      (i as any).score;
+      i.score;
 
     const date = recordedTimestamp(i.completedAt);
     if (score !== undefined && score !== null && date) {

@@ -22,10 +22,8 @@ import {
   Filter,
   RotateCcw,
   Radio,
-  AlertCircle,
   ArrowRight,
   ChevronRight,
-  FileText,
 } from "lucide-react";
 
 function DashboardContent() {
@@ -216,12 +214,12 @@ function DashboardContent() {
     : "No registrations in selected period";
 
   const maxCount = Math.max(...growthData.map((d) => d.count), 3);
-  const chartWidth = 540;
-  const chartHeight = 130;
-  const paddingLeft = 35;
-  const paddingRight = 25;
-  const paddingTop = 25;
-  const paddingBottom = 25;
+  const chartWidth = 760;
+  const chartHeight = 230;
+  const paddingLeft = 44;
+  const paddingRight = 30;
+  const paddingTop = 26;
+  const paddingBottom = 34;
 
   const usableWidth = chartWidth - paddingLeft - paddingRight;
   const usableHeight = chartHeight - paddingTop - paddingBottom;
@@ -232,38 +230,29 @@ function DashboardContent() {
     return { ...d, x, y };
   });
 
-  const strokePath = points.length > 0 ? `M ${points.map((p) => `${p.x},${p.y}`).join(" L ")}` : "";
+  let smoothPath = "";
+  if (points.length > 0) {
+    smoothPath = `M ${points[0].x.toFixed(1)},${points[0].y.toFixed(1)}`;
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[Math.max(i - 1, 0)];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const p3 = points[Math.min(i + 2, points.length - 1)];
 
-  // Career Center Operational "Needs Attention" derived from actual stored data
-  const attention = metrics?.needsAttention;
-  const attentionItems = [
-    {
-      title: "Resumes Pending Analysis",
-      description: "Students who uploaded a resume document but lack completed canonical analysis.",
-      count: attention?.resumeMissingAnalysis.count ?? 0,
-      link: "/students?resumeStatus=uploaded&score=incomplete",
-    },
-    {
-      title: "Analyzed Resumes Without Mock Interview",
-      description: "Students with analyzed resumes who have not initiated an interview simulation.",
-      count: attention?.analysisWithoutInterview.count ?? 0,
-      link: "/students?resumeStatus=uploaded",
-    },
-    {
-      title: "Interview Started but Incomplete",
-      description: "Students with active or unfinalized voice/VR interview simulation sessions.",
-      count: attention?.interviewInProgress.count ?? 0,
-      link: "/students?interviewStatus=in_progress",
-    },
-    {
-      title: "Incomplete Employability Profile",
-      description: "Students lacking either resume scoring or interview completion.",
-      count: attention?.incompleteEvaluations.count ?? 0,
-      link: "/students?score=incomplete",
-    },
-  ];
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
 
-  const totalAttentionNeeded = attentionItems.reduce((acc, item) => acc + item.count, 0);
+      smoothPath += ` C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+    }
+  }
+
+  const baselineY = chartHeight - paddingBottom;
+  const areaPath =
+    points.length > 0
+      ? `${smoothPath} L ${points[points.length - 1].x.toFixed(1)},${baselineY.toFixed(1)} L ${points[0].x.toFixed(1)},${baselineY.toFixed(1)} Z`
+      : "";
 
   return (
     <div className="space-y-6 text-[#1E3E6B]">
@@ -469,15 +458,15 @@ function DashboardContent() {
           </div>
         </div>
 
-        {/* Staged Visualization: Horizontal Pipeline on Desktop, Vertical on Mobile */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+        {/* Staged Visualization: Uniform Responsive Pipeline Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3.5 items-stretch">
           {pipelineStages.map((stage, idx) => (
             <div
               key={idx}
-              className="p-4 bg-[#E7EFF5]/20 rounded-xl border border-[#DCE6EE] flex flex-col justify-between space-y-3 relative"
+              className="p-4 bg-gradient-to-b from-[#F8FAFC] to-[#F1F5F9]/50 rounded-xl border border-[#DCE6EE] flex flex-col justify-between space-y-3 relative shadow-xs hover:border-[#1E3E6B]/30 transition-all duration-150 h-full min-h-[175px]"
             >
               <div className="flex items-center justify-between text-[11px] font-bold text-[#5F7E97]">
-                <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#1E3E6B]">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#1E3E6B] bg-[#E7EFF5]/80 px-2 py-0.5 rounded">
                   Stage {stage.step}
                 </span>
                 {idx < pipelineStages.length - 1 && (
@@ -485,75 +474,33 @@ function DashboardContent() {
                 )}
               </div>
 
-              <div>
-                <div className="text-2xl font-black text-[#1E3E6B]">{stage.count}</div>
-                <div className="text-xs font-bold text-[#1E3E6B] truncate">{stage.label}</div>
-                <div className="text-[11px] text-[#5F7E97]">{stage.sub}</div>
+              <div className="space-y-1">
+                <div className="text-2xl font-black text-[#1E3E6B] tracking-tight">{stage.count}</div>
+                <div className="text-xs font-bold text-[#1E3E6B] min-h-[2rem] flex items-center leading-snug">
+                  {stage.label}
+                </div>
+                <div className="text-[11px] text-[#5F7E97] min-h-[1.75rem] leading-tight">
+                  {stage.sub}
+                </div>
               </div>
 
-              <div className="pt-2 border-t border-[#DCE6EE] space-y-1 text-[11px]">
+              <div className="mt-auto pt-2.5 border-t border-[#DCE6EE] space-y-1 text-[11px]">
                 <div className="flex items-center justify-between">
                   <span className="text-[#5F7E97] font-medium">Conversion:</span>
                   <span className="font-extrabold text-[#1E3E6B]">{stage.conversion}</span>
                 </div>
-                {stage.dropOff > 0 && (
-                  <div className="text-[10px] font-semibold text-amber-700">
-                    -{stage.dropOff} student drop-off
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Operational: Career Center "Needs Attention" Section */}
-      <div className="p-6 bg-white rounded-xl border border-[#DCE6EE] space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#DCE6EE] pb-3">
-          <div>
-            <h2 className="text-base font-black text-[#1E3E6B] flex items-center gap-2">
-              <AlertCircle size={18} className="text-amber-600" /> Operational Attention Queue
-            </h2>
-            <p className="text-xs font-medium text-[#5F7E97] mt-0.5">
-              Actionable student groups requiring coordinator or career center outreach based on authoritative states.
-            </p>
-          </div>
-          <span className="text-xs font-bold text-[#5F7E97]">
-            {totalAttentionNeeded} student item(s) flagged
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          {attentionItems.map((item, idx) => (
-            <div
-              key={idx}
-              className="p-4 bg-white rounded-xl border border-[#DCE6EE] flex flex-col justify-between space-y-3"
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-black ${
-                      item.count > 0
-                        ? "bg-amber-50 text-amber-900 border border-amber-200"
-                        : "bg-gray-50 text-gray-500 border border-gray-200"
-                    }`}
-                  >
-                    {item.count} Student{item.count === 1 ? "" : "s"}
-                  </span>
+                <div className="min-h-[1rem]">
+                  {stage.dropOff > 0 ? (
+                    <div className="text-[10px] font-semibold text-amber-700">
+                      -{stage.dropOff} student drop-off
+                    </div>
+                  ) : (
+                    <div className="text-[10px] font-semibold text-[#0D9488]">
+                      Complete retention
+                    </div>
+                  )}
                 </div>
-                <h3 className="text-xs font-extrabold text-[#1E3E6B] mt-2">{item.title}</h3>
-                <p className="text-[11px] font-medium text-[#5F7E97] mt-0.5 leading-relaxed">
-                  {item.description}
-                </p>
               </div>
-
-              <Link
-                href={item.link}
-                className="inline-flex items-center justify-between text-xs font-bold text-[#1E3E6B] hover:text-[#274f89] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E3E6B] rounded pt-2 border-t border-[#DCE6EE] transition-colors group"
-              >
-                <span>View Students</span>
-                <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-              </Link>
             </div>
           ))}
         </div>
@@ -579,19 +526,36 @@ function DashboardContent() {
           </div>
 
           {/* SVG Line Chart */}
-          <div className="w-full relative bg-[#E7EFF5]/20 rounded-xl p-4 border border-[#DCE6EE]">
+          <div className="flex-1 w-full min-h-[220px] flex flex-col justify-center relative bg-gradient-to-b from-[#F8FAFC] to-[#F1F5F9]/50 rounded-xl p-4 sm:p-5 border border-[#DCE6EE] shadow-xs">
             <svg
               viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-              className="w-full h-auto overflow-visible select-none"
+              className="w-full h-auto min-h-[190px] overflow-visible select-none"
             >
-              <g className="text-[10px] font-bold fill-[#5F7E97]">
+              <defs>
+                <linearGradient id="trendAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#1E3E6B" stopOpacity="0.25" />
+                  <stop offset="60%" stopColor="#2563EB" stopOpacity="0.08" />
+                  <stop offset="100%" stopColor="#0D9488" stopOpacity="0.00" />
+                </linearGradient>
+                <linearGradient id="trendLineGradient" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#1E3E6B" />
+                  <stop offset="60%" stopColor="#2563EB" />
+                  <stop offset="100%" stopColor="#0D9488" />
+                </linearGradient>
+                <filter id="trendGlow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#1E3E6B" floodOpacity="0.2" />
+                </filter>
+              </defs>
+
+              {/* Grid & Axis Marks */}
+              <g className="text-[10px] font-semibold fill-[#64748B]">
                 <line
                   x1={paddingLeft}
                   y1={paddingTop}
                   x2={chartWidth - paddingRight}
                   y2={paddingTop}
-                  stroke="#DCE6EE"
-                  strokeDasharray="3 3"
+                  stroke="#E2E8F0"
+                  strokeDasharray="4 4"
                 />
                 <text x={paddingLeft - 8} y={paddingTop + 3} textAnchor="end">
                   {maxCount}
@@ -602,8 +566,8 @@ function DashboardContent() {
                   y1={paddingTop + usableHeight / 2}
                   x2={chartWidth - paddingRight}
                   y2={paddingTop + usableHeight / 2}
-                  stroke="#DCE6EE"
-                  strokeDasharray="3 3"
+                  stroke="#E2E8F0"
+                  strokeDasharray="4 4"
                 />
                 <text x={paddingLeft - 8} y={paddingTop + usableHeight / 2 + 3} textAnchor="end">
                   {Math.round(maxCount / 2)}
@@ -614,72 +578,107 @@ function DashboardContent() {
                   y1={chartHeight - paddingBottom}
                   x2={chartWidth - paddingRight}
                   y2={chartHeight - paddingBottom}
-                  stroke="#DCE6EE"
-                  strokeWidth="1.5"
+                  stroke="#CBD5E1"
+                  strokeWidth="1.25"
                 />
                 <text x={paddingLeft - 8} y={chartHeight - paddingBottom + 3} textAnchor="end">
                   0
                 </text>
               </g>
 
-              {strokePath && (
+              {/* Area Fill */}
+              {areaPath && (
                 <path
-                  d={strokePath}
-                  fill="none"
-                  stroke="#1E3E6B"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                  d={areaPath}
+                  fill="url(#trendAreaGradient)"
                 />
               )}
 
-              {points.map((p, idx) => (
-                <g
-                  key={idx}
-                  className="cursor-pointer"
-                  onMouseEnter={() => setHoveredPoint(p)}
-                  onMouseLeave={() => setHoveredPoint(null)}
-                >
-                  <circle
-                    cx={p.x}
-                    cy={p.y}
-                    r="4.5"
-                    fill={p.count > 0 ? "#1E3E6B" : "#94A3B8"}
-                    stroke="#FFFFFF"
-                    strokeWidth="2"
-                  />
-                  <text
-                    x={p.x}
-                    y={p.y - 8}
-                    textAnchor="middle"
-                    className={`text-[11px] font-black ${
-                      p.count > 0 ? "fill-[#1E3E6B]" : "fill-gray-400"
-                    }`}
+              {/* Smooth Trend Curve */}
+              {smoothPath && (
+                <path
+                  d={smoothPath}
+                  fill="none"
+                  stroke="url(#trendLineGradient)"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  filter="url(#trendGlow)"
+                />
+              )}
+
+              {/* Interactive Points */}
+              {points.map((p, idx) => {
+                const isHovered = hoveredPoint?.month === p.month;
+                const hasValue = p.count > 0;
+                return (
+                  <g
+                    key={idx}
+                    className="cursor-pointer transition-all duration-150"
+                    onMouseEnter={() => setHoveredPoint(p)}
+                    onMouseLeave={() => setHoveredPoint(null)}
                   >
-                    {p.count}
-                  </text>
-                  <text
-                    x={p.x}
-                    y={chartHeight - paddingBottom + 16}
-                    textAnchor="middle"
-                    className="text-[11px] font-bold fill-[#5F7E97]"
-                  >
-                    {p.month}
-                  </text>
-                </g>
-              ))}
+                    {(isHovered || hasValue) && (
+                      <circle
+                        cx={p.x}
+                        cy={p.y}
+                        r={isHovered ? "8" : "6"}
+                        fill={hasValue ? "#2563EB" : "#94A3B8"}
+                        opacity={isHovered ? "0.35" : "0.18"}
+                      />
+                    )}
+
+                    <circle
+                      cx={p.x}
+                      cy={p.y}
+                      r={isHovered ? "5" : "4"}
+                      fill={hasValue ? (isHovered ? "#2563EB" : "#1E3E6B") : "#94A3B8"}
+                      stroke="#FFFFFF"
+                      strokeWidth="2"
+                    />
+
+                    {hasValue && (
+                      <text
+                        x={p.x}
+                        y={p.y - 10}
+                        textAnchor="middle"
+                        stroke="#FFFFFF"
+                        strokeWidth="3"
+                        paintOrder="stroke fill"
+                        className="text-[11px] font-extrabold fill-[#1E3E6B]"
+                      >
+                        {p.count}
+                      </text>
+                    )}
+
+                    <text
+                      x={p.x}
+                      y={chartHeight - paddingBottom + 18}
+                      textAnchor="middle"
+                      className={`text-[11px] font-semibold transition-colors ${
+                        isHovered ? "fill-[#1E3E6B] font-bold" : "fill-[#64748B]"
+                      }`}
+                    >
+                      {p.month}
+                    </text>
+                  </g>
+                );
+              })}
             </svg>
 
             {hoveredPoint && (
               <div
-                className="absolute z-10 bg-[#1E3E6B] text-white text-[11px] font-bold px-2.5 py-1 rounded shadow-md pointer-events-none -translate-x-1/2 -translate-y-full"
+                className="absolute z-10 bg-[#1E3E6B] text-white text-[11px] font-medium px-3 py-1.5 rounded-lg shadow-lg pointer-events-none -translate-x-1/2 -translate-y-full border border-white/20 backdrop-blur-sm"
                 style={{
                   left: `${(hoveredPoint.x / chartWidth) * 100}%`,
-                  top: `${(hoveredPoint.y / chartHeight) * 100 - 8}%`,
+                  top: `${(hoveredPoint.y / chartHeight) * 100 - 10}%`,
                 }}
               >
-                {hoveredPoint.month}: {hoveredPoint.count}{" "}
-                {hoveredPoint.count === 1 ? "registration" : "registrations"}
+                <div className="font-bold">{hoveredPoint.month}</div>
+                <div className="text-[#93C5FD]">
+                  {hoveredPoint.count}{" "}
+                  {hoveredPoint.count === 1 ? "registration" : "registrations"}
+                </div>
               </div>
             )}
           </div>

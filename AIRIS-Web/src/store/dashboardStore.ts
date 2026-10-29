@@ -33,7 +33,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     program: "all",
     coordinator: "all",
     period: "all",
-    datasetScope: "all",
+    datasetScope: "genuine",
   },
 
   setFilters: (newFilters) => {
@@ -53,8 +53,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         insights: analyticsPayload.insights,
         loading: false,
       });
-    } catch (err: any) {
-      set({ error: err.message || "Failed to load dashboard statistics.", loading: false });
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : "Failed to load dashboard statistics.", loading: false });
     }
   },
 }));

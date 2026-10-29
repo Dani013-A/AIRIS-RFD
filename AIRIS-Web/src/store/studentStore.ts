@@ -4,6 +4,7 @@ import {
   ScoreHistoryEvent,
   StudentActivityEvent,
   StoredResumeAnalysis,
+  StoredInterviewSession,
 } from "../types/user.types";
 import {
   fetchStudentsList,
@@ -23,8 +24,8 @@ interface StudentState {
   students: StudentListItem[];
   selectedStudent: StudentListItem | null;
   selectedAnalysis: StoredResumeAnalysis | null;
-  selectedResume: any | null;
-  selectedInterview: any | null;
+  selectedResume: Record<string, unknown> | null;
+  selectedInterview: StoredInterviewSession | null;
   scoreHistory: ScoreHistoryEvent[];
   activityLogs: StudentActivityEvent[];
   loading: boolean;
@@ -57,9 +58,9 @@ export const useStudentStore = create<StudentState>((set, get) => ({
     try {
       const list = await fetchStudentsList(filters);
       set({ students: list, loading: false, error: null });
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to load students list from Firestore:", err);
-      set({ error: err.message || "Failed to query Firestore student records.", loading: false });
+      set({ error: (err && typeof err === "object" && "message" in err ? String(err.message || "") : "") || "Failed to query Firestore student records.", loading: false });
     }
   },
 
@@ -87,9 +88,9 @@ export const useStudentStore = create<StudentState>((set, get) => ({
         activityLogs: profile.activityLogs,
         loading: false,
       });
-    } catch (err: any) {
+    } catch (err) {
       if (requestId !== activeProfileRequest) return;
-      set({ error: err.message || "Failed to load student profile details.", loading: false });
+      set({ error: (err && typeof err === "object" && "message" in err ? String(err.message || "") : "") || "Failed to load student profile details.", loading: false });
     }
   },
 
@@ -105,8 +106,8 @@ export const useStudentStore = create<StudentState>((set, get) => ({
             : state.selectedStudent,
         actionLoading: false,
       }));
-    } catch (err: any) {
-      set({ error: err.message || "Failed to modify account state.", actionLoading: false });
+    } catch (err) {
+      set({ error: (err && typeof err === "object" && "message" in err ? String(err.message || "") : "") || "Failed to modify account state.", actionLoading: false });
       throw err;
     }
   },
@@ -121,8 +122,8 @@ export const useStudentStore = create<StudentState>((set, get) => ({
           state.selectedStudent && state.selectedStudent.uid === studentId ? null : state.selectedStudent,
         actionLoading: false,
       }));
-    } catch (err: any) {
-      set({ error: err.message || "Failed to delete student account.", actionLoading: false });
+    } catch (err) {
+      set({ error: (err && typeof err === "object" && "message" in err ? String(err.message || "") : "") || "Failed to delete student account.", actionLoading: false });
       throw err;
     }
   },

@@ -74,6 +74,8 @@ export interface DonutCategoryItem {
 export interface HistoricalDataPoint {
   date: string;
   value: number;
+  count: number;
+  month?: string;
   label?: string;
 }
 

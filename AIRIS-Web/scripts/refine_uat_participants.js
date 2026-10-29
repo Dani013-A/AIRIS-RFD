@@ -19,10 +19,13 @@
  *   node scripts/refine_uat_participants.js [--dry-run]
  */
 
-const { initializeApp, cert, getApps } = require("firebase-admin/app");
-const { getFirestore, Timestamp } = require("firebase-admin/firestore");
-const fs = require("fs");
-const path = require("path");
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const EXPECTED_PROJECT_ID = "airis-development";
 const ROSTER_PATH = path.join(__dirname, "../fixtures/uat_participants_roster_50.json");
